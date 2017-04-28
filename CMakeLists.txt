@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
-
 project(STB)
+
+set(MKL_MULTI_THREADED FALSE)
+
 enable_language(Fortran)
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
