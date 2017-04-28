@@ -19,8 +19,20 @@ endif()
 set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${bounds}")
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${dialect}")
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+MESSAGE( STATUS "cmake_module_path:    " ${CMAKE_MODULE_PATH})
+
+file(GLOB_RECURSE sources  src/*.f90 src/*.h)
+add_executable(stb.x ${sources})
+
+find_package(MKL REQUIRED)
+if(MKL_FOUND)
+    MESSAGE( STATUS "MKL FOUND")
+    include_directories(${MKL_INCLUDE_DIRS})
+    target_link_libraries (stb.x ${MKL_MINIMAL_LIBRARY})
+else()
+    MESSAGE( STATUS "MKL NOT FOUND")
+endif()
 #
 # Compile.
 #
-file(GLOB_RECURSE sources  src/*.f90 src/*.h)
-add_executable(stb.x ${sources})
