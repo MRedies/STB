@@ -3,3 +3,5 @@ CMakeFiles/*
 Makefile
 prog
 cmake_install.cmake
+*.mod
+*.x
