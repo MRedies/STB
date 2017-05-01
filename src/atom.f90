@@ -2,11 +2,13 @@ module Class_atom
     implicit none
 
     type atom
-        real(8)                     :: m_phi, m_theta
-        integer(4), dimension(2)    :: pos
-        ! only three neighours to avoid double counting
-        ! right, up-right and up-left
-        integer(4), dimension(3)    :: neigh
+        real(8)                                :: m_phi, m_theta
+        integer(4), dimension(2)               :: pos
+        !neighbours without double conting
+        integer(4)                             :: n_neigh
+        real(8), dimension(:), allocatable     :: hopping
+        integer(4), dimension(:), allocatable  :: neigh
+
     contains
         procedure :: get_m_cart =>  get_m_cart 
     end type atom
@@ -30,7 +32,6 @@ contains
         ret%m_phi      = 0.0d0
         ret%m_theta    = 0.0d0
         ret%pos        = p_pos
-        ret%neigh      = (/0,0,0/)
     end function
 
 end module 

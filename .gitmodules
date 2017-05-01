@@ -1,0 +1,3 @@
+[submodule "thirdparty/config_fortran"]
+	path = thirdparty/config_fortran
+	url = git@github.com:jannisteunissen/config_fortran.git

@@ -1,7 +1,14 @@
 cmake_minimum_required(VERSION 3.5)
 project(STB)
 
+file(GLOB_RECURSE sources  src/*.f90 
+                           src/*.h 
+                           thirdparty/config_fortran/m_config.f90)
+
+add_executable(stb.x ${sources})
+
 set(MKL_MULTI_THREADED FALSE)
+MESSAGE( STATUS "MKL multi-threading: " ${MKL_MULTI_THREADED})
 
 enable_language(Fortran)
 
@@ -24,9 +31,6 @@ set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${dialect}")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 MESSAGE( STATUS "cmake_module_path:    " ${CMAKE_MODULE_PATH})
 
-file(GLOB_RECURSE sources  src/*.f90 src/*.h)
-add_executable(stb.x ${sources})
-
 find_package(MKL REQUIRED)
 if(MKL_FOUND)
     MESSAGE( STATUS "MKL FOUND")
@@ -35,6 +39,7 @@ if(MKL_FOUND)
 else()
     MESSAGE( STATUS "MKL NOT FOUND")
 endif()
+MESSAGE(STATUS "MKL_THREADING_LIBNAME " ${MKL_THREADING_LIBNAME})
 #
 # Compile.
 #

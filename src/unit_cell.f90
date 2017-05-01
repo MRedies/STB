@@ -8,13 +8,13 @@ module Class_unit_cell
         integer(4)                              :: num_atoms, hex_size
         type(atom), dimension(:), allocatable   :: atoms 
     contains
-        procedure :: get_num_atoms => get_num_atoms
-        procedure :: init          => init
-        procedure :: setup_hexagon => setup_hexagon
-        procedure :: find_neigh    => find_neigh
-        procedure :: in_hexagon    => in_hexagon
-        procedure :: setup_conn    => setup_conn
-        procedure :: get_atoms     =>  get_atoms
+        procedure :: get_num_atoms       => get_num_atoms
+        procedure :: init                => init
+        procedure :: setup_hexagon       => setup_hexagon
+        procedure :: find_neigh          => find_neigh
+        procedure :: in_hexagon          => in_hexagon
+        procedure :: setup_conn_1D_layer => setup_conn_1D_layer
+        procedure :: get_atoms           => get_atoms
     end type unit_cell
 contains
     Subroutine  init(this, hex_sz)
@@ -29,7 +29,7 @@ contains
         this%hex_size =  hex_sz
         
         call this%setup_hexagon()
-        call this%setup_conn()
+        call this%setup_conn_1D_layer()
 
     End Subroutine init
 
@@ -77,24 +77,30 @@ contains
 
     End Subroutine setup_hexagon
 
-    Subroutine  setup_conn(this)
+    Subroutine  setup_conn_1D_layer(this)
         Implicit None
         class(unit_cell), intent(inout)       :: this 
         integer(4), dimension(2), parameter   :: conn1 =  (/0, 1 /)
         integer(4), dimension(2), parameter   :: conn2 =  (/1, 0 /)
         integer(4), dimension(2), parameter   :: conn3 =  (/1, 1 /)
-        integer(4), dimension(2)              :: start_pos
+        integer(4), dimension(2)              :: start_pos 
         integer(4)                            :: i
-
+        real(8), parameter                    :: p_hopping = 0.3
+        
         do i =  1,this%num_atoms
-            start_pos =  this%atoms(i)%pos
+            allocate(this%atoms(i)%neigh(3))
+            allocate(this%atoms(i)%hopping(3))
+            
+            this%atoms(i)%hopping = p_hopping
+            start_pos             = this%atoms(i)%pos
+            
             this%atoms(i)%neigh(1) = this%find_neigh(start_pos, conn1)
             this%atoms(i)%neigh(2) = this%find_neigh(start_pos, conn2)
             this%atoms(i)%neigh(3) = this%find_neigh(start_pos, conn3)
         enddo
 
 
-    End Subroutine setup_conn
+    End Subroutine setup_conn_1D_layer
 
     function find_neigh(this, start, conn) result(neigh)
         implicit none
