@@ -8,6 +8,7 @@ module Class_atom
         integer(4)                             :: n_neigh
         real(8), dimension(:), allocatable     :: hopping
         integer(4), dimension(:), allocatable  :: neigh
+        real(8), dimension(:,:), allocatable   :: neigh_conn
 
     contains
         procedure :: get_m_cart =>  get_m_cart 
