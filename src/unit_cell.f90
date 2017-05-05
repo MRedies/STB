@@ -7,12 +7,11 @@ module Class_unit_cell
     complex(8), parameter :: i_unit = cmplx(0d0, 1d0)
 
     type unit_cell
+        real(8), public, dimension(2,2) :: lattice, rez_lattice
         ! number of non-redundant atoms pre unit cell
-        private
-        integer(4)      :: num_atoms, hex_size
-        real(8)         :: unit_cell_dim, E_s, in_plane_hopping
-        real(8), dimension(2,2)                 :: lattice, rez_lattice
-        type(atom), dimension(:), allocatable   :: atoms 
+        integer(4), private      :: num_atoms, hex_size
+        real(8), private         :: unit_cell_dim, E_s, in_plane_hopping
+        type(atom), private, dimension(:), allocatable   :: atoms 
     contains
         procedure :: get_num_atoms       => get_num_atoms
         procedure :: setup_hexagon       => setup_hexagon
@@ -20,19 +19,59 @@ module Class_unit_cell
         procedure :: in_hexagon          => in_hexagon
         procedure :: setup_conn_1D_layer => setup_conn_1D_layer
         procedure :: get_atoms           => get_atoms
-        procedure :: get_ham             => get_ham
+            procedure :: get_ham             => get_ham
         procedure :: calc_eigenvalues    =>  calc_eigenvalues
+        procedure :: setup_lattice_vec   =>  setup_lattice_vec
     end type unit_cell
 contains
+    function angle(a ,b) result(ang)
+        implicit none
+        real(8), dimension(2), intent(in)   :: a,b 
+        real(8)                             :: ang
+        ang =  dot_product(a,b)/(norm2(a)* norm2(b))
+        ang =  180.0d0 / PI *  acos(ang)
+    end function angle
+    
     subroutine setup_lattice_vec(this)
         implicit none
-        type(unit_cell), intent(inout):: this 
+        class(unit_cell), intent(inout) :: this 
+        real(8)                         :: ucd
+        integer(4), parameter           :: lwork =  20
+        real(8), dimension(lwork)       :: work 
+        integer(4), dimension(2)        :: ipiv
+        integer(4)                      :: info, i, j
         
-        this%lattice(:,1) =  (/2 * unit_cell_dim,  unit_cell_dim /)
-        this%lattice(:,2) =  (/2 * unit_cell_dim, -unit_cell_dim /)
+        ucd =  this%unit_cell_dim 
+        this%lattice(:,1) =  ucd * (/1.5d0,  sin(60d0 * PI/180d0) /)
+        this%lattice(:,2) =  ucd * (/1.5d0, -sin(60d0 * PI/180d0) /)
 
-        print_mtx(this%lattice)
+        ! preform inversion 
+        this%rez_lattice =  transpose(this%lattice)
+        call dgetrf(2,2, this%rez_lattice, 2, ipiv, info)
+        if(info /= 0) then
+            write (*,*) "LU-decomp of lattice vectors failed"
+            stop
+        endif
 
+        call dgetri(2, this%rez_lattice, 2, ipiv, work, lwork, info)
+        if(info /= 0) then
+            write (*,*) "Inversion of lattice vectors failed"
+            stop
+        endif
+        this%rez_lattice =  2 *  PI * this%rez_lattice
+        
+
+        do i =  1,2
+            write (*,*) "Real space", i
+            call print_mtx(this%lattice(:,i))
+        enddo
+        write (*,*)  "#############"
+        do i =  1,2
+            write (*,*) "Rez: ", i
+            call print_mtx(this%rez_lattice(:,i))
+        enddo
+
+        
     end subroutine setup_lattice_vec
     
     function calc_eigenvalues(this, k_list) result(eig_val)
@@ -54,7 +93,6 @@ contains
         allocate(WORK(LWMAX))
         
         do i = 1,size(k_list,2)
-            write (*,"(I5,a,I5)") i, "/", size(k_list,2)
             k =  k_list(:,i)
             call this%get_ham(k, H)
             
@@ -90,7 +128,7 @@ contains
         ham =  0d0
         
         do i =  1,2*this%num_atoms
-            ham(i,i) =  this%E_s
+            ham(i,i) =  this%E_s 
         enddo
 
         ! Spin up
@@ -100,13 +138,6 @@ contains
                 k_dot_r =  dot_product(k, this%atoms(i)%neigh_conn(conn,:))
                 ham(i,j) = ham(i,j) + exp(i_unit * k_dot_r) &
                                     * this%atoms(i)%hopping(conn)
-                if((i == 1 .and. j ==  2)&
-                .or. (i == 2 .and. j == 1)) then
-                    write (*,*) "add: ", exp(i_unit * k_dot_r) &
-                                        * this%atoms(i)%hopping(conn) 
-                    write (*,*) "new: ", ham(i,j)
-                endif
-
                 ham(j,i) = conjg(ham(i,j))
             enddo
         enddo
@@ -125,11 +156,6 @@ contains
                 ham(j_d,i_d) = conjg(ham(i_d,j_d))
             enddo
         enddo
-        call print_mtx(6, ham(1:5,1:5))
-        write (*,*) "--------------------"
-        call print_mtx(6, ham(this%num_atoms+1:this%num_atoms+5, &
-                              this%num_atoms+1:this%num_atoms+5))
-        write (*,*) "####################"
     end subroutine get_ham
 
     function init_unit(cfg) result(ret)
@@ -154,6 +180,7 @@ contains
 
         call ret%setup_hexagon()
         call ret%setup_conn_1D_layer()
+        call ret%setup_lattice_vec()
 
     end function init_unit
 
@@ -208,12 +235,19 @@ contains
         integer(4), dimension(2), parameter   :: conn2 =  (/1, 0 /)
         integer(4), dimension(2), parameter   :: conn3 =  (/1, 1 /)
         integer(4), dimension(2)              :: start_pos 
-        integer(4)                            :: i
-        real(8), dimension(3)                 :: base_vec
+        integer(4)                            :: i,j
+        real(8)                               :: base_len
+        real(8), dimension(3,3)               :: base_vecs
 
-        base_vec = (/ this%unit_cell_dim /  this%hex_size, 0d0, 0d0 /)
-        write (*,*) base_vec
-        
+        base_len =  this%unit_cell_dim / this%hex_size
+        base_vecs(1, :) = (/ 1d0,   0d0,                  0d0 /)
+        base_vecs(2, :) = (/ 0.5d0, sin(60d0/180d0 * PI), 0d0 /)
+        base_vecs(3, :) = (/-0.5d0, sin(60d0/180d0 * PI), 0d0 /)
+        base_vecs =  base_vecs *  base_len
+
+        write (*,*) "base_vecs(1,:)"
+        call print_mtx(base_vecs(1,:))
+
         do i =  1,this%num_atoms
             allocate(this%atoms(i)%neigh(3))
             allocate(this%atoms(i)%hopping(3))
@@ -227,9 +261,7 @@ contains
             this%atoms(i)%neigh(2) = this%find_neigh(start_pos, conn2)
             this%atoms(i)%neigh(3) = this%find_neigh(start_pos, conn3)
 
-            this%atoms(i)%neigh_conn(1,:) = base_vec
-            this%atoms(i)%neigh_conn(2,:) = matmul(rot_z_deg(60d0), base_vec)
-            this%atoms(i)%neigh_conn(3,:) = matmul(rot_z_deg(120d0), base_vec)
+            this%atoms(i)%neigh_conn =  base_vecs 
         enddo
 
     End Subroutine setup_conn_1D_layer
@@ -344,6 +376,8 @@ contains
                 factor =  1.0d0
             case ("eV")
                 factor =  0.03674932d0
+            case ("a0^-1") =  1.0d0
+                factor = 1.0d0
             case default
                 write (*,*) "Unit unknown"
                 stop
