@@ -28,22 +28,25 @@ contains
         Implicit None
         type(CFG_t)            :: cfg 
 
-        call CFG_add(cfg, "units%length", "none", "")
-        call CFG_add(cfg, "units%energy", "none", "")
+        call CFG_add(cfg, "units%length",     "none", "")
+        call CFG_add(cfg, "units%energy",     "none", "")
         call CFG_add(cfg, "units%inv_energy", "none", "")
+        call CFG_add(cfg, "units%inv_length", "none", "")
 
         call CFG_add(cfg, "hamil%in_plane_hopping", 0.0d0, "")
-        call CFG_add(cfg, "hamil%E_s", 0.0d0, "")
+        call CFG_add(cfg, "hamil%E_s",              0.0d0, "")
 
-        call CFG_add(cfg, "grid%hexagon_size", 0, "")
+        call CFG_add(cfg, "grid%hexagon_size",  0,   "")
         call CFG_add(cfg, "grid%unit_cell_dim", 0d0, "")
 
-        call CFG_add(cfg, "kspace%k_label", (/ ""/), "", &
-                    dynamic_size=.true.)
-        call CFG_add(cfg, "kspace%k_x", (/1.0d0/), "", dynamic_size=.true.)
-        call CFG_add(cfg, "kspace%k_y", (/1.0d0/), "", dynamic_size=.true.)
-        call CFG_add(cfg, "kspace%num_points", 0, "")
-        call CFG_add(cfg, "kspace%filling", "","")
+        call CFG_add(cfg, "kspace%k_label",    (/ ""/),   "",&
+                          dynamic_size=.true.)
+        call CFG_add(cfg, "kspace%k_x",        (/1.0d0/), "",&
+                          dynamic_size=.true.)
+        call CFG_add(cfg, "kspace%k_y",        (/1.0d0/), "",&
+                          dynamic_size=.true.)
+        call CFG_add(cfg, "kspace%num_points", 0,         "")
+        call CFG_add(cfg, "kspace%filling",    "",        "")
 
         call CFG_add(cfg, "output%outfile", "foo/bar", "")
         call CFG_add(cfg, "output%band_prefix", "bar/foo","")

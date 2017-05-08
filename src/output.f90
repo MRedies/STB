@@ -3,9 +3,28 @@ Module  output
     interface print_mtx
         module procedure print_mtx_real, print_mtx_cmplx, print_vec_real,&
                  print_mtx_real_no_unit, print_mtx_cmplx_no_unit, &
-                 print_vec_real_no_unit
+                 print_vec_real_no_unit, print_vec_int, &
+                 print_vec_int_no_unit
     end interface
 contains
+    subroutine print_vec_int_no_unit(vec)
+        implicit none
+        integer(4), dimension(:), intent(in)   :: vec
+        
+        call print_vec_int(6,vec)
+    end subroutine print_vec_int_no_unit
+    
+    subroutine print_vec_int(p_unit, vec)
+        implicit none
+        integer(4), dimension(:), intent(in)   :: vec
+        integer(4), intent(in)                 :: p_unit
+        integer(4)                             :: i
+
+        do i =  1,size(vec)
+            write(p_unit,"(I6)") vec(i)
+        enddo
+    end subroutine print_vec_int 
+    
     subroutine print_vec_real_no_unit(vec)
         implicit none
         real(8), dimension(:), intent(in)      :: vec

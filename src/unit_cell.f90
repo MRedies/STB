@@ -15,11 +15,12 @@ module Class_unit_cell
     contains
         procedure :: get_num_atoms       => get_num_atoms
         procedure :: setup_hexagon       => setup_hexagon
+        procedure :: setup_single        => setup_single
         procedure :: find_neigh          => find_neigh
         procedure :: in_hexagon          => in_hexagon
         procedure :: setup_conn_1D_layer => setup_conn_1D_layer
         procedure :: get_atoms           => get_atoms
-            procedure :: get_ham             => get_ham
+        procedure :: get_ham             => get_ham
         procedure :: calc_eigenvalues    =>  calc_eigenvalues
         procedure :: setup_lattice_vec   =>  setup_lattice_vec
     end type unit_cell
@@ -59,19 +60,6 @@ contains
             stop
         endif
         this%rez_lattice =  2 *  PI * this%rez_lattice
-        
-
-        do i =  1,2
-            write (*,*) "Real space", i
-            call print_mtx(this%lattice(:,i))
-        enddo
-        write (*,*)  "#############"
-        do i =  1,2
-            write (*,*) "Rez: ", i
-            call print_mtx(this%rez_lattice(:,i))
-        enddo
-
-        
     end subroutine setup_lattice_vec
     
     function calc_eigenvalues(this, k_list) result(eig_val)
@@ -162,12 +150,8 @@ contains
         implicit none
         type(unit_cell)              :: ret
         type(CFG_t),  intent(inout)  :: cfg
-        integer(4)                   :: hex_sz
+        integer(4)                   :: hex_sz,i 
         real(8)                      :: tmp
-
-        call CFG_get(cfg, "grid%hexagon_size", ret%hex_size)
-        ret%num_atoms =  calc_num_atoms(ret%hex_size)
-        allocate(ret%atoms(ret%num_atoms))
 
         call CFG_get(cfg, "grid%unit_cell_dim", tmp)
         ret%unit_cell_dim = tmp * get_unit_conv("length", cfg)
@@ -178,11 +162,77 @@ contains
         call CFG_get(cfg, "hamil%in_plane_hopping", tmp)
         ret%in_plane_hopping =  tmp * get_unit_conv("energy", cfg)
 
-        call ret%setup_hexagon()
-        call ret%setup_conn_1D_layer()
-        call ret%setup_lattice_vec()
+        call CFG_get(cfg, "grid%hexagon_size", ret%hex_size)
+        if(ret%hex_size >=  1) then
+            ret%num_atoms =  calc_num_atoms(ret%hex_size)
+            allocate(ret%atoms(ret%num_atoms))
 
+            call ret%setup_hexagon()
+
+            call ret%setup_conn_1D_layer()
+            call ret%setup_lattice_vec()
+            do i =  1,ret%num_atoms
+                write (*,*) "Atom #: ", i
+                write (*,*) "Pos: ", ret%atoms(i)%pos
+                write (*,*) "conn: "
+                call print_mtx(ret%atoms(i)%neigh) 
+                write (*,*) "conn_vec" 
+                call print_mtx(ret%atoms(i)%neigh_conn)
+            enddo
+        else if(ret%hex_size ==  0) then
+            ret%num_atoms =  1
+            allocate(ret%atoms(1))
+            
+            call ret%setup_single()
+        endif
+        write (*,*) "Hopping dist: ", norm2(ret%atoms(1)%neigh_conn(1,:))
     end function init_unit
+
+    subroutine setup_single(this)
+        implicit none
+        class(unit_cell), intent(inout)   :: this
+        real(8)                           :: base_len
+        real(8), dimension(3,3)           :: base_vecs
+        integer(4), parameter             :: lwork =  20
+        real(8), dimension(lwork)         :: work 
+        integer(4), dimension(2)          :: ipiv
+        integer(4)                        :: info, i, j
+
+        this%atoms(1) =  init_ferro((/0,0/))
+        allocate(this%atoms(1)%neigh(3))
+        allocate(this%atoms(1)%hopping(3))
+        allocate(this%atoms(1)%neigh_conn(3,3))
+
+        this%atoms(1)%hopping =  this%in_plane_hopping
+        this%atoms(1)%n_neigh =  3
+        this%atoms(1)%neigh   =  (/ 1,1,1 /)
+
+        base_len =  2*this%unit_cell_dim 
+        base_vecs(1, :) = (/ 1d0,   0d0,                  0d0 /)
+        base_vecs(2, :) = (/ 0.5d0, sin(60d0/180d0 * PI), 0d0 /)
+        base_vecs(3, :) = (/-0.5d0, sin(60d0/180d0 * PI), 0d0 /)
+        base_vecs =  base_vecs *  base_len
+        this%atoms(1)%neigh_conn =  base_vecs 
+    
+        this%lattice(:,1) = base_vecs(1,1:2)
+        this%lattice(:,2) = base_vecs(2,1:2)
+        
+        ! preform inversion 
+        this%rez_lattice =  transpose(this%lattice)
+        call dgetrf(2,2, this%rez_lattice, 2, ipiv, info)
+        if(info /= 0) then
+            write (*,*) "LU-decomp of lattice vectors failed"
+            stop
+        endif
+
+        call dgetri(2, this%rez_lattice, 2, ipiv, work, lwork, info)
+        if(info /= 0) then
+            write (*,*) "Inversion of lattice vectors failed"
+            stop
+        endif
+        this%rez_lattice =  2 *  PI * this%rez_lattice
+    end subroutine
+
 
     Subroutine  setup_hexagon(this)
         Implicit None
@@ -204,7 +254,7 @@ contains
                 cnt =  cnt + 1
                 pos =  pos + dir
             end do
-            
+
             start = start +  (/-1, -1/)
             halt  = halt +  (/0, -1/)
         end do
@@ -231,9 +281,9 @@ contains
     Subroutine  setup_conn_1D_layer(this)
         Implicit None
         class(unit_cell), intent(inout)       :: this 
-        integer(4), dimension(2), parameter   :: conn1 =  (/0, 1 /)
-        integer(4), dimension(2), parameter   :: conn2 =  (/1, 0 /)
-        integer(4), dimension(2), parameter   :: conn3 =  (/1, 1 /)
+        integer(4), dimension(2), parameter   :: conn1 =  (/1, 0 /)
+        integer(4), dimension(2), parameter   :: conn2 =  (/1, 1 /)
+        integer(4), dimension(2), parameter   :: conn3 =  (/0, 1 /)
         integer(4), dimension(2)              :: start_pos 
         integer(4)                            :: i,j
         real(8)                               :: base_len
@@ -252,11 +302,11 @@ contains
             allocate(this%atoms(i)%neigh(3))
             allocate(this%atoms(i)%hopping(3))
             allocate(this%atoms(i)%neigh_conn(3,3))
-            
+
             this%atoms(i)%hopping = this%in_plane_hopping
             this%atoms(i)%n_neigh =  3
             start_pos             = this%atoms(i)%pos
-            
+
             this%atoms(i)%neigh(1) = this%find_neigh(start_pos, conn1)
             this%atoms(i)%neigh(2) = this%find_neigh(start_pos, conn2)
             this%atoms(i)%neigh(3) = this%find_neigh(start_pos, conn3)
@@ -333,14 +383,14 @@ contains
 
     function get_num_atoms(this) result(num)
         implicit none
-        Class(unit_cell), intent(in) :: this
+        class(unit_cell), intent(in) :: this
         integer(4) :: num
         num = this%num_atoms 
     end function get_num_atoms
 
     function get_atoms(this) result(ret)
         implicit none
-        Class(unit_cell), intent(in)            :: this
+        class(unit_cell), intent(in)            :: this
         type(atom), dimension(:), allocatable   :: ret
 
         ret =  this%atoms        
@@ -353,7 +403,7 @@ contains
         real(8)                    :: bog
 
         bog =  deg * PI /  180.0d0
-        
+
         rot      = 0.0d0
         rot(1,1) = cos(bog)
         rot(1,2) = sin(bog)
@@ -372,15 +422,15 @@ contains
         call CFG_get(cfg, "units%" // trim(field_name), unit_name)
 
         select case(trim(unit_name))
-            case ("a0")
-                factor =  1.0d0
-            case ("eV")
-                factor =  0.03674932d0
-            case ("a0^-1") =  1.0d0
-                factor = 1.0d0
-            case default
-                write (*,*) "Unit unknown"
-                stop
+        case ("a0")
+            factor =  1.0d0
+        case ("eV")
+            factor =  0.03674932d0
+        case ("a0^-1") 
+            factor = 1.0d0
+        case default
+            write (*,*) "Unit unknown"
+            stop
         end select
     end function get_unit_conv
 

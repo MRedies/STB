@@ -11,6 +11,8 @@ set(MKL_MULTI_THREADED FALSE)
 MESSAGE( STATUS "MKL multi-threading: " ${MKL_MULTI_THREADED})
 
 enable_language(Fortran)
+set(CMAKE_Fortran_COMPILER ifort)
+set(CMAKE_Fortran_COMPILER_ID "Intel")
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     set(dialect "-ffree-form -std=f2008 -fimplicit-none")

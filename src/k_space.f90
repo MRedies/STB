@@ -53,6 +53,8 @@ contains
         else if(trim(filling) == "grid") then
             call k%setup_k_grid(cfg)
         endif
+        write (*,*) "Rez lattice"
+        call print_mtx(k%UC%rez_lattice)
     end function init_k_space
 
     subroutine setup_k_grid(this, cfg)
@@ -71,8 +73,8 @@ contains
         sz_x =  NINT(kx_para(3))
         sz_y =  NINT(ky_para(3))
 
-        kx_para(1:2) =  kx_para(1:2) * get_unit_conv("inv_length")
-        ky_para(1:2) =  ky_para(1:2) * get_unit_conv("inv_length")
+        kx_para(1:2) =  kx_para(1:2) * get_unit_conv("inv_length",cfg)
+        ky_para(1:2) =  ky_para(1:2) * get_unit_conv("inv_length",cfg)
 
         allocate(kx_grid(sz_x, sz_y))
         allocate(ky_grid(sz_x, sz_y))
