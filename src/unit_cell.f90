@@ -62,29 +62,32 @@ contains
         this%rez_lattice =  2 *  PI * this%rez_lattice
     end subroutine setup_lattice_vec
     
-    function calc_eigenvalues(this, k_list) result(eig_val)
-        implicit none
-        class(unit_cell)                :: this
-        real(8), dimension(:,:), intent(in)         :: k_list
-        real(8), dimension(:,:), allocatable        :: eig_val
+    Subroutine  calc_eigenvalues(this, k_list, eig_val)
+        Implicit None
+        class(unit_cell)                                  :: this
+        real(8), dimension(:,:), intent(in)               :: k_list
+        real(8), dimension(:,:), allocatable,intent(out)  :: eig_val
         real(8), dimension(3)                       :: k
         complex(8), dimension(:,:), allocatable     :: H
         integer(4) :: i, N, LWMAX, info
-        real(8), dimension(:), allocatable          :: RWORK
+        real(8), dimension(:), allocatable          :: RWORK, tmp_out
         complex(8), dimension(:), allocatable       :: WORK 
-
         N =  2 * this%num_atoms
+        write (*,*) N
+        write (*,*) size(k_list,2)
         LWMAX =  10*N
         allocate(eig_val(size(k_list, 2), N))
         allocate(H(N,N))
         allocate(RWORK(LWMAX))
         allocate(WORK(LWMAX))
+        allocate(tmp_out(N))
         
         do i = 1,size(k_list,2)
             k =  k_list(:,i)
             call this%get_ham(k, H)
             
-            call zheev('V', 'U', N, H, N, eig_val(i,:), WORK, LWMAX, RWORK, info)
+            call zheev('V', 'U', N, H, N, tmp_out, WORK, LWMAX, RWORK, info)
+            eig_val(i,:) =  tmp_out 
             if( info /= 0) then
                 write (*,*) "ZHEEV failed: ", info
                 stop
@@ -95,10 +98,8 @@ contains
         deallocate(H)
         deallocate(RWORK)
         deallocate(WORK)
-
-    end function calc_eigenvalues
-
-
+        deallocate(tmp_out)
+    End Subroutine calc_eigenvalues
 
     subroutine get_ham(this,k, ham)
         implicit none
@@ -146,7 +147,7 @@ contains
         enddo
     end subroutine get_ham
 
-    function init_unit(cfg) result(ret)
+    function init_unit_hex(cfg) result(ret)
         implicit none
         type(unit_cell)              :: ret
         type(CFG_t),  intent(inout)  :: cfg
@@ -171,22 +172,32 @@ contains
 
             call ret%setup_conn_1D_layer()
             call ret%setup_lattice_vec()
-            do i =  1,ret%num_atoms
-                write (*,*) "Atom #: ", i
-                write (*,*) "Pos: ", ret%atoms(i)%pos
-                write (*,*) "conn: "
-                call print_mtx(ret%atoms(i)%neigh) 
-                write (*,*) "conn_vec" 
-                call print_mtx(ret%atoms(i)%neigh_conn)
-            enddo
         else if(ret%hex_size ==  0) then
             ret%num_atoms =  1
             allocate(ret%atoms(1))
             
             call ret%setup_single()
         endif
-        write (*,*) "Hopping dist: ", norm2(ret%atoms(1)%neigh_conn(1,:))
-    end function init_unit
+    end function init_unit_hex
+
+    function init_unit_square(cfg) result(ret)
+        implicit none
+        type(unit_cell)              :: ret
+        type(CFG_t),  intent(inout)  :: cfg
+        real(8)                      :: tmp
+        
+        call CFG_get(cfg, "grid%unit_cell_dim", tmp)
+        ret%unit_cell_dim = tmp * get_unit_conv("length", cfg)
+
+        call CFG_get(cfg, "hamil%E_s", tmp)
+        ret%E_s =  tmp * get_unit_conv("energy", cfg)
+
+        call CFG_get(cfg, "hamil%in_plane_hopping", tmp)
+        ret%in_plane_hopping =  tmp * get_unit_conv("energy", cfg)
+
+        call CFG_get(cfg, "grid%hexagon_size", ret%hex_size)
+
+    end function init_unit_square 
 
     subroutine setup_single(this)
         implicit none
@@ -326,9 +337,10 @@ contains
 
         trans1 =  (/this%hex_size, - this%hex_size /)
         trans2 =  (/2*this%hex_size, this%hex_size /)
-
-        if(this%in_hexagon(start+conn) /= -1) then
-            neigh = this%in_hexagon(start +  conn)
+        
+        new =  start +  conn 
+        if(this%in_hexagon(new) /= -1) then
+            neigh = this%in_hexagon(new)
             return
         else
             do i = -1,1

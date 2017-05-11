@@ -19,21 +19,34 @@ contains
     Subroutine  calc_and_print_band(this)
         Implicit None
         class(k_space)                :: this 
-        character(len=300)            :: k_file, E_file
+        character(len=300)            :: k_file, E_file, real_file, rez_file
         real(8), dimension(:,:), allocatable    :: eig_val
 
-        k_file =  trim(this%prefix) // ".k"
-        E_file =  trim(this%prefix) // ".E"
-        eig_val =  this%UC%calc_eigenvalues(this%k_pts)
+        k_file    = trim(this%prefix) // ".k"
+        E_file    = trim(this%prefix) // ".E"
+        real_file = trim(this%prefix) // ".real"
+        rez_file  = trim(this%prefix) // ".rez"
 
-        open(unit=8, file=k_file)
-        open(unit=9, file=E_file)
+        write (*,*) "PRE"
+        !eig_val =  this%UC%calc_eigenvalues(this%k_pts)
+        call this%UC%calc_eigenvalues(this%k_pts, eig_val)
+        
+        write (*,*) "POST"
+
+        open(unit=8,  file=k_file)
+        open(unit=9,  file=E_file)
+        open(unit=10, file=real_file)
+        open(unit=11, file=rez_file)
 
         call print_mtx(8, transpose(this%k_pts))
         call print_mtx(9, eig_val)
-
+        call print_mtx(10, this%UC%lattice)
+        call print_mtx(11, this%UC%rez_lattice)
         close(8)
         close(9)
+        close(10)
+        close(11)
+
         deallocate(eig_val)
     End Subroutine calc_and_print_band
 
@@ -111,7 +124,7 @@ contains
         type(CFG_t)           :: cfg
         real(8), dimension(:), allocatable :: c1, c2, c1_sec, c2_sec
         real(8), dimension(3)              :: k1, k2
-        integer(4) :: n, n_pts, n_sec,i,j, start, halt
+        integer(4) :: n, n_pts, n_sec,i,j, start, halt, cnt
 
 
         call CFG_get_size(cfg, "kspace%k_label", n)
@@ -141,9 +154,12 @@ contains
             ! linear combination of k-vec in current 
             ! section.
             c1_sec =   linspace(c1(i), c1(i+1), n_pts) 
-            c2_sec =   linspace(c2(i), c2(i+1), n_pts) 
+            c2_sec =   linspace(c2(i), c2(i+1), n_pts)
+            
+            cnt =  1
             do j =  start,halt
-                this%k_pts(:,j) =  c1_sec(j) *  k1 +  c2_sec(j) *  k2
+                this%k_pts(:,j) =  c1_sec(cnt) *  k1 +  c2_sec(cnt) *  k2
+                cnt =  cnt + 1
             enddo
             start =  halt
         enddo

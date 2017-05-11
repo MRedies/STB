@@ -7,7 +7,7 @@ file(GLOB_RECURSE sources  src/*.f90
 
 add_executable(stb.x ${sources})
 
-set(MKL_MULTI_THREADED FALSE)
+set(MKL_MULTI_THREADED TRUE)
 MESSAGE( STATUS "MKL multi-threading: " ${MKL_MULTI_THREADED})
 
 enable_language(Fortran)
@@ -16,18 +16,21 @@ set(CMAKE_Fortran_COMPILER_ID "Intel")
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     set(dialect "-ffree-form -std=f2008 -fimplicit-none")
-	#set(bounds "-fbounds-check")
+	set(bounds "-fbounds-check")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-    set(dialect "-stand=f08 -implicitnone")
-	#set(bounds "-check bounds")
+    set(dialect "-stand=f08 -implicitnone -O3")
+	set(bounds "-check bounds")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
     set(dialect "-Mfreeform -Mdclchk -Mstandard -Mallocatable=03")
-	#set(bounds "-C")
+	set(bounds "-C")
 endif()
 
 set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${bounds}")
+MESSAGE( STATUS "DEBUG Flag ${CMAKE_Fortran_FLAGS_DEBUG}")
+
+
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${dialect}")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
