@@ -8,3 +8,4 @@ cmake_install.cmake
 output/*
 inis/*cfg
 !inis/example.cfg
+doc/*
