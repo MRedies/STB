@@ -2,27 +2,39 @@ module Class_unit_cell
     use Class_atom
     use m_config
     use output
+    use, intrinsic :: iso_c_binding
+
     implicit none
     real(8), parameter     :: PI     = 3.14159265359d0
     complex(8), parameter :: i_unit = cmplx(0d0, 1d0)
 
+
     type unit_cell
-        real(8), public, dimension(2,2) :: lattice, rez_lattice
+        real(8), public :: lattice(2,2) !< translation vectors
+        !< of the real-space lattice. First index: element of vector
+        !< Second index: 1 or second vector
+        real(8), public :: rez_lattice(2,2) !< translation vectors
+        !< of the reciprocal lattice. Indexs same as lattice
         ! number of non-redundant atoms pre unit cell
-        integer(4), private      :: num_atoms, hex_size
-        real(8), private         :: unit_cell_dim, E_s, in_plane_hopping
-        type(atom), private, dimension(:), allocatable   :: atoms 
+        integer(4) :: num_atoms  !< number of non-redundant atmos in a unit cell
+        integer(4) :: atom_per_dim !< atoms along the radius of the unit_cell
+        real(8) :: lattice_constant !< lattice constant in atomic units
+        real(8) :: E_s !< eigenenergy of atom
+        real(8) :: in_plane_hopping !< magnitiude of inplane hopping
+        real(8) :: eps !< threshold for positional accuracy
+        type(atom), dimension(:), allocatable :: atoms !< array containing all atoms
+        character(len=25) :: uc_type !< ind
     contains
         procedure :: get_num_atoms       => get_num_atoms
-        procedure :: setup_hexagon       => setup_hexagon
-        procedure :: setup_single        => setup_single
-        procedure :: find_neigh          => find_neigh
-        procedure :: in_hexagon          => in_hexagon
-        procedure :: setup_conn_1D_layer => setup_conn_1D_layer
+!        procedure :: setup_hexagon       => setup_hexagon
+        procedure :: setup_square        => setup_square
+        procedure :: setup_single_hex    => setup_single_hex
+        procedure :: in_cell             => in_cell
+        procedure :: setup_gen_conn      => setup_gen_conn
         procedure :: get_atoms           => get_atoms
         procedure :: get_ham             => get_ham
-        procedure :: calc_eigenvalues    =>  calc_eigenvalues
-        procedure :: setup_lattice_vec   =>  setup_lattice_vec
+        procedure :: calc_eigenvalues    => calc_eigenvalues
+        procedure :: gen_find_neigh      => gen_find_neigh
     end type unit_cell
 contains
     function angle(a ,b) result(ang)
@@ -33,38 +45,9 @@ contains
         ang =  180.0d0 / PI *  acos(ang)
     end function angle
     
-    subroutine setup_lattice_vec(this)
-        implicit none
-        class(unit_cell), intent(inout) :: this 
-        real(8)                         :: ucd
-        integer(4), parameter           :: lwork =  20
-        real(8), dimension(lwork)       :: work 
-        integer(4), dimension(2)        :: ipiv
-        integer(4)                      :: info, i, j
-        
-        ucd =  this%unit_cell_dim 
-        this%lattice(:,1) =  ucd * (/1.5d0,  sin(60d0 * PI/180d0) /)
-        this%lattice(:,2) =  ucd * (/1.5d0, -sin(60d0 * PI/180d0) /)
-
-        ! preform inversion 
-        this%rez_lattice =  transpose(this%lattice)
-        call dgetrf(2,2, this%rez_lattice, 2, ipiv, info)
-        if(info /= 0) then
-            write (*,*) "LU-decomp of lattice vectors failed"
-            stop
-        endif
-
-        call dgetri(2, this%rez_lattice, 2, ipiv, work, lwork, info)
-        if(info /= 0) then
-            write (*,*) "Inversion of lattice vectors failed"
-            stop
-        endif
-        this%rez_lattice =  2 *  PI * this%rez_lattice
-    end subroutine setup_lattice_vec
-    
-    Subroutine  calc_eigenvalues(this, k_list, eig_val)
+    Subroutine  calc_eigenvalues(self, k_list, eig_val)
         Implicit None
-        class(unit_cell)                                  :: this
+        class(unit_cell)                                  :: self
         real(8), dimension(:,:), intent(in)               :: k_list
         real(8), dimension(:,:), allocatable,intent(out)  :: eig_val
         real(8), dimension(3)                       :: k
@@ -72,9 +55,7 @@ contains
         integer(4) :: i, N, LWMAX, info
         real(8), dimension(:), allocatable          :: RWORK, tmp_out
         complex(8), dimension(:), allocatable       :: WORK 
-        N =  2 * this%num_atoms
-        write (*,*) N
-        write (*,*) size(k_list,2)
+        N =  2 * self%num_atoms
         LWMAX =  10*N
         allocate(eig_val(size(k_list, 2), N))
         allocate(H(N,N))
@@ -84,7 +65,7 @@ contains
         
         do i = 1,size(k_list,2)
             k =  k_list(:,i)
-            call this%get_ham(k, H)
+            call self%get_ham(k, H)
             
             call zheev('V', 'U', N, H, N, tmp_out, WORK, LWMAX, RWORK, info)
             eig_val(i,:) =  tmp_out 
@@ -101,13 +82,14 @@ contains
         deallocate(tmp_out)
     End Subroutine calc_eigenvalues
 
-    subroutine get_ham(this,k, ham)
+    subroutine get_ham(self,k, ham)
         implicit none
-        class(unit_cell), intent(in)              :: this 
+        class(unit_cell), intent(in)              :: self 
         real(8), dimension(3), intent(in)         :: k
         complex(8), dimension(:,:), intent(out)   :: ham
         integer(4)  :: i, i_up, i_d, j, j_up, j_d, conn
         real(8)                                   :: k_dot_r
+        complex(8)                                :: new
 
         if(k(3) /= 0d0) then
             write (*,*) "K_z is non-zero. Abort."
@@ -116,78 +98,126 @@ contains
 
         ham =  0d0
         
-        do i =  1,2*this%num_atoms
-            ham(i,i) =  this%E_s 
+        do i =  1,2*self%num_atoms
+            ham(i,i) =  self%E_s 
         enddo
 
+
         ! Spin up
-        do i = 1,this%num_atoms
-            do conn = 1,this%atoms(i)%n_neigh
-                j =  this%atoms(i)%neigh(conn)
-                k_dot_r =  dot_product(k, this%atoms(i)%neigh_conn(conn,:))
-                ham(i,j) = ham(i,j) + exp(i_unit * k_dot_r) &
-                                    * this%atoms(i)%hopping(conn)
-                ham(j,i) = conjg(ham(i,j))
+        do i = 1,self%num_atoms
+            do conn = 1,self%atoms(i)%n_neigh
+                j =  self%atoms(i)%neigh_idx(conn)
+                k_dot_r =  dot_product(k, self%atoms(i)%neigh_conn(conn,:))
+                
+                new = exp(i_unit * k_dot_r) * self%atoms(i)%hopping(conn)
+                ham(i,j) =  ham(i,j) + new
+                ham(j,i) =  ham(j,i) + conjg(new)
+                !ham(i,j) = ham(i,j) + exp(i_unit * k_dot_r) &
+                                    !* self%atoms(i)%hopping(conn)
+                !ham(j,i) = conjg(ham(i,j))
             enddo
         enddo
 
         ! Spin down
-        do i = 1,this%num_atoms
-            i_d =  i + this%num_atoms
-            do conn = 1,this%atoms(i)%n_neigh
+        do i = 1,self%num_atoms
+            i_d =  i + self%num_atoms
+            do conn = 1,self%atoms(i)%n_neigh
 
-                j      = this%atoms(i)%neigh(conn)
-                j_d = j + this%num_atoms
+                j      = self%atoms(i)%neigh_idx(conn)
+                j_d = j + self%num_atoms
                 
-                k_dot_r =  dot_product(k, this%atoms(i)%neigh_conn(conn,:))
-                ham(i_d,j_d) = ham(i_d,j_d) + exp(i_unit * k_dot_r) &
-                                            * this%atoms(i)%hopping(conn)  
-                ham(j_d,i_d) = conjg(ham(i_d,j_d))
+                k_dot_r =  dot_product(k, self%atoms(i)%neigh_conn(conn,:))
+                new =  exp(i_unit *  k_dot_r) * self%atoms(i)%hopping(conn)
+                ham(i_d, j_d) = ham(i_d, j_d) + new
+                ham(j_d, i_d) = ham(j_d, i_d) + conjg(new)
+                !ham(i_d,j_d) = ham(i_d,j_d) + exp(i_unit * k_dot_r) &
+                                            !* self%atoms(i)%hopping(conn)  
+                !ham(j_d,i_d) = conjg(ham(i_d,j_d))
             enddo
         enddo
+
+        write (*,*) "New: ", ham(1,1)
+        write (*,*) "Old: ", ham(1+self%num_atoms, 1+self%num_atoms)
     end subroutine get_ham
 
-    function init_unit_hex(cfg) result(ret)
+    function init_unit(cfg) result(ret)
         implicit none
-        type(unit_cell)              :: ret
-        type(CFG_t),  intent(inout)  :: cfg
-        integer(4)                   :: hex_sz,i 
-        real(8)                      :: tmp
-
-        call CFG_get(cfg, "grid%unit_cell_dim", tmp)
-        ret%unit_cell_dim = tmp * get_unit_conv("length", cfg)
-
-        call CFG_get(cfg, "hamil%E_s", tmp)
-        ret%E_s =  tmp * get_unit_conv("energy", cfg)
-
-        call CFG_get(cfg, "hamil%in_plane_hopping", tmp)
-        ret%in_plane_hopping =  tmp * get_unit_conv("energy", cfg)
-
-        call CFG_get(cfg, "grid%hexagon_size", ret%hex_size)
-        if(ret%hex_size >=  1) then
-            ret%num_atoms =  calc_num_atoms(ret%hex_size)
-            allocate(ret%atoms(ret%num_atoms))
-
-            call ret%setup_hexagon()
-
-            call ret%setup_conn_1D_layer()
-            call ret%setup_lattice_vec()
-        else if(ret%hex_size ==  0) then
-            ret%num_atoms =  1
-            allocate(ret%atoms(1))
-            
-            call ret%setup_single()
-        endif
-    end function init_unit_hex
-
-    function init_unit_square(cfg) result(ret)
-        implicit none
-        type(unit_cell)              :: ret
-        type(CFG_t),  intent(inout)  :: cfg
-        real(8)                      :: tmp
+        type(CFG_t)       :: cfg !< config file as read by m_config
+        type(unit_cell)   :: ret
+        integer(4), parameter           :: lwork =  20
+        real(8)                         :: work(lwork), tmp 
+        integer(4), dimension(2)        :: ipiv
+        integer(4)                      :: info, i      
         
-        call CFG_get(cfg, "grid%unit_cell_dim", tmp)
-        ret%unit_cell_dim = tmp * get_unit_conv("length", cfg)
+        call CFG_get(cfg, "grid%epsilon", tmp)
+        ret%eps =  tmp * get_unit_conv("length", cfg)
+
+        call CFG_get(cfg, "grid%unit_cell_type", ret%uc_type)
+        if(trim(ret%uc_type) == "square_2d") then
+            call init_unit_square(cfg, ret)
+        else
+            write (*,*) "Cell type unknown"
+            stop
+        endif
+
+        ! calculate reciprocal grid
+        ret%rez_lattice =  transpose(ret%lattice)
+        call dgetrf(2,2, ret%rez_lattice, 2, ipiv, info)
+        if(info /= 0) then
+            write (*,*) "LU-decomp of lattice vectors failed"
+            stop
+        endif
+
+        call dgetri(2, ret%rez_lattice, 2, ipiv, work, lwork, info)
+        if(info /= 0) then
+            write (*,*) "Inversion of lattice vectors failed"
+            stop
+        endif
+        ret%rez_lattice =  2 *  PI * ret%rez_lattice
+    end function
+
+    !function init_unit_hex(cfg) result(ret)
+        !implicit none
+        !type(unit_cell)              :: ret
+        !type(CFG_t),  intent(inout)  :: cfg
+        !integer(4)                   :: hex_sz,i 
+        !real(8)                      :: tmp
+
+        !call CFG_get(cfg, "grid%unit_cell_dim", tmp)
+        !ret%unit_cell_dim = tmp * get_unit_conv("length", cfg)
+
+        !call CFG_get(cfg, "hamil%E_s", tmp)
+        !ret%E_s =  tmp * get_unit_conv("energy", cfg)
+
+        !call CFG_get(cfg, "hamil%in_plane_hopping", tmp)
+        !ret%in_plane_hopping =  tmp * get_unit_conv("energy", cfg)
+
+        !call CFG_get(cfg, "grid%hexagon_size", ret%atom_per_dim)
+        !if(ret%atom_per_dim >=  1) then
+            !ret%num_atoms =  calc_num_atoms(ret%atom_per_dim)
+            !allocate(ret%atoms(ret%num_atoms))
+
+            !call ret%setup_hexagon()
+
+            !call ret%setup_conn_1D_layer()
+            !call ret%setup_lattice_vec()
+        !else if(ret%atom_per_dim ==  0) then
+            !ret%num_atoms =  1
+            !allocate(ret%atoms(1))
+            
+            !call ret%setup_single_hex()
+        !endif
+    !end function init_unit_hex
+
+    subroutine init_unit_square(cfg, ret)
+        implicit none
+        type(unit_cell), intent(inout) :: ret
+        type(CFG_t),  intent(inout)    :: cfg
+        integer(4)                     :: i
+        real(8)                        :: tmp, conn_mtx(2,3), transl_mtx(2,3)
+        
+        call CFG_get(cfg, "grid%lattice_constant", tmp)
+        ret%lattice_constant = tmp * get_unit_conv("length", cfg)
 
         call CFG_get(cfg, "hamil%E_s", tmp)
         ret%E_s =  tmp * get_unit_conv("energy", cfg)
@@ -195,13 +225,27 @@ contains
         call CFG_get(cfg, "hamil%in_plane_hopping", tmp)
         ret%in_plane_hopping =  tmp * get_unit_conv("energy", cfg)
 
-        call CFG_get(cfg, "grid%hexagon_size", ret%hex_size)
+        call CFG_get(cfg, "grid%atoms_per_dim", ret%atom_per_dim)
+        ret%num_atoms = ret%atom_per_dim * ret%atom_per_dim
+        
+        allocate(ret%atoms(ret%num_atoms))
+    
+        call ret%setup_square()
 
-    end function init_unit_square 
+        conn_mtx(1,:) =  (/ ret%lattice_constant, 0d0, 0d0 /)
+        conn_mtx(2,:) =  (/ 0d0, ret%lattice_constant, 0d0 /)
+        
+        transl_mtx = 0d0
+        transl_mtx(1,1:2) = ret%lattice(:,1)
+        transl_mtx(2,1:2) = ret%lattice(:,2)
 
-    subroutine setup_single(this)
+        call ret%setup_gen_conn(conn_mtx, transl_mtx)
+    
+    end subroutine init_unit_square 
+
+    subroutine setup_single_hex(self)
         implicit none
-        class(unit_cell), intent(inout)   :: this
+        class(unit_cell), intent(inout)   :: self
         real(8)                           :: base_len
         real(8), dimension(3,3)           :: base_vecs
         integer(4), parameter             :: lwork =  20
@@ -209,203 +253,281 @@ contains
         integer(4), dimension(2)          :: ipiv
         integer(4)                        :: info, i, j
 
-        this%atoms(1) =  init_ferro((/0,0/))
-        allocate(this%atoms(1)%neigh(3))
-        allocate(this%atoms(1)%hopping(3))
-        allocate(this%atoms(1)%neigh_conn(3,3))
+        self%atoms(1) =  init_ferro((/0d0, 0d0, 0d0/))
+        allocate(self%atoms(1)%neigh_idx(3))
+        allocate(self%atoms(1)%hopping(3))
+        allocate(self%atoms(1)%neigh_conn(3,3))
 
-        this%atoms(1)%hopping =  this%in_plane_hopping
-        this%atoms(1)%n_neigh =  3
-        this%atoms(1)%neigh   =  (/ 1,1,1 /)
+        self%atoms(1)%hopping   = self%in_plane_hopping
+        self%atoms(1)%n_neigh   = 3
+        self%atoms(1)%neigh_idx = (/ 1,1,1 /)
 
-        base_len =  2*this%unit_cell_dim 
+        base_len = self%lattice_constant
         base_vecs(1, :) = (/ 1d0,   0d0,                  0d0 /)
         base_vecs(2, :) = (/ 0.5d0, sin(60d0/180d0 * PI), 0d0 /)
         base_vecs(3, :) = (/-0.5d0, sin(60d0/180d0 * PI), 0d0 /)
         base_vecs =  base_vecs *  base_len
-        this%atoms(1)%neigh_conn =  base_vecs 
+        self%atoms(1)%neigh_conn =  base_vecs 
     
-        this%lattice(:,1) = base_vecs(1,1:2)
-        this%lattice(:,2) = base_vecs(2,1:2)
-        
-        ! preform inversion 
-        this%rez_lattice =  transpose(this%lattice)
-        call dgetrf(2,2, this%rez_lattice, 2, ipiv, info)
-        if(info /= 0) then
-            write (*,*) "LU-decomp of lattice vectors failed"
-            stop
-        endif
-
-        call dgetri(2, this%rez_lattice, 2, ipiv, work, lwork, info)
-        if(info /= 0) then
-            write (*,*) "Inversion of lattice vectors failed"
-            stop
-        endif
-        this%rez_lattice =  2 *  PI * this%rez_lattice
+        self%lattice(:,1) = base_vecs(1,1:2)
+        self%lattice(:,2) = base_vecs(2,1:2)
     end subroutine
 
-
-    Subroutine  setup_hexagon(this)
-        Implicit None
-        class(unit_cell), intent(inout)   :: this
-        integer(4), dimension(2)          :: start, pos, halt, dir
-        integer(4)                        :: cnt, row
-        type(atom)                        :: test
+    subroutine setup_square(self)
+        implicit none
+        class(unit_cell), intent(inout)  :: self
+        integer(4)                       :: i, j, cnt
+        real(8) :: pos(3)
 
         cnt =  1
-        ! sweep from top to (including) middle
-        start =  (/0, this%hex_size /)
-        halt  =  (/this%hex_size , this%hex_size/)
-        dir   =  (/1,0 /)
-
-        do row = this%hex_size,0,-1
-            pos =  start 
-            do while(any(pos /= halt))
-                this%atoms(cnt) = init_ferro(pos)
-                cnt =  cnt + 1
-                pos =  pos + dir
-            end do
-
-            start = start +  (/-1, -1/)
-            halt  = halt +  (/0, -1/)
-        end do
-
-
-        ! sweep after middle downwards
-        start =  (/-this%hex_size, -1/)
-        halt  =  (/this%hex_size -1, -1/)
-
-        do row =  -1,-(this%hex_size-1), - 1
-            pos =  start
-            do while(any(pos /= halt))
-                this%atoms(cnt) = init_ferro(pos)
-                cnt =  cnt +  1
-                pos =  pos +  dir
+        do i = 0, self%atom_per_dim-1
+            do j = 0, self%atom_per_dim-1
+                pos             = (/i,j,0/) * self%lattice_constant 
+                self%atoms(cnt) = init_ferro(pos)
+                cnt             = cnt + 1
             enddo
-
-            start =  start +  (/0, -1 /)
-            halt  =  halt  +  (/-1, -1 /)
         enddo
 
-    End Subroutine setup_hexagon
+        self%lattice(:,1) =  (/ 1d0, 0d0 /) * self%atom_per_dim &
+                                            *  self%lattice_constant
+        self%lattice(:,2) =  (/ 0d0, 1d0 /) * self%atom_per_dim &
+                                            *  self%lattice_constant
+    end subroutine setup_square
 
-    Subroutine  setup_conn_1D_layer(this)
-        Implicit None
-        class(unit_cell), intent(inout)       :: this 
-        integer(4), dimension(2), parameter   :: conn1 =  (/1, 0 /)
-        integer(4), dimension(2), parameter   :: conn2 =  (/1, 1 /)
-        integer(4), dimension(2), parameter   :: conn3 =  (/0, 1 /)
-        integer(4), dimension(2)              :: start_pos 
-        integer(4)                            :: i,j
-        real(8)                               :: base_len
-        real(8), dimension(3,3)               :: base_vecs
+    !Subroutine  setup_hexagon(self)
+        !Implicit None
+        !class(unit_cell), intent(inout)   :: self
+        !real(8), dimension(3)          :: start, pos, halt, dir
+        !integer(4)                        :: cnt, row
+        !type(atom)                        :: test
 
-        base_len =  this%unit_cell_dim / this%hex_size
-        base_vecs(1, :) = (/ 1d0,   0d0,                  0d0 /)
-        base_vecs(2, :) = (/ 0.5d0, sin(60d0/180d0 * PI), 0d0 /)
-        base_vecs(3, :) = (/-0.5d0, sin(60d0/180d0 * PI), 0d0 /)
-        base_vecs =  base_vecs *  base_len
+        !cnt =  1
+        !! sweep from top to (including) middle
+        !start =  (/0, self%atom_per_dim /)
+        !halt  =  (/self%atom_per_dim , self%atom_per_dim/)
+        !dir   =  (/1,0 /)
 
-        write (*,*) "base_vecs(1,:)"
-        call print_mtx(base_vecs(1,:))
+        !do row = self%atom_per_dim,0,-1
+            !pos =  start 
+            !do while(any(pos /= halt))
+                !self%atoms(cnt) = init_ferro(pos)
+                !cnt =  cnt + 1
+                !pos =  pos + dir
+            !end do
 
-        do i =  1,this%num_atoms
-            allocate(this%atoms(i)%neigh(3))
-            allocate(this%atoms(i)%hopping(3))
-            allocate(this%atoms(i)%neigh_conn(3,3))
+            !start = start +  (/-1, -1/)
+            !halt  = halt +  (/0, -1/)
+        !end do
 
-            this%atoms(i)%hopping = this%in_plane_hopping
-            this%atoms(i)%n_neigh =  3
-            start_pos             = this%atoms(i)%pos
 
-            this%atoms(i)%neigh(1) = this%find_neigh(start_pos, conn1)
-            this%atoms(i)%neigh(2) = this%find_neigh(start_pos, conn2)
-            this%atoms(i)%neigh(3) = this%find_neigh(start_pos, conn3)
+        !! sweep after middle downwards
+        !start =  (/-self%atom_per_dim, -1/)
+        !halt  =  (/self%atom_per_dim -1, -1/)
 
-            this%atoms(i)%neigh_conn =  base_vecs 
-        enddo
+        !do row =  -1,-(self%atom_per_dim-1), - 1
+            !pos =  start
+            !do while(any(pos /= halt))
+                !self%atoms(cnt) = init_ferro(pos)
+                !cnt =  cnt +  1
+                !pos =  pos +  dir
+            !enddo
 
-    End Subroutine setup_conn_1D_layer
+            !start =  start +  (/0, -1 /)
+            !halt  =  halt  +  (/-1, -1 /)
+        !enddo
 
-    function find_neigh(this, start, conn) result(neigh)
+    !End Subroutine setup_hexagon
+    
+    subroutine setup_gen_conn(self, conn_mtx, transl_mtx)
         implicit none
-        class(unit_cell), intent(in)           :: this
-        integer(4), dimension(2), intent(in)   :: start, conn 
-        integer(4)                             :: neigh
-        integer(4), dimension(2)               :: trans1, trans2, new
-        integer(4)                             :: i,j
+        class(unit_cell)    :: self
+        real(8), intent(in) :: conn_mtx(:,:) !< Matrix containing
+        !< real-space connections. The first index inidcates
+        !< the connection vector, the second the vector element
+        real(8), intent(in) :: transl_mtx(:,:) !< Matrix containing
+        !< real-space translation vectors. Notation as in conn_mtx
+        integer(4)                        :: i, j, n_conn
+        real(8)  :: start_pos(3)
 
-        trans1 =  (/this%hex_size, - this%hex_size /)
-        trans2 =  (/2*this%hex_size, this%hex_size /)
+        n_conn =  size(conn_mtx, dim=1)
+
+        do i =  1, self%num_atoms
+            allocate(self%atoms(i)%neigh_idx(n_conn))
+            allocate(self%atoms(i)%hopping(n_conn))
+            allocate(self%atoms(i)%neigh_conn, mold=conn_mtx)
+
+            self%atoms(i)%hopping =  self%in_plane_hopping
+            self%atoms(i)%n_neigh =  n_conn
+            start_pos             =  self%atoms(i)%pos
+
+            do j =  1,n_conn
+                self%atoms(i)%neigh_idx(j) = &
+                   self%gen_find_neigh(start_pos, conn_mtx(j,:), transl_mtx)
+            enddo
+            self%atoms(i)%neigh_conn =  conn_mtx
+        enddo
+    end subroutine setup_gen_conn
+
+    function gen_find_neigh(self, start, conn, transl_mtx) result(neigh)
+        implicit none
+        class(unit_cell), intent(in)         :: self
+        real(8), intent(in) :: start(3) !< starting position in RS
+        real(8), intent(in) :: conn(3) !< RS connection
+        real(8), intent(in) :: transl_mtx(:,:) !< RS translation vectors to next unit cell
+        !< The vectors are save as columns in the matrix:
+        !< The first index indicates the vector
+        !< The second index indicates the element of the vector
+        integer(4)  :: neigh, idx, n_transl, i
+        real(8) :: new(3)
         
-        new =  start +  conn 
-        if(this%in_hexagon(new) /= -1) then
-            neigh = this%in_hexagon(new)
+        n_transl =  size(transl_mtx, dim=1)
+
+        idx =  self%in_cell(start, conn)
+        if(idx /= - 1) then
+            neigh =  idx
             return
-        else
-            do i = -1,1
-                do j =  -1,1
-                    new =  start  +  conn &
-                        +  i *  trans1 +  j *  trans2
-                    if(this%in_hexagon(new) /= - 1) then
-                        neigh =  this%in_hexagon(new)
-                        return
-                    endif
-                enddo
+        else 
+            do i = 1, n_transl
+                idx =  self%in_cell(start, conn + transl_mtx(i,:))
+                if (idx /=  - 1) then
+                    neigh =  idx
+                    return
+                endif
+                
+                idx =  self%in_cell(start, conn - transl_mtx(i,:))
+                if (idx /=  - 1) then
+                    neigh =  idx
+                    return
+                endif
             enddo
         endif
 
-        write (*,*) "Couldn't find a neighbour"
-        stop 2
+        write (*,*) "Couldn't find a generalized neigbour"
+        stop
+        
+    end function gen_find_neigh
 
-    end function find_neigh
+    !Subroutine  setup_conn_1D_layer(self)
+        !Implicit None
+        !class(unit_cell), intent(inout)       :: self 
+        !integer(4), dimension(2), parameter   :: conn1 =  (/1, 0 /)
+        !integer(4), dimension(2), parameter   :: conn2 =  (/1, 1 /)
+        !integer(4), dimension(2), parameter   :: conn3 =  (/0, 1 /)
+        !integer(4), dimension(2)              :: start_pos 
+        !integer(4)                            :: i,j
+        !real(8)                               :: base_len
+        !real(8), dimension(3,3)               :: base_vecs
 
-    function in_hexagon(this, pos) result(idx)
+        !base_len =  self%unit_cell_dim / self%atom_per_dim
+        !base_vecs(1, :) = (/ 1d0,   0d0,                  0d0 /)
+        !base_vecs(2, :) = (/ 0.5d0, sin(60d0/180d0 * PI), 0d0 /)
+        !base_vecs(3, :) = (/-0.5d0, sin(60d0/180d0 * PI), 0d0 /)
+        !base_vecs =  base_vecs *  base_len
+
+        !do i =  1,self%num_atoms
+            !allocate(self%atoms(i)%neigh(3))
+            !allocate(self%atoms(i)%hopping(3))
+            !allocate(self%atoms(i)%neigh_conn(3,3))
+
+            !self%atoms(i)%hopping = self%in_plane_hopping
+            !self%atoms(i)%n_neigh =  3
+            !start_pos             = self%atoms(i)%pos
+
+            !self%atoms(i)%neigh(1) = self%find_neigh(start_pos, conn1)
+            !self%atoms(i)%neigh(2) = self%find_neigh(start_pos, conn2)
+            !self%atoms(i)%neigh(3) = self%find_neigh(start_pos, conn3)
+
+            !self%atoms(i)%neigh_conn =  base_vecs 
+        !enddo
+
+    !End Subroutine setup_conn_1D_layer
+
+    !function find_neigh(self, start, conn) result(neigh)
+        !implicit none
+        !class(unit_cell), intent(in)           :: self
+        !integer(4), dimension(2), intent(in)   :: start, conn 
+        !integer(4)                             :: neigh
+        !integer(4), dimension(2)               :: trans1, trans2, new
+        !integer(4)                             :: i,j
+
+        !trans1 =  (/self%atom_per_dim, - self%atom_per_dim /)
+        !trans2 =  (/2*self%atom_per_dim, self%atom_per_dim /)
+        
+        !new =  start +  conn 
+        !if(self%in_hexagon(new) /= -1) then
+            !neigh = self%in_hexagon(new)
+            !return
+        !else
+            !do i = -1,1
+                !do j =  -1,1
+                    !new =  start  +  conn &
+                        !+  i *  trans1 +  j *  trans2
+                    !if(self%in_hexagon(new) /= - 1) then
+                        !neigh =  self%in_hexagon(new)
+                        !return
+                    !endif
+                !enddo
+            !enddo
+        !endif
+
+        !write (*,*) "Couldn't find a neighbour"
+        !stop 2
+
+    !end function find_neigh
+
+    function in_cell(self, start, conn) result(idx)
         ! if position is in hexagon the corresponding index is
         ! returned, else - 1
         implicit none
-        class(unit_cell), intent(in)          :: this
-        integer(4), dimension(2), intent(in)  :: pos
-        integer(4)                            :: idx 
-        integer(4)                            :: i
+        class(unit_cell), intent(in)          :: self
+        real(8), intent(in) :: start(3) !< RS start position
+        real(8), intent(in) :: conn(3) !< RZ connection
+        real(8) :: new(3), delta
+        integer(4) :: idx 
+        integer(4) :: i
+
+        new =  start +  conn
 
         idx =  -1
-        do i =  1, this%num_atoms
-            if(all(pos == this%atoms(i)%pos)) then
+        do i =  1, self%num_atoms
+
+            delta =  norm2(new -  self%atoms(i)%pos)
+
+            if(delta < self%eps) then
                 idx =  i
                 exit
             endif
         enddo
-    end function in_hexagon
+    end function in_cell
 
-    function calc_num_atoms(hex_size) result(num_atoms)
+    function calc_num_atoms(atom_per_dim) result(num_atoms)
         implicit none
-        integer(4), intent(in)       :: hex_size
+        integer(4), intent(in)       :: atom_per_dim
         integer(4)                   :: num_atoms
 
-        if (hex_size > 0) then
-            num_atoms =  3 * hex_size *  hex_size  
-        else if(hex_size ==  0) then
+        if (atom_per_dim > 0) then
+            num_atoms =  3 * atom_per_dim *  atom_per_dim  
+        else if(atom_per_dim ==  0) then
             num_atoms =  1
         else
-            write(*,*) "Invalid hex_size"
+            write(*,*) "Invalid atom_per_dim"
             stop 1 
         end if
     end function calc_num_atoms
 
-    function get_num_atoms(this) result(num)
+    function get_num_atoms(self) result(num)
         implicit none
-        class(unit_cell), intent(in) :: this
+        class(unit_cell), intent(in) :: self
         integer(4) :: num
-        num = this%num_atoms 
+        num = self%num_atoms 
     end function get_num_atoms
 
-    function get_atoms(this) result(ret)
+    function get_atoms(self) result(ret)
         implicit none
-        class(unit_cell), intent(in)            :: this
+        class(unit_cell), intent(in)            :: self
         type(atom), dimension(:), allocatable   :: ret
 
-        ret =  this%atoms        
+        ret =  self%atoms        
     end function get_atoms 
 
     function rot_z_deg(deg) result(rot)

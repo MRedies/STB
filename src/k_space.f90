@@ -1,7 +1,7 @@
 module Class_k_space
     use m_config
+    use m_npy
     use Class_unit_cell 
-    use output
     implicit none
 
     type k_space
@@ -19,33 +19,16 @@ contains
     Subroutine  calc_and_print_band(this)
         Implicit None
         class(k_space)                :: this 
-        character(len=300)            :: k_file, E_file, real_file, rez_file
+        character(len=300)            :: npz_file
         real(8), dimension(:,:), allocatable    :: eig_val
 
-        k_file    = trim(this%prefix) // ".k"
-        E_file    = trim(this%prefix) // ".E"
-        real_file = trim(this%prefix) // ".real"
-        rez_file  = trim(this%prefix) // ".rez"
+        npz_file = trim(this%prefix) // ".npz"
 
-        write (*,*) "PRE"
-        !eig_val =  this%UC%calc_eigenvalues(this%k_pts)
         call this%UC%calc_eigenvalues(this%k_pts, eig_val)
-        
-        write (*,*) "POST"
-
-        open(unit=8,  file=k_file)
-        open(unit=9,  file=E_file)
-        open(unit=10, file=real_file)
-        open(unit=11, file=rez_file)
-
-        call print_mtx(8, transpose(this%k_pts))
-        call print_mtx(9, eig_val)
-        call print_mtx(10, this%UC%lattice)
-        call print_mtx(11, this%UC%rez_lattice)
-        close(8)
-        close(9)
-        close(10)
-        close(11)
+        call add_npz(npz_file, "k", this%k_pts)
+        call add_npz(npz_file, "E", eig_val)
+        call add_npz(npz_file, "lattice", this%UC%lattice)
+        call add_npz(npz_file, "rez_lattice", this%UC%rez_lattice)
 
         deallocate(eig_val)
     End Subroutine calc_and_print_band
@@ -66,8 +49,6 @@ contains
         else if(trim(filling) == "grid") then
             call k%setup_k_grid(cfg)
         endif
-        write (*,*) "Rez lattice"
-        call print_mtx(k%UC%rez_lattice)
     end function init_k_space
 
     subroutine setup_k_grid(this, cfg)

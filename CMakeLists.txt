@@ -3,7 +3,8 @@ project(STB)
 
 file(GLOB_RECURSE sources  src/*.f90 
                            src/*.h 
-                           thirdparty/config_fortran/m_config.f90)
+                           thirdparty/config_fortran/m_config.f90
+                           thirdparty/NPY-for-Fortran/src/npy.f90)
 
 add_executable(stb.x ${sources})
 
@@ -20,7 +21,8 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     set(dialect "-stand=f08 -implicitnone -O3")
-	set(bounds "-check bounds")
+	set(bounds "-check all")
+    set(debug "-traceback -debug")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
     set(dialect "-Mfreeform -Mdclchk -Mstandard -Mallocatable=03")
@@ -28,10 +30,12 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
 endif()
 
 set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${bounds}")
+set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${debug}")
 MESSAGE( STATUS "DEBUG Flag ${CMAKE_Fortran_FLAGS_DEBUG}")
 
 
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${dialect}")
+MESSAGE( STATUS "Flags: ", ${CMAKE_Fortran_FLAGS})
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 MESSAGE( STATUS "cmake_module_path:    " ${CMAKE_MODULE_PATH})

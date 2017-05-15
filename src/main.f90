@@ -15,7 +15,7 @@ program STB
 
     call CFG_update_from_arguments(input_cfg)
     call add_full_cfg(input_cfg)
-    call CFG_write(input_cfg, "stdout")
+    !call CFG_write(input_cfg, "stdout")
     
     Ksp =  init_k_space(input_cfg)
     call Ksp%calc_and_print_band() 
@@ -36,8 +36,10 @@ contains
         call CFG_add(cfg, "hamil%in_plane_hopping", 0.0d0, "")
         call CFG_add(cfg, "hamil%E_s",              0.0d0, "")
 
-        call CFG_add(cfg, "grid%hexagon_size",  0,   "")
-        call CFG_add(cfg, "grid%unit_cell_dim", 0d0, "")
+        call CFG_add(cfg, "grid%atoms_per_dim", -1, "")
+        call CFG_add(cfg, "grid%unit_cell_type","","")
+        call CFG_add(cfg, "grid%lattice_constant", 0d0, "")
+        call CFG_add(cfg, "grid%epsilon", 1d-6, "")
 
         call CFG_add(cfg, "kspace%k_label",    (/ ""/),   "",&
                           dynamic_size=.true.)
