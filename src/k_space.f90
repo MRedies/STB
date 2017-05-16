@@ -11,7 +11,8 @@ module Class_k_space
         type(unit_cell)                               :: UC
     contains
         procedure :: calc_and_print_band => calc_and_print_band
-        procedure :: setup_k_path        => setup_k_path
+        procedure :: setup_k_path_rel    => setup_k_path_rel
+        procedure :: setup_k_path_abs    => setup_k_path_abs
         procedure :: setup_k_grid        => setup_k_grid
     end type k_space 
 
@@ -44,8 +45,10 @@ contains
         call CFG_get(cfg, "output%band_prefix", k%prefix)
         call CFG_get(cfg, "kspace%filling", filling)
 
-        if(trim(filling) ==  "path") then
-            call k%setup_k_path(cfg)
+        if(trim(filling) ==  "path_rel") then
+            call k%setup_k_path_rel(cfg)
+        else if(trim(filling) == "path_abs") then
+            call k%setup_k_path_abs(cfg)
         else if(trim(filling) == "grid") then
             call k%setup_k_grid(cfg)
         endif
@@ -99,7 +102,37 @@ contains
 
     end subroutine setup_k_grid
 
-    subroutine setup_k_path(this, cfg)
+    subroutine setup_k_path_abs(this, cfg)
+        implicit none
+        class(k_space)        :: this
+        type(CFG_t)           :: cfg
+        real(8), allocatable  :: k1(:), k2(:)
+        integer(4)            :: n, n_pts, n_sec, start, halt, i
+
+        call CFG_get_size(cfg, "kspace%k_x", n)
+        n_sec =  n-1
+        allocate(k1(n))
+        allocate(k2(n))
+        
+        call CFG_get(cfg, "kspace%k_x", k1)
+        call CFG_get(cfg, "kspace%k_y", k2)
+        call CFG_get(cfg, "kspace%num_points", n_pts)
+
+        allocate(this%k_pts(3, n_sec * (n_pts-1) + 1))
+        this%k_pts(3,:) =  0d0
+
+        start = 1
+        do i =  1,n_sec
+            halt =  start +  n_pts - 1
+
+            this%k_pts(1,start:halt) = linspace(k1(i), k1(i+1), n_pts)
+            this%k_pts(2,start:halt) = linspace(k2(i), k2(i+1), n_pts)
+            start =  halt
+        enddo
+        
+    end subroutine setup_k_path_abs 
+
+    subroutine setup_k_path_rel(this, cfg)
         implicit none
         class(k_space)        :: this
         type(CFG_t)           :: cfg
@@ -149,7 +182,7 @@ contains
         deallocate(c1_sec)
         deallocate(c2)
         deallocate(c2_sec)
-    end subroutine
+    end subroutine setup_k_path_rel
 
 
     Function  linspace(start, halt, n) result(x)

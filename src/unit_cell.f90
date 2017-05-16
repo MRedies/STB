@@ -2,6 +2,7 @@ module Class_unit_cell
     use Class_atom
     use m_config
     use output
+    use m_npy
     use, intrinsic :: iso_c_binding
 
     implicit none
@@ -55,6 +56,7 @@ contains
         integer(4) :: i, N, LWMAX, info
         real(8), dimension(:), allocatable          :: RWORK, tmp_out
         complex(8), dimension(:), allocatable       :: WORK 
+        character(len=20) :: filename
         N =  2 * self%num_atoms
         LWMAX =  10*N
         allocate(eig_val(size(k_list, 2), N))
@@ -136,8 +138,6 @@ contains
             enddo
         enddo
 
-        write (*,*) "New: ", ham(1,1)
-        write (*,*) "Old: ", ham(1+self%num_atoms, 1+self%num_atoms)
     end subroutine get_ham
 
     function init_unit(cfg) result(ret)
