@@ -2,6 +2,7 @@ program STB
     use Class_k_space
     use m_config
     use output
+    use Constants
     
     implicit none
     integer(4)                              :: num, i
@@ -19,10 +20,6 @@ program STB
     
     Ksp =  init_k_space(input_cfg)
     call Ksp%calc_and_print_band() 
-    !do i =  1,2*Ksp%UC%get_num_atoms()
-        !write (*,*) i, eig_val(1,i)
-    !enddo
-    
 contains
     Subroutine  add_full_cfg(cfg)
         Implicit None
@@ -34,7 +31,8 @@ contains
         call CFG_add(cfg, "units%inv_length", "none", "")
 
         call CFG_add(cfg, "hamil%t_nn", 0.0d0, "")
-        call CFG_add(cfg, "hamil%E_s",              0.0d0, "")
+        call CFG_add(cfg, "hamil%E_s",  0.0d0, "")
+        call CFG_add(cfg, "hamil%I",    0d0,   "")
 
         call CFG_add(cfg, "grid%atoms_per_dim", -1, "")
         call CFG_add(cfg, "grid%unit_cell_type","","")

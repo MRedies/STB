@@ -3,28 +3,24 @@ module Class_unit_cell
     use m_config
     use output
     use m_npy
-    use, intrinsic :: iso_c_binding
+    use Constants
 
     implicit none
-    real(8), parameter     :: PI     = 3.14159265359d0
-    complex(8), parameter :: i_unit = cmplx(0d0, 1d0)
-
 
     type unit_cell
-        real(8), public :: lattice(2,2) !< translation vectors
-        !< of the real-space lattice. First index: element of vector
-        !< Second index: 1 or second vector
-        real(8), public :: rez_lattice(2,2) !< translation vectors
-        !< of the reciprocal lattice. Indexs same as lattice
+        real(8), public :: lattice(2,2) !> translation vectors
+        !> of the real-space lattice. First index: element of vector
+        !> Second index: 1 or second vector
+        real(8), public :: rez_lattice(2,2) !> translation vectors
+        !> of the reciprocal lattice. Indexs same as lattice
         ! number of non-redundant atoms pre unit cell
-        integer(4) :: num_atoms  !< number of non-redundant atmos in a unit cell
-        integer(4) :: atom_per_dim !< atoms along the radius of the unit_cell
-        real(8) :: lattice_constant !< lattice constant in atomic units
-        real(8) :: E_s !< eigenenergy of atom
-        real(8) :: t_nn !< magnitiude of inplane hopping
-        real(8) :: eps !< threshold for positional accuracy
-        type(atom), dimension(:), allocatable :: atoms !< array containing all atoms
-        character(len=25) :: uc_type !< ind
+        integer(4) :: num_atoms  !> number of non-redundant atmos in a unit cell
+        integer(4) :: atom_per_dim !> atoms along the radius of the unit_cell
+        real(8) :: lattice_constant !> lattice constant in atomic units
+        real(8) :: t_nn !> hopping paramater passed for connection 
+        real(8) :: eps !> threshold for positional accuracy
+        type(atom), dimension(:), allocatable :: atoms !> array containing all atoms
+        character(len=25) :: uc_type !> ind
     contains
         procedure :: get_num_atoms       => get_num_atoms
 !        procedure :: setup_hexagon       => setup_hexagon
@@ -33,8 +29,6 @@ module Class_unit_cell
         procedure :: in_cell             => in_cell
         procedure :: setup_gen_conn      => setup_gen_conn
         procedure :: get_atoms           => get_atoms
-        procedure :: get_ham             => get_ham
-        procedure :: calc_eigenvalues    => calc_eigenvalues
         procedure :: gen_find_neigh      => gen_find_neigh
     end type unit_cell
 contains
@@ -46,103 +40,9 @@ contains
         ang =  180.0d0 / PI *  acos(ang)
     end function angle
     
-    Subroutine  calc_eigenvalues(self, k_list, eig_val)
-        Implicit None
-        class(unit_cell)                                  :: self
-        real(8), dimension(:,:), intent(in)               :: k_list
-        real(8), dimension(:,:), allocatable,intent(out)  :: eig_val
-        real(8), dimension(3)                       :: k
-        complex(8), dimension(:,:), allocatable     :: H
-        integer(4) :: i, N, LWMAX, info
-        real(8), dimension(:), allocatable          :: RWORK, tmp_out
-        complex(8), dimension(:), allocatable       :: WORK 
-        character(len=20) :: filename
-        N =  2 * self%num_atoms
-        LWMAX =  10*N
-        allocate(eig_val(size(k_list, 2), N))
-        allocate(H(N,N))
-        allocate(RWORK(LWMAX))
-        allocate(WORK(LWMAX))
-        allocate(tmp_out(N))
-        
-        do i = 1,size(k_list,2)
-            k =  k_list(:,i)
-            call self%get_ham(k, H)
-            
-            call zheev('V', 'U', N, H, N, tmp_out, WORK, LWMAX, RWORK, info)
-            eig_val(i,:) =  tmp_out 
-            if( info /= 0) then
-                write (*,*) "ZHEEV failed: ", info
-                stop
-            endif
-
-        enddo
-
-        deallocate(H)
-        deallocate(RWORK)
-        deallocate(WORK)
-        deallocate(tmp_out)
-    End Subroutine calc_eigenvalues
-
-    subroutine get_ham(self,k, ham)
-        implicit none
-        class(unit_cell), intent(in)              :: self 
-        real(8), dimension(3), intent(in)         :: k
-        complex(8), dimension(:,:), intent(out)   :: ham
-        integer(4)  :: i, i_up, i_d, j, j_up, j_d, conn
-        real(8)                                   :: k_dot_r
-        complex(8)                                :: new
-
-        if(k(3) /= 0d0) then
-            write (*,*) "K_z is non-zero. Abort."
-            stop
-        endif
-
-        ham =  0d0
-        
-        do i =  1,2*self%num_atoms
-            ham(i,i) =  self%E_s 
-        enddo
-
-
-        ! Spin up
-        do i = 1,self%num_atoms
-            do conn = 1,self%atoms(i)%n_neigh
-                j =  self%atoms(i)%neigh_idx(conn)
-                k_dot_r =  dot_product(k, self%atoms(i)%neigh_conn(conn,:))
-                
-                new = exp(i_unit * k_dot_r) * self%atoms(i)%hopping(conn)
-                ham(i,j) =  ham(i,j) + new
-                ham(j,i) =  ham(j,i) + conjg(new)
-                !ham(i,j) = ham(i,j) + exp(i_unit * k_dot_r) &
-                                    !* self%atoms(i)%hopping(conn)
-                !ham(j,i) = conjg(ham(i,j))
-            enddo
-        enddo
-
-        ! Spin down
-        do i = 1,self%num_atoms
-            i_d =  i + self%num_atoms
-            do conn = 1,self%atoms(i)%n_neigh
-
-                j      = self%atoms(i)%neigh_idx(conn)
-                j_d = j + self%num_atoms
-                
-                k_dot_r =  dot_product(k, self%atoms(i)%neigh_conn(conn,:))
-                new =  exp(i_unit *  k_dot_r) * self%atoms(i)%hopping(conn)
-                ham(i_d, j_d) = ham(i_d, j_d) + new
-                ham(j_d, i_d) = ham(j_d, i_d) + conjg(new)
-                !ham(i_d,j_d) = ham(i_d,j_d) + exp(i_unit * k_dot_r) &
-                                            !* self%atoms(i)%hopping(conn)  
-                !ham(j_d,i_d) = conjg(ham(i_d,j_d))
-            enddo
-        enddo
-
-    end subroutine get_ham
-
     function init_unit(cfg) result(ret)
         implicit none
-        type(CFG_t)       :: cfg !< config file as read by m_config
+        type(CFG_t)       :: cfg !> config file as read by m_config
         type(unit_cell)   :: ret
         integer(4), parameter           :: lwork =  20
         real(8)                         :: work(lwork), tmp 
@@ -151,6 +51,9 @@ contains
         
         call CFG_get(cfg, "grid%epsilon", tmp)
         ret%eps =  tmp * get_unit_conv("length", cfg)
+        
+        call CFG_get(cfg, "hamil%t_nn", tmp)
+        ret%t_nn =  tmp * get_unit_conv("energy", cfg)
 
         call CFG_get(cfg, "grid%unit_cell_type", ret%uc_type)
         if(trim(ret%uc_type) == "square_2d") then
@@ -218,12 +121,6 @@ contains
         
         call CFG_get(cfg, "grid%lattice_constant", tmp)
         ret%lattice_constant = tmp * get_unit_conv("length", cfg)
-
-        call CFG_get(cfg, "hamil%E_s", tmp)
-        ret%E_s =  tmp * get_unit_conv("energy", cfg)
-
-        call CFG_get(cfg, "hamil%t_nn", tmp)
-        ret%t_nn =  tmp * get_unit_conv("energy", cfg)
 
         call CFG_get(cfg, "grid%atoms_per_dim", ret%atom_per_dim)
         ret%num_atoms = ret%atom_per_dim * ret%atom_per_dim
@@ -341,11 +238,11 @@ contains
     subroutine setup_gen_conn(self, conn_mtx, transl_mtx)
         implicit none
         class(unit_cell)    :: self
-        real(8), intent(in) :: conn_mtx(:,:) !< Matrix containing
-        !< real-space connections. The first index inidcates
-        !< the connection vector, the second the vector element
-        real(8), intent(in) :: transl_mtx(:,:) !< Matrix containing
-        !< real-space translation vectors. Notation as in conn_mtx
+        real(8), intent(in) :: conn_mtx(:,:) !> Matrix containing
+        !> real-space connections. The first index inidcates
+        !> the connection vector, the second the vector element
+        real(8), intent(in) :: transl_mtx(:,:) !> Matrix containing
+        !> real-space translation vectors. Notation as in conn_mtx
         integer(4)                        :: i, j, n_conn
         real(8)  :: start_pos(3)
 
@@ -371,12 +268,12 @@ contains
     function gen_find_neigh(self, start, conn, transl_mtx) result(neigh)
         implicit none
         class(unit_cell), intent(in)         :: self
-        real(8), intent(in) :: start(3) !< starting position in RS
-        real(8), intent(in) :: conn(3) !< RS connection
-        real(8), intent(in) :: transl_mtx(:,:) !< RS translation vectors to next unit cell
-        !< The vectors are save as columns in the matrix:
-        !< The first index indicates the vector
-        !< The second index indicates the element of the vector
+        real(8), intent(in) :: start(3) !> starting position in RS
+        real(8), intent(in) :: conn(3) !> RS connection
+        real(8), intent(in) :: transl_mtx(:,:) !> RS translation vectors to next unit cell
+        !> The vectors are save as columns in the matrix:
+        !> The first index indicates the vector
+        !> The second index indicates the element of the vector
         integer(4)  :: neigh, idx, n_transl, i
         real(8) :: new(3)
         
@@ -412,8 +309,8 @@ contains
         ! returned, else - 1
         implicit none
         class(unit_cell), intent(in)          :: self
-        real(8), intent(in) :: start(3) !< RS start position
-        real(8), intent(in) :: conn(3) !< RZ connection
+        real(8), intent(in) :: start(3) !> RS start position
+        real(8), intent(in) :: conn(3) !> RZ connection
         real(8) :: new(3), delta
         integer(4) :: idx 
         integer(4) :: i

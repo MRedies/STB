@@ -1,14 +1,15 @@
 module Class_k_space
     use m_config
     use m_npy
-    use Class_unit_cell 
+    !use Class_unit_cell 
+    use Class_hamiltionian
     implicit none
 
     type k_space
         real(8), dimension(:,:), allocatable          :: k_pts
         character(len=100), dimension(:), allocatable :: label 
         character(len=300)                            :: prefix
-        type(unit_cell)                               :: UC
+        type(hamil)                                   :: ham
     contains
         procedure :: calc_and_print_band => calc_and_print_band
         procedure :: setup_k_path_rel    => setup_k_path_rel
@@ -25,11 +26,11 @@ contains
 
         npz_file = trim(this%prefix) // ".npz"
 
-        call this%UC%calc_eigenvalues(this%k_pts, eig_val)
+        call this%ham%calc_eigenvalues(this%k_pts, eig_val)
         call add_npz(npz_file, "k", this%k_pts)
         call add_npz(npz_file, "E", eig_val)
-        call add_npz(npz_file, "lattice", this%UC%lattice)
-        call add_npz(npz_file, "rez_lattice", this%UC%rez_lattice)
+        call add_npz(npz_file, "lattice", this%ham%UC%lattice)
+        call add_npz(npz_file, "rez_lattice", this%ham%UC%rez_lattice)
 
         deallocate(eig_val)
     End Subroutine calc_and_print_band
@@ -40,7 +41,7 @@ contains
         type(CFG_t)           :: cfg
         character(len=300)                 :: filling
 
-        k%UC =  init_unit(cfg)
+        k%ham =  init_hamil(cfg)
 
         call CFG_get(cfg, "output%band_prefix", k%prefix)
         call CFG_get(cfg, "kspace%filling", filling)
@@ -157,9 +158,9 @@ contains
         allocate(c1_sec(n_sec))
         allocate(c2_sec(n_sec))
 
-        k1(1:2) =  this%UC%rez_lattice(:,1)
+        k1(1:2) =  this%ham%UC%rez_lattice(:,1)
         k1(3)   =  0d0
-        k2(1:2) =  this%UC%rez_lattice(:,2)
+        k2(1:2) =  this%ham%UC%rez_lattice(:,2)
         k2(3)   =  0d0
 
         start =  1
