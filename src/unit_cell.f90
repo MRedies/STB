@@ -21,7 +21,7 @@ module Class_unit_cell
         integer(4) :: atom_per_dim !< atoms along the radius of the unit_cell
         real(8) :: lattice_constant !< lattice constant in atomic units
         real(8) :: E_s !< eigenenergy of atom
-        real(8) :: in_plane_hopping !< magnitiude of inplane hopping
+        real(8) :: t_nn !< magnitiude of inplane hopping
         real(8) :: eps !< threshold for positional accuracy
         type(atom), dimension(:), allocatable :: atoms !< array containing all atoms
         character(len=25) :: uc_type !< ind
@@ -189,8 +189,8 @@ contains
         !call CFG_get(cfg, "hamil%E_s", tmp)
         !ret%E_s =  tmp * get_unit_conv("energy", cfg)
 
-        !call CFG_get(cfg, "hamil%in_plane_hopping", tmp)
-        !ret%in_plane_hopping =  tmp * get_unit_conv("energy", cfg)
+        !call CFG_get(cfg, "hamil%t_nn", tmp)
+        !ret%t_nn =  tmp * get_unit_conv("energy", cfg)
 
         !call CFG_get(cfg, "grid%hexagon_size", ret%atom_per_dim)
         !if(ret%atom_per_dim >=  1) then
@@ -222,8 +222,8 @@ contains
         call CFG_get(cfg, "hamil%E_s", tmp)
         ret%E_s =  tmp * get_unit_conv("energy", cfg)
 
-        call CFG_get(cfg, "hamil%in_plane_hopping", tmp)
-        ret%in_plane_hopping =  tmp * get_unit_conv("energy", cfg)
+        call CFG_get(cfg, "hamil%t_nn", tmp)
+        ret%t_nn =  tmp * get_unit_conv("energy", cfg)
 
         call CFG_get(cfg, "grid%atoms_per_dim", ret%atom_per_dim)
         ret%num_atoms = ret%atom_per_dim * ret%atom_per_dim
@@ -258,7 +258,7 @@ contains
         allocate(self%atoms(1)%hopping(3))
         allocate(self%atoms(1)%neigh_conn(3,3))
 
-        self%atoms(1)%hopping   = self%in_plane_hopping
+        self%atoms(1)%hopping   = self%t_nn
         self%atoms(1)%n_neigh   = 3
         self%atoms(1)%neigh_idx = (/ 1,1,1 /)
 
@@ -356,7 +356,7 @@ contains
             allocate(self%atoms(i)%hopping(n_conn))
             allocate(self%atoms(i)%neigh_conn, mold=conn_mtx)
 
-            self%atoms(i)%hopping =  self%in_plane_hopping
+            self%atoms(i)%hopping =  self%t_nn
             self%atoms(i)%n_neigh =  n_conn
             start_pos             =  self%atoms(i)%pos
 
@@ -406,74 +406,6 @@ contains
         stop
         
     end function gen_find_neigh
-
-    !Subroutine  setup_conn_1D_layer(self)
-        !Implicit None
-        !class(unit_cell), intent(inout)       :: self 
-        !integer(4), dimension(2), parameter   :: conn1 =  (/1, 0 /)
-        !integer(4), dimension(2), parameter   :: conn2 =  (/1, 1 /)
-        !integer(4), dimension(2), parameter   :: conn3 =  (/0, 1 /)
-        !integer(4), dimension(2)              :: start_pos 
-        !integer(4)                            :: i,j
-        !real(8)                               :: base_len
-        !real(8), dimension(3,3)               :: base_vecs
-
-        !base_len =  self%unit_cell_dim / self%atom_per_dim
-        !base_vecs(1, :) = (/ 1d0,   0d0,                  0d0 /)
-        !base_vecs(2, :) = (/ 0.5d0, sin(60d0/180d0 * PI), 0d0 /)
-        !base_vecs(3, :) = (/-0.5d0, sin(60d0/180d0 * PI), 0d0 /)
-        !base_vecs =  base_vecs *  base_len
-
-        !do i =  1,self%num_atoms
-            !allocate(self%atoms(i)%neigh(3))
-            !allocate(self%atoms(i)%hopping(3))
-            !allocate(self%atoms(i)%neigh_conn(3,3))
-
-            !self%atoms(i)%hopping = self%in_plane_hopping
-            !self%atoms(i)%n_neigh =  3
-            !start_pos             = self%atoms(i)%pos
-
-            !self%atoms(i)%neigh(1) = self%find_neigh(start_pos, conn1)
-            !self%atoms(i)%neigh(2) = self%find_neigh(start_pos, conn2)
-            !self%atoms(i)%neigh(3) = self%find_neigh(start_pos, conn3)
-
-            !self%atoms(i)%neigh_conn =  base_vecs 
-        !enddo
-
-    !End Subroutine setup_conn_1D_layer
-
-    !function find_neigh(self, start, conn) result(neigh)
-        !implicit none
-        !class(unit_cell), intent(in)           :: self
-        !integer(4), dimension(2), intent(in)   :: start, conn 
-        !integer(4)                             :: neigh
-        !integer(4), dimension(2)               :: trans1, trans2, new
-        !integer(4)                             :: i,j
-
-        !trans1 =  (/self%atom_per_dim, - self%atom_per_dim /)
-        !trans2 =  (/2*self%atom_per_dim, self%atom_per_dim /)
-        
-        !new =  start +  conn 
-        !if(self%in_hexagon(new) /= -1) then
-            !neigh = self%in_hexagon(new)
-            !return
-        !else
-            !do i = -1,1
-                !do j =  -1,1
-                    !new =  start  +  conn &
-                        !+  i *  trans1 +  j *  trans2
-                    !if(self%in_hexagon(new) /= - 1) then
-                        !neigh =  self%in_hexagon(new)
-                        !return
-                    !endif
-                !enddo
-            !enddo
-        !endif
-
-        !write (*,*) "Couldn't find a neighbour"
-        !stop 2
-
-    !end function find_neigh
 
     function in_cell(self, start, conn) result(idx)
         ! if position is in hexagon the corresponding index is

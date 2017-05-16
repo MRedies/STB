@@ -33,7 +33,7 @@ contains
         call CFG_add(cfg, "units%inv_energy", "none", "")
         call CFG_add(cfg, "units%inv_length", "none", "")
 
-        call CFG_add(cfg, "hamil%in_plane_hopping", 0.0d0, "")
+        call CFG_add(cfg, "hamil%t_nn", 0.0d0, "")
         call CFG_add(cfg, "hamil%E_s",              0.0d0, "")
 
         call CFG_add(cfg, "grid%atoms_per_dim", -1, "")
