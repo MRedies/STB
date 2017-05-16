@@ -2,14 +2,16 @@ module Class_atom
     implicit none
 
     type atom
-        real(8)  :: m_phi   !< azimuthal spin angle \f$\phi\f$
-        real(8)  :: m_theta !< polar spin angle \f$\theta\f$
-        real(8), dimension(3) :: pos !< Position in RS in atomic units
-        integer(4)  :: n_neigh !< number of neighbours
-        real(8), dimension(:), allocatable     :: hopping !< hopping term for a given connection
-        integer(4), dimension(:), allocatable  :: neigh_idx !< index of neighbour atom
-        real(8), dimension(:,:), allocatable   :: neigh_conn !< real space connection to neighbour. 
-        !< First index connection, second element of connection.
+        real(8)  :: m_phi   !> azimuthal spin angle \f$\phi\f$
+                            !> see german wikipedia, not english
+        real(8)  :: m_theta !> polar spin angle \f$\theta\f$
+                            !> see german wikipedia, not english                        
+        real(8), dimension(3) :: pos !> Position in RS in atomic units
+        integer(4)  :: n_neigh !> number of neighbours
+        real(8), dimension(:), allocatable     :: hopping !> hopping term for a given connection
+        integer(4), dimension(:), allocatable  :: neigh_idx !> index of neighbour atom
+        real(8), dimension(:,:), allocatable   :: neigh_conn !> real space connection to neighbour. 
+        !> First index connection, second element of connection.
 
     contains
         procedure :: get_m_cart =>  get_m_cart 

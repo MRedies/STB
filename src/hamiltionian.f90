@@ -1,6 +1,8 @@
 module Class_hamiltionian
     use m_config
+    use output
     use Class_unit_cell
+    use m_npy
     implicit none
     
     type hamil
@@ -13,6 +15,8 @@ module Class_hamiltionian
         procedure :: calc_eigenvalues    => calc_eigenvalues
         procedure :: set_EigenE          => set_EigenE
         procedure :: set_hopping         => set_hopping
+        procedure :: set_Stoner          => set_Stoner
+        procedure :: setup_Stoner_mtx    => setup_Stoner_mtx
     end type hamil
 
 contains
@@ -27,9 +31,15 @@ contains
             stop
         endif
        
-        call reset_H(H)
-        call self%set_EigenE(H)
-        call self%set_hopping(k,H)
+        H =  0d0
+
+        self%UC%atoms(3)%m_phi =  pi/2d0
+        self%UC%atoms(3)%m_theta =  pi/2d0
+        !call self%set_EigenE(H)
+        !call self%set_hopping(k,H)
+        call self%set_Stoner(H)
+        call add_npz("output/bla.npz", "full", H)
+        stop
     end subroutine setup_H
 
     function init_hamil(cfg) result(ret)
@@ -49,6 +59,42 @@ contains
         ret%I =  tmp * get_unit_conv("energy", cfg)
     end function init_hamil
 
+    subroutine set_Stoner(self,H)
+        implicit none
+        class(hamil), intent(in)   :: self
+        complex(8), intent(inout)  :: H(:,:)
+        complex(8)                 :: S(2,2) !> Stonermatrix
+        integer(4)                 :: i, i_up, i_dw
+
+        do i =  1,self%UC%num_atoms
+            i_up =  i
+            i_dw =  i +  self%UC%num_atoms 
+
+            call self%setup_Stoner_mtx(i,S)
+
+            H(i_up,i_up) = H(i_up, i_up) +  S(1,1)
+            H(i_up,i_dw) = H(i_up, i_dw) +  S(1,2)
+            H(i_dw,i_up) = H(i_dw, i_up) +  S(2,1)
+            H(i_dw,i_dw) = H(i_dw, i_dw) +  S(2,2)
+        enddo
+
+    end subroutine set_Stoner
+
+    subroutine setup_Stoner_mtx(self,i,S)
+        implicit none
+        class(hamil), intent(in) :: self
+        integer(4), intent(in)   :: i
+        complex(8), intent(inout):: S(2,2)
+        real(8)                  :: m(3), fac
+        
+        m = self%UC%atoms(i)%get_m_cart()
+        fac =  - 0.5d0 *  self%I
+        
+        S = fac * ( m(1) * sigma_x &
+                  + m(2) * sigma_y &
+                  + m(3) * sigma_z)
+    end subroutine setup_Stoner_mtx
+
     subroutine set_EigenE(self,H)
         implicit none
         class(hamil), intent(in) :: self
@@ -60,13 +106,6 @@ contains
         enddo
     end subroutine set_EigenE 
 
-    subroutine reset_H(H)
-        implicit none
-        complex(8), intent(inout):: H(:,:)
-
-        H =  0d0
-    end subroutine reset_H
-    
     subroutine set_hopping(self,k, H)
         implicit none
         class(hamil), intent(in)          :: self 

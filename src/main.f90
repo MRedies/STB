@@ -38,6 +38,7 @@ contains
         call CFG_add(cfg, "grid%unit_cell_type","","")
         call CFG_add(cfg, "grid%lattice_constant", 0d0, "")
         call CFG_add(cfg, "grid%epsilon", 1d-6, "")
+        call CFG_add(cfg, "grid%mag_type", "", "")
 
         call CFG_add(cfg, "kspace%k_label",    (/ ""/),   "",&
                           dynamic_size=.true.)

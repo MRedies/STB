@@ -20,7 +20,8 @@ module Class_unit_cell
         real(8) :: t_nn !> hopping paramater passed for connection 
         real(8) :: eps !> threshold for positional accuracy
         type(atom), dimension(:), allocatable :: atoms !> array containing all atoms
-        character(len=25) :: uc_type !> ind
+        character(len=25) :: uc_type !> indicates shape of unitcell
+        character(len=25) :: mag_type !> indicates type of magnetization
     contains
         procedure :: get_num_atoms       => get_num_atoms
 !        procedure :: setup_hexagon       => setup_hexagon
@@ -30,6 +31,9 @@ module Class_unit_cell
         procedure :: setup_gen_conn      => setup_gen_conn
         procedure :: get_atoms           => get_atoms
         procedure :: gen_find_neigh      => gen_find_neigh
+        procedure :: save_unit_cell      =>  save_unit_cell
+        procedure :: set_mag_x_spiral_square =>&
+                           set_mag_x_spiral_square
     end type unit_cell
 contains
     function angle(a ,b) result(ang)
@@ -55,6 +59,7 @@ contains
         call CFG_get(cfg, "hamil%t_nn", tmp)
         ret%t_nn =  tmp * get_unit_conv("energy", cfg)
 
+        call CFG_get(cfg, "grid%mag_type", ret%mag_type)
         call CFG_get(cfg, "grid%unit_cell_type", ret%uc_type)
         if(trim(ret%uc_type) == "square_2d") then
             call init_unit_square(cfg, ret)
@@ -136,9 +141,63 @@ contains
         transl_mtx(1,1:2) = ret%lattice(:,1)
         transl_mtx(2,1:2) = ret%lattice(:,2)
 
-        call ret%setup_gen_conn(conn_mtx, transl_mtx)
-    
+        call ret%setup_gen_conn(conn_mtx, transl_mtx)    
+        if(trim(ret%mag_type) ==  "x_spiral") then
+            call ret%set_mag_x_spiral_square()
+        endif
+        call ret%save_unit_cell("output/uc.npz")
+        stop
     end subroutine init_unit_square 
+
+    subroutine set_mag_x_spiral_square(self)
+        implicit none
+        class(unit_cell)                 :: self 
+        real(8)        :: alpha, rel_xpos
+        integer(4)     :: i
+
+        do i =  1,self%num_atoms
+            rel_xpos =  self%atoms(i)%pos(1) / self%lattice_constant
+            alpha =  rel_xpos *  2*PI / self%atom_per_dim
+            write (*,*) alpha
+            if(alpha <= PI) then
+                self%atoms(i)%m_theta = alpha
+                self%atoms(i)%m_phi   = 0d0
+            else
+                self%atoms(i)%m_theta = 2*PI - alpha 
+                self%atoms(i)%m_phi   = PI
+            endif
+        enddo
+
+    end subroutine set_mag_x_spiral_square
+
+    subroutine save_unit_cell(self, filename)
+        implicit none
+        class(unit_cell)        :: self
+        character(len=*)        :: filename
+        real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
+        integer(4)              :: i
+        
+        allocate(x(self%num_atoms))
+        allocate(y(self%num_atoms))
+        allocate(z(self%num_atoms))
+        allocate(phi(self%num_atoms))
+        allocate(theta(self%num_atoms))
+
+        do i =  1,self%num_atoms
+            x(i)     = self%atoms(i)%pos(1)
+            y(i)     = self%atoms(i)%pos(2)
+            z(i)     = self%atoms(i)%pos(3)
+            phi(i)   = self%atoms(i)%m_phi
+            theta(i) = self%atoms(i)%m_theta
+        enddo
+
+        call add_npz(filename, "x", x)
+        call add_npz(filename, "y", y)
+        call add_npz(filename, "z", z)
+        call add_npz(filename, "phi", phi)
+        call add_npz(filename, "theta", theta)
+
+    end subroutine save_unit_cell
 
     subroutine setup_single_hex(self)
         implicit none
