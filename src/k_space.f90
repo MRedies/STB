@@ -31,6 +31,8 @@ contains
         call add_npz(npz_file, "E", eig_val)
         call add_npz(npz_file, "lattice", this%ham%UC%lattice)
         call add_npz(npz_file, "rez_lattice", this%ham%UC%rez_lattice)
+        
+        call this%ham%UC%save_unit_cell(npz_file)
 
         deallocate(eig_val)
     End Subroutine calc_and_print_band

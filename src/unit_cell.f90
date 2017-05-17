@@ -145,8 +145,6 @@ contains
         if(trim(ret%mag_type) ==  "x_spiral") then
             call ret%set_mag_x_spiral_square()
         endif
-        call ret%save_unit_cell("output/uc.npz")
-        stop
     end subroutine init_unit_square 
 
     subroutine set_mag_x_spiral_square(self)
@@ -191,11 +189,11 @@ contains
             theta(i) = self%atoms(i)%m_theta
         enddo
 
-        call add_npz(filename, "x", x)
-        call add_npz(filename, "y", y)
-        call add_npz(filename, "z", z)
-        call add_npz(filename, "phi", phi)
-        call add_npz(filename, "theta", theta)
+        call add_npz(filename, "m_x", x)
+        call add_npz(filename, "m_y", y)
+        call add_npz(filename, "m_z", z)
+        call add_npz(filename, "m_phi", phi)
+        call add_npz(filename, "m_theta", theta)
 
     end subroutine save_unit_cell
 

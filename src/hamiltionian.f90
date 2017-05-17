@@ -35,11 +35,9 @@ contains
 
         self%UC%atoms(3)%m_phi =  pi/2d0
         self%UC%atoms(3)%m_theta =  pi/2d0
-        !call self%set_EigenE(H)
-        !call self%set_hopping(k,H)
+        call self%set_EigenE(H)
+        call self%set_hopping(k,H)
         call self%set_Stoner(H)
-        call add_npz("output/bla.npz", "full", H)
-        stop
     end subroutine setup_H
 
     function init_hamil(cfg) result(ret)
