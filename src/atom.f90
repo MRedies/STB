@@ -1,0 +1,51 @@
+module Class_atom
+    USE, INTRINSIC :: IEEE_ARITHMETIC
+    implicit none
+
+    type atom
+        real(8)  :: m_phi   !> azimuthal spin angle \f$\phi\f$
+                            !> see german wikipedia, not english
+        real(8)  :: m_theta !> polar spin angle \f$\theta\f$
+                            !> see german wikipedia, not english                        
+        real(8), dimension(3) :: pos !> Position in RS in atomic units
+        integer(4)  :: n_neigh !> number of neighbours
+        real(8), dimension(:), allocatable     :: hopping !> hopping term for a given connection
+        integer(4), dimension(:), allocatable  :: neigh_idx !> index of neighbour atom
+        real(8), dimension(:,:), allocatable   :: neigh_conn !> real space connection to neighbour. 
+        !> First index connection, second element of connection.
+
+    contains
+        procedure :: get_m_cart => get_m_cart 
+        procedure :: set_m_cart => set_m_cart 
+    end type atom
+contains
+    function get_m_cart(self) result(coord)
+        implicit none
+        Class(atom), intent(in)   :: self
+        real(8), dimension(3)     :: coord
+        
+        ! assume r =  1
+        coord(1) = sin(self%m_theta) *  cos(self%m_phi)
+        coord(2) = sin(self%m_theta) *  sin(self%m_phi)
+        coord(3) = cos(self%m_theta)
+    end function get_m_cart
+    
+    function init_ferro(p_pos) result(ret)
+        implicit none
+        type(atom)                           :: ret
+        real(8), dimension(3), intent(in) :: p_pos
+
+        ret%m_phi      = 0.0d0
+        ret%m_theta    = 0.0d0
+        ret%pos        = p_pos
+    end function
+
+    subroutine set_m_cart(self,x,y,z)
+        implicit none
+        class(atom)           :: self
+        real(8), intent(in)   :: x,y,z
+
+        self%m_theta = acos(z / sqrt(x*x + y*y + z*z))
+        self%m_phi   = atan2(y,x)
+    end subroutine set_m_cart
+end module 
