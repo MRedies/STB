@@ -1,0 +1,6 @@
+[submodule "thirdparty/config_fortran"]
+	path = thirdparty/config_fortran
+	url = https://github.com/jannisteunissen/config_fortran.git
+[submodule "thirdparty/NPY-for-Fortran"]
+	path = thirdparty/NPY-for-Fortran
+	url = https://github.com/MRedies/NPY-for-Fortran.git

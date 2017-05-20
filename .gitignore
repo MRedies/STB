@@ -1,0 +1,11 @@
+CMakeCache.txt
+CMakeFiles/*
+Makefile
+prog
+cmake_install.cmake
+*.mod
+*.x
+output/*
+inis/*cfg
+!inis/example.cfg
+doc/*
