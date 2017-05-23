@@ -383,13 +383,15 @@ contains
             return
         else 
             do i = 1, n_transl
-                idx =  self%in_cell(start, conn + transl_mtx(i,:))
+                new =  conn + transl_mtx(i,:)
+                idx =  self%in_cell(start, new)
                 if (idx /=  - 1) then
                     neigh =  idx
                     return
                 endif
                 
-                idx =  self%in_cell(start, conn - transl_mtx(i,:))
+                new =  conn -  transl_mtx(i,:)
+                idx =  self%in_cell(start, new)
                 if (idx /=  - 1) then
                     neigh =  idx
                     return
