@@ -151,13 +151,15 @@ contains
         complex(8), allocatable           :: H(:,:)
         integer(4) :: i, N, LWMAX, info
         real(8), allocatable              :: RWORK(:), tmp_out(:)
-        complex(8), allocatable           :: WORK(:) 
+        complex(8), allocatable           :: WORK(:)
+        integer(4), allocatable           :: IWORK(:)
         character(len=20) :: filename
         N =  2 * self%UC%num_atoms
         LWMAX =  10*N
         allocate(eig_val(size(k_list, 2), N))
         allocate(H(N,N))
         allocate(RWORK(LWMAX))
+        allocate(IWORK(LWMAX))
         allocate(WORK(LWMAX))
         allocate(tmp_out(N))
         
@@ -165,7 +167,9 @@ contains
             k =  k_list(:,i)
             call self%setup_H(k, H)
             
-            call zheev('V', 'U', N, H, N, tmp_out, WORK, LWMAX, RWORK, info)
+            !call zheev('V', 'U', N, H, N, tmp_out, WORK, LWMAX, RWORK, info)
+            call zheevd('N', 'U', N, H, N, tmp_out, WORK, LWMAX, &
+                                RWORK, LWMAX, IWORK, LWMAX, info)
             if( info == 0) then
                 eig_val(i,:) =  tmp_out 
             else
