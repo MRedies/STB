@@ -3,14 +3,17 @@ module Class_k_space
     use m_npy
     !use Class_unit_cell 
     use Class_hamiltionian
+    use Class_math_helper
     implicit none
 
     type k_space
         real(8), dimension(:,:), allocatable          :: k_pts
         real(8) :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
-                             !> DOS calculations
+        !> DOS calculations
+        real(8) :: DOS_lower !> lower energy bound for DOS calc
+        real(8) :: DOS_upper !> upper energy bound for DOS calc
         integer(4) :: DOS_num_k_pts !> number of kpts per dim 
-                                    !> used in DOS calculations
+        !> used in DOS calculations
         integer(4) :: num_DOS_pts!> number of points on E grid
         integer(4) :: num_k_pts !> number of k_pts per segment
         real(8), allocatable :: k1_param(:) !> 1st k_space param
@@ -25,9 +28,10 @@ module Class_k_space
         procedure :: setup_k_grid        => setup_k_grid
         procedure :: lorentzian          => lorentzian
         procedure :: calc_dos            => calc_dos
+        procedure :: calc_pdos           => calc_pdos
         procedure :: calc_and_print_dos  => calc_and_print_dos
         procedure :: setup_DOS_grid_square => &
-                            setup_DOS_grid_square
+            setup_DOS_grid_square
     end type k_space 
 
 contains
@@ -39,7 +43,7 @@ contains
         real(8), dimension(:,:), allocatable    :: eig_val
 
         npz_file = trim(self%prefix) // ".npz"
-        
+
         if(trim(self%filling) ==  "path_rel") then
             call self%setup_k_path_rel()
         else if(trim(self%filling) == "path_abs") then
@@ -56,50 +60,103 @@ contains
         call add_npz(npz_file, "band_E", eig_val)
         call add_npz(npz_file, "lattice", self%ham%UC%lattice)
         call add_npz(npz_file, "rez_lattice", self%ham%UC%rez_lattice)
-    
+
         deallocate(self%k_pts)
         deallocate(eig_val)
     End Subroutine calc_and_print_band
+
+    subroutine calc_pdos(self, E, PDOS)
+        implicit none
+        class(k_space)          :: self
+        real(8), intent(in)     :: E
+        real(8), intent(out)    :: PDOS(:)
+        character(len=300)      :: npz_file
+        real(8), allocatable    :: RWORK(:), eig_val(:) 
+        complex(8), allocatable :: H(:,:), WORK(:)
+        real(8)                 :: lower, upper, k(3)
+        integer(4), allocatable :: IWORK(:)
+        integer(4)              :: k_idx, j, N, LWMAX, info 
+
+        npz_file = trim(self%prefix) // ".npz"
+        N =  2 * self%ham%UC%num_atoms
+        PDOS =  0d0
+        if(N > 4) then 
+            LWMAX =  4 * N*N
+        else
+            LWMAX =  200
+        endif
+        
+        allocate(H(N,N))
+        write (*,*) "Pre"
+        allocate(eig_val(N))
+        write (*,*) "Post"
+        allocate(WORK(LWMAX))
+        allocate(RWORK(LWMAX))
+        allocate(IWORK(LWMAX))
+
+        do k_idx=1,self%num_DOS_pts**2
+            call self%ham%setup_H(self%k_pts(:,k_idx), H)
+            call zheevd('V', 'U', N, H, N, eig_val, WORK, LWMAX, &
+                RWORK, LWMAX, IWORK, LWMAX, info)
+            if( info /= 0) then
+                write (*,*) "ZHEEVD (with vectors) failed: ", info
+                stop
+            endif
+
+            do j = 1,N
+                write (*,*) "1st:", j, cnorm2(H(:,j))
+                write (*,*) "2nd:", j, cnorm2(H(j,:))
+            enddo
+
+            !do j =  1,N
+                !do m =  1,N
+                    !DOS(j) = DOS(j) + self%lorentzian(E-eig_val(m)) &
+                                    !* abs(
+            !enddo
+        enddo
+
+        deallocate(WORK)
+        deallocate(IWORK)
+        deallocate(RWORK)
+    end subroutine
+
+
 
     subroutine calc_and_print_dos(self)
         implicit none
         class(k_space)       :: self
         character(len=300)   :: npz_file
-        real(8), allocatable :: eig_val(:,:), E(:), DOS(:), int_DOS(:)
-        real(8)              :: lower, upper, dE
+        real(8), allocatable :: E(:), DOS(:), int_DOS(:), PDOS(:,:)
         integer(4)           :: i
-        
+
+
         npz_file = trim(self%prefix) // ".npz"
         call self%setup_DOS_grid_square()
+        allocate(PDOS(2*self%ham%UC%num_atoms, self%DOS_num_k_pts))
 
-        call self%ham%calc_eigenvalues(self%k_pts, eig_val)
-        
-        lower = minval(eig_val) - 500d0 * self%DOS_gamma
-        upper = maxval(eig_val) + 500d0 * self%DOS_gamma
+        E =  linspace(self%DOS_lower, self%DOS_upper, self%num_DOS_pts)
+        write (*,*) "how about here"
 
-        E =  linspace(lower, upper, self%num_DOS_pts)
-        call self%calc_dos(E, eig_val, DOS)
+        call self%calc_pdos(E(1), PDOS(:,1))
+        write (*,*) "til here"
+        stop
+        !if(self%perform_dos_integration) then
+            !allocate(int_DOS, mold=DOS)
 
-        call add_npz(npz_file, "DOS_E", E)
-        call add_npz(npz_file, "DOS", DOS)
-    
-        if(self%perform_dos_integration) then
-            allocate(int_DOS, mold=DOS)
-            
-            if(size(E) >=  2) then 
-                dE =  E(2) - E(1)
-            else 
-                write (*,*) "Can't perform integration. Only one point"
-                stop
-            endif
-            int_DOS(1) =  0d0
-            do i =  2,size(E)
-                int_DOS(i) =  int_DOS(i-1) &
-                           + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
-            enddo
-            call add_npz(npz_file, "DOS_integrated", int_DOS)
+            !if(size(E) >=  2) then 
+                !dE =  E(2) - E(1)
+            !else 
+                !write (*,*) "Can't perform integration. Only one point"
+                !stop
+            !endif
+            !int_DOS(1) =  0d0
+            !do i =  2,size(E)
+                !int_DOS(i) =  int_DOS(i-1) &
+                    !+ 0.5d0 * dE * (DOS(i-1) +  DOS(i))
+            !enddo
+            !call add_npz(npz_file, "DOS_integrated", int_DOS)
 
-        endif
+        !endif
 
     end subroutine calc_and_print_dos
 
@@ -125,7 +182,7 @@ contains
                 do k = 1,size(eig_val,dim=2)
                     cnt =  cnt +  1
                     DOS(i) = DOS(i) &
-                           + self%lorentzian(E(i) - eig_val(j,k))
+                        + self%lorentzian(E(i) - eig_val(j,k))
                 enddo
             enddo
         enddo
@@ -157,20 +214,22 @@ contains
         allocate(k%k1_param(sz))
         call CFG_get_size(cfg, "band%k_y", sz)
         allocate(k%k2_param(sz))
-        
+
         call CFG_get(cfg, "band%k_x", k%k1_param)
         call CFG_get(cfg, "band%k_y", k%k2_param)
         call CFG_get(cfg, "band%num_points", k%num_k_pts)
 
         call CFG_get(cfg, "dos%k_pts_per_dim", k%DOS_num_k_pts)
         call CFG_get(cfg, "dos%perform_integration", &
-                          k%perform_dos_integration)
+            k%perform_dos_integration)
+        call CFG_get(cfg, "dos%lower_E_bound", k%DOS_lower)
+        call CFG_get(cfg, "dos%upper_E_bound", k%DOS_upper)
 
     end function init_k_space
 
     subroutine setup_k_grid(self, cfg)
         implicit none
-    class(k_space)           :: self
+        class(k_space)           :: self
         type(CFG_t)          :: cfg
         real(8)              :: k_mtx(2,2)
         real(8), allocatable :: kx_points(:), ky_points(:)
@@ -182,9 +241,9 @@ contains
         sz_y =  NINT(self%k2_param(3))
 
         self%k1_param(1:2) =  self%k1_param(1:2) &
-                              * get_unit_conv("inv_length",cfg)
+            * get_unit_conv("inv_length",cfg)
         self%k2_param(1:2) =  self%k2_param(1:2) &
-                              * get_unit_conv("inv_length",cfg)
+            * get_unit_conv("inv_length",cfg)
 
         allocate(kx_grid(sz_x, sz_y))
         allocate(ky_grid(sz_x, sz_y))
@@ -224,8 +283,6 @@ contains
 
         n_k =  self%DOS_num_k_pts
         allocate(self%k_pts(3,n_k**2))
-        write (*,*) "Number of k-points: ", n_k**2
-        write (*,*) "N wiki def: ", (n_k+1)**2
 
         k1 =  0d0
         k2 =  0d0 
@@ -280,14 +337,14 @@ contains
 
     subroutine setup_k_path_rel(self)
         implicit none
-    class(k_space)        :: self
+        class(k_space)        :: self
         real(8), allocatable :: c1_sec(:), c2_sec(:)
         real(8), dimension(3)              :: k1, k2
         integer(4) :: n, n_pts, n_sec,i,j, start, halt, cnt
 
         n_sec =  size(self%k1_param) - 1
         n_pts =  self%num_k_pts 
-        
+
         allocate(self%k_pts(3,n_sec * (n_pts - 1) + 1))
         allocate(c1_sec(n_sec))
         allocate(c2_sec(n_sec))
@@ -338,11 +395,11 @@ contains
 
     function lorentzian(self, x) result(lor)
         implicit none
-    class(k_space), intent(in)    :: self
+        class(k_space), intent(in)    :: self
         real(8), intent(in)           :: x
         real(8)                       :: lor
 
-        
+
         lor =  self%DOS_gamma &
             / (PI * (x**2 +  self%DOS_gamma**2))
     end function lorentzian
