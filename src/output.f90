@@ -1,5 +1,6 @@
 Module  output  
     implicit None
+    integer(4), parameter  :: std_out =  6
     interface print_mtx
         module procedure print_mtx_real, print_mtx_cmplx, print_vec_real,&
                  print_mtx_real_no_unit, print_mtx_cmplx_no_unit, &
@@ -11,7 +12,7 @@ contains
         implicit none
         integer(4), dimension(:), intent(in)   :: vec
         
-        call print_vec_int(6,vec)
+        call print_vec_int(std_out, vec)
     end subroutine print_vec_int_no_unit
     
     subroutine print_vec_int(p_unit, vec)
@@ -29,7 +30,7 @@ contains
         implicit none
         real(8), dimension(:), intent(in)      :: vec
 
-        call print_vec_real(6, vec)
+        call print_vec_real(std_out,  vec)
     end subroutine print_vec_real_no_unit
 
     subroutine print_vec_real(p_unit, vec)
@@ -47,7 +48,7 @@ contains
         Implicit None
         real(8), dimension(:,:), intent(in)    :: mtx
 
-        call print_mtx_real(6, mtx)
+        call print_mtx_real(std_out,  mtx)
     end subroutine
     
     Subroutine  print_mtx_real(p_unit, mtx)
@@ -71,7 +72,7 @@ contains
         Implicit None
         complex(8), dimension(:,:), intent(in)    :: mtx
         
-        call print_mtx_cmplx(6, mtx)
+        call print_mtx_cmplx(std_out,  mtx)
     end subroutine print_mtx_cmplx_no_unit
 
     Subroutine  print_mtx_cmplx(p_unit, mtx)
