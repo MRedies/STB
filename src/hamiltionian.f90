@@ -26,7 +26,7 @@ contains
         class(hamil)        :: self
         real(8), intent(in) :: k(3)
         complex(8), intent(inout) :: H(:,:)
-        
+
         if(k(3) /= 0d0) then
             write (*,*) "K_z is non-zero. Abort."
             stop

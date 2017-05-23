@@ -71,11 +71,11 @@ contains
         real(8), intent(in)     :: E
         real(8), intent(out)    :: PDOS(:)
         character(len=300)      :: npz_file
-        real(8), allocatable    :: RWORK(:), eig_val(:) 
+        real(8), allocatable    :: RWORK(:), eig_val(:)
         complex(8), allocatable :: H(:,:), WORK(:)
         real(8)                 :: lower, upper, k(3)
         integer(4), allocatable :: IWORK(:)
-        integer(4)              :: k_idx, j, N, LWMAX, info 
+        integer(4)              :: k_idx, j, m, N, LWMAX, info 
 
         npz_file = trim(self%prefix) // ".npz"
         N =  2 * self%ham%UC%num_atoms
@@ -87,14 +87,12 @@ contains
         endif
         
         allocate(H(N,N))
-        write (*,*) "Pre"
         allocate(eig_val(N))
-        write (*,*) "Post"
         allocate(WORK(LWMAX))
         allocate(RWORK(LWMAX))
         allocate(IWORK(LWMAX))
 
-        do k_idx=1,self%num_DOS_pts**2
+        do k_idx=1,size(self%k_pts, 2)
             call self%ham%setup_H(self%k_pts(:,k_idx), H)
             call zheevd('V', 'U', N, H, N, eig_val, WORK, LWMAX, &
                 RWORK, LWMAX, IWORK, LWMAX, info)
@@ -103,17 +101,15 @@ contains
                 stop
             endif
 
-            do j = 1,N
-                write (*,*) "1st:", j, cnorm2(H(:,j))
-                write (*,*) "2nd:", j, cnorm2(H(j,:))
+            ! eigenvectors are stored colum-wise
+            do m =  1,N
+                do j = 1,N
+                    PDOS(j) = PDOS(j) + self%lorentzian(E - eig_val(m)) &
+                                      * H(j,m) * conjg(H(j,m))
+                enddo
             enddo
-
-            !do j =  1,N
-                !do m =  1,N
-                    !DOS(j) = DOS(j) + self%lorentzian(E-eig_val(m)) &
-                                    !* abs(
-            !enddo
         enddo
+        PDOS =  PDOS / real(size(self%k_pts,2))
 
         deallocate(WORK)
         deallocate(IWORK)
@@ -126,37 +122,53 @@ contains
         implicit none
         class(k_space)       :: self
         character(len=300)   :: npz_file
-        real(8), allocatable :: E(:), DOS(:), int_DOS(:), PDOS(:,:)
-        integer(4)           :: i
+        real(8), allocatable :: E(:), DOS(:), int_DOS(:), PDOS(:,:), up(:), down(:)
+        real(8)              :: dE
+        integer(4)           :: i, num_atoms
 
 
         npz_file = trim(self%prefix) // ".npz"
         call self%setup_DOS_grid_square()
-        allocate(PDOS(2*self%ham%UC%num_atoms, self%DOS_num_k_pts))
+        num_atoms =  self%ham%UC%num_atoms
+        allocate(PDOS(2*num_atoms, self%num_DOS_pts))
 
         E =  linspace(self%DOS_lower, self%DOS_upper, self%num_DOS_pts)
-        write (*,*) "how about here"
+        allocate(DOS,  mold=E)
+        allocate(up,   mold=E)
+        allocate(down, mold=E)
 
-        call self%calc_pdos(E(1), PDOS(:,1))
-        write (*,*) "til here"
-        stop
-        !if(self%perform_dos_integration) then
-            !allocate(int_DOS, mold=DOS)
+        do i =  1, self%num_DOS_pts 
+            write (*,*) i, "/", self%num_DOS_pts
+            call self%calc_pdos(E(i), PDOS(:,i))
+        enddo
 
-            !if(size(E) >=  2) then 
-                !dE =  E(2) - E(1)
-            !else 
-                !write (*,*) "Can't perform integration. Only one point"
-                !stop
-            !endif
-            !int_DOS(1) =  0d0
-            !do i =  2,size(E)
-                !int_DOS(i) =  int_DOS(i-1) &
-                    !+ 0.5d0 * dE * (DOS(i-1) +  DOS(i))
-            !enddo
-            !call add_npz(npz_file, "DOS_integrated", int_DOS)
+        DOS  = sum(PDOS,1)
+        up   = sum(PDOS(1:num_atoms, :),1)
+        down = sum(PDOS(num_atoms+1:2*num_atoms, :),1)
 
-        !endif
+        call add_npz(npz_file, "DOS_E",       E)
+        call add_npz(npz_file, "DOS",         DOS)
+        call add_npz(npz_file, "DOS_partial", PDOS)
+        call add_npz(npz_file, "DOS_up",      up)
+        call add_npz(npz_file, "DOS_down",    down)
+
+        if(self%perform_dos_integration) then
+            allocate(int_DOS, mold=DOS)
+
+            if(size(E) >=  2) then 
+                dE =  E(2) - E(1)
+            else 
+                write (*,*) "Can't perform integration. Only one point"
+                stop
+            endif
+            int_DOS(1) =  0d0
+            do i =  2,size(E)
+                int_DOS(i) =  int_DOS(i-1) &
+                    + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
+            enddo
+            call add_npz(npz_file, "DOS_integrated", int_DOS)
+
+        endif
 
     end subroutine calc_and_print_dos
 
@@ -222,8 +234,10 @@ contains
         call CFG_get(cfg, "dos%k_pts_per_dim", k%DOS_num_k_pts)
         call CFG_get(cfg, "dos%perform_integration", &
             k%perform_dos_integration)
-        call CFG_get(cfg, "dos%lower_E_bound", k%DOS_lower)
-        call CFG_get(cfg, "dos%upper_E_bound", k%DOS_upper)
+        call CFG_get(cfg, "dos%lower_E_bound", tmp)
+        k%DOS_lower =  tmp * get_unit_conv("energy", cfg)
+        call CFG_get(cfg, "dos%upper_E_bound", tmp)
+        k%DOS_upper =  tmp * get_unit_conv("energy", cfg)
 
     end function init_k_space
 

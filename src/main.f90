@@ -64,6 +64,8 @@ contains
         call CFG_add(cfg, "dos%delta_broadening", 0d0,     "")
         call CFG_add(cfg, "dos%num_points", 300, "")
         call CFG_add(cfg, "dos%perform_integration", .False., "")
+        call CFG_add(cfg, "dos%lower_E_bound", 0d0, "")
+        call CFG_add(cfg, "dos%upper_E_bound", 0d0, "")
 
         call CFG_add(cfg, "output%outfile", "foo/bar", "")
         call CFG_add(cfg, "output%band_prefix", "bar/foo","")

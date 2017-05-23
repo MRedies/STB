@@ -342,7 +342,7 @@ contains
         real(8), intent(in) :: transl_mtx(:,:) !> Matrix containing
         !> real-space translation vectors. Notation as in conn_mtx
         integer(4)                        :: i, j, n_conn
-        real(8)  :: start_pos(3)
+        real(8)  :: start_pos(3), conn(3)
 
         n_conn =  size(conn_mtx, dim=1)
 
@@ -356,8 +356,9 @@ contains
             start_pos             =  self%atoms(i)%pos
 
             do j =  1,n_conn
+                conn =  conn_mtx(j,:)
                 self%atoms(i)%neigh_idx(j) = &
-                   self%gen_find_neigh(start_pos, conn_mtx(j,:), transl_mtx)
+                   self%gen_find_neigh(start_pos, conn, transl_mtx)
             enddo
             self%atoms(i)%neigh_conn =  conn_mtx
         enddo
