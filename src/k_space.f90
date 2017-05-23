@@ -109,16 +109,10 @@ contains
         real(8), intent(in)    :: E(:), eig_val(:,:)
         real(8), allocatable, intent(out)   :: DOS(:)
         integer(4)             :: i, j, k, cnt 
-        real(8)                :: N,V, r1(3), r2(3)
+        real(8)                :: N
 
         !> the DOS ist calculated using the formular:
         !> \f$ \frac{1}{N} \sum_i \delta(\epsilon - \epsilon_i )\f$
-
-        r1 = 0d0
-        r2 = 0d0
-        r1(1:2) = self%ham%UC%rez_lattice(:,1)
-        r2(1:2) = self%ham%UC%rez_lattice(:,2)
-
 
         N = size(eig_val, dim=1)
 
