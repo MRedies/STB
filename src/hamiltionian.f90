@@ -108,8 +108,8 @@ contains
         class(hamil), intent(in)          :: self 
         real(8), intent(in)               :: k(3)
         complex(8), intent(inout)         :: H(:,:)
-        integer(4)                        :: i, i_up, i_d, j,&
-                                             j_up, j_d, conn
+        integer(4)                        :: i, i_d, j,&
+                                             j_d, conn
         real(8)                           :: k_dot_r
         complex(8)                        :: new
 
@@ -153,7 +153,6 @@ contains
         real(8), allocatable              :: RWORK(:), tmp_out(:)
         complex(8), allocatable           :: WORK(:)
         integer(4), allocatable           :: IWORK(:)
-        character(len=20) :: filename
         N =  2 * self%UC%num_atoms
         LWMAX =  10*N
         allocate(eig_val(size(k_list, 2), N))
@@ -167,7 +166,6 @@ contains
             k =  k_list(:,i)
             call self%setup_H(k, H)
             
-            !call zheev('V', 'U', N, H, N, tmp_out, WORK, LWMAX, RWORK, info)
             call zheevd('N', 'U', N, H, N, tmp_out, WORK, LWMAX, &
                                 RWORK, LWMAX, IWORK, LWMAX, info)
             if( info == 0) then

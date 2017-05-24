@@ -24,6 +24,8 @@ def plot_square_lattice(data, linesty='',
     ticks = calc_tick_pos(3, n_ktps)
     label = ["$\Gamma$", "X", "M", "$\Gamma$"]
     E = data['band_E']
+    print(E.shape)
+    E = E[:,:8]
     k = np.arange(E.shape[0])
     if linelabel == None:
 	axis.plot(k,E, linesty)
@@ -32,6 +34,7 @@ def plot_square_lattice(data, linesty='',
 
     axis.set_xticks(ticks)
     axis.set_xticklabels(label)
+    axis.set_ylim([np.min(E), np.max(E)])
 
     return fig, axis
 

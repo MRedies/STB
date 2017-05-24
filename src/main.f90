@@ -5,15 +5,9 @@ program STB
     use Constants
     
     implicit none
-    integer(4)                              :: num, i
     type(k_space)                           :: Ksp
-    type(atom), dimension(:), allocatable   :: atoms 
     type(CFG_t)                             :: cfg
-    character(len=300)                      :: arg
-    real(8), dimension(:,:), allocatable    :: eig_val
-    real(8), dimension(4)                   :: A
     logical :: perform_band, perform_dos
-    complex(8), dimension(:,:), allocatable:: H
 
     call CFG_update_from_arguments(cfg)
     call add_full_cfg(cfg)

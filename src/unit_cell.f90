@@ -54,7 +54,7 @@ contains
         integer(4), parameter           :: lwork =  20
         real(8)                         :: work(lwork), tmp 
         integer(4), dimension(2)        :: ipiv
-        integer(4)                      :: info, i      
+        integer(4)                      :: info 
         
         call CFG_get(cfg, "grid%epsilon", tmp)
         ret%eps =  tmp * get_unit_conv("length", cfg)
@@ -124,7 +124,6 @@ contains
         implicit none
         type(unit_cell), intent(inout) :: ret
         type(CFG_t),  intent(inout)    :: cfg
-        integer(4)                     :: i
         real(8)                        :: tmp, conn_mtx(2,3), transl_mtx(2,3)
         
         call CFG_get(cfg, "grid%lattice_constant", tmp)
@@ -185,18 +184,20 @@ contains
         real(8) :: R(3,3), center(3), conn(3), n(3),m(3), radius, alpha 
         integer(4)           :: i
 
-        radius = 0.5d0 * self%lattice_constant * (self%atom_per_dim - 1)
+        ! Nagaosa style unit cell. Ferromagnetic border only to the left
+        radius = 0.5d0 * self%lattice_constant * self%atom_per_dim
         center = (/radius, radius, 0d0/)
-        write (*,*) "center: ", center
+        
         do i =  1,self%num_atoms
             conn  = center - self%atoms(i)%pos
             if(norm2(conn) > 1d-6 * self%lattice_constant &
-                .and. norm2(conn) <= radius + self%eps) then 
+                    .and. norm2(conn) <= radius + self%eps) then 
                 n     = cross_prod(conn, e_z)
-                alpha = PI*norm2(conn) / radius
+                !alpha = PI*norm2(conn) / radius
+                alpha =  PI * (1d0 -  norm2(conn) / radius)
                 R     = R_mtx(alpha, n)
                 ! center of skyrmion point down
-                m     = matmul(R, - e_z)
+                m     = matmul(R,  e_z)
             else if(norm2(conn) <= 1d-6 * self%lattice_constant) then 
                 m =  - e_z
             else
@@ -243,10 +244,6 @@ contains
         class(unit_cell), intent(inout)   :: self
         real(8)                           :: base_len
         real(8), dimension(3,3)           :: base_vecs
-        integer(4), parameter             :: lwork =  20
-        real(8), dimension(lwork)         :: work 
-        integer(4), dimension(2)          :: ipiv
-        integer(4)                        :: info, i, j
 
         self%atoms(1) =  init_ferro((/0d0, 0d0, 0d0/))
         allocate(self%atoms(1)%neigh_idx(3))

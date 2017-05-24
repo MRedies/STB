@@ -81,7 +81,7 @@ contains
         integer(4), intent(in)                     :: p_unit
         integer(4)                                 :: i,j
         character(len=4)                           :: i_str
-        character(len=3)                           :: deli = "j), "
+        character(len=4)                           :: deli = "j), "
 
         do i = 1, size(mtx,1)
             do j =  1, size(mtx,2)

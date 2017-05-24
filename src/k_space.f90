@@ -74,7 +74,6 @@ contains
         character(len=300)      :: npz_file
         real(8), allocatable    :: RWORK(:), eig_val(:)
         complex(8), allocatable :: H(:,:), WORK(:)
-        real(8)                 :: lower, upper, k(3)
         integer(4), allocatable :: IWORK(:)
         integer(4)              :: k_idx, j, m, N, LWMAX, info 
 
@@ -194,7 +193,7 @@ contains
         DOS =  0d0 
 
         do i =  1,size(E)
-            cnt =  0d0 
+            cnt =  0 
             do j = 1,size(eig_val,dim=1)
                 do k = 1,size(eig_val,dim=2)
                     cnt =  cnt +  1
@@ -250,10 +249,9 @@ contains
         implicit none
         class(k_space)           :: self
         type(CFG_t)          :: cfg
-        real(8)              :: k_mtx(2,2)
         real(8), allocatable :: kx_points(:), ky_points(:)
-        real(8), allocatable :: kx_grid(:,:), ky_grid(:,:), RHS(:,:)
-        integer(4)           :: sz_x, sz_y, i,j, cnt
+        real(8), allocatable :: kx_grid(:,:), ky_grid(:,:)
+        integer(4)           :: sz_x, sz_y, i, j
 
 
         sz_x =  NINT(self%k1_param(3))
@@ -325,7 +323,7 @@ contains
         implicit none
         class(k_space)        :: self
         class(CFG_t)          :: cfg
-        integer(4)            :: n, n_pts, n_sec, start, halt, i
+        integer(4)            :: n_pts, n_sec, start, halt, i
 
 
         self%k1_param =  self%k1_param * get_unit_conv("inv_length",cfg)
@@ -359,7 +357,7 @@ contains
         class(k_space)        :: self
         real(8), allocatable :: c1_sec(:), c2_sec(:)
         real(8), dimension(3)              :: k1, k2
-        integer(4) :: n, n_pts, n_sec,i,j, start, halt, cnt
+        integer(4) ::  n_pts, n_sec,i,j, start, halt, cnt
 
         n_sec =  size(self%k1_param) - 1
         n_pts =  self%num_k_pts 
