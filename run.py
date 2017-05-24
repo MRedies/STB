@@ -1,4 +1,4 @@
-#!/home/matthias/anaconda3/bin/python
+#!/home/matthias/anaconda2/bin/ipython
 
 import sys
 from subprocess import call

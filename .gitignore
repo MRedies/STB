@@ -9,3 +9,4 @@ output/*
 inis/*cfg
 !inis/example.cfg
 doc/*
+*.pyc
