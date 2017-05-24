@@ -60,6 +60,7 @@ contains
         call add_npz(npz_file, "band_E", eig_val)
         call add_npz(npz_file, "lattice", self%ham%UC%lattice)
         call add_npz(npz_file, "rez_lattice", self%ham%UC%rez_lattice)
+        call add_npz(npz_file, "band_num_kpts", (/ self%num_k_pts /))
 
         deallocate(self%k_pts)
         deallocate(eig_val)
@@ -133,9 +134,12 @@ contains
         allocate(PDOS(2*num_atoms, self%num_DOS_pts))
 
         E =  linspace(self%DOS_lower, self%DOS_upper, self%num_DOS_pts)
-        allocate(DOS,  mold=E)
-        allocate(up,   mold=E)
-        allocate(down, mold=E)
+        allocate(DOS(self%num_DOS_pts))
+        allocate(up(self%num_DOS_pts))
+        allocate(down(self%num_DOS_pts))
+        !allocate(DOS,  mold=E)
+        !allocate(up,   mold=E)
+        !allocate(down, mold=E)
 
         do i =  1, self%num_DOS_pts 
             write (*,*) i, "/", self%num_DOS_pts
@@ -153,7 +157,8 @@ contains
         call add_npz(npz_file, "DOS_down",    down)
 
         if(self%perform_dos_integration) then
-            allocate(int_DOS, mold=DOS)
+            allocate(int_DOS(self%num_DOS_pts))
+            !allocate(int_DOS, mold=DOS)
 
             if(size(E) >=  2) then 
                 dE =  E(2) - E(1)
@@ -185,7 +190,7 @@ contains
 
         N = size(eig_val, dim=1)
 
-        allocate(DOS, mold=E)
+        allocate(DOS(size(E)))
         DOS =  0d0 
 
         do i =  1,size(E)

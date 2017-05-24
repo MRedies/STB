@@ -349,7 +349,7 @@ contains
         do i =  1, self%num_atoms
             allocate(self%atoms(i)%neigh_idx(n_conn))
             allocate(self%atoms(i)%hopping(n_conn))
-            allocate(self%atoms(i)%neigh_conn, mold=conn_mtx)
+            allocate(self%atoms(i)%neigh_conn(n_conn,3))
 
             self%atoms(i)%hopping =  self%t_nn
             self%atoms(i)%n_neigh =  n_conn
