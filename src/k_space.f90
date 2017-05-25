@@ -69,30 +69,29 @@ contains
     subroutine calc_pdos(self, E, PDOS)
         implicit none
         class(k_space)          :: self
-        real(8), intent(in)     :: E
-        real(8), intent(out)    :: PDOS(:)
-        character(len=300)      :: npz_file
+        real(8), intent(in)     :: E(:)
+        real(8), intent(out)    :: PDOS(:,:)
         real(8), allocatable    :: RWORK(:), eig_val(:)
         complex(8), allocatable :: H(:,:), WORK(:)
         integer(4), allocatable :: IWORK(:)
-        integer(4)              :: k_idx, j, m, N, LWMAX, info 
+        integer(4)              :: k_idx, E_idx, j, m, N, LWMAX, info 
 
-        npz_file = trim(self%prefix) // ".npz"
         N =  2 * self%ham%UC%num_atoms
-        PDOS =  0d0
         if(N > 4) then 
             LWMAX =  4 * N*N
         else
             LWMAX =  200
         endif
-        
+
         allocate(H(N,N))
         allocate(eig_val(N))
         allocate(WORK(LWMAX))
         allocate(RWORK(LWMAX))
         allocate(IWORK(LWMAX))
 
+        PDOS =  0d0
         do k_idx=1,size(self%k_pts, 2)
+            write (*,*) k_idx , "of", size(self%k_pts, 2)
             call self%ham%setup_H(self%k_pts(:,k_idx), H)
             call zheevd('V', 'U', N, H, N, eig_val, WORK, LWMAX, &
                 RWORK, LWMAX, IWORK, LWMAX, info)
@@ -101,11 +100,16 @@ contains
                 stop
             endif
 
-            ! eigenvectors are stored colum-wise
-            do m =  1,N
-                do j = 1,N
-                    PDOS(j) = PDOS(j) + self%lorentzian(E - eig_val(m)) &
-                                      * H(j,m) * conjg(H(j,m))
+            do E_idx =  1,self%num_DOS_pts 
+                ! eigenvectors are stored colum-wise
+                ! m-th eigenvalue
+                ! j-th component of 
+                do m =  1,N
+                    do j = 1,N
+                        PDOS(j, E_idx) = PDOS(j, E_idx) &
+                                       + self%lorentzian(E(E_idx) - eig_val(m)) &
+                                       * H(j,m) * conjg(H(j,m))
+                    enddo
                 enddo
             enddo
         enddo
@@ -136,14 +140,8 @@ contains
         allocate(DOS(self%num_DOS_pts))
         allocate(up(self%num_DOS_pts))
         allocate(down(self%num_DOS_pts))
-        !allocate(DOS,  mold=E)
-        !allocate(up,   mold=E)
-        !allocate(down, mold=E)
 
-        do i =  1, self%num_DOS_pts 
-            write (*,*) i, "/", self%num_DOS_pts
-            call self%calc_pdos(E(i), PDOS(:,i))
-        enddo
+        call self%calc_pdos(E, PDOS)
 
         DOS  = sum(PDOS,1)
         up   = sum(PDOS(1:num_atoms, :),1)

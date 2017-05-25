@@ -32,7 +32,8 @@ module Class_unit_cell
         procedure :: setup_gen_conn      => setup_gen_conn
         procedure :: get_atoms           => get_atoms
         procedure :: gen_find_neigh      => gen_find_neigh
-        procedure :: save_unit_cell      =>  save_unit_cell
+        procedure :: save_unit_cell      => save_unit_cell
+        procedure :: set_mag_random      => set_mag_random 
         procedure :: set_mag_x_spiral_square =>&
                            set_mag_x_spiral_square
         procedure :: set_mag_linrot_skrym_square => &
@@ -151,6 +152,8 @@ contains
             write (*,*) "Use ferro"
         else if(trim(ret%mag_type) == "lin_skyrm") then
             call ret%set_mag_linrot_skrym_square()
+        else if(trim(ret%mag_type) == "random") then
+            call ret%set_mag_random()
         else
             write (*,*) "Mag_type not known"
             stop
@@ -176,6 +179,21 @@ contains
         enddo
 
     end subroutine set_mag_x_spiral_square
+
+    subroutine set_mag_random(self)
+        implicit none
+        class(unit_cell)       :: self
+        integer(4)             :: i
+        real(8)                :: phi, theta, r(2)
+
+        do i =  1,self%num_atoms
+            call random_number(r)
+
+            phi   = r(1) * 2d0 * PI
+            theta = r(2) * PI
+            call self%atoms(i)%set_sphere(phi, theta)
+        enddo
+    end subroutine set_mag_random
 
     subroutine set_mag_linrot_skrym_square(self)
         implicit none
