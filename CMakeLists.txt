@@ -4,7 +4,7 @@ project(STB)
 file(GLOB_RECURSE sources  src/*.f90 
                            src/*.h 
                            thirdparty/config_fortran/m_config.f90
-                           thirdparty/NPY-for-Fortran/src/npy.f90)
+                           thirdparty/NPY-for-Fortran/src/npy.F90)
 add_executable(stb.x ${sources})
 
 set(MKL_MULTI_THREADED TRUE)
@@ -25,7 +25,8 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     set(dialect "-stand=f08 -warn all -implicitnone -g -mkl:sequential -heap_arrays")
-	set(bounds "-check all")
+    add_definitions(-DINTEL_COMPILER_USED) 
+    set(bounds "-check all")
     set(debug "-traceback -debug ") 
 endif() 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
