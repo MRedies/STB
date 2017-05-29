@@ -27,7 +27,6 @@ module Class_k_space
         procedure :: setup_k_path_abs    => setup_k_path_abs
         procedure :: setup_k_grid        => setup_k_grid
         procedure :: lorentzian          => lorentzian
-        procedure :: calc_dos            => calc_dos
         procedure :: calc_pdos           => calc_pdos
         procedure :: calc_and_print_dos  => calc_and_print_dos
         procedure :: setup_DOS_grid_square => &
@@ -173,35 +172,6 @@ contains
         endif
 
     end subroutine calc_and_print_dos
-
-    subroutine calc_dos(self, E, eig_val, DOS)
-        implicit none
-        class(k_space)         :: self
-        real(8), intent(in)    :: E(:), eig_val(:,:)
-        real(8), allocatable, intent(out)   :: DOS(:)
-        integer(4)             :: i, j, k, cnt 
-        real(8)                :: N
-
-        !> the DOS ist calculated using the formular:
-        !> \f$ \frac{1}{N} \sum_i \delta(\epsilon - \epsilon_i )\f$
-
-        N = size(eig_val, dim=1)
-
-        allocate(DOS(size(E)))
-        DOS =  0d0 
-
-        do i =  1,size(E)
-            cnt =  0 
-            do j = 1,size(eig_val,dim=1)
-                do k = 1,size(eig_val,dim=2)
-                    cnt =  cnt +  1
-                    DOS(i) = DOS(i) &
-                        + self%lorentzian(E(i) - eig_val(j,k))
-                enddo
-            enddo
-        enddo
-        DOS = DOS / N
-    end subroutine calc_dos 
 
     function init_k_space(cfg) result(k)
         implicit none
