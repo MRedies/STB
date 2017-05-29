@@ -7,11 +7,14 @@ module Class_k_space
     implicit none
 
     type k_space
-        real(8), dimension(:,:), allocatable          :: k_pts
+        real(8), allocatable :: k_pts(:,:)
+        real(8), allocatable :: int_DOS(:) !> integrated Density of states  
+        real(8), allocatable :: E_DOS(:)
         real(8) :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
         !> DOS calculations
         real(8) :: DOS_lower !> lower energy bound for DOS calc
         real(8) :: DOS_upper !> upper energy bound for DOS calc
+        real(8) :: E_fermi !> Fermi lvl
         integer(4) :: DOS_num_k_pts !> number of kpts per dim 
         !> used in DOS calculations
         integer(4) :: num_DOS_pts!> number of points on E grid
@@ -22,13 +25,17 @@ module Class_k_space
         logical :: perform_dos_integration !> param to toggle dos integr.
         type(hamil)           :: ham
     contains
-        procedure :: calc_and_print_band => calc_and_print_band
-        procedure :: setup_k_path_rel    => setup_k_path_rel
-        procedure :: setup_k_path_abs    => setup_k_path_abs
-        procedure :: setup_k_grid        => setup_k_grid
-        procedure :: lorentzian          => lorentzian
-        procedure :: calc_pdos           => calc_pdos
-        procedure :: calc_and_print_dos  => calc_and_print_dos
+
+        procedure :: calc_and_print_band   => calc_and_print_band
+        procedure :: setup_k_path_rel      => setup_k_path_rel
+        procedure :: setup_k_path_abs      => setup_k_path_abs
+        procedure :: setup_k_grid          => setup_k_grid
+        procedure :: lorentzian            => lorentzian
+        procedure :: calc_pdos             => calc_pdos
+        procedure :: find_fermi            => find_fermi
+        procedure :: set_fermi             => set_fermi
+        procedure :: write_fermi           => write_fermi
+        procedure :: calc_and_print_dos    => calc_and_print_dos
         procedure :: setup_DOS_grid_square => &
             setup_DOS_grid_square
     end type k_space 
@@ -125,7 +132,7 @@ contains
         implicit none
         class(k_space)       :: self
         character(len=300)   :: npz_file
-        real(8), allocatable :: E(:), DOS(:), int_DOS(:), PDOS(:,:), up(:), down(:)
+        real(8), allocatable :: DOS(:), PDOS(:,:), up(:), down(:)
         real(8)              :: dE
         integer(4)           :: i, num_atoms
 
@@ -135,42 +142,37 @@ contains
         num_atoms =  self%ham%UC%num_atoms
         allocate(PDOS(2*num_atoms, self%num_DOS_pts))
 
-        E =  linspace(self%DOS_lower, self%DOS_upper, self%num_DOS_pts)
+        self%E_DOS =  linspace(self%DOS_lower, self%DOS_upper, self%num_DOS_pts)
         allocate(DOS(self%num_DOS_pts))
         allocate(up(self%num_DOS_pts))
         allocate(down(self%num_DOS_pts))
 
-        call self%calc_pdos(E, PDOS)
+        call self%calc_pdos(self%E_DOS, PDOS)
 
         DOS  = sum(PDOS,1)
         up   = sum(PDOS(1:num_atoms, :),1)
         down = sum(PDOS(num_atoms+1:2*num_atoms, :),1)
 
-        call add_npz(npz_file, "DOS_E",       E)
+        call add_npz(npz_file, "DOS_E",       self%E_DOS)
         call add_npz(npz_file, "DOS",         DOS)
         call add_npz(npz_file, "DOS_partial", PDOS)
         call add_npz(npz_file, "DOS_up",      up)
         call add_npz(npz_file, "DOS_down",    down)
 
-        if(self%perform_dos_integration) then
-            allocate(int_DOS(self%num_DOS_pts))
-            !allocate(int_DOS, mold=DOS)
+        allocate(self%int_DOS(self%num_DOS_pts))
 
-            if(size(E) >=  2) then 
-                dE =  E(2) - E(1)
-            else 
-                write (*,*) "Can't perform integration. Only one point"
-                stop
-            endif
-            int_DOS(1) =  0d0
-            do i =  2,size(E)
-                int_DOS(i) =  int_DOS(i-1) &
-                    + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
-            enddo
-            call add_npz(npz_file, "DOS_integrated", int_DOS)
-
+        if(size(self%E_DOS) >=  2) then 
+            dE =  self%E_DOS(2) - self%E_DOS(1)
+        else 
+            write (*,*) "Can't perform integration. Only one point"
+            stop
         endif
-
+        self%int_DOS(1) =  0d0
+        do i =  2,size(self%E_DOS)
+            self%int_DOS(i) =  self%int_DOS(i-1) &
+                + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
+        enddo
+        call add_npz(npz_file, "DOS_integrated", self%int_DOS)
     end subroutine calc_and_print_dos
 
     function init_k_space(cfg) result(k)
@@ -204,8 +206,6 @@ contains
         call CFG_get(cfg, "band%num_points", k%num_k_pts)
 
         call CFG_get(cfg, "dos%k_pts_per_dim", k%DOS_num_k_pts)
-        call CFG_get(cfg, "dos%perform_integration", &
-            k%perform_dos_integration)
         call CFG_get(cfg, "dos%lower_E_bound", tmp)
         k%DOS_lower =  tmp * get_unit_conv("energy", cfg)
         call CFG_get(cfg, "dos%upper_E_bound", tmp)
@@ -358,6 +358,59 @@ contains
 
     end subroutine setup_k_path_rel
 
+    subroutine set_fermi(self, cfg)
+        implicit none
+        class(k_space)         :: self
+        class(CFG_t)           :: cfg
+        real(8)                :: tmp
+
+        call CFG_get(cfg, "dos%E_fermi", tmp)
+        self%E_fermi =  tmp * get_unit_conv("energy", cfg)
+
+        call self%write_fermi()
+    end subroutine set_fermi
+
+    subroutine find_fermi(self, cfg)
+        implicit none
+        class(k_space)         :: self
+        class(CFG_t)           :: cfg
+        real(8)                :: target, delta_old, delta_new
+        integer(4)             :: i
+
+        call CFG_get(cfg, "dos%fermi_fill", target)
+        target = target * self%int_DOS(size(self%int_DOS))
+        i =  1
+
+        delta_old = -1d0
+        delta_new = -1d0 
+
+        do while((delta_old * delta_new) > 0)
+            delta_old = target - self%int_DOS(i)
+            delta_new = target - self%int_DOS(i+1)
+
+            if(i+1 <= size(self%int_DOS)) then
+                i = i + 1
+            else
+                write (*,*) "Required filling not in DOS range"
+                stop
+            endif
+        enddo
+
+        self%E_fermi = self%E_DOS(i)
+        call self%write_fermi()
+    end subroutine find_fermi
+
+    subroutine write_fermi(self)
+        implicit none
+        class(k_space)         :: self
+        character(len=300)     :: npz_file
+        real(8)                :: fermi(1)
+
+        fermi =  self%E_fermi
+
+        npz_file = trim(self%prefix) // ".npz"
+        call add_npz(npz_file, "E_fermi", fermi)
+    end subroutine write_fermi
 
     Function  linspace(start, halt, n) result(x)
         Implicit None

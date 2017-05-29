@@ -7,6 +7,7 @@ program STB
     implicit none
     type(k_space)                           :: Ksp
     type(CFG_t)                             :: cfg
+    character(len=25)                       :: fermi_type
     logical :: perform_band, perform_dos
 
     call CFG_update_from_arguments(cfg)
@@ -15,6 +16,7 @@ program STB
     
     call CFG_get(cfg, "band%perform_band", perform_band)
     call CFG_get(cfg, "dos%perform_dos",   perform_dos)
+    call CFG_get(cfg, "dos%fermi_type", fermi_type) 
 
     Ksp =  init_k_space(cfg)
     if(perform_band) then
@@ -22,6 +24,15 @@ program STB
     endif
     if(perform_dos) then
         call Ksp%calc_and_print_dos()
+
+        ! Only set Fermi energy if DOS was performed
+        if(trim(fermi_type) == "fixed") then
+            call Ksp%set_fermi(cfg)
+        else if(trim(fermi_type) == "filling") then
+            call Ksp%find_fermi(cfg)
+        endif
+        
+        call Ksp%write_fermi()
     endif
 contains
     Subroutine  add_full_cfg(cfg)
@@ -53,15 +64,16 @@ contains
         call CFG_add(cfg, "band%num_points", 0,         "")
         call CFG_add(cfg, "band%filling",    "",        "")
 
-        call CFG_add(cfg, "dos%perform_dos",         .False., "")
+        call CFG_add(cfg, "dos%perform_dos",      .False., "")
         call CFG_add(cfg, "dos%k_pts_per_dim",    0,       "")
         call CFG_add(cfg, "dos%delta_broadening", 0d0,     "")
-        call CFG_add(cfg, "dos%num_points", 300, "")
-        call CFG_add(cfg, "dos%perform_integration", .False., "")
-        call CFG_add(cfg, "dos%lower_E_bound", 0d0, "")
-        call CFG_add(cfg, "dos%upper_E_bound", 0d0, "")
+        call CFG_add(cfg, "dos%num_points",       300,     "")
+        call CFG_add(cfg, "dos%lower_E_bound",    0d0,     "")
+        call CFG_add(cfg, "dos%upper_E_bound",    0d0,     "")
+        call CFG_add(cfg, "dos%fermi_type",       "",      "")
+        call CFG_add(cfg, "dos%E_fermi",          0d0,     "")
+        call CFG_add(cfg, "dos%fermi_fill",       0.5d0,   "")
 
-        call CFG_add(cfg, "output%outfile", "foo/bar", "")
         call CFG_add(cfg, "output%band_prefix", "bar/foo","")
     End Subroutine add_full_cfg
 end program STB

@@ -7,9 +7,6 @@ file(GLOB_RECURSE sources  src/*.f90
                            thirdparty/NPY-for-Fortran/src/npy.F90)
 add_executable(stb.x ${sources})
 
-set(MKL_MULTI_THREADED TRUE)
-MESSAGE( STATUS "MKL multi-threading: " ${MKL_MULTI_THREADED})
-
 enable_language(Fortran)
 set(CMAKE_Fortran_COMPILER ifort)
 set(CMAKE_Fortran_COMPILER_ID "Intel")
