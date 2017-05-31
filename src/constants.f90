@@ -16,4 +16,7 @@ module Constants
     complex(8), parameter :: sigma_z(2,2) &
            =  reshape((/1, 0,&
                         0,-1/), (/2,2/))
+    !< Physical constants
+    real(8), parameter    :: boltzmann_const = 3.16681d-6 !E_h/K (hartrees per kelvin)
+
 end module Constants 
