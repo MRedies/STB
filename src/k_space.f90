@@ -3,7 +3,7 @@ module Class_k_space
     use m_npy
     !use Class_unit_cell 
     use Class_hamiltionian
-    use Class_math_helper
+    use Class_helper
     implicit none
 
     type k_space
@@ -15,8 +15,10 @@ module Class_k_space
         real(8) :: DOS_lower !> lower energy bound for DOS calc
         real(8) :: DOS_upper !> upper energy bound for DOS calc
         real(8) :: E_fermi !> Fermi lvl
+        real(8) :: temp !> temperature used in fermi-dirac
         integer(4) :: DOS_num_k_pts !> number of kpts per dim 
         !> used in DOS calculations
+        integer(4) :: berry_num_k_pts !> number of ks per dim in berry calc
         integer(4) :: num_DOS_pts!> number of points on E grid
         integer(4) :: num_k_pts !> number of k_pts per segment
         real(8), allocatable :: k1_param(:) !> 1st k_space param
@@ -26,18 +28,20 @@ module Class_k_space
         type(hamil)           :: ham
     contains
 
-        procedure :: calc_and_print_band   => calc_and_print_band
-        procedure :: setup_k_path_rel      => setup_k_path_rel
-        procedure :: setup_k_path_abs      => setup_k_path_abs
-        procedure :: setup_k_grid          => setup_k_grid
-        procedure :: lorentzian            => lorentzian
-        procedure :: calc_pdos             => calc_pdos
-        procedure :: find_fermi            => find_fermi
-        procedure :: set_fermi             => set_fermi
-        procedure :: write_fermi           => write_fermi
-        procedure :: calc_and_print_dos    => calc_and_print_dos
-        procedure :: setup_DOS_grid_square => &
-            setup_DOS_grid_square
+        procedure :: vol_k_space_parallelo  => vol_k_space_parallelo
+        procedure :: calc_and_print_band    => calc_and_print_band
+        procedure :: setup_k_path_rel       => setup_k_path_rel
+        procedure :: setup_k_path_abs       => setup_k_path_abs
+        procedure :: setup_k_grid           => setup_k_grid
+        procedure :: lorentzian             => lorentzian
+        procedure :: calc_pdos              => calc_pdos
+        procedure :: find_fermi             => find_fermi
+        procedure :: set_fermi              => set_fermi
+        procedure :: fermi_distr            => fermi_distr
+        procedure :: write_fermi            => write_fermi
+        procedure :: calc_and_print_dos     => calc_and_print_dos
+        procedure :: calc_hall_conductance  => calc_hall_conductance
+        procedure :: setup_inte_grid_square => setup_inte_grid_square
     end type k_space 
 
 contains
@@ -97,7 +101,6 @@ contains
 
         PDOS =  0d0
         do k_idx=1,size(self%k_pts, 2)
-            write (*,*) k_idx , "of", size(self%k_pts, 2)
             call self%ham%setup_H(self%k_pts(:,k_idx), H)
             call zheevd('V', 'U', N, H, N, eig_val, WORK, LWMAX, &
                 RWORK, LWMAX, IWORK, LWMAX, info)
@@ -107,7 +110,7 @@ contains
             endif
 
             do E_idx =  1,self%num_DOS_pts 
-                ! eigenvectors are stored colum-wise
+                ! eigenvectors are stored column-wise
                 ! m-th eigenvalue
                 ! j-th component of 
                 do m =  1,N
@@ -127,7 +130,6 @@ contains
     end subroutine
 
 
-
     subroutine calc_and_print_dos(self)
         implicit none
         class(k_space)       :: self
@@ -138,7 +140,7 @@ contains
 
 
         npz_file = trim(self%prefix) // ".npz"
-        call self%setup_DOS_grid_square()
+        call self%setup_inte_grid_square(self%DOS_num_k_pts)
         num_atoms =  self%ham%UC%num_atoms
         allocate(PDOS(2*num_atoms, self%num_DOS_pts))
 
@@ -173,44 +175,53 @@ contains
                 + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
         enddo
         call add_npz(npz_file, "DOS_integrated", self%int_DOS)
+        
+        deallocate(self%k_pts)
+        deallocate(DOS)
+        deallocate(PDOS)
+        deallocate(up)
+        deallocate(down)
     end subroutine calc_and_print_dos
 
-    function init_k_space(cfg) result(k)
+    function init_k_space(cfg) result(self)
         implicit none
-        type(k_space)         :: k
+        type(k_space)         :: self
         type(CFG_t)           :: cfg
         real(8)               :: tmp
         integer(4)            :: sz
         character(len=300)    :: npz_file
 
-        k%ham =  init_hamil(cfg)
+        self%ham =  init_hamil(cfg)
 
-        call CFG_get(cfg, "output%band_prefix", k%prefix)
-        call CFG_get(cfg, "band%filling", k%filling)
+        call CFG_get(cfg, "output%band_prefix", self%prefix)
+        call CFG_get(cfg, "band%filling", self%filling)
 
         call CFG_get(cfg, "dos%delta_broadening", tmp)
-        k%DOS_gamma =  tmp *  get_unit_conv("energy", cfg)
+        self%DOS_gamma =  tmp *  get_unit_conv("energy", cfg)
 
-        call CFG_get(cfg, "dos%num_points", k%num_DOS_pts)
+        call CFG_get(cfg, "dos%num_points", self%num_DOS_pts)
 
-        npz_file = trim(k%prefix) // ".npz"
-        call k%ham%UC%save_unit_cell(npz_file)
+        npz_file = trim(self%prefix) // ".npz"
+        call self%ham%UC%save_unit_cell(npz_file)
 
         call CFG_get_size(cfg, "band%k_x", sz)
-        allocate(k%k1_param(sz))
+        allocate(self%k1_param(sz))
         call CFG_get_size(cfg, "band%k_y", sz)
-        allocate(k%k2_param(sz))
+        allocate(self%k2_param(sz))
 
-        call CFG_get(cfg, "band%k_x", k%k1_param)
-        call CFG_get(cfg, "band%k_y", k%k2_param)
-        call CFG_get(cfg, "band%num_points", k%num_k_pts)
+        call CFG_get(cfg, "band%k_x", self%k1_param)
+        call CFG_get(cfg, "band%k_y", self%k2_param)
+        call CFG_get(cfg, "band%num_points", self%num_k_pts)
 
-        call CFG_get(cfg, "dos%k_pts_per_dim", k%DOS_num_k_pts)
+        call CFG_get(cfg, "dos%k_pts_per_dim", self%DOS_num_k_pts)
         call CFG_get(cfg, "dos%lower_E_bound", tmp)
-        k%DOS_lower =  tmp * get_unit_conv("energy", cfg)
+        self%DOS_lower =  tmp * get_unit_conv("energy", cfg)
         call CFG_get(cfg, "dos%upper_E_bound", tmp)
-        k%DOS_upper =  tmp * get_unit_conv("energy", cfg)
+        self%DOS_upper =  tmp * get_unit_conv("energy", cfg)
 
+        call CFG_get(cfg, "berry%k_pts_per_dim", self%berry_num_k_pts)
+        call CFG_get(cfg, "berry%temperature", tmp)
+        self%temp = tmp * get_unit_conv("temperature", cfg)
     end function init_k_space
 
     subroutine setup_k_grid(self, cfg)
@@ -259,14 +270,14 @@ contains
 
     end subroutine setup_k_grid
 
-    subroutine setup_DOS_grid_square(self)
+    subroutine setup_inte_grid_square(self, n_k)
         implicit none
         class(k_space)        :: self
+        integer(4), intent(in):: n_k
         real(8), allocatable  :: ls(:), ls_help(:)
         real(8)               :: k1(3), k2(3)
-        integer(4)            :: n_k, i, j, cnt
+        integer(4)            :: i, j, cnt
 
-        n_k =  self%DOS_num_k_pts
         allocate(self%k_pts(3,n_k**2))
 
         k1 =  0d0
@@ -285,7 +296,7 @@ contains
                 cnt =  cnt + 1
             enddo
         enddo
-    end subroutine setup_DOS_grid_square
+    end subroutine setup_inte_grid_square
 
     subroutine setup_k_path_abs(self, cfg)
         implicit none
@@ -358,6 +369,53 @@ contains
 
     end subroutine setup_k_path_rel
 
+    function vol_k_space_parallelo(self) result(vol)
+        implicit none
+        class(k_space)         :: self
+        real(8)                :: vol, k1(3), k2(3)
+
+        k1      = 0d0
+        k2      = 0d0
+        k1(1:2) = self%ham%UC%rez_lattice(:,1)
+        k2(1:2) = self%ham%UC%rez_lattice(:,2)
+
+        vol = norm2(cross_prod(k1,k2))
+    end function vol_k_space_parallelo
+
+    function calc_hall_conductance(self) result(hall)
+        implicit none
+        class(k_space)       :: self
+        real(8)              :: hall, V_k, k(3)
+        real(8), allocatable :: eig_val(:), omega_z(:), omega_plot(:,:)
+        integer(4)           :: N_k, n, k_idx
+        character(len=300)   :: npz_file
+
+        if(allocated(self%k_pts) )then
+            deallocate(self%k_pts)
+        endif
+        call self%setup_inte_grid_square(self%berry_num_k_pts)
+        V_k = self%vol_k_space_parallelo()
+        N_k = size(self%k_pts, 2)
+
+        allocate(omega_plot(2*self%ham%UC%num_atoms, N_k))
+
+        hall = 0d0
+        do k_idx = 1,N_k
+            k = self%k_pts(:,k_idx)
+            call self%ham%calc_berry_z(k, omega_z, eig_val)
+            omega_plot(:,k_idx) =  omega_z
+            do n = 1,2*self%ham%UC%num_atoms
+                hall = hall + omega_z(n) * self%fermi_distr(eig_val(n))
+            enddo
+        enddo
+        npz_file = trim(self%prefix) // ".npz"
+        write (*,*) "Wrote to: ", npz_file
+        call add_npz(npz_file, "berry_plot", omega_plot)
+        call add_npz(npz_file, "berry_k", self%k_pts)
+        hall = hall * V_k/real(N_k)
+        hall = hall / (2d0*PI)
+    end function calc_hall_conductance
+
     subroutine set_fermi(self, cfg)
         implicit none
         class(k_space)         :: self
@@ -412,35 +470,25 @@ contains
         call add_npz(npz_file, "E_fermi", fermi)
     end subroutine write_fermi
 
-    Function  linspace(start, halt, n) result(x)
-        Implicit None
-        real(8), intent(in)    :: start, halt
-        integer(4), intent(in) :: n
-        real(8), dimension(n)  :: x
-        real(8)                :: step, curr 
-        integer(4)             :: i
-
-        step =  (halt - start) /  (n-1)
-        curr =  start
-
-        do i = 1,n
-            x(i) =  curr
-            curr =  curr +  step
-        enddo
-
-
-    End Function 
-
     function lorentzian(self, x) result(lor)
         implicit none
         class(k_space), intent(in)    :: self
         real(8), intent(in)           :: x
         real(8)                       :: lor
 
-
         lor =  self%DOS_gamma &
             / (PI * (x**2 +  self%DOS_gamma**2))
     end function lorentzian
+
+    function fermi_distr(self, E) result(ferm)
+        implicit none
+        class(k_space), intent(in)    :: self
+        real(8), intent(in)           :: E
+        real(8)                       :: ferm
+
+        ferm = 1d0 / (exp((E-self%E_fermi)&
+                      /(boltzmann_const * self%temp)) + 1d0)
+    end function fermi_distr
 
 end module
 

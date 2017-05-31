@@ -34,4 +34,4 @@ def plot_mag(file):
                 line_width=3, color=(r,g,b), colormap='hsv', 
                 scale_factor=0.3, mode='arrow',resolution=25)
 
-plot_mag("/home/matthias/STB/output/lin_skyrm_naga.npz")
+plot_mag("/home/matthias/STB/output/dbg.npz")

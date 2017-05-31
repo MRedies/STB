@@ -8,20 +8,21 @@ program STB
     type(k_space)                           :: Ksp
     type(CFG_t)                             :: cfg
     character(len=25)                       :: fermi_type
-    logical :: perform_band, perform_dos
+    logical :: perform_band, perform_dos, calc_hall
 
     call CFG_update_from_arguments(cfg)
     call add_full_cfg(cfg)
-    !call CFG_write(cfg, "stdout")
     
     call CFG_get(cfg, "band%perform_band", perform_band)
     call CFG_get(cfg, "dos%perform_dos",   perform_dos)
     call CFG_get(cfg, "dos%fermi_type", fermi_type) 
+    call CFG_get(cfg, "berry%calc_hall", calc_hall)
 
     Ksp =  init_k_space(cfg)
     if(perform_band) then
         call Ksp%calc_and_print_band(cfg) 
     endif
+
     if(perform_dos) then
         call Ksp%calc_and_print_dos()
 
@@ -34,6 +35,10 @@ program STB
         
         call Ksp%write_fermi()
     endif
+    
+    if(calc_hall) then
+        write (*,*) Ksp%calc_hall_conductance()
+    endif
 contains
     Subroutine  add_full_cfg(cfg)
         Implicit None
@@ -43,6 +48,7 @@ contains
         call CFG_add(cfg, "units%energy",     "none", "")
         call CFG_add(cfg, "units%inv_energy", "none", "")
         call CFG_add(cfg, "units%inv_length", "none", "")
+        call CFG_add(cfg, "units%temperature", "none", "")
 
         call CFG_add(cfg, "hamil%t_nn", 0.0d0, "")
         call CFG_add(cfg, "hamil%E_s",  0.0d0, "")
@@ -73,6 +79,10 @@ contains
         call CFG_add(cfg, "dos%fermi_type",       "",      "")
         call CFG_add(cfg, "dos%E_fermi",          0d0,     "")
         call CFG_add(cfg, "dos%fermi_fill",       0.5d0,   "")
+
+        call CFG_add(cfg, "berry%calc_hall", .False., "")
+        call CFG_add(cfg, "berry%k_pts_per_dim", 25, "")
+        call CFG_add(cfg, "berry%temperature", 1d-5, "")
 
         call CFG_add(cfg, "output%band_prefix", "bar/foo","")
     End Subroutine add_full_cfg

@@ -24,13 +24,16 @@ def plot_square_lattice(data, linesty='',
     ticks = calc_tick_pos(3, n_ktps)
     label = ["$\Gamma$", "X", "M", "$\Gamma$"]
     E = data['band_E']
+    E_fermi = data['E_fermi'][0]
     print(E.shape)
     E = E[:,:8]
     k = np.arange(E.shape[0])
     if linelabel == None:
 	axis.plot(k,E, linesty)
+        axis.plot(k,np.ones(np.shape(k)) * E_fermi)
     else:
 	axis.plot(k,E, linesty, label=linelabel)
+        axis.plot(k,np.ones(np.shape(k)) * E_fermi)
 
     axis.set_xticks(ticks)
     axis.set_xticklabels(label)
