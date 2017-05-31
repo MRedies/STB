@@ -1,6 +1,6 @@
 module Class_unit_cell
     use Class_atom
-    USE, INTRINSIC :: IEEE_ARITHMETIC
+    use Class_helper
     use m_config
     use output
     use m_npy
@@ -149,7 +149,8 @@ contains
         if(trim(ret%mag_type) ==  "x_spiral") then
             call ret%set_mag_x_spiral_square()
         else if(trim(ret%mag_type) == "ferro") then
-            write (*,*) "Use ferro"
+            continue
+            !write (*,*) "Use ferro"
         else if(trim(ret%mag_type) == "lin_skyrm") then
             call ret%set_mag_linrot_skrym_square()
         else if(trim(ret%mag_type) == "random") then
@@ -491,28 +492,6 @@ contains
         rot(3,3) = 1.0d0
     end function rot_z_deg
 
-    function get_unit_conv(field_name, cfg) result(factor)
-        implicit none
-        character(len=*), intent(in)        :: field_name
-        type(CFG_t)                         :: cfg
-        real(8)                             :: factor
-        character(len=300)                  :: unit_name
-
-        call CFG_get(cfg, "units%" // trim(field_name), unit_name)
-
-        select case(trim(unit_name))
-        case ("a0")
-            factor =  1.0d0
-        case ("eV")
-            factor =  0.03674932d0
-        case ("a0^-1") 
-            factor = 1.0d0
-        case default
-            write (*,*) "Unit unknown"
-            stop
-        end select
-    end function get_unit_conv
-    
     function R_mtx(theta, vec) result(R)
         implicit none
         real(8), intent(in)    :: theta!> rotation angle
@@ -540,15 +519,5 @@ contains
           + (1-cos(theta)) * u_x_u
 
     end function R_mtx
-
-    function cross_prod(a,b) result(c)
-        implicit none
-        real(8), intent(in)   :: a(3), b(3)
-        real(8)               :: c(3)
-
-        c(1) =  a(2) * b(3) - a(3) * b(2)
-        c(2) =  a(3) * b(1) - a(1) * b(3)
-        c(3) =  a(1) * b(2) - a(2) * b(1)
-    end function cross_prod
 end module
 
