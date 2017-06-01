@@ -19,4 +19,6 @@ module Constants
     !< Physical constants
     real(8), parameter    :: boltzmann_const = 3.16681d-6 !E_h/K (hartrees per kelvin)
 
+    !< MPI Parameter
+    integer(4), parameter :: root = 0
 end module Constants 

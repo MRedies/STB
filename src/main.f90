@@ -2,21 +2,34 @@ program STB
     use Class_k_space
     use m_config
     use output
+    use mpi
     use Constants
     
     implicit none
-    type(k_space)                           :: Ksp
-    type(CFG_t)                             :: cfg
-    character(len=25)                       :: fermi_type
+    type(k_space)      :: Ksp
+    type(CFG_t)        :: cfg
+    character(len=25)  :: fermi_type
+    integer(4)         :: ierr, me
+    real(8)            :: hall_cond
     logical :: perform_band, perform_dos, calc_hall
 
-    call CFG_update_from_arguments(cfg)
-    call add_full_cfg(cfg)
+    call MPI_Init(ierr)
+    call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
     
-    call CFG_get(cfg, "band%perform_band", perform_band)
-    call CFG_get(cfg, "dos%perform_dos",   perform_dos)
-    call CFG_get(cfg, "dos%fermi_type", fermi_type) 
-    call CFG_get(cfg, "berry%calc_hall", calc_hall)
+    if(me ==  root)then
+        call CFG_update_from_arguments(cfg)
+        call add_full_cfg(cfg)
+        
+        call CFG_get(cfg, "band%perform_band", perform_band)
+        call CFG_get(cfg, "dos%perform_dos",   perform_dos)
+        call CFG_get(cfg, "dos%fermi_type", fermi_type) 
+        call CFG_get(cfg, "berry%calc_hall", calc_hall)
+    endif
+    
+    call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+    call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+    call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
+    call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
 
     Ksp =  init_k_space(cfg)
     if(perform_band) then
@@ -37,8 +50,13 @@ program STB
     endif
     
     if(calc_hall) then
-        write (*,*) Ksp%calc_hall_conductance()
+        call Ksp%calc_hall_conductance(hall_cond)
+        if(me ==  root) then
+            write (*,*) "Hall:", hall_cond
+        endif
+
     endif
+    call MPI_Finalize(ierr)
 contains
     Subroutine  add_full_cfg(cfg)
         Implicit None

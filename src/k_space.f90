@@ -1,7 +1,7 @@
 module Class_k_space
     use m_config
     use m_npy
-    !use Class_unit_cell 
+    use mpi
     use Class_hamiltionian
     use Class_helper
     implicit none
@@ -21,6 +21,8 @@ module Class_k_space
         integer(4) :: berry_num_k_pts !> number of ks per dim in berry calc
         integer(4) :: num_DOS_pts!> number of points on E grid
         integer(4) :: num_k_pts !> number of k_pts per segment
+        integer(4) :: nProcs !> number of MPI Processes
+        integer(4) :: me !> MPI ranki
         real(8), allocatable :: k1_param(:) !> 1st k_space param
         real(8), allocatable :: k2_param(:) !> 2nd k_space param
         character(len=300)    :: filling, prefix
@@ -42,6 +44,7 @@ module Class_k_space
         procedure :: calc_and_print_dos     => calc_and_print_dos
         procedure :: calc_hall_conductance  => calc_hall_conductance
         procedure :: setup_inte_grid_square => setup_inte_grid_square
+        procedure :: Bcast_k_space          => Bcast_k_space
     end type k_space 
 
 contains
@@ -144,7 +147,7 @@ contains
         num_atoms =  self%ham%UC%num_atoms
         allocate(PDOS(2*num_atoms, self%num_DOS_pts))
 
-        self%E_DOS =  linspace(self%DOS_lower, self%DOS_upper, self%num_DOS_pts)
+        call linspace(self%DOS_lower, self%DOS_upper, self%num_DOS_pts, self%E_DOS)
         allocate(DOS(self%num_DOS_pts))
         allocate(up(self%num_DOS_pts))
         allocate(down(self%num_DOS_pts))
@@ -188,41 +191,97 @@ contains
         type(k_space)         :: self
         type(CFG_t)           :: cfg
         real(8)               :: tmp
-        integer(4)            :: sz
+        integer(4)            :: sz, ierr
         character(len=300)    :: npz_file
 
         self%ham =  init_hamil(cfg)
+        
+        call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
+        call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
 
-        call CFG_get(cfg, "output%band_prefix", self%prefix)
-        call CFG_get(cfg, "band%filling", self%filling)
+        if(self%me ==  0) then 
+            call CFG_get(cfg, "output%band_prefix", self%prefix)
+            call CFG_get(cfg, "band%filling", self%filling)
 
-        call CFG_get(cfg, "dos%delta_broadening", tmp)
-        self%DOS_gamma =  tmp *  get_unit_conv("energy", cfg)
+            call CFG_get(cfg, "dos%delta_broadening", tmp)
+            self%DOS_gamma =  tmp *  get_unit_conv("energy", cfg)
 
-        call CFG_get(cfg, "dos%num_points", self%num_DOS_pts)
+            call CFG_get(cfg, "dos%num_points", self%num_DOS_pts)
 
-        npz_file = trim(self%prefix) // ".npz"
-        call self%ham%UC%save_unit_cell(npz_file)
+            npz_file = trim(self%prefix) // ".npz"
+            call self%ham%UC%save_unit_cell(npz_file)
 
-        call CFG_get_size(cfg, "band%k_x", sz)
-        allocate(self%k1_param(sz))
-        call CFG_get_size(cfg, "band%k_y", sz)
-        allocate(self%k2_param(sz))
+            call CFG_get_size(cfg, "band%k_x", sz)
+            allocate(self%k1_param(sz))
+            call CFG_get_size(cfg, "band%k_y", sz)
+            allocate(self%k2_param(sz))
 
-        call CFG_get(cfg, "band%k_x", self%k1_param)
-        call CFG_get(cfg, "band%k_y", self%k2_param)
-        call CFG_get(cfg, "band%num_points", self%num_k_pts)
+            call CFG_get(cfg, "band%k_x", self%k1_param)
+            call CFG_get(cfg, "band%k_y", self%k2_param)
+            call CFG_get(cfg, "band%num_points", self%num_k_pts)
 
-        call CFG_get(cfg, "dos%k_pts_per_dim", self%DOS_num_k_pts)
-        call CFG_get(cfg, "dos%lower_E_bound", tmp)
-        self%DOS_lower =  tmp * get_unit_conv("energy", cfg)
-        call CFG_get(cfg, "dos%upper_E_bound", tmp)
-        self%DOS_upper =  tmp * get_unit_conv("energy", cfg)
+            call CFG_get(cfg, "dos%k_pts_per_dim", self%DOS_num_k_pts)
+            call CFG_get(cfg, "dos%lower_E_bound", tmp)
+            self%DOS_lower =  tmp * get_unit_conv("energy", cfg)
+            call CFG_get(cfg, "dos%upper_E_bound", tmp)
+            self%DOS_upper =  tmp * get_unit_conv("energy", cfg)
 
-        call CFG_get(cfg, "berry%k_pts_per_dim", self%berry_num_k_pts)
-        call CFG_get(cfg, "berry%temperature", tmp)
-        self%temp = tmp * get_unit_conv("temperature", cfg)
+            call CFG_get(cfg, "berry%k_pts_per_dim", self%berry_num_k_pts)
+            call CFG_get(cfg, "berry%temperature", tmp)
+            self%temp = tmp * get_unit_conv("temperature", cfg)
+        endif
+        call self%Bcast_k_space()
     end function init_k_space
+
+    subroutine Bcast_k_space(self)
+        class(k_space)         :: self
+        integer(4), parameter  :: num_cast =  12
+        integer(4)             :: ierr(num_cast), sz(2)
+
+        if(self%me ==  root) then
+            sz(1) = size(self%k1_param)
+            sz(2) = size(self%k2_param)
+        endif
+        
+        call MPI_Bcast(self%prefix,  300,            MPI_CHARACTER, &
+                      root,          MPI_COMM_WORLD, ierr(1))
+        call MPI_Bcast(self%filling, 300,            MPI_CHARACTER, &
+                      root,          MPI_COMM_WORLD, ierr(2))
+
+        call MPI_Bcast(self%DOS_gamma,   1,              MPI_REAL8,    &
+                        root,            MPI_COMM_WORLD, ierr(3))
+        call MPI_Bcast(self%num_DOS_pts, 1,              MPI_INTEGER4, &
+                        root,            MPI_COMM_WORLD, ierr(4))
+        
+        call MPI_Bcast(sz,   2,              MPI_INTEGER4, &
+                       root, MPI_COMM_WORLD, ierr(5))
+
+        if(self%me /= root) then
+            allocate(self%k1_param(sz(1)))
+            allocate(self%k2_param(sz(2)))
+        endif
+
+        call MPI_Bcast(self%k1_param,      sz(1),          MPI_REAL8,    &
+                       root,               MPI_COMM_WORLD, ierr(5))
+        call MPI_Bcast(self%k2_param,      sz(2),          MPI_REAL8,    &
+                       root,               MPI_COMM_WORLD, ierr(6))
+        call MPI_Bcast(self%num_k_pts,     1,              MPI_INTEGER4, &
+                       root,               MPI_COMM_WORLD, ierr(7))
+        call MPI_Bcast(self%DOS_num_k_pts, 1,              MPI_INTEGER4, &
+                       root,               MPI_COMM_WORLD, ierr(8))
+        call MPI_Bcast(self%DOS_lower,     1,              MPI_REAL8, &
+                       root,               MPI_COMM_WORLD, ierr(9))
+        call MPI_Bcast(self%DOS_upper,     1,              MPI_REAL8, &
+                       root,               MPI_COMM_WORLD, ierr(10))
+        
+        ! Berry parameter
+        call MPI_Bcast(self%berry_num_k_pts, 1,              MPI_INTEGER4, &
+                       root,                 MPI_COMM_WORLD, ierr(11))
+        call MPI_Bcast(self%temp,            1,              MPI_REAL8,    &
+                       root,                 MPI_COMM_WORLD, ierr(12))
+       
+        call check_ierr(ierr, self%me)
+    end subroutine Bcast_k_space
 
     subroutine setup_k_grid(self, cfg)
         implicit none
@@ -246,8 +305,8 @@ contains
         allocate(kx_points(sz_x))
         allocate(ky_points(sz_y))
 
-        kx_points =  linspace(self%k1_param(1), self%k1_param(2), sz_x)
-        ky_points =  linspace(self%k2_param(1), self%k2_param(2), sz_y)
+        call linspace(self%k1_param(1), self%k1_param(2), sz_x , kx_points) 
+        call linspace(self%k2_param(1), self%k2_param(2), sz_y, ky_points)
 
         do j =  0,sz_y-1
             kx_grid(:,j+1) =  kx_points
@@ -284,8 +343,10 @@ contains
         k2 =  0d0 
         k1(1:2) =  self%ham%UC%rez_lattice(:,1)
         k2(1:2) =  self%ham%UC%rez_lattice(:,2)
+        
+        call linspace(0d0, 1d0, n_k+1, ls_help)
+        allocate(ls(n_k))
 
-        ls_help    = linspace(0d0, 1d0, n_k+1)
         ls         = ls_help(1:n_k)
         self%k_pts = 0d0
         cnt        = 1
@@ -303,6 +364,8 @@ contains
         class(k_space)        :: self
         class(CFG_t)          :: cfg
         integer(4)            :: n_pts, n_sec, start, halt, i
+        real(8), allocatable  :: tmp(:)
+
 
 
         self%k1_param =  self%k1_param * get_unit_conv("inv_length",cfg)
@@ -322,10 +385,10 @@ contains
         do i =  1,n_sec
             halt =  start +  n_pts - 1
 
-            self%k_pts(1,start:halt) &
-                = linspace(self%k1_param(i), self%k1_param(i+1), n_pts)
-            self%k_pts(2,start:halt) &
-                = linspace(self%k2_param(i), self%k2_param(i+1), n_pts)
+            call linspace(self%k1_param(i), self%k1_param(i+1), n_pts, tmp)
+            self%k_pts(1,start:halt) = tmp
+            call linspace(self%k2_param(i), self%k2_param(i+1), n_pts, tmp)
+            self%k_pts(2,start:halt) = tmp
             start =  halt
         enddo
 
@@ -356,8 +419,8 @@ contains
             ! linear combination of k-vec in current 
             ! section.
 
-            c1_sec = linspace(self%k1_param(i),self% k1_param(i+1), n_pts)
-            c2_sec = linspace(self%k2_param(i), self%k2_param(i+1), n_pts)
+            call linspace(self%k1_param(i),self% k1_param(i+1), n_pts, c1_sec)
+            call linspace(self%k2_param(i), self%k2_param(i+1), n_pts, c2_sec)
 
             cnt =  1
             do j =  start,halt
@@ -382,12 +445,12 @@ contains
         vol = norm2(cross_prod(k1,k2))
     end function vol_k_space_parallelo
 
-    function calc_hall_conductance(self) result(hall)
+    subroutine calc_hall_conductance(self, ret)
         implicit none
         class(k_space)       :: self
-        real(8)              :: hall, V_k, k(3)
+        real(8)              :: hall, V_k, k(3), ret
         real(8), allocatable :: eig_val(:), omega_z(:), omega_plot(:,:)
-        integer(4)           :: N_k, n, k_idx
+        integer(4)           :: N_k, n, k_idx, first, last,j, ierr
         character(len=300)   :: npz_file
 
         if(allocated(self%k_pts) )then
@@ -397,24 +460,38 @@ contains
         V_k = self%vol_k_space_parallelo()
         N_k = size(self%k_pts, 2)
 
-        allocate(omega_plot(2*self%ham%UC%num_atoms, N_k))
+        call my_section(self%me, self%nProcs, N_k, first, last)
+        !do j = 0,self%nProcs-1
+            !if(j == self%me) then
+                !write (*,*) self%me, first, last, last - first
+            !endif
+
+            !call MPI_Barrier(MPI_COMM_WORLD, ierr)
+        !enddo
+        !stop
+
+        !allocate(omega_plot(2*self%ham%UC%num_atoms, N_k))
 
         hall = 0d0
-        do k_idx = 1,N_k
+        do k_idx = first, last
             k = self%k_pts(:,k_idx)
             call self%ham%calc_berry_z(k, omega_z, eig_val)
-            omega_plot(:,k_idx) =  omega_z
+            
             do n = 1,2*self%ham%UC%num_atoms
                 hall = hall + omega_z(n) * self%fermi_distr(eig_val(n))
             enddo
         enddo
-        npz_file = trim(self%prefix) // ".npz"
-        write (*,*) "Wrote to: ", npz_file
-        call add_npz(npz_file, "berry_plot", omega_plot)
-        call add_npz(npz_file, "berry_k", self%k_pts)
+
+        !npz_file = trim(self%prefix) // ".npz"
+        !write (*,*) "Wrote to: ", npz_file
+        !call add_npz(npz_file, "berry_plot", omega_plot)
+        !call add_npz(npz_file, "berry_k", self%k_pts)
         hall = hall * V_k/real(N_k)
         hall = hall / (2d0*PI)
-    end function calc_hall_conductance
+        call MPI_Reduce(hall, ret, 1, &
+                           MPI_REAL8, MPI_Sum, &
+                           root, MPI_COMM_WORLD, ierr)
+    end subroutine calc_hall_conductance
 
     subroutine set_fermi(self, cfg)
         implicit none
@@ -487,7 +564,7 @@ contains
         real(8)                       :: ferm
 
         ferm = 1d0 / (exp((E-self%E_fermi)&
-                      /(boltzmann_const * self%temp)) + 1d0)
+            /(boltzmann_const * self%temp)) + 1d0)
     end function fermi_distr
 
 end module

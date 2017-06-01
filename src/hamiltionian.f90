@@ -3,16 +3,21 @@ module Class_hamiltionian
     use output
     use Class_unit_cell
     use m_npy
-    use lapack95
-    use f95_precision
+    use mpi
+    !use lapack95
+    !use f95_precision
     implicit none
     
     type hamil
         real(8)         :: E_s !> onsite eigenenergy
         real(8)         :: t_nn !> nearest neighbour hopping
         real(8)         :: I !> stoner parameter
+        integer(4)      :: nProcs
+        integer(4)      :: me
         type(unit_cell) :: UC !> unit cell
     contains
+
+        procedure :: Bcast_hamil            => Bcast_hamil
         procedure :: setup_H                => setup_H
         procedure :: calc_eigenvalues       => calc_eigenvalues
         procedure :: set_EigenE             => set_EigenE
@@ -52,19 +57,6 @@ contains
 
             call self%set_derivative_k(k, k_idx, del_H)
             
-            !write (*,*) "Forw:"
-            !call print_mtx(H_forw)
-            !write (*,*) "Backw:"
-            !call print_mtx(H_back)
-            
-            !write (*,*) "k =", k
-            !write (*,*) "k_idx =", k_idx
-            !write (*,*) "FD: "
-            !call print_mtx(fd_H)
-            !write (*,*) "del_H:"
-            !call print_mtx(del_H)
-            !write (*,*) "Matrix norm: real", norm2(real(fd_H - del_H))
-            !write (*,*) "Matrix norm: imag", norm2(aimag(fd_H - del_H))
             if(norm2(real(fd_H - del_H)) >= 1d-8 .or. &
                 norm2(aimag(fd_H - del_H)) >= 1d-8) then
                 write (*,*) "mist"
@@ -72,8 +64,6 @@ contains
             endif
 
         enddo
-
-
     end subroutine compare_derivative
 
     subroutine setup_H(self,k,H)
@@ -83,7 +73,7 @@ contains
         complex(8), intent(inout) :: H(:,:)
 
         if(k(3) /= 0d0) then
-            write (*,*) "K_z is non-zero. Abort."
+            write (*,*) "K_z is non-zero. Abort.", k
             stop
         endif
        
@@ -94,22 +84,42 @@ contains
         call self%set_Stoner(H)
     end subroutine setup_H
 
-    function init_hamil(cfg) result(ret)
+    function init_hamil(cfg) result(self)
         implicit none
         type(CFG_t)    :: cfg
-        type(hamil)    :: ret
+        type(hamil)    :: self
         real(8)        :: tmp
+        integer(4)     :: ierr
+        
+        call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
+        call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
+        
+        self%UC =  init_unit(cfg)
 
-        ret%UC =  init_unit(cfg)
-        call CFG_get(cfg, "hamil%E_s", tmp)
-        ret%E_s =  tmp * get_unit_conv("energy", cfg)
-        
-        call CFG_get(cfg, "hamil%t_nn", tmp)
-        ret%t_nn =  tmp * get_unit_conv("energy", cfg)
-        
-        call CFG_get(cfg, "hamil%I", tmp)
-        ret%I =  tmp * get_unit_conv("energy", cfg)
+        if(self%me ==  0) then 
+            call CFG_get(cfg, "hamil%E_s", tmp)
+            self%E_s =  tmp * get_unit_conv("energy", cfg)
+            
+            call CFG_get(cfg, "hamil%t_nn", tmp)
+            self%t_nn =  tmp * get_unit_conv("energy", cfg)
+            
+            call CFG_get(cfg, "hamil%I", tmp)
+            self%I =  tmp * get_unit_conv("energy", cfg)
+        endif
+        call self%Bcast_hamil()
     end function init_hamil
+
+    subroutine Bcast_hamil(self)
+        implicit none
+        class(hamil)          :: self
+        integer(4), parameter :: num_cast =  3
+        integer(4)            :: ierr(num_cast)
+
+        call MPI_Bcast(self%E_s,  1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(1))
+        call MPI_Bcast(self%t_nn, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
+        call MPI_Bcast(self%I,    1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(3))
+        call check_ierr(ierr, self%me)
+    end subroutine
 
     subroutine set_Stoner(self,H)
         implicit none

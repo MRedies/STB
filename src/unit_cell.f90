@@ -4,6 +4,7 @@ module Class_unit_cell
     use m_config
     use output
     use m_npy
+    use mpi
     use Constants
 
     implicit none
@@ -17,6 +18,8 @@ module Class_unit_cell
         ! number of non-redundant atoms pre unit cell
         integer(4) :: num_atoms  !> number of non-redundant atmos in a unit cell
         integer(4) :: atom_per_dim !> atoms along the radius of the unit_cell
+        integer(4) :: nProcs
+        integer(4) :: me
         real(8) :: lattice_constant !> lattice constant in atomic units
         real(8) :: t_nn !> hopping paramater passed for connection 
         real(8) :: eps !> threshold for positional accuracy
@@ -24,69 +27,108 @@ module Class_unit_cell
         character(len=25) :: uc_type !> indicates shape of unitcell
         character(len=25) :: mag_type !> indicates type of magnetization
     contains
-        procedure :: get_num_atoms       => get_num_atoms
-!        procedure :: setup_hexagon       => setup_hexagon
-        procedure :: setup_square        => setup_square
-        procedure :: setup_single_hex    => setup_single_hex
-        procedure :: in_cell             => in_cell
-        procedure :: setup_gen_conn      => setup_gen_conn
-        procedure :: get_atoms           => get_atoms
-        procedure :: gen_find_neigh      => gen_find_neigh
-        procedure :: save_unit_cell      => save_unit_cell
-        procedure :: set_mag_random      => set_mag_random 
-        procedure :: set_mag_x_spiral_square =>&
-                           set_mag_x_spiral_square
-        procedure :: set_mag_linrot_skrym_square => &
-                           set_mag_linrot_skrym_square
+
+        procedure :: get_num_atoms               => get_num_atoms
+        procedure :: setup_square                => setup_square
+        procedure :: setup_single_hex            => setup_single_hex
+        procedure :: in_cell                     => in_cell
+        procedure :: setup_gen_conn              => setup_gen_conn
+        procedure :: get_atoms                   => get_atoms
+        procedure :: gen_find_neigh              => gen_find_neigh
+        procedure :: save_unit_cell              => save_unit_cell
+        procedure :: set_mag_random              => set_mag_random
+        procedure :: set_mag_x_spiral_square     => set_mag_x_spiral_square
+        procedure :: set_mag_linrot_skrym_square => set_mag_linrot_skrym_square
+        procedure :: Bcast_UC                    => Bcast_UC
     end type unit_cell
 contains
     function angle(a ,b) result(ang)
         implicit none
         real(8), dimension(2), intent(in)   :: a,b 
         real(8)                             :: ang
-        ang =  dot_product(a,b)/(norm2(a)* norm2(b))
-        ang =  180.0d0 / PI *  acos(ang)
+        ang                                       = dot_product(a,b)/(norm2(a)* norm2(b))
+        ang                                       = 180.0d0 / PI *  acos(ang)
     end function angle
     
-    function init_unit(cfg) result(ret)
+    function init_unit(cfg) result(self)
         implicit none
         type(CFG_t)       :: cfg !> config file as read by m_config
-        type(unit_cell)   :: ret
+        type(unit_cell)   :: self
         integer(4), parameter           :: lwork =  20
         real(8)                         :: work(lwork), tmp 
         integer(4), dimension(2)        :: ipiv
-        integer(4)                      :: info 
+        integer(4)                      :: info, ierr, j 
         
-        call CFG_get(cfg, "grid%epsilon", tmp)
-        ret%eps =  tmp * get_unit_conv("length", cfg)
+        call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
+        call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
         
-        call CFG_get(cfg, "hamil%t_nn", tmp)
-        ret%t_nn =  tmp * get_unit_conv("energy", cfg)
+        
+        if(self%me ==  0) then 
+            call CFG_get(cfg, "grid%epsilon", tmp)
+            self%eps =  tmp * get_unit_conv("length", cfg)
+            
+            call CFG_get(cfg, "hamil%t_nn", tmp)
+            self%t_nn =  tmp * get_unit_conv("energy", cfg)
 
-        call CFG_get(cfg, "grid%mag_type", ret%mag_type)
-        call CFG_get(cfg, "grid%unit_cell_type", ret%uc_type)
-        if(trim(ret%uc_type) == "square_2d") then
-            call init_unit_square(cfg, ret)
+            call CFG_get(cfg, "grid%mag_type", self%mag_type)
+            call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
+
+            call CFG_get(cfg, "grid%lattice_constant", tmp)
+            self%lattice_constant = tmp * get_unit_conv("length", cfg)
+
+            call CFG_get(cfg, "grid%atoms_per_dim", self%atom_per_dim)
+        endif
+        call self%Bcast_UC()
+
+
+
+        if(trim(self%uc_type) == "square_2d") then
+            call init_unit_square(self)
         else
-            write (*,*) "Cell type unknown"
+            write (*,*) self%me, ": Cell type unknown"
             stop
         endif
+
 
         ! calculate reciprocal grid
-        ret%rez_lattice =  transpose(ret%lattice)
-        call dgetrf(2,2, ret%rez_lattice, 2, ipiv, info)
+        self%rez_lattice =  transpose(self%lattice)
+        call dgetrf(2,2, self%rez_lattice, 2, ipiv, info)
         if(info /= 0) then
-            write (*,*) "LU-decomp of lattice vectors failed"
+            write (*,*) self%me, ": LU-decomp of lattice vectors failed"
             stop
         endif
 
-        call dgetri(2, ret%rez_lattice, 2, ipiv, work, lwork, info)
+        call dgetri(2, self%rez_lattice, 2, ipiv, work, lwork, info)
         if(info /= 0) then
-            write (*,*) "Inversion of lattice vectors failed"
+            write (*,*) self%me, ": Inversion of lattice vectors failed"
             stop
         endif
-        ret%rez_lattice =  2 *  PI * ret%rez_lattice
+        self%rez_lattice =  2 *  PI * self%rez_lattice
+
+
     end function
+
+    subroutine Bcast_UC(self)
+        implicit none
+        class(unit_cell)              :: self
+        integer(4), parameter         :: num_cast = 6
+        integer(4)                    :: ierr(num_cast)
+        
+        call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
+                       root,                  MPI_COMM_WORLD, ierr(1))
+        call MPI_Bcast(self%t_nn,             1,              MPI_REAL8,     &
+                       root,                  MPI_COMM_WORLD, ierr(2))
+        call MPI_Bcast(self%mag_type,         25,             MPI_CHARACTER, &
+                       root,                  MPI_COMM_WORLD, ierr(3))
+        call MPI_Bcast(self%uc_type,          25,             MPI_CHARACTER, &
+                       root,                  MPI_COMM_WORLD, ierr(4))
+        call MPI_Bcast(self%lattice_constant, 1,              MPI_REAL8, &
+                       root,                  MPI_COMM_WORLD, ierr(4))
+        call MPI_Bcast(self%atom_per_dim,     1,              MPI_INTEGER4, &
+                       root,                  MPI_COMM_WORLD, ierr(4))
+        
+        call check_ierr(ierr, self%me)
+    end subroutine Bcast_UC
 
     !function init_unit_hex(cfg) result(ret)
         !implicit none
@@ -121,18 +163,12 @@ contains
         !endif
     !end function init_unit_hex
 
-    subroutine init_unit_square(cfg, ret)
+    subroutine init_unit_square(ret)
         implicit none
         type(unit_cell), intent(inout) :: ret
-        type(CFG_t),  intent(inout)    :: cfg
-        real(8)                        :: tmp, conn_mtx(2,3), transl_mtx(2,3)
+        real(8)                        :: conn_mtx(2,3), transl_mtx(2,3)
         
-        call CFG_get(cfg, "grid%lattice_constant", tmp)
-        ret%lattice_constant = tmp * get_unit_conv("length", cfg)
-
-        call CFG_get(cfg, "grid%atoms_per_dim", ret%atom_per_dim)
         ret%num_atoms = ret%atom_per_dim * ret%atom_per_dim
-        
         allocate(ret%atoms(ret%num_atoms))
     
         call ret%setup_square()
@@ -150,7 +186,6 @@ contains
             call ret%set_mag_x_spiral_square()
         else if(trim(ret%mag_type) == "ferro") then
             continue
-            !write (*,*) "Use ferro"
         else if(trim(ret%mag_type) == "lin_skyrm") then
             call ret%set_mag_linrot_skrym_square()
         else if(trim(ret%mag_type) == "random") then
@@ -206,13 +241,12 @@ contains
         ! Nagaosa style unit cell. Ferromagnetic border only to the left
         radius = 0.5d0 * self%lattice_constant * self%atom_per_dim
         center = (/radius, radius, 0d0/)
-        
+        alpha =  0d0 
         do i =  1,self%num_atoms
             conn  = center - self%atoms(i)%pos
             if(norm2(conn) > 1d-6 * self%lattice_constant &
                     .and. norm2(conn) <= radius + self%eps) then 
                 n     = cross_prod(conn, e_z)
-                !alpha = PI*norm2(conn) / radius
                 alpha =  PI * (1d0 -  norm2(conn) / radius)
                 R     = R_mtx(alpha, n)
                 ! center of skyrmion point down

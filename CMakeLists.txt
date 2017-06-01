@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 2.6)
 project(STB)
 
 file(GLOB_RECURSE sources  src/*.f90 
@@ -8,7 +8,7 @@ file(GLOB_RECURSE sources  src/*.f90
 add_executable(stb.x ${sources})
 
 enable_language(Fortran)
-set(CMAKE_Fortran_COMPILER ifort)
+set(CMAKE_Fortran_COMPILER mpiifort)
 set(CMAKE_Fortran_COMPILER_ID "Intel")
 #set(CMAKE_Fortran_COMPILER gfortran)
 #set(CMAKE_Fortran_COMPILER_ID "GNU")
@@ -16,7 +16,7 @@ set(CMAKE_Fortran_COMPILER_ID "Intel")
 MESSAGE( STATUS "MKLROOT: $ENV{MKLROOT}")
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-    set(dialect "-ffree-form -Wall -std=f2008 -fimplicit-none -m64 -I$ENV{MKLROOT}/include")
+    set(dialect "-ffree-form -Wall -fimplicit-none -m64 -I$ENV{MKLROOT}/include")
     set (CMAKE_EXE_LINKER_FLAGS "-L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_gf_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
     set(bounds "-fbounds-check -Wall")
 endif()

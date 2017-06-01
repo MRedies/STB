@@ -24,10 +24,10 @@ contains
         small_chunk =  length / nProcs
         nLarge =  mod(length, nProcs)
         first =  1
-        
+
         ! MPI Procs start at 0
         do i =  0, me
-            if(i <= nLarge) then
+            if(i <  nLarge) then
                 chunk_sz =  small_chunk + 1
             else
                 chunk_sz =  small_chunk
@@ -52,7 +52,7 @@ contains
 
         ! MPI Procs start at 0
         do i =  1, nProcs 
-            if(i <= nLarge) then
+            if(i <  nLarge) then
                 num_elem(i) = small_chunk + 1
             else
                 num_elem(i) = small_chunk
@@ -66,23 +66,30 @@ contains
         enddo
     end subroutine
 
-    function  linspace(start, halt, n) result(x)
-        Implicit None
+    subroutine linspace(start, halt, n, x)
+        implicit none
         real(8), intent(in)    :: start, halt
         integer(4), intent(in) :: n
-        real(8), dimension(n)  :: x
+        real(8), allocatable   :: x(:)
         real(8)                :: step, curr 
         integer(4)             :: i
 
         step =  (halt - start) /  (n-1)
         curr =  start
-
+        
+        if(allocated(x) .and. size(x) /= n) then
+            deallocate(x)
+        endif
+        if(.not. allocated(x)) then 
+            allocate(x(n))
+        endif
+        
         do i = 1,n
             x(i) =  curr
             curr =  curr +  step
         enddo
-    end function 
-    
+    end subroutine linspace
+
     function cross_prod(a,b) result(c)
         implicit none
         real(8), intent(in)   :: a(3), b(3)
@@ -92,7 +99,7 @@ contains
         c(2) =  a(3) * b(1) - a(1) * b(3)
         c(3) =  a(1) * b(2) - a(2) * b(1)
     end function cross_prod
-    
+
     function get_unit_conv(field_name, cfg) result(factor)
         implicit none
         character(len=*), intent(in)        :: field_name
@@ -116,5 +123,21 @@ contains
             stop
         end select
     end function get_unit_conv
-    
+
+    subroutine check_ierr(ierr, me)
+        implicit none
+        integer(4), intent(in)  :: ierr(:), me
+        integer(4)              :: i
+
+        do i = 1,size(ierr)
+            if(ierr(i) /= 0) then
+                write (*, "(A, I3, A, I3)") &
+                    "[", me, "] Bcast error at :", i
+                stop
+            endif
+        enddo
+    end subroutine check_ierr
+
+        
+
 end module Class_helper
