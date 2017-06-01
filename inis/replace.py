@@ -1,5 +1,5 @@
 #import numpy as np
-num_k = range(200,2001,200)
+num_k = range(10,401,10)
 print(num_k)
 
 prefix = "./inis/"
