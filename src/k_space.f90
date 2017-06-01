@@ -450,7 +450,7 @@ contains
         class(k_space)       :: self
         real(8)              :: hall, V_k, k(3), ret
         real(8), allocatable :: eig_val(:), omega_z(:), omega_plot(:,:)
-        integer(4)           :: N_k, n, k_idx, first, last,j, ierr
+        integer(4)           :: N_k, n, k_idx, first, last, ierr
         character(len=300)   :: npz_file
 
         if(allocated(self%k_pts) )then
@@ -461,17 +461,7 @@ contains
         N_k = size(self%k_pts, 2)
 
         call my_section(self%me, self%nProcs, N_k, first, last)
-        !do j = 0,self%nProcs-1
-            !if(j == self%me) then
-                !write (*,*) self%me, first, last, last - first
-            !endif
-
-            !call MPI_Barrier(MPI_COMM_WORLD, ierr)
-        !enddo
-        !stop
-
-        !allocate(omega_plot(2*self%ham%UC%num_atoms, N_k))
-
+        
         hall = 0d0
         do k_idx = first, last
             k = self%k_pts(:,k_idx)
@@ -482,15 +472,16 @@ contains
             enddo
         enddo
 
-        !npz_file = trim(self%prefix) // ".npz"
-        !write (*,*) "Wrote to: ", npz_file
-        !call add_npz(npz_file, "berry_plot", omega_plot)
-        !call add_npz(npz_file, "berry_k", self%k_pts)
         hall = hall * V_k/real(N_k)
         hall = hall / (2d0*PI)
         call MPI_Reduce(hall, ret, 1, &
                            MPI_REAL8, MPI_Sum, &
                            root, MPI_COMM_WORLD, ierr)
+
+        if(self%me == root) then
+            npz_file = trim(self%prefix) // ".npz"
+            call add_npz(npz_file, "hall_cond", (/ret /))
+        endif
     end subroutine calc_hall_conductance
 
     subroutine set_fermi(self, cfg)

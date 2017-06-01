@@ -13,10 +13,12 @@ program STB
     real(8)            :: hall_cond
     logical :: perform_band, perform_dos, calc_hall
 
+  
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
     
     if(me ==  root)then
+        write (*,*) "Start"
         call CFG_update_from_arguments(cfg)
         call add_full_cfg(cfg)
         
@@ -55,6 +57,9 @@ program STB
             write (*,*) "Hall:", hall_cond
         endif
 
+    endif
+    if(me == root) then
+        write (*,*) "Finish"
     endif
     call MPI_Finalize(ierr)
 contains
