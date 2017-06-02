@@ -4,8 +4,6 @@ module Class_hamiltionian
     use Class_unit_cell
     use m_npy
     use mpi
-    !use lapack95
-    !use f95_precision
     implicit none
     
     type hamil
@@ -98,13 +96,13 @@ contains
 
         if(self%me ==  0) then 
             call CFG_get(cfg, "hamil%E_s", tmp)
-            self%E_s =  tmp * get_unit_conv("energy", cfg)
+            self%E_s =  tmp * get_unit_conv("energy", cfg, self%me, .False.)
             
             call CFG_get(cfg, "hamil%t_nn", tmp)
-            self%t_nn =  tmp * get_unit_conv("energy", cfg)
+            self%t_nn =  tmp * get_unit_conv("energy", cfg, self%me, .False.)
             
             call CFG_get(cfg, "hamil%I", tmp)
-            self%I =  tmp * get_unit_conv("energy", cfg)
+            self%I =  tmp * get_unit_conv("energy", cfg, self%me, .False.)
         endif
         call self%Bcast_hamil()
     end function init_hamil
@@ -369,7 +367,7 @@ contains
         integer(4), allocatable           :: IWORK(:)
         N =  2 * self%UC%num_atoms
         LWMAX =  10*N
-        allocate(eig_val(size(k_list, 2), N))
+        allocate(eig_val(N, size(k_list, 2)))
         allocate(H(N,N))
         allocate(RWORK(LWMAX))
         allocate(IWORK(LWMAX))
@@ -380,11 +378,9 @@ contains
             k =  k_list(:,i)
             call self%setup_H(k, H)
             
-            call zheevd('N', 'U', N, H, N, tmp_out, WORK, LWMAX, &
+            call zheevd('N', 'U', N, H, N, eig_val(:,i), WORK, LWMAX, &
                                 RWORK, LWMAX, IWORK, LWMAX, info)
-            if( info == 0) then
-                eig_val(i,:) =  tmp_out 
-            else
+            if( info /= 0) then
                 write (*,*) "ZHEEV failed: ", info
                 stop
             endif

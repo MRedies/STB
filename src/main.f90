@@ -9,6 +9,7 @@ program STB
     type(k_space)      :: Ksp
     type(CFG_t)        :: cfg
     character(len=25)  :: fermi_type
+    character(len=*), parameter :: time_fmt =  "(A,F10.3,A)"
     integer(4)         :: ierr, me
     real(8)            :: hall_cond, start, halt
     logical :: perform_band, perform_dos, calc_hall
@@ -38,7 +39,7 @@ program STB
 
     halt =  MPI_Wtime()
     if(root ==  me) then
-        write (*,*) "Init: ", halt-start, "s"
+        write (*,time_fmt) "Init: ", halt-start, "s"
     endif
 
     if(perform_band) then
@@ -67,7 +68,7 @@ program STB
     endif
     halt = MPI_Wtime()
     if(root ==  me) then
-        write (*,*) "Total: ", halt-start, "s"
+        write (*,time_fmt) "Total: ", halt-start, "s"
     endif
     call MPI_Finalize(ierr)
 contains

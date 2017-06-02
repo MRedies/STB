@@ -65,16 +65,16 @@ contains
         
         if(self%me ==  0) then 
             call CFG_get(cfg, "grid%epsilon", tmp)
-            self%eps =  tmp * get_unit_conv("length", cfg)
+            self%eps =  tmp * get_unit_conv("length", cfg, self%me, .False.)
             
             call CFG_get(cfg, "hamil%t_nn", tmp)
-            self%t_nn =  tmp * get_unit_conv("energy", cfg)
+            self%t_nn =  tmp * get_unit_conv("energy", cfg, self%me, .False.)
 
             call CFG_get(cfg, "grid%mag_type", self%mag_type)
             call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
 
             call CFG_get(cfg, "grid%lattice_constant", tmp)
-            self%lattice_constant = tmp * get_unit_conv("length", cfg)
+            self%lattice_constant = tmp * get_unit_conv("length", cfg, self%me, .False.)
 
             call CFG_get(cfg, "grid%atoms_per_dim", self%atom_per_dim)
         endif

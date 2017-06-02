@@ -53,9 +53,10 @@ contains
         class(k_space)                :: self 
         class(CFG_t)                  :: cfg
         character(len=300)            :: npz_file
-        real(8), dimension(:,:), allocatable    :: eig_val
+        integer(4)                    :: first, last, N, send_count, ierr,i 
+        integer(4), allocatable       :: num_elems(:), offsets(:)
+        real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
 
-        npz_file = trim(self%prefix) // ".npz"
 
         if(trim(self%filling) ==  "path_rel") then
             call self%setup_k_path_rel()
@@ -68,15 +69,41 @@ contains
             stop
         endif
 
-        call self%ham%calc_eigenvalues(self%k_pts, eig_val)
-        call add_npz(npz_file, "band_k", self%k_pts)
-        call add_npz(npz_file, "band_E", eig_val)
-        call add_npz(npz_file, "lattice", self%ham%UC%lattice)
-        call add_npz(npz_file, "rez_lattice", self%ham%UC%rez_lattice)
-        call add_npz(npz_file, "band_num_kpts", (/ self%num_k_pts /))
+        call my_section(self%me, self%nProcs, size(self%k_pts, 2), first, last)
+        allocate(k_pts_sec(3, last - first + 1))
+        k_pts_sec = self%k_pts(:,first:last)
 
-        deallocate(self%k_pts)
+        call self%ham%calc_eigenvalues(k_pts_sec, sec_eig_val)
+        
+        
+        N = 2 *  self%ham%UC%num_atoms 
+        allocate(eig_val(N, size(self%k_pts,2)))
+        allocate(num_elems(self%nProcs))
+        allocate(offsets(self%nProcs))
+        call sections(self%nProcs, size(self%k_pts, 2), num_elems, offsets)
+        num_elems =  num_elems * N
+        offsets   =  offsets   * N
+    
+        send_count =  N *  size(k_pts_sec, 2)
+
+        call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
+                         eig_val,     num_elems,  offsets,   MPI_REAL8,&
+                         root,        MPI_COMM_WORLD, ierr)
+        
+        if(self%me == root) then 
+            npz_file = trim(self%prefix) // ".npz"
+            call add_npz(npz_file, "band_k", self%k_pts)
+            call add_npz(npz_file, "band_E", eig_val)
+            call add_npz(npz_file, "lattice", self%ham%UC%lattice)
+            call add_npz(npz_file, "rez_lattice", self%ham%UC%rez_lattice)
+            call add_npz(npz_file, "band_num_kpts", (/ self%num_k_pts /))
+        endif
+       
         deallocate(eig_val)
+        deallocate(num_elems)
+        deallocate(offsets)
+        deallocate(sec_eig_val)
+        deallocate(self%k_pts)
     End Subroutine calc_and_print_band
 
     subroutine calc_pdos(self, E, PDOS)
@@ -204,7 +231,7 @@ contains
             call CFG_get(cfg, "band%filling", self%filling)
 
             call CFG_get(cfg, "dos%delta_broadening", tmp)
-            self%DOS_gamma =  tmp *  get_unit_conv("energy", cfg)
+            self%DOS_gamma =  tmp *  get_unit_conv("energy", cfg, self%me, bcast=.False.)
 
             call CFG_get(cfg, "dos%num_points", self%num_DOS_pts)
 
@@ -222,13 +249,13 @@ contains
 
             call CFG_get(cfg, "dos%k_pts_per_dim", self%DOS_num_k_pts)
             call CFG_get(cfg, "dos%lower_E_bound", tmp)
-            self%DOS_lower =  tmp * get_unit_conv("energy", cfg)
+            self%DOS_lower =  tmp * get_unit_conv("energy", cfg, self%me, bcast=.False.)
             call CFG_get(cfg, "dos%upper_E_bound", tmp)
-            self%DOS_upper =  tmp * get_unit_conv("energy", cfg)
+            self%DOS_upper =  tmp * get_unit_conv("energy", cfg, self%me, bcast=.False.)
 
             call CFG_get(cfg, "berry%k_pts_per_dim", self%berry_num_k_pts)
             call CFG_get(cfg, "berry%temperature", tmp)
-            self%temp = tmp * get_unit_conv("temperature", cfg)
+            self%temp = tmp * get_unit_conv("temperature", cfg, self%me, bcast=.False.)
         endif
         call self%Bcast_k_space()
     end function init_k_space
@@ -296,9 +323,9 @@ contains
         sz_y =  NINT(self%k2_param(3))
 
         self%k1_param(1:2) =  self%k1_param(1:2) &
-            * get_unit_conv("inv_length",cfg)
+            * get_unit_conv("inv_length",cfg, self%me)
         self%k2_param(1:2) =  self%k2_param(1:2) &
-            * get_unit_conv("inv_length",cfg)
+            * get_unit_conv("inv_length",cfg, self%me)
 
         allocate(kx_grid(sz_x, sz_y))
         allocate(ky_grid(sz_x, sz_y))
@@ -363,19 +390,16 @@ contains
         implicit none
         class(k_space)        :: self
         class(CFG_t)          :: cfg
-        integer(4)            :: n_pts, n_sec, start, halt, i
+        integer(4)            :: n_pts, n_sec, start, halt, i, ierr(2)
         real(8), allocatable  :: tmp(:)
 
 
 
-        self%k1_param =  self%k1_param * get_unit_conv("inv_length",cfg)
-        self%k2_param =  self%k2_param * get_unit_conv("inv_length",cfg)
-        n_pts =  self%num_k_pts
-        write (*,*) "k1_param: ", self%k1_param
-        write (*,*) "k2_param: ", self%k2_param
+        self%k1_param =  self%k1_param * get_unit_conv("inv_length",cfg, self%me)
+        self%k2_param =  self%k2_param * get_unit_conv("inv_length",cfg, self%me)
 
+        n_pts =  self%num_k_pts
         n_sec =  size(self%k1_param)-1
-        write (*,*) "N_sec: ", n_sec
 
 
         allocate(self%k_pts(3, n_sec * (self%num_k_pts-1) + 1))
@@ -449,7 +473,7 @@ contains
         implicit none
         class(k_space)       :: self
         real(8)              :: hall, V_k, k(3), ret
-        real(8), allocatable :: eig_val(:), omega_z(:), omega_plot(:,:)
+        real(8), allocatable :: eig_val(:), omega_z(:)
         integer(4)           :: N_k, n, k_idx, first, last, ierr
         character(len=300)   :: npz_file
 
@@ -479,7 +503,7 @@ contains
                            root, MPI_COMM_WORLD, ierr)
 
         if(self%me == root) then
-            npz_file = trim(self%prefix) // ".npz"
+            npz_file = trim(self%prefix) // ".npz"  
             call add_npz(npz_file, "hall_cond", (/ret /))
         endif
     end subroutine calc_hall_conductance
@@ -489,9 +513,14 @@ contains
         class(k_space)         :: self
         class(CFG_t)           :: cfg
         real(8)                :: tmp
+        integer(4)             :: ierr
 
-        call CFG_get(cfg, "dos%E_fermi", tmp)
-        self%E_fermi =  tmp * get_unit_conv("energy", cfg)
+        if(root == self%me) then
+            call CFG_get(cfg, "dos%E_fermi", tmp)
+        endif
+        call MPI_Bcast(tmp, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
+
+        self%E_fermi =  tmp * get_unit_conv("energy", cfg, self%me)
 
         call self%write_fermi()
     end subroutine set_fermi
@@ -501,9 +530,13 @@ contains
         class(k_space)         :: self
         class(CFG_t)           :: cfg
         real(8)                :: target, delta_old, delta_new
-        integer(4)             :: i
+        integer(4)             :: i, ierr
 
-        call CFG_get(cfg, "dos%fermi_fill", target)
+        if(self%me ==  root)then
+            call CFG_get(cfg, "dos%fermi_fill", target)
+        endif
+        call MPI_Bcast(self%E_fermi, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
+        
         target = target * self%int_DOS(size(self%int_DOS))
         i =  1
 
