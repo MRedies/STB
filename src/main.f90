@@ -10,12 +10,13 @@ program STB
     type(CFG_t)        :: cfg
     character(len=25)  :: fermi_type
     integer(4)         :: ierr, me
-    real(8)            :: hall_cond
+    real(8)            :: hall_cond, start, halt
     logical :: perform_band, perform_dos, calc_hall
 
   
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
+    start =  MPI_Wtime()
     
     if(me ==  root)then
         write (*,*) "Start"
@@ -34,6 +35,12 @@ program STB
     call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
 
     Ksp =  init_k_space(cfg)
+
+    halt =  MPI_Wtime()
+    if(root ==  me) then
+        write (*,*) "Init: ", halt-start, "s"
+    endif
+
     if(perform_band) then
         call Ksp%calc_and_print_band(cfg) 
     endif
@@ -58,8 +65,9 @@ program STB
         endif
 
     endif
-    if(me == root) then
-        write (*,*) "Finish"
+    halt = MPI_Wtime()
+    if(root ==  me) then
+        write (*,*) "Total: ", halt-start, "s"
     endif
     call MPI_Finalize(ierr)
 contains
