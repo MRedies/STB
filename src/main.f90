@@ -46,13 +46,15 @@ program STB
         call Ksp%calc_and_print_band(cfg) 
     endif
 
+    if(trim(fermi_type) == "fixed") then
+        call Ksp%set_fermi(cfg)
+    endif
+
     if(perform_dos) then
         call Ksp%calc_and_print_dos()
 
-        ! Only set Fermi energy if DOS was performed
-        if(trim(fermi_type) == "fixed") then
-            call Ksp%set_fermi(cfg)
-        else if(trim(fermi_type) == "filling") then
+        ! Only set Fermi energy relative if DOS was performed
+        if(trim(fermi_type) == "filling") then
             call Ksp%find_fermi(cfg)
         endif
         
