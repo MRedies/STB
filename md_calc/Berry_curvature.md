@@ -7,7 +7,7 @@ Which in my case boils down to:
 $$ H_{i\mu}^{j\nu}(k)= \sum_n \left(  \varepsilon_i \delta_{ij} - J(...) \delta_{ij}\right)e^{i \vec{k} \vec{0}} + t_{ij} e^{i\vec{k} \vec{r_{ij}}} $$
 
 The derivative with respect to the l-th k-space component:
-$$ \partial_{k_l} H_{i\mu}^{j\nu}(k) = i \: r_{{ij}_l} \: t_{ij} e^{i \vec{k} \: \vec{r_{ij}}} $$
+$$ \partial_{k_l} H_{i\mu}^{j\nu}(k) = i \: r_{ij}^l \: t_{ij} e^{i \vec{k} \: \vec{r_{ij}}} $$
 
 We want to calculate
 $$
