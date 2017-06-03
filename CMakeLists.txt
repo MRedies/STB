@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 project(STB)
 
 file(GLOB_RECURSE sources  src/*.f90 
+                           src/*.F90
                            src/*.h 
                            thirdparty/config_fortran/m_config.f90
                            thirdparty/NPY-for-Fortran/src/npy.F90)

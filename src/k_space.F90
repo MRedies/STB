@@ -4,6 +4,9 @@ module Class_k_space
     use mpi
     use Class_hamiltionian
     use Class_helper
+#ifdef INTEL_COMPILER_USED
+    USE IFPORT
+#endif
     implicit none
 
     type k_space
@@ -45,6 +48,7 @@ module Class_k_space
         procedure :: calc_hall_conductance  => calc_hall_conductance
         procedure :: setup_inte_grid_square => setup_inte_grid_square
         procedure :: Bcast_k_space          => Bcast_k_space
+        procedure :: rm_old_files           => rm_old_files
     end type k_space 
 
 contains
@@ -53,7 +57,7 @@ contains
         class(k_space)                :: self 
         class(CFG_t)                  :: cfg
         character(len=300)            :: npz_file
-        integer(4)                    :: first, last, N, send_count, ierr,i 
+        integer(4)                    :: first, last, N, send_count, ierr
         integer(4), allocatable       :: num_elems(:), offsets(:)
         real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
 
@@ -228,6 +232,7 @@ contains
 
         if(self%me ==  0) then 
             call CFG_get(cfg, "output%band_prefix", self%prefix)
+            call self%rm_old_files()
             call CFG_get(cfg, "band%filling", self%filling)
 
             call CFG_get(cfg, "dos%delta_broadening", tmp)
@@ -390,7 +395,7 @@ contains
         implicit none
         class(k_space)        :: self
         class(CFG_t)          :: cfg
-        integer(4)            :: n_pts, n_sec, start, halt, i, ierr(2)
+        integer(4)            :: n_pts, n_sec, start, halt, i
         real(8), allocatable  :: tmp(:)
 
 
@@ -521,8 +526,10 @@ contains
         call MPI_Bcast(tmp, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
 
         self%E_fermi =  tmp * get_unit_conv("energy", cfg, self%me)
-
-        call self%write_fermi()
+        
+        if(self%me == root) then
+            call self%write_fermi()
+        endif
     end subroutine set_fermi
 
     subroutine find_fermi(self, cfg)
@@ -590,6 +597,23 @@ contains
         ferm = 1d0 / (exp((E-self%E_fermi)&
             /(boltzmann_const * self%temp)) + 1d0)
     end function fermi_distr
+
+    subroutine rm_old_files(self)
+        implicit none
+        class(k_space), intent(in)   :: self
+        character(len=300)           :: npz_file 
+        logical                      :: already_there
+        integer(4)                   :: succ
+        npz_file = trim(self%prefix) // ".npz"
+
+        inquire(file=npz_file, exist=already_there)
+        if(already_there)then
+            succ =  system("rm " // npz_file)
+            if(succ /= 0) then
+                write (*,*) "rm error: ", ierrno()
+            endif
+        endif
+    end subroutine rm_old_files
 
 end module
 

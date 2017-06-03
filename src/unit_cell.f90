@@ -57,7 +57,7 @@ contains
         integer(4), parameter           :: lwork =  20
         real(8)                         :: work(lwork), tmp 
         integer(4), dimension(2)        :: ipiv
-        integer(4)                      :: info, ierr, j 
+        integer(4)                      :: info, ierr
         
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
