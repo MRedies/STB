@@ -115,10 +115,10 @@ contains
         class(k_space)          :: self
         real(8), intent(in)     :: E(:)
         real(8), intent(out)    :: PDOS(:,:)
-        real(8), allocatable    :: RWORK(:), eig_val(:)
+        real(8), allocatable    :: RWORK(:), eig_val(:), loc_PDOS(:,:)
         complex(8), allocatable :: H(:,:), WORK(:)
         integer(4), allocatable :: IWORK(:)
-        integer(4)              :: k_idx, E_idx, j, m, N, LWMAX, info 
+        integer(4)  :: k_idx, E_idx, j, m, N, LWMAX, info, first, last, ierr, num_atoms 
 
         N =  2 * self%ham%UC%num_atoms
         if(N > 4) then 
@@ -132,14 +132,20 @@ contains
         allocate(WORK(LWMAX))
         allocate(RWORK(LWMAX))
         allocate(IWORK(LWMAX))
+        
+        num_atoms =  self%ham%UC%num_atoms
+        allocate(loc_PDOS(2*num_atoms, self%num_DOS_pts))
 
-        PDOS =  0d0
-        do k_idx=1,size(self%k_pts, 2)
+        loc_PDOS =  0d0
+        PDOS = 0d0
+
+        call my_section(self%me, self%nProcs, size(self%k_pts,2), first, last)
+        do k_idx=first, last
             call self%ham%setup_H(self%k_pts(:,k_idx), H)
             call zheevd('V', 'U', N, H, N, eig_val, WORK, LWMAX, &
                 RWORK, LWMAX, IWORK, LWMAX, info)
             if( info /= 0) then
-                write (*,*) "ZHEEVD (with vectors) failed: ", info
+                write (*,*) self%me, ": ZHEEVD (with vectors) failed: ", info
                 stop
             endif
 
@@ -149,15 +155,19 @@ contains
                 ! j-th component of 
                 do m =  1,N
                     do j = 1,N
-                        PDOS(j, E_idx) = PDOS(j, E_idx) &
-                                       + self%lorentzian(E(E_idx) - eig_val(m)) &
-                                       * H(j,m) * conjg(H(j,m))
+                        loc_PDOS(j, E_idx) = loc_PDOS(j, E_idx) &
+                                           + self%lorentzian(E(E_idx) - eig_val(m)) &
+                                           * H(j,m) * conjg(H(j,m))
                     enddo
                 enddo
             enddo
         enddo
-        PDOS =  PDOS / real(size(self%k_pts,2))
+        loc_PDOS =  loc_PDOS / real(self%DOS_num_k_pts**2)
+        call MPI_Reduce(loc_PDOS,  PDOS,    size(loc_PDOS), &
+                        MPI_REAL8, MPI_SUM, root, &
+                        MPI_COMM_WORLD, ierr)
 
+        deallocate(loc_PDOS)
         deallocate(WORK)
         deallocate(IWORK)
         deallocate(RWORK)
@@ -179,42 +189,49 @@ contains
         allocate(PDOS(2*num_atoms, self%num_DOS_pts))
 
         call linspace(self%DOS_lower, self%DOS_upper, self%num_DOS_pts, self%E_DOS)
-        allocate(DOS(self%num_DOS_pts))
-        allocate(up(self%num_DOS_pts))
-        allocate(down(self%num_DOS_pts))
+
+        if(self%me ==  root) then
+            allocate(DOS(self%num_DOS_pts))
+            allocate(up(self%num_DOS_pts))
+            allocate(down(self%num_DOS_pts))
+        endif
 
         call self%calc_pdos(self%E_DOS, PDOS)
 
-        DOS  = sum(PDOS,1)
-        up   = sum(PDOS(1:num_atoms, :),1)
-        down = sum(PDOS(num_atoms+1:2*num_atoms, :),1)
+        if(self%me == root) then
+            DOS  = sum(PDOS,1)
+            up   = sum(PDOS(1:num_atoms, :),1)
+            down = sum(PDOS(num_atoms+1:2*num_atoms, :),1)
 
-        call add_npz(npz_file, "DOS_E",       self%E_DOS)
-        call add_npz(npz_file, "DOS",         DOS)
-        call add_npz(npz_file, "DOS_partial", PDOS)
-        call add_npz(npz_file, "DOS_up",      up)
-        call add_npz(npz_file, "DOS_down",    down)
+            call add_npz(npz_file, "DOS_E",       self%E_DOS)
+            call add_npz(npz_file, "DOS",         DOS)
+            call add_npz(npz_file, "DOS_partial", PDOS)
+            call add_npz(npz_file, "DOS_up",      up)
+            call add_npz(npz_file, "DOS_down",    down)
 
-        allocate(self%int_DOS(self%num_DOS_pts))
+            allocate(self%int_DOS(self%num_DOS_pts))
 
-        if(size(self%E_DOS) >=  2) then 
-            dE =  self%E_DOS(2) - self%E_DOS(1)
-        else 
-            write (*,*) "Can't perform integration. Only one point"
-            stop
-        endif
-        self%int_DOS(1) =  0d0
-        do i =  2,size(self%E_DOS)
-            self%int_DOS(i) =  self%int_DOS(i-1) &
-                + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
-        enddo
-        call add_npz(npz_file, "DOS_integrated", self%int_DOS)
+            if(size(self%E_DOS) >=  2) then 
+                dE =  self%E_DOS(2) - self%E_DOS(1)
+            else 
+                write (*,*) "Can't perform integration. Only one point"
+                stop
+            endif
+            self%int_DOS(1) =  0d0
+            do i =  2,size(self%E_DOS)
+                self%int_DOS(i) =  self%int_DOS(i-1) &
+                    + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
+            enddo
+            call add_npz(npz_file, "DOS_integrated", self%int_DOS)
+        endif 
         
         deallocate(self%k_pts)
-        deallocate(DOS)
         deallocate(PDOS)
-        deallocate(up)
-        deallocate(down)
+        if(self%me == root) then 
+            deallocate(DOS)
+            deallocate(up)
+            deallocate(down)
+        endif
     end subroutine calc_and_print_dos
 
     function init_k_space(cfg) result(self)
@@ -526,10 +543,7 @@ contains
         call MPI_Bcast(tmp, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
 
         self%E_fermi =  tmp * get_unit_conv("energy", cfg, self%me)
-        
-        if(self%me == root) then
-            call self%write_fermi()
-        endif
+        call self%write_fermi()
     end subroutine set_fermi
 
     subroutine find_fermi(self, cfg)
@@ -571,11 +585,12 @@ contains
         class(k_space)         :: self
         character(len=300)     :: npz_file
         real(8)                :: fermi(1)
+        if(self%me ==  root) then 
+            fermi =  self%E_fermi
 
-        fermi =  self%E_fermi
-
-        npz_file = trim(self%prefix) // ".npz"
-        call add_npz(npz_file, "E_fermi", fermi)
+            npz_file = trim(self%prefix) // ".npz"
+            call add_npz(npz_file, "E_fermi", fermi)
+        endif
     end subroutine write_fermi
 
     function lorentzian(self, x) result(lor)

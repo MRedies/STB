@@ -1,11 +1,13 @@
-#import numpy as np
-num_k = range(10,401,10)
-print(num_k)
+import numpy as np
+#Ef = range(10,401,10)
+Ef = np.linspace(-40.0, 40.0, 50)
 
 prefix = "./inis/"
 
-for i in num_k:
+cnt = 0
+for i in Ef:
     with open(prefix+"example.cfg", "rt") as fin:
-        with open(prefix + "k_scan{}.cfg".format(i), "wt") as fout:
+        with open(prefix + "J2000_scan{}.cfg".format(cnt), "wt") as fout:
             for line in fin:
-                fout.write(line.replace('%num_k%', "{}".format(i)))
+                fout.write(line.replace('%Ef%', "{0:010.4f}".format(i)))
+    cnt +=1

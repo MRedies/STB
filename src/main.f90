@@ -58,7 +58,6 @@ program STB
             call Ksp%find_fermi(cfg)
         endif
         
-        call Ksp%write_fermi()
     endif
     
     if(calc_hall) then
