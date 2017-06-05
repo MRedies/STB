@@ -263,7 +263,9 @@ contains
         allocate(del_H(n,n))
         
         call self%set_derivative_k(k, k_idx, del_H)
-        tmp_vec =  matmul(del_H, psi_mk)
+        !tmp_vec =  matmul(del_H, psi_mk)
+        !call gemv(del_H, psi_mk, tmp_vec)
+        call zgemv('N', n, n, 1d0, del_H, n, psi_mk, 1, 0d0, tmp_vec, 1)
         elem =  dot_product(conjg(psi_nk), tmp_vec)
         
         deallocate(tmp_vec)
