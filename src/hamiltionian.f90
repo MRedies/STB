@@ -24,6 +24,7 @@ module Class_hamiltionian
         procedure :: set_Stoner             => set_Stoner
         procedure :: setup_Stoner_mtx       => setup_Stoner_mtx
         procedure :: set_derivative_k       => set_derivative_k
+        procedure :: set_deriv_FD           =>  set_deriv_FD
         procedure :: calc_deriv_elem        => calc_deriv_elem
         procedure :: calc_berry_tensor_elem => calc_berry_tensor_elem
         procedure :: calc_berry_z           => calc_berry_z
@@ -31,38 +32,32 @@ module Class_hamiltionian
     end type hamil
 
 contains
-    subroutine compare_derivative(self, k, d_k)
+    subroutine compare_derivative(self, k)
         implicit none 
         class(hamil), intent(in)    :: self
-        real(8), intent(in)         :: k(3), d_k
-        real(8)                     :: new_k(3)
-        complex(8), allocatable     :: fd_H(:,:), H_back(:,:), H_forw(:,:), del_H(:,:)
+        real(8), intent(in)         :: k(3)
+        complex(8), allocatable     :: fd_H(:,:), del_H(:,:)
         integer(4)                  :: N, k_idx 
         
         N = 2 * self%UC%num_atoms
-        allocate(H_back(N,N))
-        allocate(H_forw(N,N))
         allocate(fd_H(N,N))
         allocate(del_H(N,N))
        
         do k_idx =  1,2
-            new_k = k
-            new_k(k_idx) = k(k_idx) - 0.5d0 * d_k
-            call self%setup_H(new_k, H_back)
-
-            new_k(k_idx) = k(k_idx) + 0.5d0 * d_k
-            call self%setup_H(new_k, H_forw)
-            fd_H =  (H_forw -  H_back)/d_k
-
+            call self%set_deriv_FD(k, k_idx, fd_H)
             call self%set_derivative_k(k, k_idx, del_H)
             
             if(norm2(real(fd_H - del_H)) >= 1d-8 .or. &
                 norm2(aimag(fd_H - del_H)) >= 1d-8) then
                 write (*,*) "mist"
                 stop
+            else
+                write (*,*) "Cool"
             endif
 
         enddo
+        deallocate(fd_H)
+        deallocate(del_H)
     end subroutine compare_derivative
 
     subroutine setup_H(self,k,H)
@@ -206,6 +201,40 @@ contains
 
     end subroutine set_hopping
 
+
+    subroutine set_deriv_FD(self, k, k_idx, del_H)
+        implicit none
+        class(hamil), intent(in) :: self
+        real(8), intent(in)      :: k(3)
+        integer(4), intent(in)   :: k_idx
+        complex(8), allocatable     :: del_H(:,:), H_forw(:,:), H_back(:,:)
+        real(8) :: k_forw(3), k_back(3)
+        real(8), parameter :: delta_k =  1d-6
+        integer(4)         :: N
+
+        N = 2 * self%UC%num_atoms
+        allocate(H_back(N,N))
+        allocate(H_forw(N,N))
+        
+        if(k(3) /= 0) then
+            write (*,*) "K_z not zero in set_derivative_k"
+            stop
+        endif
+    
+        del_H = 0d0
+        k_forw = k
+        k_back = k
+        k_forw(k_idx) = k_forw(k_idx) + 0.5d0 * delta_k
+        k_back(k_idx) = k_back(k_idx) - 0.5d0 * delta_k
+
+        call self%setup_H(k_forw, H_forw)
+        call self%setup_H(k_back, H_back)
+        del_H =  (H_forw - H_back) / delta_k
+
+        deallocate(H_back)
+        deallocate(H_forw)
+    end subroutine set_deriv_FD
+
     subroutine set_derivative_k(self, k, k_idx, del_H)
         implicit none
         class(hamil), intent(in)  :: self
@@ -247,7 +276,8 @@ contains
                 del_H(j_d,i_d) = del_H(j_d,i_d) + back
             enddo
         enddo
-    end subroutine
+
+    end subroutine set_derivative_k
 
     function calc_deriv_elem(self, psi_nk, psi_mk, k, k_idx) result(elem)
         implicit none
@@ -264,10 +294,14 @@ contains
         allocate(del_H(n,n))
         
         call self%set_derivative_k(k, k_idx, del_H)
-        !tmp_vec =  matmul(del_H, psi_mk)
-        !call gemv(del_H, psi_mk, tmp_vec)
-        call zgemv('N', n, n, 1d0, del_H, n, psi_mk, 1, 0d0, tmp_vec, 1)
-        elem =  dot_product(conjg(psi_nk), tmp_vec)
+        
+        !verkackte zgemv does not work don't even think about it
+        tmp_vec =  matmul(del_H, psi_mk)
+
+        ! citing intel ref here:
+        ! If vector_a is of type complex, the result 
+        ! value is SUM (CONJG ( vector_a)* vector_b).
+        elem =  dot_product(psi_nk, tmp_vec)
         
         deallocate(tmp_vec)
         deallocate(del_H)
@@ -308,20 +342,20 @@ contains
         if(info /= 0) then
             write (*,*) "ZHEEVD in berry calculation failed"
         endif
-
         do n = 1,n_dim
             summe = 0d0
             do m = 1,n_dim
                 if(n /= m) then
-                    fac = 1d0 / ((eig_val(n) - eig_val(m))**2 +  i_unit * 1d-6)
+                    fac = 1d0 / ((eig_val(n) - eig_val(m))**2 + i_unit * small_imag)
 
-                    term =        self%calc_deriv_elem(H(:,n), H(:,m), k, k_i)
-                    term = term * self%calc_deriv_elem(H(:,m), H(:,n), k, k_j)
+                    term =   self%calc_deriv_elem(H(:,n), H(:,m), k, k_i) &
+                           * self%calc_deriv_elem(H(:,m), H(:,n), k, k_j)
+
                     summe =  summe +  fac * term
                 endif
             enddo
+            omega(n) = -2d0 * aimag(summe)
         enddo
-        omega(n) = -2d0 * aimag(summe)
 
         deallocate(eig_val)
         deallocate(H)

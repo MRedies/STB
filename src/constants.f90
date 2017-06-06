@@ -3,8 +3,8 @@ module Constants
     real(8), parameter     :: PI     = 3.14159265359d0
 
     !< complex parameter
-    complex(8), parameter :: i_unit = cmplx(0d0, 1d0)
-    complex(8), parameter :: c_0 =  cmplx(0d0, 0d0) 
+    complex(8), parameter :: i_unit = (0d0, 1d0)
+    complex(8), parameter :: c_0 = (0d0, 0d0) 
     
     !< pauli matricies
     complex(8), parameter :: sigma_x(2,2) &
@@ -21,4 +21,7 @@ module Constants
 
     !< MPI Parameter
     integer(4), parameter :: root = 0
+    
+    !< 
+    real(8), parameter  :: small_imag =  1d-12
 end module Constants 

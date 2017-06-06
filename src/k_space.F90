@@ -48,6 +48,7 @@ module Class_k_space
         procedure :: calc_hall_conductance  => calc_hall_conductance
         procedure :: setup_inte_grid_square => setup_inte_grid_square
         procedure :: Bcast_k_space          => Bcast_k_space
+        procedure :: plot_omega             => plot_omega
         procedure :: rm_old_files           => rm_old_files
     end type k_space 
 
@@ -517,6 +518,10 @@ contains
             
             do n = 1,2*self%ham%UC%num_atoms
                 hall = hall + omega_z(n) * self%fermi_distr(eig_val(n))
+                if(abs(omega_z(n)) >= 1d-6) then
+                    write (*,*) self%me, k_idx, n, omega_z(n)
+                endif
+
             enddo
         enddo
 
@@ -531,6 +536,80 @@ contains
             call add_npz(npz_file, "hall_cond", (/ret /))
         endif
     end subroutine calc_hall_conductance
+
+    subroutine plot_omega(self)
+        implicit none
+        class(k_space)         :: self
+        real(8), allocatable   :: omega_z(:,:), tmp_vec(:), sec_omega_z(:,:)
+        real(8)                :: k(3)
+        integer(4)             :: N, k_idx, send_count, first, last, ierr, cnt
+        integer(4), allocatable:: num_elems(:), offsets(:)
+        integer(4), parameter  :: dim_sz = 100
+        
+        allocate(num_elems(self%nProcs))
+        allocate(offsets(self%nProcs))
+        N = 2* self%ham%UC%num_atoms
+        call self%setup_inte_grid_square(dim_sz)
+        allocate(omega_z(N, size(self%k_pts, 2)))
+        allocate(tmp_vec(N))
+        
+        call sections(self%nProcs, size(self%k_pts, 2), num_elems, offsets)
+        call my_section(self%me, self%nProcs, size(self%k_pts, 2), first, last)
+        num_elems =  num_elems * N
+        offsets   =  offsets   * N
+        send_count =  N *  (last - first + 1)
+        allocate(sec_omega_z(N, send_count))
+
+        !do i =  0,self%nProcs-1
+            !if(self%me ==  i) &
+                !write (*,*) self%me, first, last, send_count/N, offsets(i+1)/N
+            !call MPI_Barrier(MPI_COMM_WORLD, ierr)
+        !enddo
+        
+        cnt =  1
+        !write (*,*) self%me, "Pre calc"
+        do k_idx = first,last
+            k = self%k_pts(:,k_idx)
+            
+            !omega_z
+            !call self%ham%calc_berry_z(k, tmp_vec)
+
+            !omega_xy
+            call self%ham%calc_berry_tensor_elem(1,2, k, tmp_vec)
+            
+            sec_omega_z(:,cnt) =  tmp_vec 
+            cnt = cnt + 1
+        enddo
+        !write (*,*) self%me, "Post calc"
+
+        call MPI_Gatherv(sec_omega_z, send_count, MPI_REAL8, &
+                         omega_z,    num_elems, offsets, MPI_REAL8, &
+                         root, MPI_COMM_WORLD, ierr)
+            
+        if(self%me ==  root) then
+            call add_npz("omega_xy.npz", "omega_z", omega_z)
+            call add_npz("omega_xy.npz", "k", self%k_pts)
+        endif
+        cnt =  1
+        do k_idx = first,last
+            k = self%k_pts(:,k_idx)
+            !omega_xy
+            call self%ham%calc_berry_tensor_elem(2,1, k, tmp_vec)
+            
+            sec_omega_z(:,cnt) =  tmp_vec 
+            cnt = cnt + 1
+        enddo
+        !write (*,*) self%me, "Post calc"
+
+        call MPI_Gatherv(sec_omega_z, send_count, MPI_REAL8, &
+                         omega_z,    num_elems, offsets, MPI_REAL8, &
+                         root, MPI_COMM_WORLD, ierr)
+            
+        if(self%me ==  root) then
+            call add_npz("omega_yx.npz", "omega_z", omega_z)
+            call add_npz("omega_yx.npz", "k", self%k_pts)
+        endif
+    end subroutine plot_omega 
 
     subroutine set_fermi(self, cfg)
         implicit none

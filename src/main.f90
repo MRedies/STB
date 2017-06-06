@@ -50,6 +50,7 @@ program STB
         call Ksp%set_fermi(cfg)
     endif
 
+
     if(perform_dos) then
         call Ksp%calc_and_print_dos()
 
