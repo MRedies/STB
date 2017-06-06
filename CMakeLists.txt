@@ -18,7 +18,7 @@ MESSAGE( STATUS "MKLROOT: $ENV{MKLROOT}")
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     set(dialect "-ffree-form -Wall -fimplicit-none -m64 -I$ENV{MKLROOT}/include")
-    set (CMAKE_EXE_LINKER_FLAGS "-L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_gf_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
+    set (CMAKE_EXE_LINKER_FLAGS "-L$ENV{MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_gf_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
     set(bounds "-fbounds-check -Wall")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
