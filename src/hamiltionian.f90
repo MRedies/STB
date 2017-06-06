@@ -309,27 +309,20 @@ contains
         if(info /= 0) then
             write (*,*) "ZHEEVD in berry calculation failed"
         endif
-        !call heevd(H, eig_val, 'V')
 
         do n = 1,n_dim
             summe = 0d0
             do m = 1,n_dim
                 if(n /= m) then
                     fac = 1d0 / ((eig_val(n) - eig_val(m))**2 +  i_unit * 1d-6)
-                    !write (*,*) "Matrix H:"
-                    !call print_mtx(H)
-                    !write (*,*) "k_i", k_i
-                    !write (*,*) "k_j", k_j
 
                     term =        self%calc_deriv_elem(H(:,n), H(:,m), k, k_i)
-                    !write (*,*) "Term 1: ", term
                     term = term * self%calc_deriv_elem(H(:,m), H(:,n), k, k_j)
-                    !write (*,*) "Term 2: ", self%calc_deriv_elem(H(:,m), H(:,n), k, k_j)
                     summe =  summe +  fac * term
                 endif
             enddo
-            omega(n) = -2d0 * aimag(summe)
         enddo
+        omega(n) = -2d0 * aimag(summe)
 
         deallocate(H)
         deallocate(del_H)
@@ -349,9 +342,12 @@ contains
             allocate(z_comp(size(tmp)))
         endif
 
+        ! 0.5 *  sigma_xy
         z_comp = 0.5d0 *  tmp
+
+        ! -0.5 *  sigma_yx
         call self%calc_berry_tensor_elem(2,1,k,tmp, eig_val)
-        z_comp = - 0.5d0 * tmp
+        z_comp = z_comp - 0.5d0 * tmp
 
         deallocate(tmp)
     end subroutine calc_berry_z
