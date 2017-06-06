@@ -9,7 +9,7 @@ file(GLOB_RECURSE sources  src/*.f90
 add_executable(stb.x ${sources})
 
 enable_language(Fortran)
-set(CMAKE_Fortran_COMPILER mpiifort)
+set(CMAKE_Fortran_COMPILER mpifort)
 set(CMAKE_Fortran_COMPILER_ID "Intel")
 #set(CMAKE_Fortran_COMPILER gfortran)
 #set(CMAKE_Fortran_COMPILER_ID "GNU")

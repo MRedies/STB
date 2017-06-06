@@ -502,6 +502,7 @@ contains
         if(allocated(self%k_pts) )then
             deallocate(self%k_pts)
         endif
+
         call self%setup_inte_grid_square(self%berry_num_k_pts)
         V_k = self%vol_k_space_parallelo()
         N_k = size(self%k_pts, 2)
@@ -511,7 +512,8 @@ contains
         hall = 0d0
         do k_idx = first, last
             k = self%k_pts(:,k_idx)
-            call self%ham%calc_berry_z(k, omega_z, eig_val)
+            call self%ham%calc_berry_z(k, omega_z)
+            call self%ham%calc_single_eigenvalue(k, eig_val)
             
             do n = 1,2*self%ham%UC%num_atoms
                 hall = hall + omega_z(n) * self%fermi_distr(eig_val(n))
@@ -521,8 +523,8 @@ contains
         hall = hall * V_k/real(N_k)
         hall = hall / (2d0*PI)
         call MPI_Reduce(hall, ret, 1, &
-                           MPI_REAL8, MPI_Sum, &
-                           root, MPI_COMM_WORLD, ierr)
+                        MPI_REAL8, MPI_Sum, &
+                        root, MPI_COMM_WORLD, ierr)
 
         if(self%me == root) then
             npz_file = trim(self%prefix) // ".npz"  
@@ -543,6 +545,7 @@ contains
         call MPI_Bcast(tmp, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
 
         self%E_fermi =  tmp * get_unit_conv("energy", cfg, self%me)
+        !write (*,*) "Fermi energy:", self%E_fermi
         call self%write_fermi()
     end subroutine set_fermi
 

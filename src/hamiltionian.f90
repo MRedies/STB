@@ -18,6 +18,7 @@ module Class_hamiltionian
         procedure :: Bcast_hamil            => Bcast_hamil
         procedure :: setup_H                => setup_H
         procedure :: calc_eigenvalues       => calc_eigenvalues
+        procedure :: calc_single_eigenvalue => calc_single_eigenvalue
         procedure :: set_EigenE             => set_EigenE
         procedure :: set_hopping            => set_hopping
         procedure :: set_Stoner             => set_Stoner
@@ -272,7 +273,7 @@ contains
         deallocate(del_H)
     end function
 
-    subroutine calc_berry_tensor_elem(self, k_i, k_j, k, omega, eig_val)
+    subroutine calc_berry_tensor_elem(self, k_i, k_j, k, omega)
         implicit none 
         class(hamil), intent(in)           :: self
         integer(4), intent(in)             :: k_i, k_j
@@ -288,10 +289,8 @@ contains
         n_dim = 2 * self%UC%num_atoms
         allocate(H(n_dim,n_dim))
         allocate(del_H(n_dim,n_dim))
+        allocate(eig_val(n_dim))
         
-        if(.not. allocated(eig_val)) then
-            allocate(eig_val(n_dim))
-        endif
         if(.not. allocated(omega))then
             allocate(omega(n_dim))
         endif
@@ -324,19 +323,19 @@ contains
         enddo
         omega(n) = -2d0 * aimag(summe)
 
+        deallocate(eig_val)
         deallocate(H)
         deallocate(del_H)
     end subroutine calc_berry_tensor_elem
 
-    subroutine calc_berry_z(self,k, z_comp, eig_val)
+    subroutine calc_berry_z(self,k, z_comp)
         implicit none
         class(hamil), intent(in)            :: self
         real(8), intent(in)                 :: k(3)
         real(8), allocatable                :: z_comp(:) !> \f$ \Omega^n_z \f$
-        real(8), allocatable                :: eig_val(:)
         real(8), allocatable                :: tmp(:)
 
-        call self%calc_berry_tensor_elem(1,2,k, tmp, eig_val)
+        call self%calc_berry_tensor_elem(1,2,k, tmp)
         
         if(.not. allocated(z_comp)) then
             allocate(z_comp(size(tmp)))
@@ -346,7 +345,7 @@ contains
         z_comp = 0.5d0 *  tmp
 
         ! -0.5 *  sigma_yx
-        call self%calc_berry_tensor_elem(2,1,k,tmp, eig_val)
+        call self%calc_berry_tensor_elem(2,1,k,tmp)
         z_comp = z_comp - 0.5d0 * tmp
 
         deallocate(tmp)
@@ -360,7 +359,7 @@ contains
         real(8)                           :: k(3)
         complex(8), allocatable           :: H(:,:)
         integer(4) :: i, N, LWMAX, info
-        real(8), allocatable              :: RWORK(:), tmp_out(:)
+        real(8), allocatable              :: RWORK(:)
         complex(8), allocatable           :: WORK(:)
         integer(4), allocatable           :: IWORK(:)
         N =  2 * self%UC%num_atoms
@@ -370,7 +369,6 @@ contains
         allocate(RWORK(LWMAX))
         allocate(IWORK(LWMAX))
         allocate(WORK(LWMAX))
-        allocate(tmp_out(N))
         
         do i = 1,size(k_list,2)
             k =  k_list(:,i)
@@ -387,7 +385,36 @@ contains
         deallocate(H)
         deallocate(RWORK)
         deallocate(WORK)
-        deallocate(tmp_out)
     End Subroutine calc_eigenvalues
+
+    subroutine calc_single_eigenvalue(self, k, eig_val)
+        implicit none
+        class(hamil)                      :: self
+        real(8), intent(in)               :: k(3)
+        real(8), allocatable, intent(out) :: eig_val(:)
+        complex(8), allocatable           :: H(:,:), work(:)
+        real(8), allocatable              :: rwork(:)
+        integer(4), allocatable           :: iwork(:)
+        integer(4)                        :: N, LWMAX, info
+
+        N = 2 * self%UC%num_atoms
+        LWMAX = 10 * N
+        allocate(eig_val(N))
+        allocate(H(N,N))
+        allocate(work(LWMAX))
+        allocate(iwork(LWMAX))
+        allocate(rwork(LWMAX))
+
+        call self%setup_H(k, H)
+        call zheevd('N', 'U', N, H, N, eig_val, work, LWMAX, &
+                     RWORK, LWMAX, IWORK, LWMAX, info)
+        
+        if(info /=  0) write (*,*) "ZHEEVD failed:", info
+
+        deallocate(H)
+        deallocate(work)
+        deallocate(iwork)
+        deallocate(rwork)
+    end subroutine calc_single_eigenvalue
 
 end module
