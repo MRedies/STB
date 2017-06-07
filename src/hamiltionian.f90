@@ -47,8 +47,7 @@ contains
             call self%set_deriv_FD(k, k_idx, fd_H)
             call self%set_derivative_k(k, k_idx, del_H)
             
-            if(norm2(real(fd_H - del_H)) >= 1d-8 .or. &
-                norm2(aimag(fd_H - del_H)) >= 1d-8) then
+            if(cnorm2(reshape(fd_H - del_H, [N*N])) >= 1d-8) then
                 write (*,*) "mist"
                 stop
             else

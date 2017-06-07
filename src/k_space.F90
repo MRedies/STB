@@ -489,7 +489,7 @@ contains
         k1(1:2) = self%ham%UC%rez_lattice(:,1)
         k2(1:2) = self%ham%UC%rez_lattice(:,2)
 
-        vol = norm2(cross_prod(k1,k2))
+        vol = my_norm2(cross_prod(k1,k2))
     end function vol_k_space_parallelo
 
     subroutine calc_hall_conductance(self, ret)
@@ -701,9 +701,9 @@ contains
 
         inquire(file=npz_file, exist=already_there)
         if(already_there)then
-            succ =  system("rm " // npz_file)
+            call system("rm " // npz_file, succ)
             if(succ /= 0) then
-                write (*,*) "rm error: ", ierrno()
+                write (*,*) "rm error: ", succ
             endif
         endif
     end subroutine rm_old_files

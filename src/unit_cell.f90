@@ -46,7 +46,7 @@ contains
         implicit none
         real(8), dimension(2), intent(in)   :: a,b 
         real(8)                             :: ang
-        ang                                       = dot_product(a,b)/(norm2(a)* norm2(b))
+        ang                                       = dot_product(a,b)/(my_norm2(a)* my_norm2(b))
         ang                                       = 180.0d0 / PI *  acos(ang)
     end function angle
     
@@ -244,14 +244,14 @@ contains
         alpha =  0d0 
         do i =  1,self%num_atoms
             conn  = center - self%atoms(i)%pos
-            if(norm2(conn) > 1d-6 * self%lattice_constant &
-                    .and. norm2(conn) <= radius + self%eps) then 
+            if(my_norm2(conn) > 1d-6 * self%lattice_constant &
+                    .and. my_norm2(conn) <= radius + self%eps) then 
                 n     = cross_prod(conn, e_z)
-                alpha =  PI * (1d0 -  norm2(conn) / radius)
+                alpha =  PI * (1d0 -  my_norm2(conn) / radius)
                 R     = R_mtx(alpha, n)
                 ! center of skyrmion point down
                 m     = matmul(R,  e_z)
-            else if(norm2(conn) <= 1d-6 * self%lattice_constant) then 
+            else if(my_norm2(conn) <= 1d-6 * self%lattice_constant) then 
                 m =  - e_z
             else
                 m =  e_z
@@ -471,7 +471,7 @@ contains
         idx =  -1
         do i =  1, self%num_atoms
 
-            delta =  norm2(new -  self%atoms(i)%pos)
+            delta =  my_norm2(new -  self%atoms(i)%pos)
 
             if(delta < self%eps) then
                 idx =  i
@@ -536,7 +536,7 @@ contains
                                            0,0,1/), (/3,3/)) !fort-order...
         real(8)  :: R(3,3), u(3,1), u_x_u(3,3), u_x(3,3)
         
-        u(:,1) =  vec / norm2(vec)
+        u(:,1) =  vec / my_norm2(vec)
         
         u_x_u =  matmul(u, transpose(u))
 
