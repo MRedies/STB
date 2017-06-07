@@ -518,10 +518,6 @@ contains
             
             do n = 1,2*self%ham%UC%num_atoms
                 hall = hall + omega_z(n) * self%fermi_distr(eig_val(n))
-                if(abs(omega_z(n)) >= 1d-6) then
-                    write (*,*) self%me, k_idx, n, omega_z(n)
-                endif
-
             enddo
         enddo
 
