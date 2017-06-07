@@ -9,20 +9,22 @@ file(GLOB_RECURSE sources  src/*.f90
 add_executable(stb.x ${sources})
 
 enable_language(Fortran)
+#set(CMAKE_Fortran_COMPILER mpiifort)
+#set(CMAKE_Fortran_COMPILER_ID "Intel")
 set(CMAKE_Fortran_COMPILER mpifort)
-set(CMAKE_Fortran_COMPILER_ID "Intel")
-#set(CMAKE_Fortran_COMPILER gfortran)
-#set(CMAKE_Fortran_COMPILER_ID "GNU")
+set(CMAKE_Fortran_COMPILER_ID "GNU")
+
+find_package (LAPACK REQUIRED)
+target_link_libraries (stb.x ${LAPACK_LIBRARIES})
 
 MESSAGE( STATUS "MKLROOT: $ENV{MKLROOT}")
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-    set(dialect "-ffree-form -Wall -fimplicit-none -m64 -I$ENV{MKLROOT}/include")
-    set (CMAKE_EXE_LINKER_FLAGS "-L$ENV{MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_gf_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
+    set(dialect "-ffree-form -Wall -fimplicit-none -m64")
     set(bounds "-fbounds-check -Wall")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-    set(dialect "-stand=f08 -warn all -implicitnone -g -mkl:sequential -heap_arrays")
+    set(dialect "-stand=f08 -warn all -implicitnone -g -heap_arrays")
     add_definitions(-DINTEL_COMPILER_USED) 
     set(bounds "-check all")
     set(debug "-traceback -debug ") 
