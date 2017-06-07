@@ -1,5 +1,4 @@
 module Class_atom
-    USE, INTRINSIC :: IEEE_ARITHMETIC
     implicit none
 
     type atom
