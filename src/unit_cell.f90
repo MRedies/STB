@@ -288,9 +288,9 @@ contains
             theta(i) = self%atoms(i)%m_theta
         enddo
 
-        call add_npz(filename, "m_x", x)
-        call add_npz(filename, "m_y", y)
-        call add_npz(filename, "m_z", z)
+        call add_npz(filename, "m_x", x / self%units%length)
+        call add_npz(filename, "m_y", y / self%units%length)
+        call add_npz(filename, "m_z", z / self%units%length)
         call add_npz(filename, "m_phi", phi)
         call add_npz(filename, "m_theta", theta)
 

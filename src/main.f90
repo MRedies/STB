@@ -35,6 +35,7 @@ program STB
     call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
     call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
     Ksp =  init_k_space(cfg)
+    if(me == root) call add_cfg_to_npz(cfg)
     
     halt =  MPI_Wtime()
     if(root ==  me) then
@@ -51,6 +52,7 @@ program STB
 
 
     if(perform_dos) then
+        write (*,*) "doing stuff"
         call Ksp%calc_and_print_dos()
 
         ! Only set Fermi energy relative if DOS was performed
@@ -73,6 +75,31 @@ program STB
     endif
     call MPI_Finalize(ierr)
 contains
+    subroutine add_cfg_to_npz(cfg)
+        implicit none
+        type(CFG_t)            :: cfg
+        character(len=300)     :: prefix, npz_file, filename
+        integer(4)             :: succ
+
+        call CFG_get(cfg, "output%band_prefix", prefix)
+        npz_file = trim(prefix) // ".npz"
+        filename = "input.cfg"
+        
+        call CFG_write(cfg, filename)
+        call run_sys("zip -9 " // npz_file // " " // filename, succ)  
+        if(succ /= 0) then
+            write (*,*) "Could not zip CFG file"
+            stop
+        endif
+
+        call run_sys("rm " // filename, succ)
+        if(succ /= 0) then
+            write (*,*) "Could not rm CFG file"
+            stop
+        endif
+        write (*,*) "lala"
+    end subroutine add_cfg_to_npz
+
     Subroutine  add_full_cfg(cfg)
         Implicit None
         type(CFG_t)            :: cfg 

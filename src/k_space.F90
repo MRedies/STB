@@ -94,10 +94,11 @@ contains
         
         if(self%me == root) then 
             npz_file = trim(self%prefix) // ".npz"
-            call add_npz(npz_file, "band_k", self%k_pts)
-            call add_npz(npz_file, "band_E", eig_val)
-            call add_npz(npz_file, "lattice", self%ham%UC%lattice)
-            call add_npz(npz_file, "rez_lattice", self%ham%UC%rez_lattice)
+            call add_npz(npz_file, "band_k", self%k_pts / self%units%inv_length)
+            call add_npz(npz_file, "band_E", eig_val / self%units%energy)
+            call add_npz(npz_file, "lattice", self%ham%UC%lattice / self%units%length)
+            call add_npz(npz_file, "rez_lattice", self%ham%UC%rez_lattice &
+                                                    / self%units%inv_length)
             call add_npz(npz_file, "band_num_kpts", (/ self%num_k_pts /))
         endif
        
@@ -195,17 +196,18 @@ contains
         endif
 
         call self%calc_pdos(self%E_DOS, PDOS)
-
+    
         if(self%me == root) then
             DOS  = sum(PDOS,1)
             up   = sum(PDOS(1:num_atoms, :),1)
             down = sum(PDOS(num_atoms+1:2*num_atoms, :),1)
 
-            call add_npz(npz_file, "DOS_E",       self%E_DOS)
-            call add_npz(npz_file, "DOS",         DOS)
-            call add_npz(npz_file, "DOS_partial", PDOS)
-            call add_npz(npz_file, "DOS_up",      up)
-            call add_npz(npz_file, "DOS_down",    down)
+            call add_npz(npz_file, "DOS_E",       self%E_DOS / self%units%energy)
+            ! DOS is in units of 1/energy
+            call add_npz(npz_file, "DOS",         DOS * self%units%energy)
+            call add_npz(npz_file, "DOS_partial", PDOS * self%units%energy)
+            call add_npz(npz_file, "DOS_up",      up * self%units%energy)
+            call add_npz(npz_file, "DOS_down",    down * self%units%energy)
 
             allocate(self%int_DOS(self%num_DOS_pts))
 
@@ -220,6 +222,7 @@ contains
                 self%int_DOS(i) =  self%int_DOS(i-1) &
                     + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
             enddo
+            ! integrated DOS ist unitless
             call add_npz(npz_file, "DOS_integrated", self%int_DOS)
         endif 
         
@@ -522,7 +525,8 @@ contains
                         root, MPI_COMM_WORLD, ierr)
 
         if(self%me == root) then
-            npz_file = trim(self%prefix) // ".npz"  
+            npz_file = trim(self%prefix) // ".npz" 
+            ! output unit of conductance will be e^2/h
             call add_npz(npz_file, "hall_cond", (/ret /))
         endif
     end subroutine calc_hall_conductance
@@ -550,33 +554,22 @@ contains
         send_count =  N *  (last - first + 1)
         allocate(sec_omega_z(N, send_count))
 
-        !do i =  0,self%nProcs-1
-            !if(self%me ==  i) &
-                !write (*,*) self%me, first, last, send_count/N, offsets(i+1)/N
-            !call MPI_Barrier(MPI_COMM_WORLD, ierr)
-        !enddo
-        
         cnt =  1
-        !write (*,*) self%me, "Pre calc"
         do k_idx = first,last
             k = self%k_pts(:,k_idx)
             
-            !omega_z
-            !call self%ham%calc_berry_z(k, tmp_vec)
-
-            !omega_xy
             call self%ham%calc_berry_tensor_elem(1,2, k, tmp_vec)
             
             sec_omega_z(:,cnt) =  tmp_vec 
             cnt = cnt + 1
         enddo
-        !write (*,*) self%me, "Post calc"
 
         call MPI_Gatherv(sec_omega_z, send_count, MPI_REAL8, &
                          omega_z,    num_elems, offsets, MPI_REAL8, &
                          root, MPI_COMM_WORLD, ierr)
             
         if(self%me ==  root) then
+            write (*,*) "Berry curvature saved unitless"
             call add_npz("omega_xy.npz", "omega_z", omega_z)
             call add_npz("omega_xy.npz", "k", self%k_pts)
         endif
@@ -596,6 +589,7 @@ contains
                          root, MPI_COMM_WORLD, ierr)
             
         if(self%me ==  root) then
+            write (*,*) "Berry curvature saved unitless"
             call add_npz("omega_yx.npz", "omega_z", omega_z)
             call add_npz("omega_yx.npz", "k", self%k_pts)
         endif
@@ -660,7 +654,7 @@ contains
             fermi =  self%E_fermi
 
             npz_file = trim(self%prefix) // ".npz"
-            call add_npz(npz_file, "E_fermi", fermi)
+            call add_npz(npz_file, "E_fermi", fermi / self%units%energy)
         endif
     end subroutine write_fermi
 
