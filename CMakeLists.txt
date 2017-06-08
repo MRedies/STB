@@ -6,6 +6,7 @@ file(GLOB_RECURSE sources  src/*.f90
                            src/*.h 
                            thirdparty/config_fortran/m_config.f90
                            thirdparty/NPY-for-Fortran/src/npy.F90)
+
 add_executable(stb.x ${sources})
 
 enable_language(Fortran)
@@ -36,7 +37,10 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
 	set(bounds "-C")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "IBM")
+    MESSAGE(STATUS "IBM")
     set(dialect "-O2 -qarch=qp -qtune=qp -ufmt_littleendian={23}")
+    set(CMAKE_EXE_LINKER_FLAGS "-qmkshrobj")
+    set(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS "-Wl,-export-dynamic")
     set(debug "-C")
 endif()
 
@@ -51,15 +55,6 @@ MESSAGE( STATUS "Flags:  ${CMAKE_Fortran_FLAGS}")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 MESSAGE( STATUS "cmake_module_path:    " ${CMAKE_MODULE_PATH})
 
-#find_package(MKL REQUIRED)
-#if(MKL_FOUND)
-    #MESSAGE( STATUS "MKL FOUND")
-    #include_directories(${MKL_INCLUDE_DIRS})
-    #target_link_libraries (stb.x ${MKL_MINIMAL_LIBRARY})
-#else()
-    #MESSAGE( STATUS "MKL NOT FOUND")
-#endif()
-MESSAGE(STATUS "MKL_THREADING_LIBNAME " ${MKL_THREADING_LIBNAME})
 #
 # Compile.
 #
