@@ -6,6 +6,7 @@ module Class_unit_cell
     use m_npy
     use mpi
     use Constants
+    use class_Units
 
     implicit none
 
@@ -24,6 +25,7 @@ module Class_unit_cell
         real(8) :: t_nn !> hopping paramater passed for connection 
         real(8) :: eps !> threshold for positional accuracy
         type(atom), dimension(:), allocatable :: atoms !> array containing all atoms
+        type(units)       :: units
         character(len=25) :: uc_type !> indicates shape of unitcell
         character(len=25) :: mag_type !> indicates type of magnetization
     contains
@@ -62,19 +64,21 @@ contains
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
         
+        self%units = init_units(cfg, self%me)
+        
         
         if(self%me ==  0) then 
             call CFG_get(cfg, "grid%epsilon", tmp)
-            self%eps =  tmp * get_unit_conv("length", cfg, self%me, .False.)
+            self%eps =  tmp * self%units%length
             
             call CFG_get(cfg, "hamil%t_nn", tmp)
-            self%t_nn =  tmp * get_unit_conv("energy", cfg, self%me, .False.)
+            self%t_nn =  tmp * self%units%energy
 
             call CFG_get(cfg, "grid%mag_type", self%mag_type)
             call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
 
             call CFG_get(cfg, "grid%lattice_constant", tmp)
-            self%lattice_constant = tmp * get_unit_conv("length", cfg, self%me, .False.)
+            self%lattice_constant = tmp * self%units%length
 
             call CFG_get(cfg, "grid%atoms_per_dim", self%atom_per_dim)
         endif

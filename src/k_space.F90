@@ -4,9 +4,6 @@ module Class_k_space
     use mpi
     use Class_hamiltionian
     use Class_helper
-#ifdef INTEL_COMPILER_USED
-    USE IFPORT
-#endif
     implicit none
 
     type k_space
@@ -29,8 +26,9 @@ module Class_k_space
         real(8), allocatable :: k1_param(:) !> 1st k_space param
         real(8), allocatable :: k2_param(:) !> 2nd k_space param
         character(len=300)    :: filling, prefix
-        logical :: perform_dos_integration !> param to toggle dos integr.
-        type(hamil)           :: ham
+        logical      :: perform_dos_integration !> param to toggle dos integr.
+        type(hamil)  :: ham
+        type(units)  :: units
     contains
 
         procedure :: vol_k_space_parallelo  => vol_k_space_parallelo
@@ -53,10 +51,9 @@ module Class_k_space
     end type k_space 
 
 contains
-    Subroutine  calc_and_print_band(self, cfg)
+    Subroutine  calc_and_print_band(self)
         Implicit None
         class(k_space)                :: self 
-        class(CFG_t)                  :: cfg
         character(len=300)            :: npz_file
         integer(4)                    :: first, last, N, send_count, ierr
         integer(4), allocatable       :: num_elems(:), offsets(:)
@@ -66,9 +63,9 @@ contains
         if(trim(self%filling) ==  "path_rel") then
             call self%setup_k_path_rel()
         else if(trim(self%filling) == "path_abs") then
-            call self%setup_k_path_abs(cfg)
+            call self%setup_k_path_abs()
         else if(trim(self%filling) == "grid") then
-            call self%setup_k_grid(cfg)
+            call self%setup_k_grid()
         else
             write (*,*) "Filling not known"
             stop
@@ -242,11 +239,12 @@ contains
         real(8)               :: tmp
         integer(4)            :: sz, ierr
         character(len=300)    :: npz_file
-
-        self%ham =  init_hamil(cfg)
         
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
+
+        self%units = init_units(cfg, self%me)
+        self%ham   = init_hamil(cfg)
 
         if(self%me ==  0) then 
             call CFG_get(cfg, "output%band_prefix", self%prefix)
@@ -254,7 +252,7 @@ contains
             call CFG_get(cfg, "band%filling", self%filling)
 
             call CFG_get(cfg, "dos%delta_broadening", tmp)
-            self%DOS_gamma =  tmp *  get_unit_conv("energy", cfg, self%me, bcast=.False.)
+            self%DOS_gamma =  tmp * self%units%energy
 
             call CFG_get(cfg, "dos%num_points", self%num_DOS_pts)
 
@@ -272,13 +270,13 @@ contains
 
             call CFG_get(cfg, "dos%k_pts_per_dim", self%DOS_num_k_pts)
             call CFG_get(cfg, "dos%lower_E_bound", tmp)
-            self%DOS_lower =  tmp * get_unit_conv("energy", cfg, self%me, bcast=.False.)
+            self%DOS_lower =  tmp * self%units%energy 
             call CFG_get(cfg, "dos%upper_E_bound", tmp)
-            self%DOS_upper =  tmp * get_unit_conv("energy", cfg, self%me, bcast=.False.)
+            self%DOS_upper =  tmp * self%units%energy
 
             call CFG_get(cfg, "berry%k_pts_per_dim", self%berry_num_k_pts)
             call CFG_get(cfg, "berry%temperature", tmp)
-            self%temp = tmp * get_unit_conv("temperature", cfg, self%me, bcast=.False.)
+            self%temp = tmp * self%units%temperature
         endif
         call self%Bcast_k_space()
     end function init_k_space
@@ -333,10 +331,9 @@ contains
         call check_ierr(ierr, self%me)
     end subroutine Bcast_k_space
 
-    subroutine setup_k_grid(self, cfg)
+    subroutine setup_k_grid(self)
         implicit none
-        class(k_space)           :: self
-        type(CFG_t)          :: cfg
+        class(k_space)       :: self
         real(8), allocatable :: kx_points(:), ky_points(:)
         real(8), allocatable :: kx_grid(:,:), ky_grid(:,:)
         integer(4)           :: sz_x, sz_y, i, j
@@ -345,10 +342,8 @@ contains
         sz_x =  NINT(self%k1_param(3))
         sz_y =  NINT(self%k2_param(3))
 
-        self%k1_param(1:2) =  self%k1_param(1:2) &
-            * get_unit_conv("inv_length",cfg, self%me)
-        self%k2_param(1:2) =  self%k2_param(1:2) &
-            * get_unit_conv("inv_length",cfg, self%me)
+        self%k1_param(1:2) =  self%k1_param(1:2) * self%units%inv_length
+        self%k2_param(1:2) =  self%k2_param(1:2) * self%units%inv_length
 
         allocate(kx_grid(sz_x, sz_y))
         allocate(ky_grid(sz_x, sz_y))
@@ -409,17 +404,16 @@ contains
         enddo
     end subroutine setup_inte_grid_square
 
-    subroutine setup_k_path_abs(self, cfg)
+    subroutine setup_k_path_abs(self)
         implicit none
         class(k_space)        :: self
-        class(CFG_t)          :: cfg
         integer(4)            :: n_pts, n_sec, start, halt, i
         real(8), allocatable  :: tmp(:)
 
 
 
-        self%k1_param =  self%k1_param * get_unit_conv("inv_length",cfg, self%me)
-        self%k2_param =  self%k2_param * get_unit_conv("inv_length",cfg, self%me)
+        self%k1_param =  self%k1_param * self%units%inv_length
+        self%k2_param =  self%k2_param * self%units%inv_length
 
         n_pts =  self%num_k_pts
         n_sec =  size(self%k1_param)-1
@@ -619,8 +613,7 @@ contains
         endif
         call MPI_Bcast(tmp, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
 
-        self%E_fermi =  tmp * get_unit_conv("energy", cfg, self%me)
-        !write (*,*) "Fermi energy:", self%E_fermi
+        self%E_fermi =  tmp * self%units%energy
         call self%write_fermi()
     end subroutine set_fermi
 
@@ -696,12 +689,14 @@ contains
         class(k_space), intent(in)   :: self
         character(len=300)           :: npz_file 
         logical                      :: already_there
-        integer(4)                   :: succ
-        npz_file = trim(self%prefix) // ".npz"
+        integer                      :: succ
 
+        npz_file = trim(self%prefix) // ".npz"
+        
         inquire(file=npz_file, exist=already_there)
+        
         if(already_there)then
-            call system("rm " // npz_file, succ)
+            call run_sys("rm " // npz_file, succ)
             if(succ /= 0) then
                 write (*,*) "rm error: ", succ
             endif

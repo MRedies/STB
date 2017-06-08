@@ -13,6 +13,7 @@ module Class_hamiltionian
         integer(4)      :: nProcs
         integer(4)      :: me
         type(unit_cell) :: UC !> unit cell
+        type(units)     :: units
     contains
 
         procedure :: Bcast_hamil            => Bcast_hamil
@@ -87,17 +88,18 @@ contains
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
         
-        self%UC =  init_unit(cfg)
+        self%units = init_units(cfg, self%me)
+        self%UC    = init_unit(cfg)
 
         if(self%me ==  0) then 
             call CFG_get(cfg, "hamil%E_s", tmp)
-            self%E_s =  tmp * get_unit_conv("energy", cfg, self%me, .False.)
+            self%E_s =  tmp * self%units%energy
             
             call CFG_get(cfg, "hamil%t_nn", tmp)
-            self%t_nn =  tmp * get_unit_conv("energy", cfg, self%me, .False.)
+            self%t_nn =  tmp * self%units%energy
             
             call CFG_get(cfg, "hamil%I", tmp)
-            self%I =  tmp * get_unit_conv("energy", cfg, self%me, .False.)
+            self%I =  tmp * self%units%energy
         endif
         call self%Bcast_hamil()
     end function init_hamil

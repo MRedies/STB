@@ -34,16 +34,15 @@ program STB
     call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
     call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
     call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-
     Ksp =  init_k_space(cfg)
-
+    
     halt =  MPI_Wtime()
     if(root ==  me) then
         write (*,time_fmt) "Init: ", halt-start, "s"
     endif
 
     if(perform_band) then
-        call Ksp%calc_and_print_band(cfg) 
+        call Ksp%calc_and_print_band() 
     endif
 
     if(trim(fermi_type) == "fixed") then
