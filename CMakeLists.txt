@@ -7,8 +7,8 @@ file(GLOB_RECURSE sources  src/*.f90
                            thirdparty/config_fortran/m_config.f90
                            thirdparty/NPY-for-Fortran/src/npy.F90)
 
-add_executable(stb.x ${sources})
 
+link_directories($ENV{LAPACK_LIB} /bgsys/local/lib)
 enable_language(Fortran)
 
 if(PLATFORM MATCHES "INTEL")
@@ -20,16 +20,12 @@ if(PLATFORM MATCHES "GNU")
     set(CMAKE_Fortran_COMPILER mpifort)
 endif()
 if(PLATFORM MATCHES "IBM")
-    set(CMAKE_Fortran_COMPILER mpixlf2003)
     set(CMAKE_Fortran_COMPILER_ID "IBM")
 endif()
 
 MESSAGE(STATUS "Using ${CMAKE_Fortran_COMPILER_ID} compiler")
 
-find_package (LAPACK REQUIRED)
 target_link_libraries (stb.x ${LAPACK_LIBRARIES})
-
-MESSAGE( STATUS "MKLROOT: $ENV{MKLROOT}")
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     set(dialect "-ffree-form -Wall -fimplicit-none -m64")
@@ -46,11 +42,15 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "IBM")
     MESSAGE(STATUS "IBM")
-    set(dialect "-O2 -qarch=qp -qtune=qp -ufmt_littleendian={23}")
-    set(CMAKE_EXE_LINKER_FLAGS "-qmkshrobj")
-    set(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS "-Wl,-export-dynamic")
+    set(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
+    set(CMAKE_Fortran_COMPILER scorep)
+    set(dialect "mpixlf2008_r -O3 -qstrict -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm")
     set(debug "-C")
 endif()
+
+add_executable(stb.x ${sources})
+target_link_libraries(stb.x lapack esslbg)
+
 
 set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${bounds}")
 set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${debug}")
@@ -63,6 +63,10 @@ MESSAGE( STATUS "Flags:  ${CMAKE_Fortran_FLAGS}")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 MESSAGE( STATUS "cmake_module_path:    " ${CMAKE_MODULE_PATH})
 
+MESSAGE(STATUS ${CMAKE_EXE_LINKER_FLAGS})
+MESSAGE(STATUS ${CMAKE_MODULE_LINKER_FLAGS})
+MESSAGE(STATUS ${CMAKE_SHARED_LINKER_FLAGS})
+MESSAGE(STATUS ${CMAKE_STATIC_LINKER_FLAGS})
 #
 # Compile.
 #

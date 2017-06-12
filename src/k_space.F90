@@ -47,14 +47,12 @@ module Class_k_space
         procedure :: setup_inte_grid_square => setup_inte_grid_square
         procedure :: Bcast_k_space          => Bcast_k_space
         procedure :: plot_omega             => plot_omega
-        procedure :: rm_old_files           => rm_old_files
     end type k_space 
 
 contains
     Subroutine  calc_and_print_band(self)
         Implicit None
         class(k_space)                :: self 
-        character(len=300)            :: npz_file
         integer(4)                    :: first, last, N, send_count, ierr
         integer(4), allocatable       :: num_elems(:), offsets(:)
         real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
@@ -93,12 +91,10 @@ contains
                          root,        MPI_COMM_WORLD, ierr)
         
         if(self%me == root) then 
-            npz_file = trim(self%prefix) // ".npz"
-            call add_npz(npz_file, "band_k", self%k_pts)
-            call add_npz(npz_file, "band_E", eig_val)
-            call add_npz(npz_file, "lattice", self%ham%UC%lattice)
-            call add_npz(npz_file, "rez_lattice", self%ham%UC%rez_lattice)
-            call add_npz(npz_file, "band_num_kpts", (/ self%num_k_pts /))
+            call save_npy(trim(self%prefix) //  "band_k.npy", self%k_pts)
+            call save_npy(trim(self%prefix) //  "band_E.npy", eig_val)
+            call save_npy(trim(self%prefix) //  "lattice.npy", self%ham%UC%lattice)
+            call save_npy(trim(self%prefix) //  "rez_lattice.npy", self%ham%UC%rez_lattice)
         endif
        
         deallocate(eig_val)
@@ -175,13 +171,11 @@ contains
     subroutine calc_and_print_dos(self)
         implicit none
         class(k_space)       :: self
-        character(len=300)   :: npz_file
         real(8), allocatable :: DOS(:), PDOS(:,:), up(:), down(:)
         real(8)              :: dE
         integer(4)           :: i, num_atoms
 
 
-        npz_file = trim(self%prefix) // ".npz"
         call self%setup_inte_grid_square(self%DOS_num_k_pts)
         num_atoms =  self%ham%UC%num_atoms
         allocate(PDOS(2*num_atoms, self%num_DOS_pts))
@@ -201,11 +195,11 @@ contains
             up   = sum(PDOS(1:num_atoms, :),1)
             down = sum(PDOS(num_atoms+1:2*num_atoms, :),1)
 
-            call add_npz(npz_file, "DOS_E",       self%E_DOS)
-            call add_npz(npz_file, "DOS",         DOS)
-            call add_npz(npz_file, "DOS_partial", PDOS)
-            call add_npz(npz_file, "DOS_up",      up)
-            call add_npz(npz_file, "DOS_down",    down)
+            call save_npy(trim(self%prefix) //  "DOS_E.npy", self%E_DOS)
+            call save_npy(trim(self%prefix) //  "DOS.npy", DOS)
+            call save_npy(trim(self%prefix) //  "DOS_partial.npy", PDOS)
+            call save_npy(trim(self%prefix) //  "DOS_up.npy", up)
+            call save_npy(trim(self%prefix) //  "DOS_down.npy", down)
 
             allocate(self%int_DOS(self%num_DOS_pts))
 
@@ -220,7 +214,7 @@ contains
                 self%int_DOS(i) =  self%int_DOS(i-1) &
                     + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
             enddo
-            call add_npz(npz_file, "DOS_integrated", self%int_DOS)
+            call save_npy(trim(self%prefix) // "DOS_integrated.npy", self%int_DOS)
         endif 
         
         deallocate(self%k_pts)
@@ -238,17 +232,16 @@ contains
         type(CFG_t)           :: cfg
         real(8)               :: tmp
         integer(4)            :: sz, ierr
-        character(len=300)    :: npz_file
         
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
 
         self%units = init_units(cfg, self%me)
         self%ham   = init_hamil(cfg)
-
+    
         if(self%me ==  0) then 
             call CFG_get(cfg, "output%band_prefix", self%prefix)
-            call self%rm_old_files()
+            call create_dir(self%prefix) 
             call CFG_get(cfg, "band%filling", self%filling)
 
             call CFG_get(cfg, "dos%delta_broadening", tmp)
@@ -256,8 +249,7 @@ contains
 
             call CFG_get(cfg, "dos%num_points", self%num_DOS_pts)
 
-            npz_file = trim(self%prefix) // ".npz"
-            call self%ham%UC%save_unit_cell(npz_file)
+            call self%ham%UC%save_unit_cell(trim(self%prefix))
 
             call CFG_get_size(cfg, "band%k_x", sz)
             allocate(self%k1_param(sz))
@@ -278,6 +270,7 @@ contains
             call CFG_get(cfg, "berry%temperature", tmp)
             self%temp = tmp * self%units%temperature
         endif
+        call MPI_Barrier(MPI_COMM_WORLD, ierr)
         call self%Bcast_k_space()
     end function init_k_space
 
@@ -308,7 +301,6 @@ contains
             allocate(self%k1_param(sz(1)))
             allocate(self%k2_param(sz(2)))
         endif
-
         call MPI_Bcast(self%k1_param,      sz(1),          MPI_REAL8,    &
                        root,               MPI_COMM_WORLD, ierr(5))
         call MPI_Bcast(self%k2_param,      sz(2),          MPI_REAL8,    &
@@ -328,7 +320,6 @@ contains
         call MPI_Bcast(self%temp,            1,              MPI_REAL8,    &
                        root,                 MPI_COMM_WORLD, ierr(12))
        
-        call check_ierr(ierr, self%me)
     end subroutine Bcast_k_space
 
     subroutine setup_k_grid(self)
@@ -492,7 +483,6 @@ contains
         real(8)              :: hall, V_k, k(3), ret
         real(8), allocatable :: eig_val(:), omega_z(:)
         integer(4)           :: N_k, n, k_idx, first, last, ierr
-        character(len=300)   :: npz_file
 
         if(allocated(self%k_pts) )then
             deallocate(self%k_pts)
@@ -522,8 +512,7 @@ contains
                         root, MPI_COMM_WORLD, ierr)
 
         if(self%me == root) then
-            npz_file = trim(self%prefix) // ".npz"  
-            call add_npz(npz_file, "hall_cond", (/ret /))
+            call save_npy(trim(self%prefix) // "hall_cond.npy", (/ret /))
         endif
     end subroutine calc_hall_conductance
 
@@ -577,8 +566,8 @@ contains
                          root, MPI_COMM_WORLD, ierr)
             
         if(self%me ==  root) then
-            call add_npz("omega_xy.npz", "omega_z", omega_z)
-            call add_npz("omega_xy.npz", "k", self%k_pts)
+            call save_npy(trim(self%prefix) //  "omega_xy_z.npy", omega_z)
+            call save_npy(trim(self%prefix) //  "omega_xy_k.npy", self%k_pts)
         endif
         cnt =  1
         do k_idx = first,last
@@ -596,8 +585,8 @@ contains
                          root, MPI_COMM_WORLD, ierr)
             
         if(self%me ==  root) then
-            call add_npz("omega_yx.npz", "omega_z", omega_z)
-            call add_npz("omega_yx.npz", "k", self%k_pts)
+            call save_npy(trim(self%prefix) //  "omega_yx_z.npy", omega_z)
+            call save_npy(trim(self%prefix) //  "omega_yx_k.npy", self%k_pts)
         endif
     end subroutine plot_omega 
 
@@ -654,13 +643,11 @@ contains
     subroutine write_fermi(self)
         implicit none
         class(k_space)         :: self
-        character(len=300)     :: npz_file
         real(8)                :: fermi(1)
         if(self%me ==  root) then 
             fermi =  self%E_fermi
 
-            npz_file = trim(self%prefix) // ".npz"
-            call add_npz(npz_file, "E_fermi", fermi)
+            call save_npy(trim(self%prefix) //  "fermi.npy", fermi)
         endif
     end subroutine write_fermi
 
@@ -683,25 +670,6 @@ contains
         ferm = 1d0 / (exp((E-self%E_fermi)&
             /(boltzmann_const * self%temp)) + 1d0)
     end function fermi_distr
-
-    subroutine rm_old_files(self)
-        implicit none
-        class(k_space), intent(in)   :: self
-        character(len=300)           :: npz_file 
-        logical                      :: already_there
-        integer                      :: succ
-
-        npz_file = trim(self%prefix) // ".npz"
-        
-        inquire(file=npz_file, exist=already_there)
-        
-        if(already_there)then
-            call run_sys("rm " // npz_file, succ)
-            if(succ /= 0) then
-                write (*,*) "rm error: ", succ
-            endif
-        endif
-    end subroutine rm_old_files
 
 end module
 

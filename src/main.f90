@@ -20,7 +20,7 @@ program STB
     start =  MPI_Wtime()
     
     if(me ==  root)then
-        write (*,*) "Start"
+        call save_npy("bla.npy", (/ 1 /))
         call CFG_update_from_arguments(cfg)
         call add_full_cfg(cfg)
         
@@ -34,6 +34,7 @@ program STB
     call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
     call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
     call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+    
     Ksp =  init_k_space(cfg)
     
     halt =  MPI_Wtime()

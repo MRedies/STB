@@ -113,7 +113,7 @@ contains
         call MPI_Bcast(self%E_s,  1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(1))
         call MPI_Bcast(self%t_nn, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
         call MPI_Bcast(self%I,    1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(3))
-        call check_ierr(ierr, self%me)
+        call check_ierr(ierr, self%me, "Hamiltionian check err")
     end subroutine
 
     subroutine set_Stoner(self,H)

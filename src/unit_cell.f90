@@ -127,11 +127,11 @@ contains
         call MPI_Bcast(self%uc_type,          25,             MPI_CHARACTER, &
                        root,                  MPI_COMM_WORLD, ierr(4))
         call MPI_Bcast(self%lattice_constant, 1,              MPI_REAL8, &
-                       root,                  MPI_COMM_WORLD, ierr(4))
+                       root,                  MPI_COMM_WORLD, ierr(5))
         call MPI_Bcast(self%atom_per_dim,     1,              MPI_INTEGER4, &
-                       root,                  MPI_COMM_WORLD, ierr(4))
+                       root,                  MPI_COMM_WORLD, ierr(6))
         
-        call check_ierr(ierr, self%me)
+        call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
     !function init_unit_hex(cfg) result(ret)
@@ -267,10 +267,10 @@ contains
 
     end subroutine set_mag_linrot_skrym_square 
 
-    subroutine save_unit_cell(self, filename)
+    subroutine save_unit_cell(self, folder)
         implicit none
         class(unit_cell)        :: self
-        character(len=*)        :: filename
+        character(len=*)        :: folder
         real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
         integer(4)              :: i
         
@@ -288,11 +288,11 @@ contains
             theta(i) = self%atoms(i)%m_theta
         enddo
 
-        call add_npz(filename, "m_x", x)
-        call add_npz(filename, "m_y", y)
-        call add_npz(filename, "m_z", z)
-        call add_npz(filename, "m_phi", phi)
-        call add_npz(filename, "m_theta", theta)
+        call save_npy(folder // "m_x.npy", x)
+        call save_npy(folder // "m_y.npy", y)
+        call save_npy(folder // "m_z.npy", z)
+        call save_npy(folder // "m_phi.npy", phi)
+        call save_npy(folder // "m_theta.npy", theta)
 
     end subroutine save_unit_cell
 

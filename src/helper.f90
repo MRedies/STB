@@ -108,20 +108,23 @@ contains
     end function cross_prod
 
 
-    subroutine check_ierr(ierr, me)
+    subroutine check_ierr(ierr, me, info)
         implicit none
-        integer(4), intent(in)  :: ierr(:), me
-        integer(4)              :: i
+        integer(4), intent(in)     :: ierr(:), me
+        integer(4)                 :: error, i
+        character(len=*), optional :: info
 
         do i = 1,size(ierr)
             if(ierr(i) /= 0) then
-                write (*, "(A, I3, A, I3)") &
-                    "[", me, "] Bcast error at :", i
-                stop
+                if(present(info)) then
+                    write (*, "(A, I3, A, I3)")  "[", me, "] Bcast error at :", i, info
+                else
+                    write (*, "(A, I3, A, I3)")  "[", me, "] Bcast error at :", i
+                endif
+                call MPI_Barrier(MPI_COMM_WORLD, error)
+                call MPI_Abort(MPI_COMM_WORLD, 0, error)
             endif
         enddo
     end subroutine check_ierr
-
-        
 
 end module Class_helper
