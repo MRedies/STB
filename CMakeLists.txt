@@ -11,6 +11,7 @@ file(GLOB_RECURSE sources  src/*.f90
 
 link_directories($ENV{LAPACK_LIB} /bgsys/local/lib)
 enable_language(Fortran)
+add_executable(stb.x ${sources})
 
 if(PLATFORM MATCHES "INTEL")
     set(CMAKE_Fortran_COMPILER_ID "Intel")
@@ -33,7 +34,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     set(bounds "-fbounds-check -Wall")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-    set(dialect "-std08 -warn all -implicitnone -g -heap_arrays")
+    set(dialect "-std08 -warn all -implicitnone -mkl:sequential -heap_arrays")
     set(bounds "-check all")
     set(debug "-traceback -debug ") 
 endif() 
@@ -43,14 +44,13 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "IBM")
     MESSAGE(STATUS "IBM")
+    target_link_libraries(stb.x lapack esslbg)
     set(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
     set(CMAKE_Fortran_COMPILER mpixlf2008_r)
     set(dialect "-O3 -qstrict -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm")
     set(debug "-C")
 endif()
 
-add_executable(stb.x ${sources})
-target_link_libraries(stb.x lapack esslbg)
 
 
 set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${bounds}")
