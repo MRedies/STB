@@ -4,6 +4,7 @@ program STB
     use output
     use mpi
     use Constants
+    use Class_unit_cell
     
     implicit none
     type(k_space)      :: Ksp

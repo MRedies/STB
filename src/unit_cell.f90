@@ -406,6 +406,40 @@ contains
             endif
         enddo
     end function in_cell
+    
+    subroutine calc_num_atoms_full_honey(n, n_atm, side)
+        implicit none
+        integer(4), intent(in)  :: n
+        integer(4), intent(out) :: n_atm, side
+        integer(4)              :: i
+
+        side =  2
+        n_atm =  0
+
+        do i = 1,n
+            if(mod(i,3) == 0) then
+                n_atm =  n_atm + side
+                side  =  side + 2
+            else
+                n_atm =  n_atm + side - 1
+            endif
+        enddo
+        n_atm =  n_atm * 6
+    end subroutine calc_num_atoms_full_honey
+
+    function calc_num_atoms_non_red_honey(n) result(n_atm)
+        implicit none
+        integer(4), intent(in)   :: n
+        integer(4)               :: inner, next_side, n_atm
+
+        call calc_num_atoms_full_honey(n-1, inner, next_side)
+
+        if(mod(n,3) == 0) then
+            n_atm =  inner +  3 * next_side
+        else
+            n_atm =  inner +  3 * next_side - 4
+        endif
+    end function calc_num_atoms_non_red_honey
 
     function get_num_atoms(self) result(num)
         implicit none
