@@ -482,7 +482,7 @@ contains
         class(k_space)       :: self
         real(8)              :: hall, V_k, k(3), ret
         real(8), allocatable :: eig_val(:), omega_z(:)
-        integer(4)           :: N_k, n, k_idx, first, last, ierr
+        integer(4)           :: N_k, n, k_idx, first, last, ierr, n_atm
 
         if(allocated(self%k_pts) )then
             deallocate(self%k_pts)
@@ -495,6 +495,9 @@ contains
         call my_section(self%me, self%nProcs, N_k, first, last)
         
         hall = 0d0
+
+        n_atm =  self%ham%UC%num_atoms
+        allocate(self%ham%del_H(2*n_atm,2*n_atm))
         do k_idx = first, last
             k = self%k_pts(:,k_idx)
             call self%ham%calc_berry_z(k, omega_z)
@@ -504,6 +507,7 @@ contains
                 hall = hall + omega_z(n) * self%fermi_distr(eig_val(n))
             enddo
         enddo
+        deallocate(self%ham%del_H)
 
         hall = hall * V_k/real(N_k)
         hall = hall / (2d0*PI)

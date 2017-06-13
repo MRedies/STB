@@ -5,6 +5,7 @@ file(GLOB_RECURSE sources  src/*.f90
                            src/*.F90
                            src/*.h 
                            thirdparty/config_fortran/m_config.f90
+                           thirdparty/NPY-for-Fortran/src/endian_swap.f90
                            thirdparty/NPY-for-Fortran/src/npy.F90)
 
 
@@ -43,8 +44,8 @@ endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "IBM")
     MESSAGE(STATUS "IBM")
     set(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
-    set(CMAKE_Fortran_COMPILER scorep)
-    set(dialect "mpixlf2008_r -O3 -qstrict -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm")
+    set(CMAKE_Fortran_COMPILER mpixlf2008_r)
+    set(dialect "-O3 -qstrict -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm")
     set(debug "-C")
 endif()
 

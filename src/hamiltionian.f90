@@ -10,6 +10,7 @@ module Class_hamiltionian
         real(8)         :: E_s !> onsite eigenenergy
         real(8)         :: t_nn !> nearest neighbour hopping
         real(8)         :: I !> stoner parameter
+        complex(8), allocatable    :: del_H(:,:)
         integer(4)      :: nProcs
         integer(4)      :: me
         type(unit_cell) :: UC !> unit cell
@@ -35,20 +36,20 @@ module Class_hamiltionian
 contains
     subroutine compare_derivative(self, k)
         implicit none 
-        class(hamil), intent(in)    :: self
+        class(hamil)                :: self
         real(8), intent(in)         :: k(3)
-        complex(8), allocatable     :: fd_H(:,:), del_H(:,:)
+        complex(8), allocatable     :: fd_H(:,:)
         integer(4)                  :: N, k_idx 
         
         N = 2 * self%UC%num_atoms
         allocate(fd_H(N,N))
-        allocate(del_H(N,N))
+        !allocate(self%del_H(N,N))
        
         do k_idx =  1,2
             call self%set_deriv_FD(k, k_idx, fd_H)
-            call self%set_derivative_k(k, k_idx, del_H)
+            call self%set_derivative_k(k, k_idx)
             
-            if(cnorm2(reshape(fd_H - del_H, [N*N])) >= 1d-8) then
+            if(cnorm2(reshape(fd_H - self%del_H, [N*N])) >= 1d-8) then
                 write (*,*) "mist"
                 stop
             else
@@ -57,7 +58,7 @@ contains
 
         enddo
         deallocate(fd_H)
-        deallocate(del_H)
+        !deallocate(self%del_H)
     end subroutine compare_derivative
 
     subroutine setup_H(self,k,H)
@@ -208,7 +209,7 @@ contains
         class(hamil), intent(in) :: self
         real(8), intent(in)      :: k(3)
         integer(4), intent(in)   :: k_idx
-        complex(8), allocatable     :: del_H(:,:), H_forw(:,:), H_back(:,:)
+        complex(8), allocatable     :: H_forw(:,:), H_back(:,:), del_H(:,:)
         real(8) :: k_forw(3), k_back(3)
         real(8), parameter :: delta_k =  1d-6
         integer(4)         :: N
@@ -236,12 +237,11 @@ contains
         deallocate(H_forw)
     end subroutine set_deriv_FD
 
-    subroutine set_derivative_k(self, k, k_idx, del_H)
+    subroutine set_derivative_k(self, k, k_idx)
         implicit none
-        class(hamil), intent(in)  :: self
+        class(hamil)              :: self
         integer(4), intent(in)    :: k_idx
         real(8), intent(in)       :: k(3)
-        complex(8), allocatable   :: del_H(:,:)
         real(8)                   :: r(3), k_dot_r
         complex(8)                :: forw, back
         integer(4)                :: i, j, conn, i_d, j_d
@@ -251,7 +251,7 @@ contains
             stop
         endif
     
-        del_H = 0d0
+        self%del_H = 0d0
         do i = 1,self%UC%num_atoms
             i_d =  i + self%UC%num_atoms
             do conn = 1,self%UC%atoms(i)%n_neigh
@@ -270,11 +270,11 @@ contains
                           * exp(i_unit * k_dot_r)
 
                 !Spin up
-                del_H(i,j)     = del_H(i,j) + forw 
-                del_H(j,i)     = del_H(j,i) + back
+                self%del_H(i,j)     = self%del_H(i,j) + forw 
+                self%del_H(j,i)     = self%del_H(j,i) + back
                 !Spin down
-                del_H(i_d,j_d) = del_H(i_d,j_d) + forw
-                del_H(j_d,i_d) = del_H(j_d,i_d) + back
+                self%del_H(i_d,j_d) = self%del_H(i_d,j_d) + forw
+                self%del_H(j_d,i_d) = self%del_H(j_d,i_d) + back
             enddo
         enddo
 
@@ -282,40 +282,37 @@ contains
 
     function calc_deriv_elem(self, psi_nk, psi_mk, k, k_idx) result(elem)
         implicit none
-        class(hamil), intent(in)   :: self
+        class(hamil)               :: self
         complex(8), intent(in)     :: psi_nk(:), psi_mk(:)
         real(8), intent(in)        :: k(3)
         integer(4), intent(in)     :: k_idx
         complex(8)                 :: elem
-        complex(8), allocatable    :: del_H(:,:), tmp_vec(:)
+        !complex(8), allocatable    :: tmp_vec(:)
         integer(4)                 :: n
 
         n =  size(psi_nk)
-        allocate(tmp_vec(n))
-        allocate(del_H(n,n))
         
-        call self%set_derivative_k(k, k_idx, del_H)
+        call self%set_derivative_k(k, k_idx)
         
         !verkackte zgemv does not work don't even think about it
-        tmp_vec =  matmul(del_H, psi_mk)
+        !tmp_vec =  matmul(self%del_H, psi_mk)
 
         ! citing intel ref here:
         ! If vector_a is of type complex, the result 
         ! value is SUM (CONJG ( vector_a)* vector_b).
-        elem =  dot_product(psi_nk, tmp_vec)
+        elem =  dot_product(psi_nk, matmul(self%del_H, psi_mk))
+
         
-        deallocate(tmp_vec)
-        deallocate(del_H)
     end function
 
     subroutine calc_berry_tensor_elem(self, k_i, k_j, k, omega)
         implicit none 
-        class(hamil), intent(in)           :: self
+        class(hamil)                       :: self
         integer(4), intent(in)             :: k_i, k_j
         real(8), intent(in)                :: k(3)
         real(8), allocatable               :: omega(:) !> \f$ \Omega_{ij}^n\f$
         real(8), allocatable               :: eig_val(:), rwork(:)
-        complex(8), allocatable            :: H(:,:), del_H(:,:), work(:)
+        complex(8), allocatable            :: H(:,:), work(:)
         complex(8)                         :: summe, term
         complex(8)  :: fac
         integer(4), allocatable :: iwork(:) 
@@ -323,7 +320,7 @@ contains
 
         n_dim = 2 * self%UC%num_atoms
         allocate(H(n_dim,n_dim))
-        allocate(del_H(n_dim,n_dim))
+        !allocate(self%del_H(n_dim,n_dim))
         allocate(eig_val(n_dim))
         
         if(.not. allocated(omega))then
@@ -360,7 +357,7 @@ contains
 
         deallocate(eig_val)
         deallocate(H)
-        deallocate(del_H)
+        !deallocate(self%del_H)
     end subroutine calc_berry_tensor_elem
 
     subroutine calc_berry_z(self,k, z_comp)
