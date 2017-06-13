@@ -134,39 +134,6 @@ contains
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
-    !function init_unit_hex(cfg) result(ret)
-        !implicit none
-        !type(unit_cell)              :: ret
-        !type(CFG_t),  intent(inout)  :: cfg
-        !integer(4)                   :: hex_sz,i 
-        !real(8)                      :: tmp
-
-        !call CFG_get(cfg, "grid%unit_cell_dim", tmp)
-        !ret%unit_cell_dim = tmp * get_unit_conv("length", cfg)
-
-        !call CFG_get(cfg, "hamil%E_s", tmp)
-        !ret%E_s =  tmp * get_unit_conv("energy", cfg)
-
-        !call CFG_get(cfg, "hamil%t_nn", tmp)
-        !ret%t_nn =  tmp * get_unit_conv("energy", cfg)
-
-        !call CFG_get(cfg, "grid%hexagon_size", ret%atom_per_dim)
-        !if(ret%atom_per_dim >=  1) then
-            !ret%num_atoms =  calc_num_atoms(ret%atom_per_dim)
-            !allocate(ret%atoms(ret%num_atoms))
-
-            !call ret%setup_hexagon()
-
-            !call ret%setup_conn_1D_layer()
-            !call ret%setup_lattice_vec()
-        !else if(ret%atom_per_dim ==  0) then
-            !ret%num_atoms =  1
-            !allocate(ret%atoms(1))
-            
-            !call ret%setup_single_hex()
-        !endif
-    !end function init_unit_hex
-
     subroutine init_unit_square(ret)
         implicit none
         type(unit_cell), intent(inout) :: ret
@@ -343,50 +310,6 @@ contains
                                             *  self%lattice_constant
     end subroutine setup_square
 
-    !Subroutine  setup_hexagon(self)
-        !Implicit None
-        !class(unit_cell), intent(inout)   :: self
-        !real(8), dimension(3)          :: start, pos, halt, dir
-        !integer(4)                        :: cnt, row
-        !type(atom)                        :: test
-
-        !cnt =  1
-        !! sweep from top to (including) middle
-        !start =  (/0, self%atom_per_dim /)
-        !halt  =  (/self%atom_per_dim , self%atom_per_dim/)
-        !dir   =  (/1,0 /)
-
-        !do row = self%atom_per_dim,0,-1
-            !pos =  start 
-            !do while(any(pos /= halt))
-                !self%atoms(cnt) = init_ferro(pos)
-                !cnt =  cnt + 1
-                !pos =  pos + dir
-            !end do
-
-            !start = start +  (/-1, -1/)
-            !halt  = halt +  (/0, -1/)
-        !end do
-
-
-        !! sweep after middle downwards
-        !start =  (/-self%atom_per_dim, -1/)
-        !halt  =  (/self%atom_per_dim -1, -1/)
-
-        !do row =  -1,-(self%atom_per_dim-1), - 1
-            !pos =  start
-            !do while(any(pos /= halt))
-                !self%atoms(cnt) = init_ferro(pos)
-                !cnt =  cnt +  1
-                !pos =  pos +  dir
-            !enddo
-
-            !start =  start +  (/0, -1 /)
-            !halt  =  halt  +  (/-1, -1 /)
-        !enddo
-
-    !End Subroutine setup_hexagon
-    
     subroutine setup_gen_conn(self, conn_mtx, transl_mtx)
         implicit none
         class(unit_cell)    :: self
