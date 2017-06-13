@@ -189,7 +189,7 @@ contains
         endif
 
         call self%calc_pdos(self%E_DOS, PDOS)
-
+    
         if(self%me == root) then
             DOS  = sum(PDOS,1)
             up   = sum(PDOS(1:num_atoms, :),1)
@@ -214,6 +214,7 @@ contains
                 self%int_DOS(i) =  self%int_DOS(i-1) &
                     + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
             enddo
+            ! integrated DOS ist unitless
             call save_npy(trim(self%prefix) // "DOS_integrated.npy", self%int_DOS)
         endif 
         
@@ -543,27 +544,15 @@ contains
         send_count =  N *  (last - first + 1)
         allocate(sec_omega_z(N, send_count))
 
-        !do i =  0,self%nProcs-1
-            !if(self%me ==  i) &
-                !write (*,*) self%me, first, last, send_count/N, offsets(i+1)/N
-            !call MPI_Barrier(MPI_COMM_WORLD, ierr)
-        !enddo
-        
         cnt =  1
-        !write (*,*) self%me, "Pre calc"
         do k_idx = first,last
             k = self%k_pts(:,k_idx)
             
-            !omega_z
-            !call self%ham%calc_berry_z(k, tmp_vec)
-
-            !omega_xy
             call self%ham%calc_berry_tensor_elem(1,2, k, tmp_vec)
             
             sec_omega_z(:,cnt) =  tmp_vec 
             cnt = cnt + 1
         enddo
-        !write (*,*) self%me, "Post calc"
 
         call MPI_Gatherv(sec_omega_z, send_count, MPI_REAL8, &
                          omega_z,    num_elems, offsets, MPI_REAL8, &
@@ -572,6 +561,7 @@ contains
         if(self%me ==  root) then
             call save_npy(trim(self%prefix) //  "omega_xy_z.npy", omega_z)
             call save_npy(trim(self%prefix) //  "omega_xy_k.npy", self%k_pts)
+            write (*,*) "Berry curvature saved unitless"
         endif
         cnt =  1
         do k_idx = first,last
@@ -591,6 +581,7 @@ contains
         if(self%me ==  root) then
             call save_npy(trim(self%prefix) //  "omega_yx_z.npy", omega_z)
             call save_npy(trim(self%prefix) //  "omega_yx_k.npy", self%k_pts)
+            write (*,*) "Berry curvature saved unitless"
         endif
     end subroutine plot_omega 
 
