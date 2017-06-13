@@ -20,7 +20,6 @@ program STB
     start =  MPI_Wtime()
     
     if(me ==  root)then
-        call save_npy("bla.npy", (/ 1 /))
         call CFG_update_from_arguments(cfg)
         call add_full_cfg(cfg)
         
