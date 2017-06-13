@@ -407,21 +407,6 @@ contains
         enddo
     end function in_cell
 
-    function calc_num_atoms(atom_per_dim) result(num_atoms)
-        implicit none
-        integer(4), intent(in)       :: atom_per_dim
-        integer(4)                   :: num_atoms
-
-        if (atom_per_dim > 0) then
-            num_atoms =  3 * atom_per_dim *  atom_per_dim  
-        else if(atom_per_dim ==  0) then
-            num_atoms =  1
-        else
-            write(*,*) "Invalid atom_per_dim"
-            stop 1 
-        end if
-    end function calc_num_atoms
-
     function get_num_atoms(self) result(num)
         implicit none
         class(unit_cell), intent(in) :: self
