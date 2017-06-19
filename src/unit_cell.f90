@@ -441,6 +441,76 @@ contains
         endif
     end function calc_num_atoms_non_red_honey
 
+    function in_hexagon(pos, a) result(inside)
+        implicit none
+        real(8), intent(in)         :: pos(3), a
+        real(8)                     :: m, b
+        real(8), parameter          :: deg_30 =  30d0/180d0 * PI
+        logical                     :: inside
+
+        m =  - tan(deg_30)
+        inside =  .True.
+
+        if(abs(pos(1)) > a * (cos(deg_30) + pos_eps)) then
+            inside = .False.
+        endif
+
+        b =  a * (1d0 +  pos_eps)
+        if(.not. (abs(pos(2)) <= m * abs(pos(1)) + b )) then
+            inside = .False.
+            write (*,*) "Pos: ", pos
+            write (*,*) "m*x + b", m * abs(pos(1)) + b
+        endif
+    end function in_hexagon
+
+    subroutine gen_hexa_grid(l, origin, max_ind, grid)
+        implicit none
+        real(8), intent(in)     :: l, origin(3)
+        integer(4), intent(in)  :: max_ind
+        real(8), allocatable    :: grid(:,:)
+        real(8)                 :: v1(3), v2(3)
+        real(8), parameter      :: deg_30 =  30d0/180d0 * PI
+        integer(4)              :: cnt, i, j
+
+        if(.not. allocated(grid)) then
+            allocate(grid((2*max_ind + 1)**2,3))
+        endif
+
+        v1 =  [l,       0d0,             0d0]
+        v2 =  [0.5d0*l, cos(deg_30) * l, 0d0]
+
+        cnt = 1
+        do i = -max_ind,max_ind
+            do j= - max_ind,max_ind
+                grid(cnt,:) = origin + i * v1 + j * v2
+                cnt =  cnt + 1
+            enddo
+        enddo
+    end subroutine gen_hexa_grid
+
+    subroutine gen_honey_grid(a, max_ind, grid)
+        implicit none
+        real(8), intent(in)        :: a
+        integer(4), intent(in)     :: max_ind
+        real(8), allocatable       :: grid(:,:), tmp(:,:)
+        real(8)                    :: l
+        real(8), parameter         :: deg_30 =  30d0/180d0 * PI
+        integer(4)                 :: n
+
+        n = 2 * max_ind + 1
+        l =  2d0 * cos(deg_30) * a
+
+        if(.not. allocated(grid)) then
+            allocate(grid(2 * n**2, 3))
+        endif
+
+        call gen_hexa_grid(l, [0d0, a, 0d0], max_ind, tmp)
+        grid(1:n**2,:) = tmp
+
+        call gen_hexa_grid(l, [0d0,-a, 0d0], max_ind, tmp)
+        grid(n**2 + 1:2 * n**2,:) = tmp
+    end subroutine gen_honey_grid
+
     function get_num_atoms(self) result(num)
         implicit none
         class(unit_cell), intent(in) :: self

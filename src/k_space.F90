@@ -10,11 +10,11 @@ module Class_k_space
         real(8), allocatable :: k_pts(:,:)
         real(8), allocatable :: int_DOS(:) !> integrated Density of states  
         real(8), allocatable :: E_DOS(:)
+        real(8), allocatable :: E_fermi(:) !> Fermi lvl
         real(8) :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
         !> DOS calculations
         real(8) :: DOS_lower !> lower energy bound for DOS calc
         real(8) :: DOS_upper !> upper energy bound for DOS calc
-        real(8) :: E_fermi !> Fermi lvl
         real(8) :: temp !> temperature used in fermi-dirac
         integer(4) :: DOS_num_k_pts !> number of kpts per dim 
         !> used in DOS calculations
@@ -481,9 +481,9 @@ contains
     subroutine calc_hall_conductance(self, ret)
         implicit none
         class(k_space)       :: self
-        real(8)              :: hall, V_k, k(3), ret
-        real(8), allocatable :: eig_val(:), omega_z(:)
-        integer(4)           :: N_k, n, k_idx, first, last, ierr, n_atm
+        real(8)              :: V_k, k(3), ret
+        real(8), allocatable :: eig_val(:), omega_z(:), hall(:)
+        integer(4)           :: N_k, n, k_idx, first, last, ierr, n_atm, n_hall
 
         if(allocated(self%k_pts) )then
             deallocate(self%k_pts)
@@ -494,7 +494,8 @@ contains
         N_k = size(self%k_pts, 2)
 
         call my_section(self%me, self%nProcs, N_k, first, last)
-        
+
+        allocate(hall(size(self%E_fermi)))
         hall = 0d0
 
         n_atm =  self%ham%UC%num_atoms
@@ -505,7 +506,9 @@ contains
             call self%ham%calc_single_eigenvalue(k, eig_val)
             
             do n = 1,2*self%ham%UC%num_atoms
-                hall = hall + omega_z(n) * self%fermi_distr(eig_val(n))
+                do n_hall =  1,size(hall)
+                    hall(n_hall) = hall(n_hall) + omega_z(n) * self%fermi_distr(eig_val(n), n_hall)
+                enddo
             enddo
         enddo
         deallocate(self%ham%del_H)
@@ -589,15 +592,17 @@ contains
         implicit none
         class(k_space)         :: self
         class(CFG_t)           :: cfg
-        real(8)                :: tmp
-        integer(4)             :: ierr
+        real(8)                :: tmp(3)
+        integer(4)             :: ierr, n_steps
 
         if(root == self%me) then
             call CFG_get(cfg, "dos%E_fermi", tmp)
         endif
-        call MPI_Bcast(tmp, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(tmp, 3, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
+        n_steps = nint(tmp(3))
+        tmp =  tmp *  self%units%energy
 
-        self%E_fermi =  tmp * self%units%energy
+        call linspace(tmp(1), tmp(2), n_steps, self%E_fermi)
         call self%write_fermi()
     end subroutine set_fermi
 
@@ -656,13 +661,14 @@ contains
             / (PI * (x**2 +  self%DOS_gamma**2))
     end function lorentzian
 
-    function fermi_distr(self, E) result(ferm)
+    function fermi_distr(self, E, n_ferm) result(ferm)
         implicit none
         class(k_space), intent(in)    :: self
         real(8), intent(in)           :: E
+        integer(4), intent(in)        :: n_ferm
         real(8)                       :: ferm
 
-        ferm = 1d0 / (exp((E-self%E_fermi)&
+        ferm = 1d0 / (exp((E - self%E_fermi(n_ferm))&
             /(boltzmann_const * self%temp)) + 1d0)
     end function fermi_distr
 
