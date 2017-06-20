@@ -516,7 +516,7 @@ contains
 
         hall = hall * V_k/real(N_k)
         hall = hall / (2d0*PI)
-        call MPI_Reduce(hall, ret, 1, &
+        call MPI_Reduce(hall, ret, size(hall), &
                         MPI_REAL8, MPI_Sum, &
                         root, MPI_COMM_WORLD, ierr)
 
