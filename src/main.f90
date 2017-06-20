@@ -8,15 +8,13 @@ program STB
     
     implicit none
     type(k_space)      :: Ksp
-    type(unit_cell)    :: uc
     type(CFG_t)        :: cfg
     character(len=25)  :: fermi_type
     character(len=*), parameter :: time_fmt =  "(A,F10.3,A)"
     integer(4)         :: ierr, me
     real(8)            :: start, halt
     logical :: perform_band, perform_dos, calc_hall
-    real(8), allocatable :: grid(:,:), hexagon(:,:), hall_cond(:)
-    integer(4) :: natm, side, cnt, i
+    real(8), allocatable :: hall_cond(:)
 
   
     call MPI_Init(ierr)
@@ -50,34 +48,34 @@ program STB
         call Ksp%calc_and_print_band() 
     endif
 
-    !if(trim(fermi_type) == "fixed") then
-        !call Ksp%set_fermi(cfg)
-    !endif
+    if(trim(fermi_type) == "fixed") then
+        call Ksp%set_fermi(cfg)
+    endif
 
 
-    !if(perform_dos) then
-        !write (*,*) "doing stuff"
-        !call Ksp%calc_and_print_dos()
+    if(perform_dos) then
+        write (*,*) "doing stuff"
+        call Ksp%calc_and_print_dos()
 
-        !! Only set Fermi energy relative if DOS was performed
-        !if(trim(fermi_type) == "filling") then
-            !call Ksp%find_fermi(cfg)
-        !endif
+        ! Only set Fermi energy relative if DOS was performed
+        if(trim(fermi_type) == "filling") then
+            call Ksp%find_fermi(cfg)
+        endif
         
-    !endif
+    endif
     
-    !if(calc_hall) then
-        !call Ksp%calc_hall_conductance(hall_cond)
-        !if(me ==  root) then
-            !write (*,*) "Hall:"
-            !call print_mtx(hall_cond)
-        !endif
+    if(calc_hall) then
+        call Ksp%calc_hall_conductance(hall_cond)
+        if(me ==  root) then
+            write (*,*) "Hall:"
+            call print_mtx(hall_cond)
+        endif
 
-    !endif
-    !halt = MPI_Wtime()
-    !if(root ==  me) then
-        !write (*,time_fmt) "Total: ", halt-start, "s"
-    !endif
+    endif
+    halt = MPI_Wtime()
+    if(root ==  me) then
+        write (*,time_fmt) "Total: ", halt-start, "s"
+    endif
     call MPI_Finalize(ierr)
 contains
     Subroutine  add_full_cfg(cfg)

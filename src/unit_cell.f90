@@ -178,7 +178,7 @@ contains
         real(8), allocatable             :: grid(:,:), hexagon(:,:)
         real(8), parameter               :: deg_30 =  30.0 * PI / 180.0
         real(8), parameter               :: deg_60 =  60.0 * PI / 180.0
-        integer(4)                       :: apd, cnt, i, n_atm, side
+        integer(4)                       :: apd, cnt, i
         
 
         apd         = ret%atom_per_dim
@@ -334,10 +334,8 @@ contains
 
         self%atoms(1) =  init_ferro((/0d0, 0d0, 0d0/))
         allocate(self%atoms(1)%neigh_idx(3))
-        allocate(self%atoms(1)%hopping(3))
         allocate(self%atoms(1)%neigh_conn(3,3))
 
-        self%atoms(1)%hopping   = self%t_nn
         self%atoms(1)%n_neigh   = 3
         self%atoms(1)%neigh_idx = (/ 1,1,1 /)
 
@@ -427,9 +425,7 @@ contains
 
 
             allocate(self%atoms(i)%neigh_idx(n_found))
-            allocate(self%atoms(i)%hopping(n_found))
             allocate(self%atoms(i)%neigh_conn(n_found, 3))
-            self%atoms(i)%hopping =  self%t_nn
             self%atoms(i)%n_neigh =  n_found
             
             cnt =  1

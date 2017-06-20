@@ -180,7 +180,7 @@ contains
                 j =  self%UC%atoms(i)%neigh_idx(conn)
                 k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
                 
-                new = exp(i_unit * k_dot_r) * self%UC%atoms(i)%hopping(conn)
+                new = exp(i_unit * k_dot_r) * self%t_nn
                 H(i,j) =  H(i,j) + new
                 H(j,i) =  H(j,i) + conjg(new)
             enddo
@@ -195,7 +195,7 @@ contains
                 j_d = j + self%UC%num_atoms
                 
                 k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
-                new =  exp(i_unit *  k_dot_r) * self%UC%atoms(i)%hopping(conn)
+                new =  exp(i_unit *  k_dot_r) * self%t_nn
                 H(i_d, j_d) = H(i_d, j_d) + new
                 H(j_d, i_d) = H(j_d, i_d) + conjg(new)
             enddo
@@ -261,12 +261,12 @@ contains
                 r   = self%UC%atoms(i)%neigh_conn(conn,:)
 
                 k_dot_r = dot_product(k, r)
-                forw    = i_unit * r(k_idx) * self%UC%atoms(i)%hopping(conn) &
+                forw    = i_unit * r(k_idx) * self%t_nn &
                           * exp(i_unit * k_dot_r)
                 
                 r       = - r
                 k_dot_r = - k_dot_r
-                back    = i_unit * r(k_idx) * self%UC%atoms(i)%hopping(conn) &
+                back    = i_unit * r(k_idx) * self%t_nn &
                           * exp(i_unit * k_dot_r)
 
                 !Spin up
