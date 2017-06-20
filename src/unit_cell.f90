@@ -174,7 +174,7 @@ contains
     subroutine init_unit_honey(ret)
         implicit none
         type(unit_cell), intent(inout)   :: ret
-        real(8)                          :: transl_mtx(3,3), l, base_len_uc, pos(3)
+        real(8)  :: transl_mtx(3,3), l, base_len_uc, pos(3), conn_mtx(3,3)
         real(8), allocatable             :: grid(:,:), hexagon(:,:)
         real(8), parameter               :: deg_30 =  30.0 * PI / 180.0
         real(8), parameter               :: deg_60 =  60.0 * PI / 180.0
@@ -210,6 +210,14 @@ contains
         enddo
         call ret%setup_honey(hexagon)
 
+        ! only one kind of atom from honey-comb unit cell needed
+        ! the other comes through complex conjugate
+        conn_mtx(1, :) =  ret%lattice_constant * [0d0,          1d0,           0d0]
+        conn_mtx(2, :) =  ret%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
+        conn_mtx(3, :) =  ret%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
+        
+        
+        call ret%setup_gen_conn(conn_mtx, transl_mtx)  
     end subroutine init_unit_honey
 
     subroutine set_mag_x_spiral_square(self)
@@ -285,6 +293,7 @@ contains
         character(len=*)        :: folder
         real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
         integer(4)              :: i
+        character(len=300)      :: conn_name
         
         allocate(x(self%num_atoms))
         allocate(y(self%num_atoms))
@@ -298,6 +307,15 @@ contains
             z(i)     = self%atoms(i)%pos(3)
             phi(i)   = self%atoms(i)%m_phi
             theta(i) = self%atoms(i)%m_theta
+
+            if(self%atoms(i)%n_neigh > 0) then
+                write(conn_name, '(a,i4.4,a,a)') 'conn_', i, '.npy'
+                call save_npy(folder // trim(conn_name), self%atoms(i)%neigh_conn)
+                
+                write(conn_name, '(a,i4.4,a,a)') 'connidx_', i, '.npy'
+                call save_npy(folder // trim(conn_name), self%atoms(i)%neigh_idx)
+            endif
+
         enddo
 
         call save_npy(folder // "pos_x.npy", x)
@@ -376,27 +394,56 @@ contains
         !> the connection vector, the second the vector element
         real(8), intent(in) :: transl_mtx(:,:) !> Matrix containing
         !> real-space translation vectors. Notation as in conn_mtx
-        integer(4)                        :: i, j, n_conn
+        integer(4)                        :: i, j, cnt, candidate, n_conn, n_found
+        integer(4), allocatable :: neigh_cand(:)
         real(8)  :: start_pos(3), conn(3)
+        logical, allocatable :: found_conn(:)
 
-        n_conn =  size(conn_mtx, dim=1)
+        n_conn =  size(conn_mtx, 1)
+        allocate(found_conn(n_conn))
+        allocate(neigh_cand(n_conn))
 
         do i =  1, self%num_atoms
-            allocate(self%atoms(i)%neigh_idx(n_conn))
-            allocate(self%atoms(i)%hopping(n_conn))
-            allocate(self%atoms(i)%neigh_conn(n_conn,3))
-
-            self%atoms(i)%hopping =  self%t_nn
-            self%atoms(i)%n_neigh =  n_conn
             start_pos             =  self%atoms(i)%pos
+
+            n_found    = 0
+            found_conn = .False.
+            cnt        = 1
+            neigh_cand =  - 1
 
             do j =  1,n_conn
                 conn =  conn_mtx(j,:)
-                self%atoms(i)%neigh_idx(j) = &
-                   self%gen_find_neigh(start_pos, conn, transl_mtx)
+                candidate = self%gen_find_neigh(start_pos, conn, transl_mtx)
+
+                if(candidate /= - 1) then
+                    !self%atoms(i)%neigh_idx(cnt) = candidate
+                    found_conn(j) =  .True.
+                    neigh_cand(j) =  candidate
+                    n_found = n_found + 1
+                    cnt     = cnt + 1 
+                endif
             enddo
-            self%atoms(i)%neigh_conn =  conn_mtx
+
+
+
+            allocate(self%atoms(i)%neigh_idx(n_found))
+            allocate(self%atoms(i)%hopping(n_found))
+            allocate(self%atoms(i)%neigh_conn(n_found, 3))
+            self%atoms(i)%hopping =  self%t_nn
+            self%atoms(i)%n_neigh =  n_found
+            
+            cnt =  1
+            write (*,*) "N_found: ", n_found
+            do j = 1,n_conn
+                if(found_conn(j)) then
+                    self%atoms(i)%neigh_conn(cnt,:) =  conn_mtx(j,:)
+                    self%atoms(i)%neigh_idx(cnt)    = neigh_cand(j)
+                    cnt =  cnt + 1
+                endif
+            enddo
         enddo
+        deallocate(found_conn)
+        deallocate(neigh_cand)
     end subroutine setup_gen_conn
 
     function gen_find_neigh(self, start, conn, transl_mtx) result(neigh)
