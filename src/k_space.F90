@@ -481,8 +481,8 @@ contains
     subroutine calc_hall_conductance(self, ret)
         implicit none
         class(k_space)       :: self
-        real(8)              :: V_k, k(3), ret
-        real(8), allocatable :: eig_val(:), omega_z(:), hall(:)
+        real(8)              :: V_k, k(3)
+        real(8), allocatable :: eig_val(:), omega_z(:), hall(:), ret(:)
         integer(4)           :: N_k, n, k_idx, first, last, ierr, n_atm, n_hall
 
         if(allocated(self%k_pts) )then
@@ -496,6 +496,7 @@ contains
         call my_section(self%me, self%nProcs, N_k, first, last)
 
         allocate(hall(size(self%E_fermi)))
+        allocate(ret(size(hall)))
         hall = 0d0
 
         n_atm =  self%ham%UC%num_atoms
@@ -522,6 +523,7 @@ contains
         if(self%me == root) then
             call save_npy(trim(self%prefix) // "hall_cond.npy", (/ret /))
         endif
+        deallocate(hall)
     end subroutine calc_hall_conductance
 
     subroutine plot_omega(self)
