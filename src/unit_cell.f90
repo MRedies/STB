@@ -42,6 +42,7 @@ module Class_unit_cell
         procedure :: set_mag_x_spiral_square     => set_mag_x_spiral_square
         procedure :: set_mag_linrot_skrym_square => set_mag_linrot_skrym_square
         procedure :: Bcast_UC                    => Bcast_UC
+        procedure :: setup_honey                 => setup_honey
     end type unit_cell
 contains
     function angle(a ,b) result(ang)
@@ -88,6 +89,9 @@ contains
 
         if(trim(self%uc_type) == "square_2d") then
             call init_unit_square(self)
+        else if(trim(self%uc_type) == "honey_2d") then
+            write (*,*) "here"
+            call init_unit_honey(self)
         else
             write (*,*) self%me, ": Cell type unknown"
             stop
@@ -165,7 +169,48 @@ contains
             write (*,*) "Mag_type not known"
             stop
         endif
-    end subroutine init_unit_square 
+    end subroutine init_unit_square
+
+    subroutine init_unit_honey(ret)
+        implicit none
+        type(unit_cell), intent(inout)   :: ret
+        real(8)                          :: transl_mtx(3,3), l, base_len_uc, pos(3)
+        real(8), allocatable             :: grid(:,:), hexagon(:,:)
+        real(8), parameter               :: deg_30 =  30.0 * PI / 180.0
+        real(8), parameter               :: deg_60 =  60.0 * PI / 180.0
+        integer(4)                       :: apd, cnt, i, n_atm, side
+        
+
+        apd         = ret%atom_per_dim
+        base_len_uc = ret%lattice_constant * apd
+        l           = 2 *  cos(deg_30) * base_len_uc
+    
+        transl_mtx(1, :) =  l *  [1d0,   0d0,           0d0]
+        transl_mtx(2, :) =  l *  [0.5d0, sin(deg_60),   0d0]
+        transl_mtx(3, :) =  l *  [0.5d0, - sin(deg_60), 0d0]
+
+        ret%lattice(:,1) =  transl_mtx(1,1:2)
+        ret%lattice(:,2) =  transl_mtx(2,1:2)
+
+        ret%num_atoms = calc_num_atoms_non_red_honey(apd)
+        allocate(ret%atoms(ret%num_atoms))
+        allocate(hexagon(ret%num_atoms, 3))
+        hexagon = 0d0
+        call gen_honey_grid(ret%lattice_constant, apd, grid)
+
+        cnt =  1
+        do i =  1,size(grid,1)
+            pos =  grid(i,:)
+            if(in_hexagon(pos, base_len_uc)) then
+                if(.not. already_in_red(pos, hexagon, cnt-1, transl_mtx)) then
+                    hexagon(cnt,:) =  grid(i,:)
+                    cnt =  cnt + 1
+                endif
+            endif
+        enddo
+        call ret%setup_honey(hexagon)
+
+    end subroutine init_unit_honey
 
     subroutine set_mag_x_spiral_square(self)
         implicit none
@@ -255,9 +300,9 @@ contains
             theta(i) = self%atoms(i)%m_theta
         enddo
 
-        call save_npy(folder // "m_x.npy", x)
-        call save_npy(folder // "m_y.npy", y)
-        call save_npy(folder // "m_z.npy", z)
+        call save_npy(folder // "pos_x.npy", x)
+        call save_npy(folder // "pos_y.npy", y)
+        call save_npy(folder // "pos_z.npy", z)
         call save_npy(folder // "m_phi.npy", phi)
         call save_npy(folder // "m_theta.npy", theta)
 
@@ -310,6 +355,19 @@ contains
                                             *  self%lattice_constant
     end subroutine setup_square
 
+    subroutine setup_honey(self, hexagon)
+        implicit none
+        class(unit_cell), intent(inout)  :: self
+        real(8), intent(in)              :: hexagon(:,:)
+        real(8)                          :: pos(3)
+        integer(4)                       :: i
+
+        do i =  1, size(hexagon, dim=1)
+            pos           =  hexagon(i,:)
+            self%atoms(i) =  init_ferro(pos)
+        enddo
+    end subroutine setup_honey
+
     subroutine setup_gen_conn(self, conn_mtx, transl_mtx)
         implicit none
         class(unit_cell)    :: self
@@ -355,6 +413,7 @@ contains
         
         n_transl =  size(transl_mtx, dim=1)
 
+        neigh =  - 1
         idx =  self%in_cell(start, conn)
         if(idx /= - 1) then
             neigh =  idx
@@ -376,11 +435,39 @@ contains
                 endif
             enddo
         endif
-
-        write (*,*) "Couldn't find a generalized neigbour"
-        stop
-        
     end function gen_find_neigh
+
+    function already_in_red(pos, hex, till, transl_mtx) result(inside)
+        implicit none
+        real(8), intent(in)    :: pos(3), hex(:,:), transl_mtx(:,:)
+        integer(4), intent(in) :: till
+        logical                :: inside
+        real(8)                :: new(3), delta
+        integer(4)             :: n_transl, i, trl
+
+        n_transl = size(transl_mtx, dim = 1)
+        inside   = .False.
+      
+
+        outer: do i =  1, till
+            do trl =  1, n_transl
+                new   =  pos + transl_mtx(trl,:)
+                delta =  my_norm2(hex(i,:) -  new)
+                
+                if(delta <= pos_eps) then
+                    inside = .True.
+                    exit outer
+                endif
+                new   =  pos - transl_mtx(trl,:)
+                delta =  my_norm2(hex(i,:) -  new)
+                
+                if(delta <= pos_eps) then
+                    inside = .True.
+                    exit outer
+                endif
+            enddo
+        enddo outer
+    end function already_in_red 
 
     function in_cell(self, start, conn) result(idx)
         ! if position is in hexagon the corresponding index is
@@ -458,8 +545,6 @@ contains
         b =  a * (1d0 +  pos_eps)
         if(.not. (abs(pos(2)) <= m * abs(pos(1)) + b )) then
             inside = .False.
-            write (*,*) "Pos: ", pos
-            write (*,*) "m*x + b", m * abs(pos(1)) + b
         endif
     end function in_hexagon
 
@@ -493,7 +578,7 @@ contains
         real(8), intent(in)        :: a
         integer(4), intent(in)     :: max_ind
         real(8), allocatable       :: grid(:,:), tmp(:,:)
-        real(8)                    :: l
+        real(8)                    :: l, origin(3)
         real(8), parameter         :: deg_30 =  30d0/180d0 * PI
         integer(4)                 :: n
 
@@ -504,10 +589,12 @@ contains
             allocate(grid(2 * n**2, 3))
         endif
 
-        call gen_hexa_grid(l, [0d0, a, 0d0], max_ind, tmp)
+        origin =  [0d0, a, 0d0]
+        call gen_hexa_grid(l, origin,  max_ind, tmp)
         grid(1:n**2,:) = tmp
-
-        call gen_hexa_grid(l, [0d0,-a, 0d0], max_ind, tmp)
+        
+        origin =   [0d0,-a, 0d0]
+        call gen_hexa_grid(l, origin, max_ind, tmp)
         grid(n**2 + 1:2 * n**2,:) = tmp
     end subroutine gen_honey_grid
 

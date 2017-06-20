@@ -8,6 +8,7 @@ program STB
     
     implicit none
     type(k_space)      :: Ksp
+    type(unit_cell)    :: uc
     type(CFG_t)        :: cfg
     character(len=25)  :: fermi_type
     character(len=*), parameter :: time_fmt =  "(A,F10.3,A)"
@@ -21,34 +22,11 @@ program STB
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
 
-    !if(me == root) then
-        !call gen_honey_grid(1d0, 10, grid)
-        !call save_npy("grid.npy", grid)
-        
-        !call calc_num_atoms_full_honey(4, natm, side)
-        !allocate(hexagon(natm, 3))
-        !hexagon =  0d0
-
-        !cnt =  1
-        !do i = 1,size(grid,1)
-            !if(in_hexagon(grid(i,:), 4d0))then
-                !hexagon(cnt,:) =  grid(i,:)
-                !!write (*,*) grid(i,:)
-                !cnt = cnt + 1
-            !endif
-        !enddo
-        !write (*,*) "count: ", cnt
-        !call save_npy("hexa.npy", hexagon)
-    !endif
-
     start =  MPI_Wtime()
     
     if(me ==  root)then
-        write (*,*) "pre"
         call CFG_update_from_arguments(cfg)
-        write (*,*) "mid"
         call add_full_cfg(cfg)
-        write (*,*) "Post"
         
         call CFG_get(cfg, "band%perform_band", perform_band)
         call CFG_get(cfg, "dos%perform_dos",   perform_dos)
@@ -67,39 +45,39 @@ program STB
     if(root ==  me) then
         write (*,time_fmt) "Init: ", halt-start, "s"
     endif
-
+    
     if(perform_band) then
         call Ksp%calc_and_print_band() 
     endif
 
-    if(trim(fermi_type) == "fixed") then
-        call Ksp%set_fermi(cfg)
-    endif
+    !if(trim(fermi_type) == "fixed") then
+        !call Ksp%set_fermi(cfg)
+    !endif
 
 
-    if(perform_dos) then
-        write (*,*) "doing stuff"
-        call Ksp%calc_and_print_dos()
+    !if(perform_dos) then
+        !write (*,*) "doing stuff"
+        !call Ksp%calc_and_print_dos()
 
-        ! Only set Fermi energy relative if DOS was performed
-        if(trim(fermi_type) == "filling") then
-            call Ksp%find_fermi(cfg)
-        endif
+        !! Only set Fermi energy relative if DOS was performed
+        !if(trim(fermi_type) == "filling") then
+            !call Ksp%find_fermi(cfg)
+        !endif
         
-    endif
+    !endif
     
-    if(calc_hall) then
-        call Ksp%calc_hall_conductance(hall_cond)
-        if(me ==  root) then
-            write (*,*) "Hall:"
-            call print_mtx(hall_cond)
-        endif
+    !if(calc_hall) then
+        !call Ksp%calc_hall_conductance(hall_cond)
+        !if(me ==  root) then
+            !write (*,*) "Hall:"
+            !call print_mtx(hall_cond)
+        !endif
 
-    endif
-    halt = MPI_Wtime()
-    if(root ==  me) then
-        write (*,time_fmt) "Total: ", halt-start, "s"
-    endif
+    !endif
+    !halt = MPI_Wtime()
+    !if(root ==  me) then
+        !write (*,time_fmt) "Total: ", halt-start, "s"
+    !endif
     call MPI_Finalize(ierr)
 contains
     Subroutine  add_full_cfg(cfg)

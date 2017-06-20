@@ -85,7 +85,7 @@ contains
         offsets   =  offsets   * N
     
         send_count =  N *  size(k_pts_sec, 2)
-
+        
         call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
                          eig_val,     num_elems,  offsets,   MPI_REAL8,&
                          root,        MPI_COMM_WORLD, ierr)
