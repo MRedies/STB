@@ -308,13 +308,13 @@ contains
             phi(i)   = self%atoms(i)%m_phi
             theta(i) = self%atoms(i)%m_theta
 
-            if(self%atoms(i)%n_neigh > 0) then
-                write(conn_name, '(a,i4.4,a,a)') 'conn_', i, '.npy'
-                call save_npy(folder // trim(conn_name), self%atoms(i)%neigh_conn)
+            !if(self%atoms(i)%n_neigh > 0) then
+                !write(conn_name, '(a,i4.4,a,a)') 'conn_', i, '.npy'
+                !call save_npy(folder // trim(conn_name), self%atoms(i)%neigh_conn)
                 
-                write(conn_name, '(a,i4.4,a,a)') 'connidx_', i, '.npy'
-                call save_npy(folder // trim(conn_name), self%atoms(i)%neigh_idx)
-            endif
+                !write(conn_name, '(a,i4.4,a,a)') 'connidx_', i, '.npy'
+                !call save_npy(folder // trim(conn_name), self%atoms(i)%neigh_idx)
+            !endif
 
         enddo
 
@@ -429,7 +429,6 @@ contains
             self%atoms(i)%n_neigh =  n_found
             
             cnt =  1
-            write (*,*) "N_found: ", n_found
             do j = 1,n_conn
                 if(found_conn(j)) then
                     self%atoms(i)%neigh_conn(cnt,:) =  conn_mtx(j,:)

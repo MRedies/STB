@@ -23,8 +23,11 @@ program STB
     start =  MPI_Wtime()
     
     if(me ==  root)then
+        write (*,*) "A"
         call CFG_update_from_arguments(cfg)
+        write (*,*) "B"
         call add_full_cfg(cfg)
+        write (*,*) "C"
         
         call CFG_get(cfg, "band%perform_band", perform_band)
         call CFG_get(cfg, "dos%perform_dos",   perform_dos)
@@ -88,9 +91,11 @@ contains
         call CFG_add(cfg, "units%inv_length", "none", "")
         call CFG_add(cfg, "units%temperature", "none", "")
 
-        call CFG_add(cfg, "hamil%t_nn", 0.0d0, "")
-        call CFG_add(cfg, "hamil%E_s",  0.0d0, "")
-        call CFG_add(cfg, "hamil%I",    0d0,   "")
+        call CFG_add(cfg, "hamil%t_nn",      0.0d0, "")
+        call CFG_add(cfg, "hamil%t_so",      0d0,   "")
+        call CFG_add(cfg, "hamil%E_s",       0.0d0, "")
+        call CFG_add(cfg, "hamil%lambda",    0d0,   "")
+        call CFG_add(cfg, "hamil%lambda_nl", 0d0,   "")
 
         call CFG_add(cfg, "grid%atoms_per_dim", -1, "")
         call CFG_add(cfg, "grid%unit_cell_type","","")

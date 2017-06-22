@@ -9,7 +9,9 @@ module Class_hamiltionian
     type hamil
         real(8)         :: E_s !> onsite eigenenergy
         real(8)         :: t_nn !> nearest neighbour hopping
-        real(8)         :: I !> stoner parameter
+        real(8)         :: t_so !> Rashba spin orb
+        real(8)         :: lambda !> local exchange
+        real(8)         :: lambda_nl !> non-local exchange (not implemented yet)
         complex(8), allocatable    :: del_H(:,:)
         integer(4)      :: nProcs
         integer(4)      :: me
@@ -23,10 +25,11 @@ module Class_hamiltionian
         procedure :: calc_single_eigenvalue => calc_single_eigenvalue
         procedure :: set_EigenE             => set_EigenE
         procedure :: set_hopping            => set_hopping
-        procedure :: set_Stoner             => set_Stoner
+        procedure :: set_loc_exch           => set_loc_exch
         procedure :: setup_Stoner_mtx       => setup_Stoner_mtx
         procedure :: set_derivative_k       => set_derivative_k
-        procedure :: set_deriv_FD           =>  set_deriv_FD
+        procedure :: set_rashba_SO          => set_rashba_SO
+        procedure :: set_deriv_FD           => set_deriv_FD
         procedure :: calc_deriv_elem        => calc_deriv_elem
         procedure :: calc_berry_tensor_elem => calc_berry_tensor_elem
         procedure :: calc_berry_z           => calc_berry_z
@@ -73,11 +76,28 @@ contains
         endif
        
         H =  0d0
-
-        call self%set_EigenE(H)
-        call self%set_hopping(k,H)
-        call self%set_Stoner(H)
+        
+        if(self%E_s    /= 0d0) call self%set_EigenE(H)
+        if(self%t_nn   /= 0d0) call self%set_hopping(k,H)
+        if(self%t_so   /= 0d0) call self%set_rashba_SO(k,h)
+        if(self%lambda /= 0d0) call self%set_loc_exch(H)
+    
     end subroutine setup_H
+
+    subroutine test_herm(H)
+        implicit none
+        complex(8), intent(in) :: H(:,:)
+        integer(4)             :: n
+        
+        n = size(H, dim=1)
+
+        if((norm2( real(H - transpose(conjg(H))))/(n**2) > 1d-10) .or.&
+           (norm2(aimag(H - transpose(conjg(H))))/(n**2) > 1d-10)) then
+            write (*,*) "nope"
+        else
+            write (*,*) "Fine"
+        endif
+    end subroutine test_herm
 
     function init_hamil(cfg) result(self)
         implicit none
@@ -99,8 +119,14 @@ contains
             call CFG_get(cfg, "hamil%t_nn", tmp)
             self%t_nn =  tmp * self%units%energy
             
-            call CFG_get(cfg, "hamil%I", tmp)
-            self%I =  tmp * self%units%energy
+            call CFG_get(cfg, "hamil%t_so", tmp)
+            self%t_so =  tmp * self%units%energy
+            
+            call CFG_get(cfg, "hamil%lambda", tmp)
+            self%lambda =  tmp * self%units%energy
+
+            call CFG_get(cfg, "hamil%lambda_nl", tmp)
+            self%lambda_nl =  tmp * self%units%energy
         endif
         call self%Bcast_hamil()
     end function init_hamil
@@ -108,16 +134,19 @@ contains
     subroutine Bcast_hamil(self)
         implicit none
         class(hamil)          :: self
-        integer(4), parameter :: num_cast =  3
+        integer(4), parameter :: num_cast =  5
         integer(4)            :: ierr(num_cast)
 
-        call MPI_Bcast(self%E_s,  1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(1))
-        call MPI_Bcast(self%t_nn, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
-        call MPI_Bcast(self%I,    1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(3))
+        call MPI_Bcast(self%E_s,       1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(1))
+        call MPI_Bcast(self%t_nn,      1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
+        call MPI_Bcast(self%t_so,      1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(3))
+        call MPI_Bcast(self%lambda,    1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(4))
+        call MPI_Bcast(self%lambda_nl, 1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(5))
+
         call check_ierr(ierr, self%me, "Hamiltionian check err")
     end subroutine
 
-    subroutine set_Stoner(self,H)
+    subroutine set_loc_exch(self,H)
         implicit none
         class(hamil), intent(in)   :: self
         complex(8), intent(inout)  :: H(:,:)
@@ -136,7 +165,7 @@ contains
             H(i_dw,i_dw) = H(i_dw, i_dw) +  S(2,2)
         enddo
 
-    end subroutine set_Stoner
+    end subroutine set_loc_exch
 
     subroutine setup_Stoner_mtx(self,i,S)
         implicit none
@@ -146,7 +175,7 @@ contains
         real(8)                  :: m(3), fac
         
         m = self%UC%atoms(i)%get_m_cart()
-        fac =  - 0.5d0 *  self%I
+        fac =  - 0.5d0 *  self%lambda
         
         S = fac * ( m(1) * sigma_x &
                   + m(2) * sigma_y &
@@ -195,6 +224,7 @@ contains
                 j_d = j + self%UC%num_atoms
                 
                 k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
+
                 new =  exp(i_unit *  k_dot_r) * self%t_nn
                 H(i_d, j_d) = H(i_d, j_d) + new
                 H(j_d, i_d) = H(j_d, i_d) + conjg(new)
@@ -203,6 +233,47 @@ contains
 
     end subroutine set_hopping
 
+    subroutine set_rashba_SO(self, k, H)
+        implicit none
+        class(hamil), intent(in)    :: self
+        real(8), intent(in)         :: k(3)
+        complex(8), intent(inout)   :: H(:,:)
+        integer(4)                  :: i, conn, j, i_d, j_d
+        real(8)                     :: k_dot_r, d_ij(3)
+        complex(8)                  :: new(2,2)
+
+        do i =  1, self%UC%num_atoms
+            i_d =  i + self%UC%num_atoms
+            do conn =  1,self%UC%atoms(i)%n_neigh
+                j =  self%UC%atoms(i)%neigh_idx(conn)
+                j_d = j + self%UC%num_atoms
+
+                k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
+
+                ! set and normalize d_ij pointing from j to i
+                d_ij =  - self%UC%atoms(i)%neigh_conn(conn,:)
+                d_ij =  d_ij / my_norm2(d_ij)
+
+                ! hopping from i to j
+                new = exp(i_unit *  k_dot_r) * i_unit * self%t_so &
+                  * (sigma_x * d_ij(2) -  sigma_y * d_ij(1))
+
+
+                H(i, j) = H(i, j) + new(1,       1)
+                H(j, i) = H(j, i) + conjg(new(1, 1))
+
+                H(i,   j_d) = H(i,   j_d) + new(1,       2)
+                H(j_d, i)   = H(j_d, i)   + conjg(new(1, 2))
+
+                H(i_d, j)   = H(i_d, j) + new(2,         1)
+                H(j,   i_d)   = H(j, i_d) + conjg(new(2, 1))
+
+                H(i_d, j_d) = H(i_d, j_d) + new(2,       2)
+                H(j_d, i_d) = H(j_d, i_d) + conjg(new(2, 2))
+
+            enddo
+        enddo
+    end subroutine set_rashba_SO
 
     subroutine set_deriv_FD(self, k, k_idx, del_H)
         implicit none
