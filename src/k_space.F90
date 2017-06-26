@@ -267,14 +267,10 @@ contains
             call CFG_get(cfg, "dos%k_pts_per_dim", self%DOS_num_k_pts)
             
             call CFG_get(cfg, "dos%lower_E_bound", tmp)
-            write (*,*) "tmp: ", tmp
             self%DOS_lower =  tmp * self%units%energy 
-            write (*,*) "Post unit: ", self%DOS_lower
 
             call CFG_get(cfg, "dos%upper_E_bound", tmp)
-            write (*,*) "tmp: ", tmp
             self%DOS_upper =  tmp * self%units%energy
-            write (*,*) "Post unit: ", self%DOS_upper
 
             call CFG_get(cfg, "berry%k_pts_per_dim", self%berry_num_k_pts)
             call CFG_get(cfg, "berry%temperature", tmp)

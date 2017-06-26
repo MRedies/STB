@@ -95,7 +95,6 @@ contains
         if(trim(self%uc_type) == "square_2d") then
             call init_unit_square(self)
         else if(trim(self%uc_type) == "honey_2d") then
-            write (*,*) "here"
             call init_unit_honey(self)
         else
             write (*,*) self%me, ": Cell type unknown"
@@ -222,7 +221,6 @@ contains
         
         if(trim(ret%mag_type) == "ferro") then
             call ret%set_mag_ferro()
-            write (*,*) "theta, phi:", ret%atoms(1)%m_theta, ret%atoms(1)%m_phi
         else if(trim(ret%mag_type) == "random") then
             call ret%set_mag_random()
         else
