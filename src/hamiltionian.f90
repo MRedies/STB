@@ -97,8 +97,8 @@ contains
         
         n = size(H, dim=1)
 
-        if((norm2( real(H - transpose(conjg(H))))/(n**2) > 1d-10) .or.&
-           (norm2(aimag(H - transpose(conjg(H))))/(n**2) > 1d-10)) then
+        if((my_norm2(reshape( real(H - transpose(conjg(H))),[n*n]))/(n**2) > 1d-10) .or.&
+           (my_norm2(reshape(aimag(H - transpose(conjg(H))),[n*n]))/(n**2) > 1d-10)) then
             write (*,*) "nope"
         else
             write (*,*) "Fine"
