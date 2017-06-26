@@ -23,11 +23,8 @@ program STB
     start =  MPI_Wtime()
     
     if(me ==  root)then
-        write (*,*) "A"
         call CFG_update_from_arguments(cfg)
-        write (*,*) "B"
         call add_full_cfg(cfg)
-        write (*,*) "C"
         
         call CFG_get(cfg, "band%perform_band", perform_band)
         call CFG_get(cfg, "dos%perform_dos",   perform_dos)
@@ -41,7 +38,7 @@ program STB
     call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
     
     Ksp =  init_k_space(cfg)
-    
+
     halt =  MPI_Wtime()
     if(root ==  me) then
         write (*,time_fmt) "Init: ", halt-start, "s"
@@ -69,11 +66,6 @@ program STB
     
     if(calc_hall) then
         call Ksp%calc_hall_conductance(hall_cond)
-        if(me ==  root) then
-            write (*,*) "Hall:"
-            call print_mtx(hall_cond)
-        endif
-
     endif
     halt = MPI_Wtime()
     if(root ==  me) then
@@ -97,11 +89,13 @@ contains
         call CFG_add(cfg, "hamil%lambda",    0d0,   "")
         call CFG_add(cfg, "hamil%lambda_nl", 0d0,   "")
 
-        call CFG_add(cfg, "grid%atoms_per_dim", -1, "")
-        call CFG_add(cfg, "grid%unit_cell_type","","")
-        call CFG_add(cfg, "grid%lattice_constant", 0d0, "")
-        call CFG_add(cfg, "grid%epsilon", 1d-6, "")
-        call CFG_add(cfg, "grid%mag_type", "", "")
+        call CFG_add(cfg, "grid%atoms_per_dim",    -1,   "")
+        call CFG_add(cfg, "grid%unit_cell_type",   "",   "")
+        call CFG_add(cfg, "grid%lattice_constant", 0d0,  "")
+        call CFG_add(cfg, "grid%epsilon",          1d-6, "")
+        call CFG_add(cfg, "grid%mag_type",         "",   "")
+        call CFG_add(cfg, "grid%ferro_phi",        0d0,  "")
+        call CFG_add(cfg, "grid%ferro_theta",      0d0,  "")
 
         call CFG_add(cfg, "band%perform_band",  .False., "")
         call CFG_add(cfg, "band%k_label",    (/ ""/),   "",&

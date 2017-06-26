@@ -29,15 +29,15 @@ contains
         coord(3) = cos(self%m_theta)
     end function get_m_cart
     
-    function init_ferro(p_pos) result(ret)
+    function init_ferro_z(p_pos) result(ret)
         implicit none
-        type(atom)                           :: ret
-        real(8), dimension(3), intent(in) :: p_pos
+        type(atom)          :: ret
+        real(8), intent(in) :: p_pos(3)
 
-        ret%m_phi      = 0.0d0
-        ret%m_theta    = 0.0d0
+        ret%m_phi      = 0d0 
+        ret%m_theta    = 0d0
         ret%pos        = p_pos
-    end function
+    end function init_ferro_z
 
     subroutine set_m_cart(self,x,y,z)
         implicit none

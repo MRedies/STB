@@ -19,21 +19,22 @@ module Class_hamiltionian
         type(units)     :: units
     contains
 
-        procedure :: Bcast_hamil            => Bcast_hamil
-        procedure :: setup_H                => setup_H
-        procedure :: calc_eigenvalues       => calc_eigenvalues
-        procedure :: calc_single_eigenvalue => calc_single_eigenvalue
-        procedure :: set_EigenE             => set_EigenE
-        procedure :: set_hopping            => set_hopping
-        procedure :: set_loc_exch           => set_loc_exch
-        procedure :: setup_Stoner_mtx       => setup_Stoner_mtx
-        procedure :: set_derivative_k       => set_derivative_k
-        procedure :: set_rashba_SO          => set_rashba_SO
-        procedure :: set_deriv_FD           => set_deriv_FD
-        procedure :: calc_deriv_elem        => calc_deriv_elem
-        procedure :: calc_berry_tensor_elem => calc_berry_tensor_elem
-        procedure :: calc_berry_z           => calc_berry_z
-        procedure :: compare_derivative     => compare_derivative
+        procedure :: Bcast_hamil              => Bcast_hamil
+        procedure :: setup_H                  => setup_H
+        procedure :: calc_eigenvalues         => calc_eigenvalues
+        procedure :: calc_single_eigenvalue   => calc_single_eigenvalue
+        procedure :: set_EigenE               => set_EigenE
+        procedure :: set_hopping              => set_hopping
+        procedure :: set_loc_exch             => set_loc_exch
+        procedure :: setup_Stoner_mtx         => setup_Stoner_mtx
+        procedure :: set_derivative_k         => set_derivative_k
+        procedure :: set_rashba_SO            => set_rashba_SO
+        procedure :: set_deriv_FD             => set_deriv_FD
+        procedure :: calc_deriv_elem          => calc_deriv_elem
+        procedure :: calc_berry_tensor_elem   => calc_berry_tensor_elem
+        procedure :: calc_berry_z             => calc_berry_z
+        procedure :: compare_derivative       => compare_derivative
+        procedure :: set_derivative_rashba_so => set_derivative_rashba_so
     end type hamil
 
 contains
@@ -44,22 +45,27 @@ contains
         complex(8), allocatable     :: fd_H(:,:)
         integer(4)                  :: N, k_idx 
         
+        write (*,*) "bla" 
         N = 2 * self%UC%num_atoms
         allocate(fd_H(N,N))
-        !allocate(self%del_H(N,N))
-       
+        if(.not. allocated(self%del_H)) then
+            allocate(self%del_H(N,N))
+        endif
+
         do k_idx =  1,2
             call self%set_deriv_FD(k, k_idx, fd_H)
             call self%set_derivative_k(k, k_idx)
             
             if(cnorm2(reshape(fd_H - self%del_H, [N*N])) >= 1d-8) then
                 write (*,*) "mist"
-                stop
             else
                 write (*,*) "Cool"
             endif
+            call save_npy("analytic.npy", self%del_H)
+            call save_npy("FD.npy", fd_H)
 
         enddo
+        write (*,*) "blub" 
         deallocate(fd_H)
         !deallocate(self%del_H)
     end subroutine compare_derivative
@@ -266,7 +272,7 @@ contains
                 H(j_d, i)   = H(j_d, i)   + conjg(new(1, 2))
 
                 H(i_d, j)   = H(i_d, j) + new(2,         1)
-                H(j,   i_d)   = H(j, i_d) + conjg(new(2, 1))
+                H(j,   i_d) = H(j, i_d) + conjg(new(2, 1))
 
                 H(i_d, j_d) = H(i_d, j_d) + new(2,       2)
                 H(j_d, i_d) = H(j_d, i_d) + conjg(new(2, 2))
@@ -313,9 +319,6 @@ contains
         class(hamil)              :: self
         integer(4), intent(in)    :: k_idx
         real(8), intent(in)       :: k(3)
-        real(8)                   :: r(3), k_dot_r
-        complex(8)                :: forw, back
-        integer(4)                :: i, j, conn, i_d, j_d
 
         if(k(3) /= 0) then
             write (*,*) "K_z not zero in set_derivative_k"
@@ -323,6 +326,21 @@ contains
         endif
     
         self%del_H = 0d0
+        if(self%t_nn /= 0d0) call set_derivative_hopping(self, k, k_idx)
+        if(self%t_so /= 0d0) call set_derivative_rashba_so(self, k, k_idx)
+
+    end subroutine set_derivative_k
+
+    subroutine set_derivative_hopping(self, k, k_idx)
+        implicit none
+        class(hamil)             :: self
+        real(8), intent(in)      :: k(3)
+        integer(4), intent(in)   :: k_idx
+        real(8)                   :: r(3), k_dot_r
+        complex(8)                :: forw, back
+        integer(4)                :: i, j, conn, i_d, j_d
+
+
         do i = 1,self%UC%num_atoms
             i_d =  i + self%UC%num_atoms
             do conn = 1,self%UC%atoms(i)%n_neigh
@@ -349,7 +367,46 @@ contains
             enddo
         enddo
 
-    end subroutine set_derivative_k
+    end subroutine set_derivative_hopping
+
+    subroutine set_derivative_rashba_so(self, k, k_idx)
+        implicit none
+        class(hamil)            :: self
+        real(8), intent(in)     :: k(3)
+        integer(4), intent(in)  :: k_idx
+        real(8)                 :: r(3), d_ij(3), k_dot_r
+        integer(4)              :: i, j, i_d, j_d, conn
+        complex(8)              :: e_z_sigma(2,2), forw(2,2), back(2,2)
+
+        do i = 1,self%UC%num_atoms
+            i_d = i +  self%UC%num_atoms
+            do conn = 1,self%UC%atoms(i)%n_neigh
+                j   =  self%UC%atoms(i)%neigh_idx(conn)
+                j_d = j + self%UC%num_atoms 
+                
+                r    = self%UC%atoms(i)%neigh_conn(conn,:)
+                d_ij = - r
+
+                k_dot_r =  dot_product(k, r)
+
+                e_z_sigma = sigma_x * d_ij(2) - sigma_y * d_ij(1)
+                forw =  - self%t_so * e_z_sigma * r(k_idx) * exp(i_unit * k_dot_r)
+                back =  conjg(forw)
+
+                self%del_H(i,j)      = self%del_H(i,j)     + forw(1,1)
+                self%del_H(j,i)      = self%del_H(j,i)     + back(1,1)
+
+                self%del_H(i,j_d)    = self%del_H(i,j_d)   + forw(1,2)
+                self%del_H(j_d,i)    = self%del_H(j_d,i)   + back(1,2)
+
+                self%del_H(i_d,j)    = self%del_H(i_d,j)   + forw(2,1)
+                self%del_H(j,i_d)    = self%del_H(j,i_d)   + back(2,1)
+
+                self%del_H(i_d, j_d) = self%del_H(i_d,j_d) + forw(2,2)
+                self%del_H(j_d, i_d) = self%del_H(j_d,i_d) + back(2,2)
+            enddo
+        enddo
+    end subroutine set_derivative_rashba_so 
 
     function calc_deriv_elem(self, psi_nk, psi_mk, k, k_idx) result(elem)
         implicit none
@@ -366,14 +423,10 @@ contains
         call self%set_derivative_k(k, k_idx)
         
         !verkackte zgemv does not work don't even think about it
-        !tmp_vec =  matmul(self%del_H, psi_mk)
-
         ! citing intel ref here:
         ! If vector_a is of type complex, the result 
         ! value is SUM (CONJG ( vector_a)* vector_b).
         elem =  dot_product(psi_nk, matmul(self%del_H, psi_mk))
-
-        
     end function
 
     subroutine calc_berry_tensor_elem(self, k_i, k_j, k, omega)

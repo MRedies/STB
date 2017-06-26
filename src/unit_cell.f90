@@ -24,6 +24,7 @@ module Class_unit_cell
         real(8) :: lattice_constant !> lattice constant in atomic units
         real(8) :: t_nn !> hopping paramater passed for connection 
         real(8) :: eps !> threshold for positional accuracy
+        real(8) :: ferro_phi, ferro_theta
         type(atom), dimension(:), allocatable :: atoms !> array containing all atoms
         type(units)       :: units
         character(len=25) :: uc_type !> indicates shape of unitcell
@@ -38,6 +39,7 @@ module Class_unit_cell
         procedure :: get_atoms                   => get_atoms
         procedure :: gen_find_neigh              => gen_find_neigh
         procedure :: save_unit_cell              => save_unit_cell
+        procedure :: set_mag_ferro               => set_mag_ferro
         procedure :: set_mag_random              => set_mag_random
         procedure :: set_mag_x_spiral_square     => set_mag_x_spiral_square
         procedure :: set_mag_linrot_skrym_square => set_mag_linrot_skrym_square
@@ -82,6 +84,9 @@ contains
             self%lattice_constant = tmp * self%units%length
 
             call CFG_get(cfg, "grid%atoms_per_dim", self%atom_per_dim)
+
+            call CFG_get(cfg, "grid%ferro_phi",   self%ferro_phi)
+            call CFG_get(cfg, "grid%ferro_theta", self%ferro_theta)
         endif
         call self%Bcast_UC()
 
@@ -119,7 +124,7 @@ contains
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer(4), parameter         :: num_cast = 6
+        integer(4), parameter         :: num_cast = 8
         integer(4)                    :: ierr(num_cast)
         
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
@@ -134,6 +139,11 @@ contains
                        root,                  MPI_COMM_WORLD, ierr(5))
         call MPI_Bcast(self%atom_per_dim,     1,              MPI_INTEGER4, &
                        root,                  MPI_COMM_WORLD, ierr(6))
+        
+        call MPI_Bcast(self%ferro_phi,   1,              MPI_REAL8, &
+                       root,             MPI_COMM_WORLD, ierr(7))
+        call MPI_Bcast(self%ferro_theta, 1,              MPI_REAL8, &
+                       root,             MPI_COMM_WORLD, ierr(8))
         
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
@@ -160,7 +170,7 @@ contains
         if(trim(ret%mag_type) ==  "x_spiral") then
             call ret%set_mag_x_spiral_square()
         else if(trim(ret%mag_type) == "ferro") then
-            continue
+            call ret%set_mag_ferro()
         else if(trim(ret%mag_type) == "lin_skyrm") then
             call ret%set_mag_linrot_skrym_square()
         else if(trim(ret%mag_type) == "random") then
@@ -209,6 +219,16 @@ contains
             endif
         enddo
         call ret%setup_honey(hexagon)
+        
+        if(trim(ret%mag_type) == "ferro") then
+            call ret%set_mag_ferro()
+            write (*,*) "theta, phi:", ret%atoms(1)%m_theta, ret%atoms(1)%m_phi
+        else if(trim(ret%mag_type) == "random") then
+            call ret%set_mag_random()
+        else
+            write (*,*) "Mag_type not known"
+            stop
+        endif
 
         ! only one kind of atom from honey-comb unit cell needed
         ! the other comes through complex conjugate
@@ -219,6 +239,17 @@ contains
         
         call ret%setup_gen_conn(conn_mtx, transl_mtx)  
     end subroutine init_unit_honey
+
+    subroutine set_mag_ferro(self)
+        implicit none
+        class(unit_cell)    :: self
+        integer(4)          :: i
+
+        do i = 1,self%num_atoms
+            call self%atoms(i)%set_sphere(self%ferro_phi, self%ferro_theta)
+        enddo
+    end subroutine set_mag_ferro
+
 
     subroutine set_mag_x_spiral_square(self)
         implicit none
@@ -293,7 +324,6 @@ contains
         character(len=*)        :: folder
         real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
         integer(4)              :: i
-        character(len=300)      :: conn_name
         
         allocate(x(self%num_atoms))
         allocate(y(self%num_atoms))
@@ -318,9 +348,9 @@ contains
 
         enddo
 
-        call save_npy(folder // "pos_x.npy", x)
-        call save_npy(folder // "pos_y.npy", y)
-        call save_npy(folder // "pos_z.npy", z)
+        call save_npy(folder // "pos_x.npy", x / self%units%length)
+        call save_npy(folder // "pos_y.npy", y / self%units%length)
+        call save_npy(folder // "pos_z.npy", z / self%units%length)
         call save_npy(folder // "m_phi.npy", phi)
         call save_npy(folder // "m_theta.npy", theta)
 
@@ -332,7 +362,7 @@ contains
         real(8)                           :: base_len
         real(8), dimension(3,3)           :: base_vecs
 
-        self%atoms(1) =  init_ferro((/0d0, 0d0, 0d0/))
+        self%atoms(1) =  init_ferro_z((/0d0, 0d0, 0d0/))
         allocate(self%atoms(1)%neigh_idx(3))
         allocate(self%atoms(1)%neigh_conn(3,3))
 
@@ -360,7 +390,7 @@ contains
         do i = 0, self%atom_per_dim-1
             do j = 0, self%atom_per_dim-1
                 pos             = (/i,j,0/) * self%lattice_constant 
-                self%atoms(cnt) = init_ferro(pos)
+                self%atoms(cnt) = init_ferro_z(pos)
                 cnt             = cnt + 1
             enddo
         enddo
@@ -380,7 +410,7 @@ contains
 
         do i =  1, size(hexagon, dim=1)
             pos           =  hexagon(i,:)
-            self%atoms(i) =  init_ferro(pos)
+            self%atoms(i) =  init_ferro_z(pos)
         enddo
     end subroutine setup_honey
 

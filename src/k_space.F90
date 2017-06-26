@@ -91,10 +91,12 @@ contains
                          root,        MPI_COMM_WORLD, ierr)
         
         if(self%me == root) then 
-            call save_npy(trim(self%prefix) //  "band_k.npy", self%k_pts)
-            call save_npy(trim(self%prefix) //  "band_E.npy", eig_val)
-            call save_npy(trim(self%prefix) //  "lattice.npy", self%ham%UC%lattice)
-            call save_npy(trim(self%prefix) //  "rez_lattice.npy", self%ham%UC%rez_lattice)
+            call save_npy(trim(self%prefix) //  "band_k.npy", self%k_pts / self%units%inv_length)
+            call save_npy(trim(self%prefix) //  "band_E.npy", eig_val / self%units%energy)
+            call save_npy(trim(self%prefix) //  "lattice.npy", &
+                           self%ham%UC%lattice / self%units%length)
+            call save_npy(trim(self%prefix) //  "rez_lattice.npy", &
+                           self%ham%UC%rez_lattice / self%units%inv_length)
         endif
        
         deallocate(eig_val)
@@ -195,11 +197,12 @@ contains
             up   = sum(PDOS(1:num_atoms, :),1)
             down = sum(PDOS(num_atoms+1:2*num_atoms, :),1)
 
-            call save_npy(trim(self%prefix) //  "DOS_E.npy", self%E_DOS)
-            call save_npy(trim(self%prefix) //  "DOS.npy", DOS)
-            call save_npy(trim(self%prefix) //  "DOS_partial.npy", PDOS)
-            call save_npy(trim(self%prefix) //  "DOS_up.npy", up)
-            call save_npy(trim(self%prefix) //  "DOS_down.npy", down)
+            call save_npy(trim(self%prefix) //  "DOS_E.npy", self%E_DOS / self%units%energy)
+            ! unit of DOS is per energy
+            call save_npy(trim(self%prefix) //  "DOS.npy", DOS * self%units%energy)
+            call save_npy(trim(self%prefix) //  "DOS_partial.npy", PDOS * self%units%energy)
+            call save_npy(trim(self%prefix) //  "DOS_up.npy", up *  self%units%energy)
+            call save_npy(trim(self%prefix) //  "DOS_down.npy", down *  self%units%energy)
 
             allocate(self%int_DOS(self%num_DOS_pts))
 
@@ -262,10 +265,16 @@ contains
             call CFG_get(cfg, "band%num_points", self%num_k_pts)
 
             call CFG_get(cfg, "dos%k_pts_per_dim", self%DOS_num_k_pts)
+            
             call CFG_get(cfg, "dos%lower_E_bound", tmp)
+            write (*,*) "tmp: ", tmp
             self%DOS_lower =  tmp * self%units%energy 
+            write (*,*) "Post unit: ", self%DOS_lower
+
             call CFG_get(cfg, "dos%upper_E_bound", tmp)
+            write (*,*) "tmp: ", tmp
             self%DOS_upper =  tmp * self%units%energy
+            write (*,*) "Post unit: ", self%DOS_upper
 
             call CFG_get(cfg, "berry%k_pts_per_dim", self%berry_num_k_pts)
             call CFG_get(cfg, "berry%temperature", tmp)
@@ -521,7 +530,9 @@ contains
                         root, MPI_COMM_WORLD, ierr)
 
         if(self%me == root) then
-            call save_npy(trim(self%prefix) // "hall_cond.npy", (/ret /))
+            write (*,*) "saving hall cond with questionable unit"
+            call save_npy(trim(self%prefix) // "hall_cond.npy", ret)
+            call save_npy(trim(self%prefix) // "hall_E.npy", self%E_fermi)
         endif
         deallocate(hall)
     end subroutine calc_hall_conductance

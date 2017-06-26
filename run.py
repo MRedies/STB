@@ -8,7 +8,7 @@ call(["ipython", "inis/replace.py"])
 for i in range(1,len(sys.argv)):
     print("Run: " + sys.argv[i])
     arg = str(sys.argv[i])
-    command = "./stb.x " + arg
+    command = "mpirun -np 2 ./stb.x " + arg
 
     call(command.split(), shell=False)
 
