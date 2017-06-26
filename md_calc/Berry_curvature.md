@@ -1,6 +1,6 @@
 In this document I use:
 $$ m_e = \hbar = e = c =1$$
-Using the general tight-binding Hamiltionian:
+Using the general tight-binding Hamiltonian:
 $$ H_{i\mu}^{j\nu}(k) = \sum_n e^{i \vec{k}(\mathbf{r^{i\leftrightarrow j}})} H_{0i\mu}^{j\nu}$$
 Which in my case boils down to:
 

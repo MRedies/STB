@@ -17,14 +17,19 @@ $$
 
 $$
 \begin{align}
-\overline{h_{ij}^{\alpha \beta}} &= \overline{ i t_{so} \sum_{<ij>\alpha \beta} \left( \sigma_x^{\alpha \beta} \cdot d^y_{ij} - \sigma_y^{\alpha \beta} \cdot d^x_{ij} \right) c^\dagger_{i\alpha}c_{j\beta}} \\
-&= - i t_{so} \sum_{<ij>\alpha \beta} \overline{\left( \sigma_x^{\alpha \beta} \cdot d^y_{ij} - \sigma_y^{\alpha \beta} \cdot d^x_{ij} \right)} c_{i\alpha}c^\dagger_{j\beta} \\
-&= i t_{so} \sum_{<ij>\alpha \beta} \overline{\left( \sigma_x^{\alpha \beta} \cdot d^y_{ij} - \sigma_y^{\alpha \beta} \cdot d^x_{ij} \right)} c^\dagger_{j\beta}c_{i\alpha} \\
-&= i t_{so} \sum_{<ij>\alpha \beta} \left( \overline{\sigma_x^{\alpha \beta} \cdot d^y_{ij}} - \overline{\sigma_y^{\alpha \beta} \cdot d^x_{ij}} \right) c^\dagger_{j\beta}c_{i\alpha} \\
-&= i t_{so} \sum_{<ij>\alpha \beta} \left(\sigma_x^{\alpha \beta} \cdot d^y_{ij} + \sigma_y^{\alpha \beta} \cdot d^x_{ij} \right) c^\dagger_{j\beta}c_{i\alpha} \\
-&= i t_{so} \sum_{<ij>\alpha \beta} \left(-\sigma_x^{\alpha \beta} \cdot d^y_{ji} - \sigma_y^{\alpha \beta} \cdot d^x_{ji} \right) c^\dagger_{j\beta}c_{i\alpha} \\
-&= i t_{so} \sum_{<ij>\alpha \beta} \left(-\sigma_x^{\beta \alpha} \cdot d^y_{ji} + \sigma_y^{\beta \alpha} \cdot d^x_{ji} \right) c^\dagger_{j\beta}c_{i\alpha} \\
-&= -i t_{so} \sum_{<ij>\alpha \beta} \left(+\sigma_x^{\beta \alpha} \cdot d^y_{ji} - \sigma_y^{\beta \alpha} \cdot d^x_{ji} \right) c^\dagger_{j\beta}c_{i\alpha} \\
-&= -h_{ji}^{\beta \alpha}
+\overline{h_{ij}^{\alpha \beta}} &= \overline{ i t_{so}  \left( \sigma_x^{\alpha \beta} \cdot d^y_{ij} - \sigma_y^{\alpha \beta} \cdot d^x_{ij} \right) c^\dagger_{i\alpha}c_{j\beta}} \\
+&= - i t_{so}  \overline{\left( \sigma_x^{\alpha \beta} \cdot d^y_{ij} - \sigma_y^{\alpha \beta} \cdot d^x_{ij} \right)} c_{i\alpha}c^\dagger_{j\beta} \\
+&=- i t_{so}  \overline{\left( \sigma_x^{\alpha \beta} \cdot d^y_{ij} - \sigma_y^{\alpha \beta} \cdot d^x_{ij} \right)} c_{i\alpha}c^\dagger_{j\beta} \\
+&= -i t_{so}  \left( \overline{\sigma_x^{\alpha \beta} \cdot d^y_{ij}} - \overline{\sigma_y^{\alpha \beta} \cdot d^x_{ij}} \right) c_{i\alpha}c^\dagger_{j\beta} \\
+&= -i t_{so}  \left(\sigma_x^{\alpha \beta} \cdot d^y_{ij} + \sigma_y^{\alpha \beta} \cdot d^x_{ij} \right) c_{i\alpha}c^\dagger_{j\beta} \\
+&= -i t_{so}  \left(-\sigma_x^{\alpha \beta} \cdot d^y_{ji} - \sigma_y^{\alpha \beta} \cdot d^x_{ji} \right) c_{i\alpha}c^\dagger_{j\beta} \\
+&= -i t_{so}  \left(-\sigma_x^{\beta \alpha} \cdot d^y_{ji} + \sigma_y^{\beta \alpha} \cdot d^x_{ji} \right) c_{i\alpha}c^\dagger_{j\beta} \\
+&= i t_{so}  \left(+\sigma_x^{\beta \alpha} \cdot d^y_{ji} - \sigma_y^{\beta \alpha} \cdot d^x_{ji} \right) c_{i\alpha}c^\dagger_{j\beta} \\
+&= h_{ji}^{\beta \alpha}
 \end{align}
+$$
+
+Here we chose the ordering of states 
+$$
+i\alpha, j \beta
 $$
