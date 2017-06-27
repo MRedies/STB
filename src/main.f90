@@ -54,7 +54,6 @@ program STB
 
 
     if(perform_dos) then
-        write (*,*) "doing stuff"
         call Ksp%calc_and_print_dos()
 
         ! Only set Fermi energy relative if DOS was performed
