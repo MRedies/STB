@@ -1,13 +1,15 @@
 import numpy as np
-#Ef = range(10,401,10)
-Ef = np.linspace(-40.0, 40.0, 50)
+#Ef = np.linspace(0.0, 0.5*np.pi, 10)
+
+apd = np.arange(1,26, 5)
 
 prefix = "./inis/"
 
 cnt = 0
-for i in Ef:
+for i in apd:
     with open(prefix+"example.cfg", "rt") as fin:
-        with open(prefix + "J2000_scan{}.cfg".format(cnt), "wt") as fout:
+        with open(prefix + "skyrm_size{}.cfg".format(cnt), "wt") as fout:
             for line in fin:
-                fout.write(line.replace('%Ef%', "{0:010.4f}".format(i)))
+                #fout.write(line.replace('%apd%', "{:011.8f}".format(i)))
+                fout.write(line.replace('%apd%', "{}".format(i)))
     cnt +=1
