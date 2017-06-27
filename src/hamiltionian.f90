@@ -34,6 +34,7 @@ module Class_hamiltionian
         procedure :: calc_berry_tensor_elem   => calc_berry_tensor_elem
         procedure :: calc_berry_z             => calc_berry_z
         procedure :: compare_derivative       => compare_derivative
+        procedure :: set_derivative_hopping   => set_derivative_hopping
         procedure :: set_derivative_rashba_so => set_derivative_rashba_so
     end type hamil
 
@@ -326,8 +327,8 @@ contains
         endif
     
         self%del_H = 0d0
-        if(self%t_nn /= 0d0) call set_derivative_hopping(self, k, k_idx)
-        if(self%t_so /= 0d0) call set_derivative_rashba_so(self, k, k_idx)
+        if(self%t_nn /= 0d0) call self%set_derivative_hopping(k, k_idx)
+        if(self%t_so /= 0d0) call self%set_derivative_rashba_so(k, k_idx)
 
     end subroutine set_derivative_k
 
@@ -352,11 +353,7 @@ contains
                 k_dot_r = dot_product(k, r)
                 forw    = i_unit * r(k_idx) * self%t_nn &
                           * exp(i_unit * k_dot_r)
-                
-                r       = - r
-                k_dot_r = - k_dot_r
-                back    = i_unit * r(k_idx) * self%t_nn &
-                          * exp(i_unit * k_dot_r)
+                back =  conjg(forw)                
 
                 !Spin up
                 self%del_H(i,j)     = self%del_H(i,j) + forw 

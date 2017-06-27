@@ -116,7 +116,8 @@ contains
             write (*,*) "Could not delete dir"
             call MPI_Abort(MPI_COMM_WORLD, 0, succ)
         endif
-        call mkdir(trim(folder), succ, 744)
+        call mkdir(trim(folder),  %val(755))
+        succ =  0
 #else
         inquire(directory=folder, exist=already)
         if(already) then
