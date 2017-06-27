@@ -38,6 +38,7 @@ program STB
     call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
     
     Ksp =  init_k_space(cfg)
+    if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
 
     halt =  MPI_Wtime()
     if(root ==  me) then
@@ -54,7 +55,6 @@ program STB
 
 
     if(perform_dos) then
-        write (*,*) "doing stuff"
         call Ksp%calc_and_print_dos()
 
         ! Only set Fermi energy relative if DOS was performed
