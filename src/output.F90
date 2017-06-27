@@ -121,7 +121,7 @@ contains
 #else
         inquire(directory=folder, exist=already)
         if(already) then
-            call run_sys("rm " // trim(folder) // "*", succ)
+            call run_sys("rm " // trim(folder) // "*.npy", succ)
             if(succ /= 0) then
                 write (*,*) "Could not clear dir"
                 call MPI_Abort(MPI_COMM_WORLD, 0, succ)

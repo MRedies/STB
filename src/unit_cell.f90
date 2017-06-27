@@ -42,7 +42,9 @@ module Class_unit_cell
         procedure :: set_mag_ferro               => set_mag_ferro
         procedure :: set_mag_random              => set_mag_random
         procedure :: set_mag_x_spiral_square     => set_mag_x_spiral_square
+        procedure :: set_mag_linrot_skyrm        => set_mag_linrot_skyrm
         procedure :: set_mag_linrot_skrym_square => set_mag_linrot_skrym_square
+        procedure :: set_mag_linrot_skrym_honey  => set_mag_linrot_skrym_honey
         procedure :: Bcast_UC                    => Bcast_UC
         procedure :: setup_honey                 => setup_honey
     end type unit_cell
@@ -221,6 +223,8 @@ contains
         
         if(trim(ret%mag_type) == "ferro") then
             call ret%set_mag_ferro()
+        else if(trim(ret%mag_type) == "lin_skyrm") then
+            call ret%set_mag_linrot_skrym_honey()
         else if(trim(ret%mag_type) == "random") then
             call ret%set_mag_random()
         else
@@ -287,34 +291,54 @@ contains
     subroutine set_mag_linrot_skrym_square(self)
         implicit none
         class(unit_cell)     :: self
-        real(8), parameter   :: e_z(3) = (/0,0,1/)
-        real(8) :: R(3,3), center(3), conn(3), n(3),m(3), radius, alpha 
-        integer(4)           :: i
+        real(8)              :: radius, center(3)
 
         ! Nagaosa style unit cell. Ferromagnetic border only to the left
         radius = 0.5d0 * self%lattice_constant * self%atom_per_dim
         center = (/radius, radius, 0d0/)
+        
+        call self%set_mag_linrot_skyrm(center, radius)
+    end subroutine set_mag_linrot_skrym_square
+
+    subroutine set_mag_linrot_skrym_honey(self)
+        implicit none
+        class(unit_cell)      :: self
+        real(8), parameter    :: center(3) = [0d0, 0d0, 0d0]
+        real(8)               :: radius 
+
+        radius = 0.5d0 * my_norm2(self%lattice(:,1))
+        call self%set_mag_linrot_skyrm(center, radius)
+
+    end subroutine set_mag_linrot_skrym_honey
+
+    subroutine set_mag_linrot_skyrm(self, center, radius)
+        implicit none
+        class(unit_cell)    :: self
+        real(8), intent(in) :: center(3), radius 
+        real(8), parameter  :: e_z(3) =  [0,0,1]
+        real(8)             :: R(3,3), conn(3), n(3), m(3), alpha 
+        integer(4)          :: i
+        
         alpha =  0d0 
         do i =  1,self%num_atoms
             conn  = center - self%atoms(i)%pos
-            if(my_norm2(conn) > 1d-6 * self%lattice_constant &
-                    .and. my_norm2(conn) <= radius + self%eps) then 
+            if(my_norm2(conn) > pos_eps * self%lattice_constant &
+                    .and. my_norm2(conn) <= radius + pos_eps) then 
                 n     = cross_prod(conn, e_z)
                 alpha =  PI * (1d0 -  my_norm2(conn) / radius)
                 R     = R_mtx(alpha, n)
                 ! center of skyrmion point down
                 m     = matmul(R,  e_z)
-            else if(my_norm2(conn) <= 1d-6 * self%lattice_constant) then 
+            else if(my_norm2(conn) <= pos_eps * self%lattice_constant) then 
                 m =  - e_z
             else
                 m =  e_z
             endif
-
-
+            
             call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
         enddo
+    end subroutine set_mag_linrot_skyrm
 
-    end subroutine set_mag_linrot_skrym_square 
 
     subroutine save_unit_cell(self, folder)
         implicit none
