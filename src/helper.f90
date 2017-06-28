@@ -22,6 +22,23 @@ contains
         norm = sqrt(dot_product(vec,vec))
     end function my_norm2
 
+    subroutine calc_zheevd_size(vn_flag, H, eig_val, lwork, lrwork, liwork)
+        implicit none
+        character(len=1)          :: vn_flag
+        complex(8), intent(in)    :: H(:,:)
+        real(8), intent(in)       :: eig_val(:)
+        integer(4), intent(out)   :: lwork, lrwork, liwork
+        complex(8)                :: lwork_tmp
+        real(8)                   :: lrwork_tmp
+        integer(4)                :: N, info
+
+        N =  size(H, dim=1)
+        call zheevd(vn_flag, 'U', N, H, N, eig_val, &
+                    lwork_tmp, -1, lrwork_tmp, - 1, liwork, -1, info)
+        lwork =  int(lwork_tmp)
+        lrwork =  int(lrwork_tmp)
+    end subroutine calc_zheevd_size
+
     subroutine my_section(me, nProcs, length, first, last)
         implicit none
         integer(4), intent(in)     :: me, nProcs, length

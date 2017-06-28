@@ -450,9 +450,8 @@ contains
 
         H = 0d0
         call self%setup_H(k, H)
-        lwork  = 4 * n_dim**2 +  2*n_dim 
-        lrwork = 8 * n_dim**2 +  5*n_dim + 1
-        liwork = 10* n_dim +  3
+
+        call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
         allocate(work(lwork))
         allocate(rwork(lrwork))
         allocate(iwork(liwork))
@@ -511,24 +510,26 @@ contains
         real(8), allocatable,intent(out)  :: eig_val(:,:)
         real(8)                           :: k(3)
         complex(8), allocatable           :: H(:,:)
-        integer(4) :: i, N, LWMAX, info
+        integer(4) :: i, N, lwork, lrwork, liwork, info
         real(8), allocatable              :: RWORK(:)
         complex(8), allocatable           :: WORK(:)
         integer(4), allocatable           :: IWORK(:)
+        
         N =  2 * self%UC%num_atoms
-        LWMAX =  10*N
         allocate(eig_val(N, size(k_list, 2)))
         allocate(H(N,N))
-        allocate(RWORK(LWMAX))
-        allocate(IWORK(LWMAX))
-        allocate(WORK(LWMAX))
+
+        call calc_zheevd_size('N', H, eig_val(:,1), lwork, lrwork, liwork)
+        allocate(RWORK(lrwork))
+        allocate(IWORK(liwork))
+        allocate(WORK(lwork))
         
         do i = 1,size(k_list,2)
             k =  k_list(:,i)
             call self%setup_H(k, H)
             
-            call zheevd('N', 'U', N, H, N, eig_val(:,i), WORK, LWMAX, &
-                                RWORK, LWMAX, IWORK, LWMAX, info)
+            call zheevd('N', 'U', N, H, N, eig_val(:,i), WORK, lwork, &
+                                RWORK, lrwork, IWORK, liwork, info)
             if( info /= 0) then
                 write (*,*) "ZHEEV failed: ", info
                 stop
@@ -548,19 +549,20 @@ contains
         complex(8), allocatable           :: H(:,:), work(:)
         real(8), allocatable              :: rwork(:)
         integer(4), allocatable           :: iwork(:)
-        integer(4)                        :: N, LWMAX, info
+        integer(4)                        :: N, lwork, lrwork, liwork, info
 
         N = 2 * self%UC%num_atoms
-        LWMAX = 10 * N
+        
         allocate(eig_val(N))
         allocate(H(N,N))
-        allocate(work(LWMAX))
-        allocate(iwork(LWMAX))
-        allocate(rwork(LWMAX))
+        call calc_zheevd_size('N', H, eig_val, lwork, lrwork, liwork)
+        allocate(work(lwork))
+        allocate(iwork(liwork))
+        allocate(rwork(lrwork))
 
         call self%setup_H(k, H)
-        call zheevd('N', 'U', N, H, N, eig_val, work, LWMAX, &
-                     RWORK, LWMAX, IWORK, LWMAX, info)
+        call zheevd('N', 'U', N, H, N, eig_val, work, lwork, &
+                     RWORK, lrwork, IWORK, liwork, info)
         
         if(info /=  0) write (*,*) "ZHEEVD failed:", info
 

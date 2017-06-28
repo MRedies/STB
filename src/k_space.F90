@@ -114,20 +114,17 @@ contains
         real(8), allocatable    :: RWORK(:), eig_val(:), loc_PDOS(:,:)
         complex(8), allocatable :: H(:,:), WORK(:)
         integer(4), allocatable :: IWORK(:)
-        integer(4)  :: k_idx, E_idx, j, m, N, LWMAX, info, first, last, ierr, num_atoms 
+        integer(4)  :: k_idx, E_idx, j, m, N, info, first, last, ierr, num_atoms
+        integer(4)  :: lwork, liwork, lrwork
 
         N =  2 * self%ham%UC%num_atoms
-        if(N > 4) then 
-            LWMAX =  4 * N*N
-        else
-            LWMAX =  200
-        endif
-
         allocate(H(N,N))
         allocate(eig_val(N))
-        allocate(WORK(LWMAX))
-        allocate(RWORK(LWMAX))
-        allocate(IWORK(LWMAX))
+
+        call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
+        allocate(WORK(lwork))
+        allocate(RWORK(lrwork))
+        allocate(IWORK(liwork))
         
         num_atoms =  self%ham%UC%num_atoms
         allocate(loc_PDOS(2*num_atoms, self%num_DOS_pts))
@@ -138,8 +135,8 @@ contains
         call my_section(self%me, self%nProcs, size(self%k_pts,2), first, last)
         do k_idx=first, last
             call self%ham%setup_H(self%k_pts(:,k_idx), H)
-            call zheevd('V', 'U', N, H, N, eig_val, WORK, LWMAX, &
-                RWORK, LWMAX, IWORK, LWMAX, info)
+            call zheevd('V', 'U', N, H, N, eig_val, WORK, lwork, &
+                RWORK, lrwork, IWORK, liwork, info)
             if( info /= 0) then
                 write (*,*) self%me, ": ZHEEVD (with vectors) failed: ", info
                 stop
