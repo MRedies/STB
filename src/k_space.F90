@@ -367,7 +367,6 @@ contains
         deallocate(ky_grid)
         deallocate(kx_points)
         deallocate(ky_points)
-        write (*,*) "K_grid sz: ", sz_x, sz_y
 
     end subroutine setup_k_grid
 
