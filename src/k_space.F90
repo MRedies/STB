@@ -143,8 +143,16 @@ contains
                 stop
             endif
 
-            H =  H *  conjg(H) ! calc absolute of eigen_vectors
+            !$omp parallel do private(j) shared(H,N)
+            do m = 1,N
+                do j = 1,N
+                    ! calc absolute of eigen_vectors
+                    H(j,m) =  H(j,m) *  conjg(H(j,m)) 
+                enddo
+            enddo
 
+
+            !$omp parallel do private(m,j,lor) shared(H,N, eig_val)
             do E_idx =  1,self%num_DOS_pts 
                 ! eigenvectors are stored column-wise
                 ! m-th eigenvalue
