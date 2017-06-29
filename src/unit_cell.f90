@@ -367,13 +367,10 @@ contains
         integer(4)            :: i
 
         a       = self%atan_factor
-        write (*,*) "a: ", a
         x0      = 0.5d0 * radius
         y_min   = - atan(- a * x0) +  0.5d0 * PI
         y_max   = - atan(a * (radius - x0)) + 0.5d0 * PI
         scaling = PI / (y_max - y_min)
-        write (*,*) "scaling: ", scaling
-        write (*,*) "radius: ", radius 
         
         alpha =  0d0 
         do i =  1,self%num_atoms
