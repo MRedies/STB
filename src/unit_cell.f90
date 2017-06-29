@@ -25,6 +25,7 @@ module Class_unit_cell
         real(8) :: t_nn !> hopping paramater passed for connection 
         real(8) :: eps !> threshold for positional accuracy
         real(8) :: ferro_phi, ferro_theta
+        real(8) :: atan_factor !> how fast do we change the border wall
         type(atom), dimension(:), allocatable :: atoms !> array containing all atoms
         type(units)       :: units
         character(len=25) :: uc_type !> indicates shape of unitcell
@@ -43,6 +44,8 @@ module Class_unit_cell
         procedure :: set_mag_random              => set_mag_random
         procedure :: set_mag_x_spiral_square     => set_mag_x_spiral_square
         procedure :: set_mag_linrot_skyrm        => set_mag_linrot_skyrm
+        procedure :: set_mag_atan_skyrm          => set_mag_atan_skyrm
+        procedure :: set_mag_atan_skyrm_honey    => set_mag_atan_skyrm_honey
         procedure :: set_mag_linrot_skrym_square => set_mag_linrot_skrym_square
         procedure :: set_mag_linrot_skrym_honey  => set_mag_linrot_skrym_honey
         procedure :: Bcast_UC                    => Bcast_UC
@@ -89,6 +92,7 @@ contains
 
             call CFG_get(cfg, "grid%ferro_phi",   self%ferro_phi)
             call CFG_get(cfg, "grid%ferro_theta", self%ferro_theta)
+            call CFG_get(cfg, "grid%atan_fac", self%atan_factor)
         endif
         call self%Bcast_UC()
 
@@ -125,7 +129,7 @@ contains
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer(4), parameter         :: num_cast = 8
+        integer(4), parameter         :: num_cast = 9
         integer(4)                    :: ierr(num_cast)
         
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
@@ -145,6 +149,8 @@ contains
                        root,             MPI_COMM_WORLD, ierr(7))
         call MPI_Bcast(self%ferro_theta, 1,              MPI_REAL8, &
                        root,             MPI_COMM_WORLD, ierr(8))
+        call MPI_Bcast(self%atan_factor, 1,              MPI_REAL8, &
+                       root,             MPI_COMM_WORLD, ierr(9))
         
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
@@ -225,6 +231,8 @@ contains
             call ret%set_mag_ferro()
         else if(trim(ret%mag_type) == "lin_skyrm") then
             call ret%set_mag_linrot_skrym_honey()
+        else if(trim(ret%mag_type) == "atan_skyrm") then
+            call ret%set_mag_atan_skyrm_honey()
         else if(trim(ret%mag_type) == "random") then
             call ret%set_mag_random()
         else
@@ -311,6 +319,17 @@ contains
 
     end subroutine set_mag_linrot_skrym_honey
 
+    subroutine set_mag_atan_skyrm_honey(self)
+        implicit none
+        class(unit_cell)    :: self
+        real(8), parameter    :: center(3) = [0d0, 0d0, 0d0]
+        real(8)               :: radius 
+
+        radius = 0.5d0 * my_norm2(self%lattice(:,1))
+        call self%set_mag_atan_skyrm(center, radius)
+    end subroutine
+
+
     subroutine set_mag_linrot_skyrm(self, center, radius)
         implicit none
         class(unit_cell)    :: self
@@ -339,6 +358,44 @@ contains
         enddo
     end subroutine set_mag_linrot_skyrm
 
+    subroutine set_mag_atan_skyrm(self, center, radius)
+        implicit none
+        class(unit_cell)      :: self
+        real(8), intent(in)   :: center(3), radius
+        real(8), parameter    :: e_z(3) =  [0,0,1]
+        real(8)  :: R(3,3), conn(3), n(3), m(3), alpha, y_min, y_max, x0, x, a, scaling
+        integer(4)            :: i
+
+        a       = self%atan_factor
+        write (*,*) "a: ", a
+        x0      = 0.5d0 * radius
+        y_min   = - atan(- a * x0) +  0.5d0 * PI
+        y_max   = - atan(a * (radius - x0)) + 0.5d0 * PI
+        scaling = PI / (y_max - y_min)
+        write (*,*) "scaling: ", scaling
+        write (*,*) "radius: ", radius 
+        
+        alpha =  0d0 
+        do i =  1,self%num_atoms
+            conn  = center - self%atoms(i)%pos
+            if(my_norm2(conn) > pos_eps * self%lattice_constant &
+                    .and. my_norm2(conn) <= radius + pos_eps) then 
+                n     = cross_prod(conn, e_z)
+
+                x =  my_norm2(conn)
+                alpha = PI - scaling * ( - atan( a*(x-x0)) + 0.5d0 * PI - y_min)
+
+                R     = R_mtx(alpha, n)
+                ! center of skyrmion point down
+                m     = matmul(R,  e_z)
+            else if(my_norm2(conn) <= pos_eps * self%lattice_constant) then 
+                m =  - e_z
+            else
+                m =  e_z
+            endif
+            call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
+        enddo
+    end subroutine set_mag_atan_skyrm
 
     subroutine save_unit_cell(self, folder)
         implicit none
