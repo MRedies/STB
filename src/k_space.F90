@@ -112,6 +112,7 @@ contains
         real(8), intent(in)     :: E(:)
         real(8), intent(out)    :: PDOS(:,:)
         real(8), allocatable    :: RWORK(:), eig_val(:), loc_PDOS(:,:)
+        real(8)                 :: lor
         complex(8), allocatable :: H(:,:), WORK(:)
         integer(4), allocatable :: IWORK(:)
         integer(4)  :: k_idx, E_idx, j, m, N, info, first, last, ierr, num_atoms
@@ -142,15 +143,17 @@ contains
                 stop
             endif
 
+            H =  H *  conjg(H) ! calc absolute of eigen_vectors
+
             do E_idx =  1,self%num_DOS_pts 
                 ! eigenvectors are stored column-wise
                 ! m-th eigenvalue
                 ! j-th component of 
                 do m =  1,N
+                    lor = self%lorentzian(E(E_idx) - eig_val(m)) 
                     do j = 1,N
                         loc_PDOS(j, E_idx) = loc_PDOS(j, E_idx) &
-                                           + self%lorentzian(E(E_idx) - eig_val(m)) &
-                                           * H(j,m) * conjg(H(j,m))
+                                           + lor * H(j,m)
                     enddo
                 enddo
             enddo
