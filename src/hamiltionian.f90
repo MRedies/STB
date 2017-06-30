@@ -342,6 +342,9 @@ contains
         integer(4)                :: i, j, conn, i_d, j_d
 
 
+        !$omp parallel do default(shared) &
+        !$omp& private(i_d, conn, j, j_d, r, k_dot_r, forw, back)&
+        !$omp& schedule(static)
         do i = 1,self%UC%num_atoms
             i_d =  i + self%UC%num_atoms
             do conn = 1,self%UC%atoms(i)%n_neigh
@@ -358,6 +361,7 @@ contains
                 !Spin up
                 self%del_H(i,j)     = self%del_H(i,j) + forw 
                 self%del_H(j,i)     = self%del_H(j,i) + back
+                
                 !Spin down
                 self%del_H(i_d,j_d) = self%del_H(i_d,j_d) + forw
                 self%del_H(j_d,i_d) = self%del_H(j_d,i_d) + back
@@ -375,6 +379,9 @@ contains
         integer(4)              :: i, j, i_d, j_d, conn
         complex(8)              :: e_z_sigma(2,2), forw(2,2), back(2,2)
 
+        !$omp  parallel do default(shared) & 
+        !$omp& private(i_d, conn, j, j_d, r, d_ij, k_dot_r, e_z_sigma, forw, back)&
+        !$omp& schedule(static)
         do i = 1,self%UC%num_atoms
             i_d = i +  self%UC%num_atoms
             do conn = 1,self%UC%atoms(i)%n_neigh

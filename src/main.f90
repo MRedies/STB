@@ -24,27 +24,6 @@ program STB
 
     start =  MPI_Wtime()
 
-    if(me == root) then
-        call random_seed()
-        call random_number(tmp_M)
-        A =  tmp_M
-        call random_number(tmp_M)
-        A =  A + i_unit * tmp_M
-        
-        call random_number(tmp_vec)
-        x =  tmp_vec
-        call random_number(tmp_vec)
-        x = x + i_unit * tmp_vec 
-
-        b = matmul(A,x)
-        write (*,*) b(3:5)
-        b = omp_matvec(A,x)
-        write (*,*) b(3:5)
-
-        b = matmul(A,x) - omp_matvec(A,x)
-        write (*,*) "norm: ", cnorm2(b)
-    endif
-    
     if(me ==  root)then
         call CFG_update_from_arguments(cfg)
         call add_full_cfg(cfg)
