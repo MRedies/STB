@@ -15,12 +15,35 @@ program STB
     real(8)            :: start, halt
     logical :: perform_band, perform_dos, calc_hall
     real(8), allocatable :: hall_cond(:)
+    complex(8)           :: A(100,100), b(100), x(100)
+    real(8)              :: tmp_M(100,100), tmp_vec(100)
 
   
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
 
     start =  MPI_Wtime()
+
+    if(me == root) then
+        call random_seed()
+        call random_number(tmp_M)
+        A =  tmp_M
+        call random_number(tmp_M)
+        A =  A + i_unit * tmp_M
+        
+        call random_number(tmp_vec)
+        x =  tmp_vec
+        call random_number(tmp_vec)
+        x = x + i_unit * tmp_vec 
+
+        b = matmul(A,x)
+        write (*,*) b(3:5)
+        b = omp_matvec(A,x)
+        write (*,*) b(3:5)
+
+        b = matmul(A,x) - omp_matvec(A,x)
+        write (*,*) "norm: ", cnorm2(b)
+    endif
     
     if(me ==  root)then
         call CFG_update_from_arguments(cfg)

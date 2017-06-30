@@ -412,18 +412,20 @@ contains
         real(8), intent(in)        :: k(3)
         integer(4), intent(in)     :: k_idx
         complex(8)                 :: elem
-        !complex(8), allocatable    :: tmp_vec(:)
-        integer(4)                 :: n
+        complex(8)                 :: tmp_vec(size(psi_nk))
+        integer(4)                 :: n, i
 
         n =  size(psi_nk)
         
         call self%set_derivative_k(k, k_idx)
         
-        !verkackte zgemv does not work don't even think about it
-        ! citing intel ref here:
-        ! If vector_a is of type complex, the result 
-        ! value is SUM (CONJG ( vector_a)* vector_b).
-        elem =  dot_product(psi_nk, matmul(self%del_H, psi_mk))
+        tmp_vec = omp_matvec(self%del_H, psi_mk)
+        
+        elem = 0d0
+        !$omp parallel do default(shared) reduction(+:elem)
+        do i = 1,size(tmp_vec)
+            elem = elem + conjg(psi_nk(i)) * tmp_vec(i)
+        enddo
     end function
 
     subroutine calc_berry_tensor_elem(self, k_i, k_j, k, omega)

@@ -143,7 +143,7 @@ contains
                 stop
             endif
 
-            !$omp parallel do private(j) shared(H,N)
+            !$omp parallel do private(j) default(shared)
             do m = 1,N
                 do j = 1,N
                     ! calc absolute of eigen_vectors
@@ -152,7 +152,7 @@ contains
             enddo
 
 
-            !$omp parallel do private(m,j,lor) shared(H,N, eig_val)
+            !$omp parallel do private(m,j,lor) default(shared)
             do E_idx =  1,self%num_DOS_pts 
                 ! eigenvectors are stored column-wise
                 ! m-th eigenvalue
