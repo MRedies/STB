@@ -31,7 +31,6 @@ module Class_hamiltionian
         procedure :: set_rashba_SO            => set_rashba_SO
         procedure :: set_deriv_FD             => set_deriv_FD
         procedure :: calc_deriv_elem          => calc_deriv_elem
-        procedure :: calc_berry_tensor_elem   => calc_berry_tensor_elem
         procedure :: calc_berry_z             => calc_berry_z
         procedure :: compare_derivative       => compare_derivative
         procedure :: set_derivative_hopping   => set_derivative_hopping
@@ -412,49 +411,32 @@ contains
         enddo
     end subroutine set_derivative_rashba_so 
 
-    function calc_deriv_elem(self, psi_nk, psi_mk, k, k_idx) result(elem)
+    function calc_deriv_elem(self, psi_nk, psi_mk) result(elem)
         implicit none
         class(hamil)               :: self
         complex(8), intent(in)     :: psi_nk(:), psi_mk(:)
-        real(8), intent(in)        :: k(3)
-        integer(4), intent(in)     :: k_idx
         complex(8)                 :: elem
-        complex(8)                 :: tmp_vec(size(psi_nk))
-        integer(4)                 :: n, i
-
-        n =  size(psi_nk)
         
-        call self%set_derivative_k(k, k_idx)
-        
-        tmp_vec = omp_matvec(self%del_H, psi_mk)
-        
-        elem = 0d0
-        !$omp parallel do default(shared) reduction(+:elem)
-        do i = 1,size(tmp_vec)
-            elem = elem + conjg(psi_nk(i)) * tmp_vec(i)
-        enddo
+        elem = dot_product(psi_nk, matmul(self%del_H, psi_mk))
     end function
 
-    subroutine calc_berry_tensor_elem(self, k_i, k_j, k, omega)
-        implicit none 
-        class(hamil)                       :: self
-        integer(4), intent(in)             :: k_i, k_j
-        real(8), intent(in)                :: k(3)
-        real(8), allocatable               :: omega(:) !> \f$ \Omega_{ij}^n\f$
-        real(8), allocatable               :: eig_val(:), rwork(:)
-        complex(8), allocatable            :: H(:,:), work(:)
-        complex(8)                         :: summe, term
-        complex(8)  :: fac
-        integer(4), allocatable :: iwork(:) 
-        integer(4)  :: n_dim, n, m, info, lwork, lrwork, liwork
+    subroutine calc_berry_z(self,k,z_comp)
+        implicit none
+        class(hamil), intent(in)            :: self
+        real(8), intent(in)                 :: k(3)
+        real(8), allocatable                :: z_comp(:) !> \f$ \Omega^n_z \f$
+        complex(8), allocatable  :: x_elems(:), y_elems(:), H(:,:), work(:)
+        real(8), allocatable     :: eig_val(:), rwork(:)
+        complex(8) :: fac, tmp
+        integer(4), allocatable  :: iwork(:)
+        integer(4)   :: n_dim, n, m, lwork, lrwork, liwork, info
 
         n_dim = 2 * self%UC%num_atoms
         allocate(H(n_dim,n_dim))
-        !allocate(self%del_H(n_dim,n_dim))
         allocate(eig_val(n_dim))
         
-        if(.not. allocated(omega))then
-            allocate(omega(n_dim))
+        if(.not. allocated(z_comp))then
+            allocate(z_comp(n_dim))
         endif
 
         H = 0d0
@@ -469,40 +451,50 @@ contains
         if(info /= 0) then
             write (*,*) "ZHEEVD in berry calculation failed"
         endif
-        do n = 1,n_dim
-            summe = 0d0
-            do m = 1,n_dim
-                if(n /= m) then
-                    fac = 1d0 / ((eig_val(n) - eig_val(m))**2 + i_unit * small_imag)
-
-                    term =   self%calc_deriv_elem(H(:,n), H(:,m), k, k_i) &
-                           * self%calc_deriv_elem(H(:,m), H(:,n), k, k_j)
-
-                    summe =  summe +  fac * term
+        allocate(x_elems(n_dim))
+        allocate(y_elems(n_dim))
+        
+    
+        do n= 1,n_dim
+            !calc del_kx H
+            call self%set_derivative_k(k, 1)
+            
+            !$omp parallel do default(shared) 
+            do m=1,n_dim
+                if(m /= n)then
+                    x_elems(m) = self%calc_deriv_elem(H(:,n), H(:,m))
                 endif
             enddo
-            omega(n) = -2d0 * aimag(summe)
+            
+            !calc del_ky H
+            call self%set_derivative_k(k, 2)
+            
+            !$omp parallel do default(shared) 
+            do m=1,n_dim
+                if(m /= n)then
+                    y_elems(m) = self%calc_deriv_elem(H(:,m), H(:,n))
+                endif
+            enddo
+
+            tmp = 0d0
+            !$omp parallel do default(shared) &
+            !$omp private(fac)&
+            !$omp& reduction(+: tmp)
+            do m=1,n_dim
+                if(n /= m) then
+                    fac = 1d0 / ((eig_val(n) - eig_val(m))**2 + i_unit * small_imag)
+                    tmp = tmp + fac * x_elems(m) * y_elems(m)
+                endif
+            enddo
+            z_comp(n) = - 2d0 *  aimag(tmp)
         enddo
-
-        deallocate(eig_val)
+        deallocate(x_elems)
+        deallocate(y_elems)
         deallocate(H)
-        !deallocate(self%del_H)
-    end subroutine calc_berry_tensor_elem
-
-    subroutine calc_berry_z(self,k, z_comp)
-        implicit none
-        class(hamil), intent(in)            :: self
-        real(8), intent(in)                 :: k(3)
-        real(8), allocatable                :: z_comp(:) !> \f$ \Omega^n_z \f$
-        real(8), allocatable                :: tmp(:), tmp2(:)
-        integer(4)                          :: i
-
-        ! using sigma_xy =  - sigma_yx
-        ! z_comp =  0.5 * (sigma_xy - sigma_yx)
-        ! z_comp =  sigma_xy
-        call self%calc_berry_tensor_elem(1,2,k, z_comp)
-        write (*,*) "eh"
-    
+        deallocate(eig_val)
+        deallocate(work)
+        deallocate(rwork)
+        deallocate(iwork)
     end subroutine calc_berry_z
 
     Subroutine  calc_eigenvalues(self, k_list, eig_val)

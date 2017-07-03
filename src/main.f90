@@ -15,8 +15,6 @@ program STB
     real(8)            :: start, halt
     logical :: perform_band, perform_dos, calc_hall
     real(8), allocatable :: hall_cond(:)
-    complex(8)           :: A(100,100), b(100), x(100)
-    real(8)              :: tmp_M(100,100), tmp_vec(100)
 
   
     call MPI_Init(ierr)
