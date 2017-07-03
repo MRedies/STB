@@ -494,22 +494,15 @@ contains
         class(hamil), intent(in)            :: self
         real(8), intent(in)                 :: k(3)
         real(8), allocatable                :: z_comp(:) !> \f$ \Omega^n_z \f$
-        real(8), allocatable                :: tmp(:)
+        real(8), allocatable                :: tmp(:), tmp2(:)
+        integer(4)                          :: i
 
-        call self%calc_berry_tensor_elem(1,2,k, tmp)
-        
-        if(.not. allocated(z_comp)) then
-            allocate(z_comp(size(tmp)))
-        endif
-
-        ! 0.5 *  sigma_xy
-        z_comp = 0.5d0 *  tmp
-
-        ! -0.5 *  sigma_yx
-        call self%calc_berry_tensor_elem(2,1,k,tmp)
-        z_comp = z_comp - 0.5d0 * tmp
-
-        deallocate(tmp)
+        ! using sigma_xy =  - sigma_yx
+        ! z_comp =  0.5 * (sigma_xy - sigma_yx)
+        ! z_comp =  sigma_xy
+        call self%calc_berry_tensor_elem(1,2,k, z_comp)
+        write (*,*) "eh"
+    
     end subroutine calc_berry_z
 
     Subroutine  calc_eigenvalues(self, k_list, eig_val)
