@@ -36,6 +36,20 @@ contains
             enddo
         enddo
     end function omp_matvec
+    
+    function matvec(A,x) result(b)
+        implicit none
+        complex(8), intent(in)    :: A(:,:), x(:)
+        complex(8)                :: b(size(x))
+        integer(4)                :: i, j
+
+        do i = 1,size(x)
+            b(i) = 0d0
+            do j = 1,size(x)
+                b(i) =  b(i) +  A(i,j) * x(j)
+            enddo
+        enddo
+    end function matvec
         
     subroutine calc_zheevd_size(vn_flag, H, eig_val, lwork, lrwork, liwork)
         implicit none

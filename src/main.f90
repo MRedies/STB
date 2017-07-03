@@ -63,10 +63,12 @@ program STB
         endif
         
     endif
-    
+   
+    if(me ==  root) write (*,*) "pre hall - main"
     if(calc_hall) then
         call Ksp%calc_hall_conductance(hall_cond)
     endif
+    if(me ==  root) write (*,*) "post hall - main"
     halt = MPI_Wtime()
     if(root ==  me) then
         write (*,time_fmt) "Total: ", halt-start, "s"
