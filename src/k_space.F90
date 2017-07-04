@@ -501,14 +501,11 @@ contains
             deallocate(self%k_pts)
         endif
 
-        if(self%me ==  root) write (*,*) "A"
         call self%setup_inte_grid_square(self%berry_num_k_pts)
         V_k = self%vol_k_space_parallelo()
         N_k = size(self%k_pts, 2)
-        if(self%me ==  root) write (*,*) "B"
 
         call my_section(self%me, self%nProcs, N_k, first, last)
-        if(self%me ==  root) write (*,*) "C"
 
         allocate(hall(size(self%E_fermi)))
         allocate(ret(size(hall)))
@@ -516,19 +513,16 @@ contains
 
         n_atm =  self%ham%UC%num_atoms
         allocate(self%ham%del_H(2*n_atm,2*n_atm))
-        if(self%me ==  root) write (*,*) "D"
         do k_idx = first, last
             k = self%k_pts(:,k_idx)
             call self%ham%calc_berry_z(k, omega_z)
             call self%ham%calc_single_eigenvalue(k, eig_val)
-        if(self%me ==  root) write (*,*) "E"
             
             do n = 1,2*self%ham%UC%num_atoms
                 do n_hall =  1,size(hall)
                     hall(n_hall) = hall(n_hall) + omega_z(n) * self%fermi_distr(eig_val(n), n_hall)
                 enddo
             enddo
-        if(self%me ==  root) write (*,*) "F"
         enddo
         deallocate(self%ham%del_H)
 
@@ -538,13 +532,11 @@ contains
                         MPI_REAL8, MPI_Sum, &
                         root, MPI_COMM_WORLD, ierr)
 
-        if(self%me ==  root) write (*,*) "G"
         if(self%me == root) then
             write (*,*) "saving hall cond with questionable unit"
             call save_npy(trim(self%prefix) // "hall_cond.npy", ret)
             call save_npy(trim(self%prefix) // "hall_E.npy", self%E_fermi)
         endif
-        if(self%me ==  root) write (*,*) "H"
         deallocate(hall)
     end subroutine calc_hall_conductance
 

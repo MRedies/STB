@@ -417,7 +417,6 @@ contains
         complex(8), intent(in)     :: psi_nk(:), psi_mk(:)
         complex(8)                 :: elem
         
-        !elem = dot_product(psi_nk, matmul(self%del_H, psi_mk))
         elem = dot_product(psi_nk, matvec(self%del_H, psi_mk))
     end function
 
@@ -432,46 +431,33 @@ contains
         integer(4), allocatable  :: iwork(:)
         integer(4)   :: n_dim, n, m, lwork, lrwork, liwork, info
 
-        if(self%me == root) write (*,*) k
         n_dim = 2 * self%UC%num_atoms
         allocate(H(n_dim,n_dim))
         allocate(eig_val(n_dim))
 
-        if(self%me ==  root) write (*,*)"berry A"
         
         if(.not. allocated(z_comp))then
             allocate(z_comp(n_dim))
         endif
 
-        if(self%me ==  root) write (*,*)"berry B"
         H = 0d0
         call self%setup_H(k, H)
-        if(self%me ==  root) write (*,*)"berry C"
 
         call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
         allocate(work(lwork))
         allocate(rwork(lrwork))
         allocate(iwork(liwork))
-        if(self%me ==  root) then
-            write (*,*)"berry D", lwork, lrwork, liwork
-            write (*,*) size(work)
-            write (*,*) size(rwork)
-            write (*,*) size(iwork)
-        endif
-        !call MPI_Barrier(MPI_COMM_WORLD, info) 
+        
         call zheevd('V', 'L', n_dim, H, n_dim, eig_val, &
                     work, lwork, rwork, lrwork, iwork, liwork, info)
         if(info /= 0) then
             write (*,*) "ZHEEVD in berry calculation failed"
         endif
-        if(self%me ==  root) write (*,*)"berry postD"
         allocate(x_elems(n_dim))
         allocate(y_elems(n_dim))
         
-        if(self%me ==  root) write (*,*)"berry E"
     
         do n= 1,n_dim
-        if(self%me ==  root) write (*,*)"berry F"
             !calc del_kx H
             call self%set_derivative_k(k, 1)
             
@@ -504,7 +490,6 @@ contains
             enddo
             z_comp(n) = - 2d0 *  aimag(tmp)
         enddo
-        if(self%me ==  root) write (*,*)"berry G"
         deallocate(x_elems)
         deallocate(y_elems)
         deallocate(H)

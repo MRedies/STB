@@ -43,14 +43,21 @@ contains
         complex(8)                :: b(size(x))
         integer(4)                :: i, j
 
-        do i = 1,size(x)
-            b(i) = 0d0
-            do j = 1,size(x)
+        !do i = 1,size(x)
+            !b(i) = 0d0
+            !do j = 1,size(x)
+                !b(i) =  b(i) +  A(i,j) * x(j)
+            !enddo
+        !enddo
+
+        b = 0d0
+        do j = 1,size(x)
+            do i = 1,size(x)
                 b(i) =  b(i) +  A(i,j) * x(j)
             enddo
         enddo
     end function matvec
-        
+
     subroutine calc_zheevd_size(vn_flag, H, eig_val, lwork, lrwork, liwork)
         implicit none
         character(len=1)          :: vn_flag
@@ -63,7 +70,7 @@ contains
 
         N =  size(H, dim=1)
         call zheevd(vn_flag, 'U', N, H, N, eig_val, &
-                    lwork_tmp, -1, lrwork_tmp, - 1, liwork, -1, info)
+            lwork_tmp, -1, lrwork_tmp, - 1, liwork, -1, info)
         lwork =  int(lwork_tmp)
         lrwork =  int(lrwork_tmp)
     end subroutine calc_zheevd_size
@@ -129,14 +136,14 @@ contains
 
         step =  (halt - start) /  (n-1)
         curr =  start
-        
+
         if(allocated(x) .and. size(x) /= n) then
             deallocate(x)
         endif
         if(.not. allocated(x)) then 
             allocate(x(n))
         endif
-        
+
         do i = 1,n
             x(i) =  curr
             curr =  curr +  step
