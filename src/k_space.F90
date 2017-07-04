@@ -45,8 +45,11 @@ module Class_k_space
         procedure :: calc_and_print_dos     => calc_and_print_dos
         procedure :: calc_hall_conductance  => calc_hall_conductance
         procedure :: setup_inte_grid_square => setup_inte_grid_square
+        procedure :: setup_inte_grid_hex    => setup_inte_grid_hex
         procedure :: Bcast_k_space          => Bcast_k_space
-        !procedure :: plot_omega             => plot_omega
+        procedure :: hex_border_x           => hex_border_x
+        procedure :: vol_k_hex              => vol_k_hex
+        procedure :: plot_omega             => plot_omega
     end type k_space 
 
 contains
@@ -183,10 +186,18 @@ contains
         class(k_space)       :: self
         real(8), allocatable :: DOS(:), PDOS(:,:), up(:), down(:)
         real(8)              :: dE
-        integer(4)           :: i, num_atoms
+        integer(4)           :: i, num_atoms, info
 
 
-        call self%setup_inte_grid_square(self%DOS_num_k_pts)
+        if(trim(self%ham%UC%uc_type) == "square_2d") then
+            call self%setup_inte_grid_square(self%DOS_num_k_pts)
+        elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
+            call self%setup_inte_grid_hex(self%DOS_num_k_pts)
+        else
+            if(self%me ==  root) write (*,*) "DOS k-grid not known"
+            call MPI_Abort(MPI_COMM_WORLD, 0, info)
+        endif
+        
         num_atoms =  self%ham%UC%num_atoms
         allocate(PDOS(2*num_atoms, self%num_DOS_pts))
 
@@ -386,6 +397,7 @@ contains
         real(8)               :: k1(3), k2(3)
         integer(4)            :: i, j, cnt
 
+        if(allocated(self%k_pts)) deallocate(self%k_pts)
         allocate(self%k_pts(3,n_k**2))
 
         k1 =  0d0
@@ -407,6 +419,61 @@ contains
             enddo
         enddo
     end subroutine setup_inte_grid_square
+
+    subroutine setup_inte_grid_hex(self, n_k)
+        implicit none
+        class(k_space)         :: self
+        integer(4), intent(in) :: n_k
+        real(8), allocatable   :: x(:), y(:)
+        real(8)                :: den, l, a
+        real(8), parameter     :: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
+        integer(4)             :: cnt_k, start, halt, my_n, i
+    
+        l = my_norm2(self%ham%UC%rez_lattice(:,1))
+        a = l / (2.0 * cos(deg_30))
+        den =  (1.0*n_k)/a
+
+
+        call linspace(-0.5*l, 0.5*l, nint(den * l),y)
+        cnt_k =  0
+        do i =  1,size(y)
+            cnt_k =  cnt_k + nint(2 * self%hex_border_x(y(i)) * den)
+        enddo
+        
+        if(allocated(self%k_pts)) deallocate(self%k_pts)
+        allocate(self%k_pts(3, cnt_k))
+        
+        self%k_pts = 0d0
+
+        start = 1
+        do i =  1,size(y)
+            my_n = nint(2*self%hex_border_x(y(i)) * den)
+            call linspace(-self%hex_border_x(y(i)), self%hex_border_x(y(i)), my_n, x)
+            
+            halt = start + size(x) - 1
+            
+            self%k_pts(1,start:halt) = x
+            self%k_pts(2,start:halt) = y(i)
+
+            start = halt + 1
+        enddo
+
+    end subroutine setup_inte_grid_hex
+
+    function hex_border_x(self, y) result(x)
+        implicit none
+        class(k_space)      :: self
+        real(8), intent(in) :: y
+        real(8)             :: m, b, l, a, x
+        real(8), parameter  :: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
+        
+        l = my_norm2(self%ham%UC%rez_lattice(:,1))
+        a = l / (2.0 * cos(deg_30))
+        m =  - 2.0 * sin(deg_60)
+        b =  - m * a
+
+        x = (abs(y)-b)/m
+    end function hex_border_x
 
     subroutine setup_k_path_abs(self)
         implicit none
@@ -490,19 +557,40 @@ contains
         vol = my_norm2(cross_prod(k1,k2))
     end function vol_k_space_parallelo
 
+    function vol_k_hex(self) result(vol)
+        implicit none
+        class(k_space)    :: self
+        real(8), parameter:: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
+        real(8)           :: a, l, vol
+        
+        l = my_norm2(self%ham%UC%rez_lattice(:,1))
+        a = l / (2.0 * cos(deg_30))
+
+        vol =  6 * a * a * sin(deg_60)
+    end function vol_k_hex
+
     subroutine calc_hall_conductance(self, ret)
         implicit none
         class(k_space)       :: self
         real(8)              :: V_k, k(3)
         real(8), allocatable :: eig_val(:), omega_z(:), hall(:), ret(:)
-        integer(4)           :: N_k, n, k_idx, first, last, ierr, n_atm, n_hall
+        integer(4)  :: N_k, n, k_idx, first, last, ierr, n_atm, n_hall, info
 
         if(allocated(self%k_pts) )then
             deallocate(self%k_pts)
         endif
 
-        call self%setup_inte_grid_square(self%berry_num_k_pts)
-        V_k = self%vol_k_space_parallelo()
+        if(trim(self%ham%UC%uc_type) == "square_2d") then
+            call self%setup_inte_grid_square(self%berry_num_k_pts)
+            V_k = self%vol_k_space_parallelo()
+        elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
+            call self%setup_inte_grid_hex(self%berry_num_k_pts)
+            V_k = self%vol_k_hex()
+        else
+            if(self%me ==  root) write (*,*) "berry k-grid not known"
+            call MPI_Abort(MPI_COMM_WORLD, 0, info)
+        endif
+
         N_k = size(self%k_pts, 2)
 
         call my_section(self%me, self%nProcs, N_k, first, last)
@@ -540,69 +628,57 @@ contains
         deallocate(hall)
     end subroutine calc_hall_conductance
 
-    !subroutine plot_omega(self)
-        !implicit none
-        !class(k_space)         :: self
-        !real(8), allocatable   :: omega_z(:,:), tmp_vec(:), sec_omega_z(:,:)
-        !real(8)                :: k(3)
-        !integer(4)             :: N, k_idx, send_count, first, last, ierr, cnt
-        !integer(4), allocatable:: num_elems(:), offsets(:)
-        !integer(4), parameter  :: dim_sz = 100
+    subroutine plot_omega(self)
+        implicit none
+        class(k_space)         :: self
+        real(8), allocatable   :: omega_z(:,:), tmp_vec(:), sec_omega_z(:,:)
+        real(8)                :: k(3)
+        integer(4)  :: N, k_idx, send_count, first, last, ierr, cnt, n_atm
+        integer(4), allocatable:: num_elems(:), offsets(:)
+        integer(4)  :: dim_sz
+
+        dim_sz =  self%berry_num_k_pts
+        n_atm =  self%ham%UC%num_atoms
+        allocate(self%ham%del_H(2*n_atm,2*n_atm))
+        allocate(num_elems(self%nProcs))
+        allocate(offsets(self%nProcs))
+        N = 2* self%ham%UC%num_atoms
+        call self%setup_inte_grid_hex(dim_sz)
+
+        if(self%me ==  root) write (*,*) "nkpts =  ", size(self%k_pts, 2)
+
+        allocate(omega_z(N, size(self%k_pts, 2)))
+        allocate(tmp_vec(N))
         
-        !allocate(num_elems(self%nProcs))
-        !allocate(offsets(self%nProcs))
-        !N = 2* self%ham%UC%num_atoms
-        !call self%setup_inte_grid_square(dim_sz)
-        !allocate(omega_z(N, size(self%k_pts, 2)))
-        !allocate(tmp_vec(N))
-        
-        !call sections(self%nProcs, size(self%k_pts, 2), num_elems, offsets)
-        !call my_section(self%me, self%nProcs, size(self%k_pts, 2), first, last)
-        !num_elems =  num_elems * N
-        !offsets   =  offsets   * N
-        !send_count =  N *  (last - first + 1)
-        !allocate(sec_omega_z(N, send_count))
+        call sections(self%nProcs, size(self%k_pts, 2), num_elems, offsets)
+        call my_section(self%me, self%nProcs, size(self%k_pts, 2), first, last)
+        num_elems =  num_elems * N
+        offsets   =  offsets   * N
+        send_count =  N *  (last - first + 1)
+        allocate(sec_omega_z(N, send_count))
 
-        !cnt =  1
-        !do k_idx = first,last
-            !k = self%k_pts(:,k_idx)
+        cnt =  1
+        do k_idx = first,last
+            write (*,*) "k_ind" , k_idx
+            k = self%k_pts(:,k_idx)
             
-            !call self%ham%calc_berry_tensor_elem(1,2, k, tmp_vec)
+            call self%ham%calc_berry_z(k, tmp_vec)
             
-            !sec_omega_z(:,cnt) =  tmp_vec 
-            !cnt = cnt + 1
-        !enddo
+            sec_omega_z(:,cnt) =  tmp_vec 
+            cnt = cnt + 1
+        enddo
 
-        !call MPI_Gatherv(sec_omega_z, send_count, MPI_REAL8, &
-                         !omega_z,    num_elems, offsets, MPI_REAL8, &
-                         !root, MPI_COMM_WORLD, ierr)
+        call MPI_Gatherv(sec_omega_z, send_count, MPI_REAL8, &
+                         omega_z,    num_elems, offsets, MPI_REAL8, &
+                         root, MPI_COMM_WORLD, ierr)
             
-        !if(self%me ==  root) then
-            !call save_npy(trim(self%prefix) //  "omega_xy_z.npy", omega_z)
-            !call save_npy(trim(self%prefix) //  "omega_xy_k.npy", self%k_pts)
-            !write (*,*) "Berry curvature saved unitless"
-        !endif
-        !cnt =  1
-        !do k_idx = first,last
-            !k = self%k_pts(:,k_idx)
-            !!omega_xy
-            !call self%ham%calc_berry_tensor_elem(2,1, k, tmp_vec)
-            
-            !sec_omega_z(:,cnt) =  tmp_vec 
-            !cnt = cnt + 1
-        !enddo
-        !!write (*,*) self%me, "Post calc"
-
-        !call MPI_Gatherv(sec_omega_z, send_count, MPI_REAL8, &
-                         !omega_z,    num_elems, offsets, MPI_REAL8, &
-                         !root, MPI_COMM_WORLD, ierr)
-            
-        !if(self%me ==  root) then
-            !call save_npy(trim(self%prefix) //  "omega_yx_z.npy", omega_z)
-            !call save_npy(trim(self%prefix) //  "omega_yx_k.npy", self%k_pts)
-            !write (*,*) "Berry curvature saved unitless"
-        !endif
-    !end subroutine plot_omega 
+        if(self%me ==  root) then
+            call save_npy(trim(self%prefix) //  "omega_xy_z.npy", omega_z)
+            call save_npy(trim(self%prefix) //  "omega_xy_k.npy", self%k_pts)
+            write (*,*) "Berry curvature saved unitless"
+        endif
+        deallocate(self%ham%del_H)
+    end subroutine plot_omega 
 
     subroutine set_fermi(self, cfg)
         implicit none
