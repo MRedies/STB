@@ -38,41 +38,41 @@ program STB
     call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
     
     Ksp =  init_k_space(cfg)
-    call Ksp%plot_omega()
-    !if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
+    !call Ksp%plot_omega()
+    if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
 
-    !halt =  MPI_Wtime()
-    !if(root ==  me) then
-        !write (*,time_fmt) "Init: ", halt-start, "s"
-    !endif
+    halt =  MPI_Wtime()
+    if(root ==  me) then
+        write (*,time_fmt) "Init: ", halt-start, "s"
+    endif
     
-    !if(perform_band) then
-        !call Ksp%calc_and_print_band() 
-    !endif
+    if(perform_band) then
+        call Ksp%calc_and_print_band() 
+    endif
 
-    !if(trim(fermi_type) == "fixed") then
-        !call Ksp%set_fermi(cfg)
-    !endif
+    if(trim(fermi_type) == "fixed") then
+        call Ksp%set_fermi(cfg)
+    endif
 
 
-    !if(perform_dos) then
-        !call Ksp%calc_and_print_dos()
+    if(perform_dos) then
+        call Ksp%calc_and_print_dos()
 
-        !! Only set Fermi energy relative if DOS was performed
-        !if(trim(fermi_type) == "filling") then
-            !call Ksp%find_fermi(cfg)
-        !endif
+        ! Only set Fermi energy relative if DOS was performed
+        if(trim(fermi_type) == "filling") then
+            call Ksp%find_fermi(cfg)
+        endif
         
-    !endif
+    endif
    
-    !if(calc_hall) then
-        !call Ksp%calc_hall_conductance(hall_cond)
-    !endif
+    if(calc_hall) then
+        call Ksp%calc_hall_conductance(hall_cond)
+    endif
     
-    !halt = MPI_Wtime()
-    !if(root ==  me) then
-        !write (*,time_fmt) "Total: ", halt-start, "s"
-    !endif
+    halt = MPI_Wtime()
+    if(root ==  me) then
+        write (*,time_fmt) "Total: ", halt-start, "s"
+    endif
     call MPI_Finalize(ierr)
 contains
     Subroutine  add_full_cfg(cfg)

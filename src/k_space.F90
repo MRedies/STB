@@ -169,7 +169,8 @@ contains
                 enddo
             enddo
         enddo
-        loc_PDOS =  loc_PDOS / real(self%DOS_num_k_pts**2)
+        write (*,*) "ksz", size(self%k_pts, 2)
+        loc_PDOS =  loc_PDOS / real(size(self%k_pts, 2))
         call MPI_Reduce(loc_PDOS,  PDOS,    size(loc_PDOS), &
                         MPI_REAL8, MPI_SUM, root, &
                         MPI_COMM_WORLD, ierr)
