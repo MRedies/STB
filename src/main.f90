@@ -11,23 +11,41 @@ program STB
     type(CFG_t)        :: cfg
     character(len=25)  :: fermi_type
     character(len=*), parameter :: time_fmt =  "(A,F10.3,A)"
-    integer(4)         :: ierr, me, n_inp
+    integer(4)         :: ierr, me, n_inp, n_files
     real(8)            :: start, halt
     logical :: perform_band, perform_dos, calc_hall
     real(8), allocatable :: hall_cond(:)
-    character(len=300) :: inp_file
+    character(len=300), allocatable :: inp_files(:)
+    character(len=300)   :: n_files_str, base_str, tmp_str
 
 
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
+    if(me == root) then
+        if(command_argument_count() == 1) then
+            n_files = 1
+            allocate(inp_files(1))
+            call get_command_argument(1, inp_files(1))
+        else
+            call get_command_argument(2, n_files_str)
+            read(n_files_str,*) n_files
+            allocate(inp_files(n_files))
+            call get_command_argument(1, base_str)
 
-    do n_inp = 1, command_argument_count()
-        call get_command_argument(n_inp, inp_file)
-        if(me == root) write (*,*) inp_file
+            do n_inp = 1,n_files
+                write(tmp_str, "(I6)") n_inp-1
+                inp_files(n_inp) = trim(base_str) // trim(adjustl(tmp_str)) // ".cfg"
+            enddo
+        endif
+    endif
+
+    call MPI_Bcast(n_files, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    do n_inp = 1, n_files
         start =  MPI_Wtime()
 
         if(me ==  root)then
-            call CFG_read_file(cfg, inp_file)
+            write (*,*) "running: ", trim(inp_files(n_inp))
+            call CFG_read_file(cfg, trim(inp_files(n_inp)))
             if(n_inp == 1) call add_full_cfg(cfg)
 
             call CFG_get(cfg, "band%perform_band", perform_band)
@@ -58,7 +76,6 @@ program STB
             call Ksp%set_fermi(cfg)
         endif
 
-
         if(perform_dos) then
             call Ksp%calc_and_print_dos()
 
@@ -77,7 +94,6 @@ program STB
         if(root ==  me) then
             write (*,time_fmt) "Total: ", halt-start, "s"
         endif
-        
         call Ksp%free_ksp()
     enddo
 
