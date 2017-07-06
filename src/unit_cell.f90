@@ -50,8 +50,22 @@ module Class_unit_cell
         procedure :: set_mag_linrot_skrym_honey  => set_mag_linrot_skrym_honey
         procedure :: Bcast_UC                    => Bcast_UC
         procedure :: setup_honey                 => setup_honey
+        procedure :: free_uc                     => free_uc
     end type unit_cell
 contains
+    subroutine free_uc(self)
+        implicit none
+        class(unit_cell)  :: self
+        integer(4)        :: i
+
+        if(allocated(self%atoms))then
+            do i =  1,self%num_atoms
+                call self%atoms(i)%free_atm()
+            enddo
+            deallocate(self%atoms)
+        endif
+    end subroutine free_uc
+        
     function angle(a ,b) result(ang)
         implicit none
         real(8), dimension(2), intent(in)   :: a,b 
@@ -94,10 +108,9 @@ contains
             call CFG_get(cfg, "grid%ferro_theta", self%ferro_theta)
             call CFG_get(cfg, "grid%atan_fac", self%atan_factor)
         endif
+
         call self%Bcast_UC()
-
-
-
+        
         if(trim(self%uc_type) == "square_2d") then
             call init_unit_square(self)
         else if(trim(self%uc_type) == "honey_2d") then

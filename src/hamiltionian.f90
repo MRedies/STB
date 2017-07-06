@@ -35,9 +35,18 @@ module Class_hamiltionian
         procedure :: compare_derivative       => compare_derivative
         procedure :: set_derivative_hopping   => set_derivative_hopping
         procedure :: set_derivative_rashba_so => set_derivative_rashba_so
+        procedure :: free_ham                 => free_ham
     end type hamil
 
 contains
+    subroutine free_ham(self)
+        implicit none
+        class(hamil)     :: self
+
+        if(allocated(self%del_H)) deallocate(self%del_H)
+        call self%UC%free_uc()
+    end subroutine free_ham
+
     subroutine compare_derivative(self, k)
         implicit none 
         class(hamil)                :: self

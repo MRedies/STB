@@ -50,9 +50,23 @@ module Class_k_space
         procedure :: hex_border_x           => hex_border_x
         procedure :: vol_k_hex              => vol_k_hex
         procedure :: plot_omega             => plot_omega
+        procedure :: free_ksp               => free_ksp
     end type k_space 
 
 contains
+    subroutine free_ksp(self)
+        implicit none
+        class(k_space)              :: self
+        
+        if(allocated(self%k_pts)) deallocate(self%k_pts)
+        if(allocated(self%int_DOS)) deallocate(self%int_DOS)
+        if(allocated(self%E_DOS)) deallocate(self%E_DOS)
+        if(allocated(self%E_fermi)) deallocate(self%E_fermi)
+        if(allocated(self%k1_param)) deallocate(self%k1_param)
+        if(allocated(self%k2_param)) deallocate(self%k2_param)
+        call self%ham%free_ham()
+    end subroutine free_ksp
+
     Subroutine  calc_and_print_band(self)
         Implicit None
         class(k_space)                :: self 

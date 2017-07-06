@@ -15,9 +15,18 @@ module Class_atom
     contains
         procedure :: get_m_cart => get_m_cart 
         procedure :: set_sphere => set_sphere
-        procedure :: set_m_cart => set_m_cart 
+        procedure :: set_m_cart => set_m_cart
+        procedure :: free_atm   => free_atm
     end type atom
 contains
+    subroutine free_atm(self)
+        implicit none
+        class(atom)         :: self
+        
+        if(allocated(self%neigh_idx)) deallocate(self%neigh_idx)
+        if(allocated(self%neigh_conn)) deallocate(self%neigh_conn)
+    end subroutine free_atm
+
     function get_m_cart(self) result(coord)
         implicit none
         Class(atom), intent(in)   :: self

@@ -5,74 +5,82 @@ program STB
     use mpi
     use Constants
     use Class_unit_cell
-    
+
     implicit none
     type(k_space)      :: Ksp
     type(CFG_t)        :: cfg
     character(len=25)  :: fermi_type
     character(len=*), parameter :: time_fmt =  "(A,F10.3,A)"
-    integer(4)         :: ierr, me
+    integer(4)         :: ierr, me, n_inp
     real(8)            :: start, halt
     logical :: perform_band, perform_dos, calc_hall
     real(8), allocatable :: hall_cond(:)
+    character(len=300) :: inp_file
 
-  
+
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
 
-    start =  MPI_Wtime()
+    do n_inp = 1, command_argument_count()
+        call get_command_argument(n_inp, inp_file)
+        if(me == root) write (*,*) inp_file
+        start =  MPI_Wtime()
 
-    if(me ==  root)then
-        call CFG_update_from_arguments(cfg)
-        call add_full_cfg(cfg)
-        
-        call CFG_get(cfg, "band%perform_band", perform_band)
-        call CFG_get(cfg, "dos%perform_dos",   perform_dos)
-        call CFG_get(cfg, "dos%fermi_type", fermi_type) 
-        call CFG_get(cfg, "berry%calc_hall", calc_hall)
-    endif
-    
-    call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-    call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-    call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
-    call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-    
-    Ksp =  init_k_space(cfg)
-    !call Ksp%plot_omega()
-    if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
+        if(me ==  root)then
+            call CFG_read_file(cfg, inp_file)
+            if(n_inp == 1) call add_full_cfg(cfg)
 
-    halt =  MPI_Wtime()
-    if(root ==  me) then
-        write (*,time_fmt) "Init: ", halt-start, "s"
-    endif
-    
-    if(perform_band) then
-        call Ksp%calc_and_print_band() 
-    endif
+            call CFG_get(cfg, "band%perform_band", perform_band)
+            call CFG_get(cfg, "dos%perform_dos",   perform_dos)
+            call CFG_get(cfg, "dos%fermi_type", fermi_type) 
+            call CFG_get(cfg, "berry%calc_hall", calc_hall)
+        endif
 
-    if(trim(fermi_type) == "fixed") then
-        call Ksp%set_fermi(cfg)
-    endif
+        call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+
+        Ksp =  init_k_space(cfg)
+        !call Ksp%plot_omega()
+        if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
+
+        halt =  MPI_Wtime()
+        if(root ==  me) then
+            write (*,time_fmt) "Init: ", halt-start, "s"
+        endif
+
+        if(perform_band) then
+            call Ksp%calc_and_print_band() 
+        endif
+
+        if(trim(fermi_type) == "fixed") then
+            call Ksp%set_fermi(cfg)
+        endif
 
 
-    if(perform_dos) then
-        call Ksp%calc_and_print_dos()
+        if(perform_dos) then
+            call Ksp%calc_and_print_dos()
 
-        ! Only set Fermi energy relative if DOS was performed
-        if(trim(fermi_type) == "filling") then
-            call Ksp%find_fermi(cfg)
+            ! Only set Fermi energy relative if DOS was performed
+            if(trim(fermi_type) == "filling") then
+                call Ksp%find_fermi(cfg)
+            endif
+
+        endif
+
+        if(calc_hall) then
+            call Ksp%calc_hall_conductance(hall_cond)
+        endif
+
+        halt = MPI_Wtime()
+        if(root ==  me) then
+            write (*,time_fmt) "Total: ", halt-start, "s"
         endif
         
-    endif
-   
-    if(calc_hall) then
-        call Ksp%calc_hall_conductance(hall_cond)
-    endif
-    
-    halt = MPI_Wtime()
-    if(root ==  me) then
-        write (*,time_fmt) "Total: ", halt-start, "s"
-    endif
+        call Ksp%free_ksp()
+    enddo
+
     call MPI_Finalize(ierr)
 contains
     Subroutine  add_full_cfg(cfg)
@@ -102,11 +110,11 @@ contains
 
         call CFG_add(cfg, "band%perform_band",  .False., "")
         call CFG_add(cfg, "band%k_label",    (/ ""/),   "",&
-                          dynamic_size=.true.)
+            dynamic_size=.true.)
         call CFG_add(cfg, "band%k_x",        (/1.0d0/), "",&
-                          dynamic_size=.true.)
+            dynamic_size=.true.)
         call CFG_add(cfg, "band%k_y",        (/1.0d0/), "",&
-                          dynamic_size=.true.)
+            dynamic_size=.true.)
         call CFG_add(cfg, "band%num_points", 0,         "")
         call CFG_add(cfg, "band%filling",    "",        "")
 
