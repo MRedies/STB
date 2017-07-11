@@ -6,10 +6,12 @@ file(GLOB_RECURSE sources  src/*.f90
                            src/*.h 
                            thirdparty/config_fortran/m_config.f90
                            thirdparty/NPY-for-Fortran/src/endian_swap.f90
+                           thirdparty/triangulation/tri_wrapper.f90
                            thirdparty/NPY-for-Fortran/src/npy.F90)
 
 
-link_directories($ENV{LAPACK_LIB} /bgsys/local/lib)
+
+link_directories($ENV{LAPACK_LIB} /bgsys/local/lib thirdparty/triangulation/)
 enable_language(Fortran)
 add_executable(stb.x ${sources})
 
@@ -27,7 +29,7 @@ endif()
 
 MESSAGE(STATUS "Using ${CMAKE_Fortran_COMPILER_ID} compiler")
 
-target_link_libraries (stb.x ${LAPACK_LIBRARIES})
+target_link_libraries (stb.x ${LAPACK_LIBRARIES} ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/triangulation/triangle.o)
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     set(dialect "-ffree-form -Wall -fimplicit-none -m64  -m64 -I$ENV{MKLROOT}/include  -L$ENV{MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_gf_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
@@ -45,7 +47,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "IBM")
     MESSAGE(STATUS "IBM")
-    target_link_libraries(stb.x lapack esslbg)
+    target_link_libraries(stb.x lapack esslbg triangle)
     set(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
     #set(CMAKE_Fortran_COMPILER scorep)
     #set(dialect "mpixlf2008_r -O3 -qstrict -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm")

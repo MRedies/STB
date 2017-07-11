@@ -7,9 +7,34 @@ Module  output
         module procedure print_mtx_real, print_mtx_cmplx, print_vec_real,&
                  print_mtx_real_no_unit, print_mtx_cmplx_no_unit, &
                  print_vec_real_no_unit, print_vec_int, &
-                 print_vec_int_no_unit
+                 print_vec_int_no_unit, print_mtx_int_no_unit, &
+                 print_mtx_int
     end interface
 contains
+    subroutine print_mtx_int_no_unit(mtx)
+        Implicit None
+        integer(4), dimension(:,:), intent(in)    :: mtx
+
+        call print_mtx_int(std_out,  mtx)
+    end subroutine
+    
+    Subroutine  print_mtx_int(p_unit, mtx)
+        Implicit None
+        integer(4), dimension(:,:), intent(in)    :: mtx
+        integer(4), intent(in)                 :: p_unit
+        integer(4)                             :: i,j
+        
+        do i = 1, size(mtx,1)
+            do j =  1, size(mtx,2)
+                if(j < size(mtx,2)) then 
+                    write (p_unit, "(I6)", advance="no") mtx(i,j)
+                endif
+            enddo
+            write(p_unit, "(I6)") mtx(i, size(mtx,2))
+        enddo
+
+    End Subroutine print_mtx_int
+
     subroutine print_vec_int_no_unit(vec)
         implicit none
         integer(4), dimension(:), intent(in)   :: vec

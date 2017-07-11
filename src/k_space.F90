@@ -22,7 +22,8 @@ module Class_k_space
         integer(4) :: num_DOS_pts!> number of points on E grid
         integer(4) :: num_k_pts !> number of k_pts per segment
         integer(4) :: nProcs !> number of MPI Processes
-        integer(4) :: me !> MPI ranki
+        integer(4) :: me !> MPI rank
+        integer(4), allocatable :: elem_nodes(:,:) !> elements in triangulation
         real(8), allocatable :: k1_param(:) !> 1st k_space param
         real(8), allocatable :: k2_param(:) !> 2nd k_space param
         character(len=300)    :: filling, prefix
@@ -56,8 +57,8 @@ module Class_k_space
 contains
     subroutine free_ksp(self)
         implicit none
-        class(k_space)              :: self
-        
+    class(k_space)              :: self
+
         if(allocated(self%k_pts)) deallocate(self%k_pts)
         if(allocated(self%int_DOS)) deallocate(self%int_DOS)
         if(allocated(self%E_DOS)) deallocate(self%E_DOS)
@@ -69,7 +70,7 @@ contains
 
     Subroutine  calc_and_print_band(self)
         Implicit None
-        class(k_space)                :: self 
+    class(k_space)                :: self 
         integer(4)                    :: first, last, N, send_count, ierr
         integer(4), allocatable       :: num_elems(:), offsets(:)
         real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
@@ -91,8 +92,8 @@ contains
         k_pts_sec = self%k_pts(:,first:last)
 
         call self%ham%calc_eigenvalues(k_pts_sec, sec_eig_val)
-        
-        
+
+
         N = 2 *  self%ham%UC%num_atoms 
         allocate(eig_val(N, size(self%k_pts,2)))
         allocate(num_elems(self%nProcs))
@@ -100,22 +101,22 @@ contains
         call sections(self%nProcs, size(self%k_pts, 2), num_elems, offsets)
         num_elems =  num_elems * N
         offsets   =  offsets   * N
-    
+
         send_count =  N *  size(k_pts_sec, 2)
-        
+
         call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
-                         eig_val,     num_elems,  offsets,   MPI_REAL8,&
-                         root,        MPI_COMM_WORLD, ierr)
-        
+            eig_val,     num_elems,  offsets,   MPI_REAL8,&
+            root,        MPI_COMM_WORLD, ierr)
+
         if(self%me == root) then 
             call save_npy(trim(self%prefix) //  "band_k.npy", self%k_pts / self%units%inv_length)
             call save_npy(trim(self%prefix) //  "band_E.npy", eig_val / self%units%energy)
             call save_npy(trim(self%prefix) //  "lattice.npy", &
-                           self%ham%UC%lattice / self%units%length)
+                self%ham%UC%lattice / self%units%length)
             call save_npy(trim(self%prefix) //  "rez_lattice.npy", &
-                           self%ham%UC%rez_lattice / self%units%inv_length)
+                self%ham%UC%rez_lattice / self%units%inv_length)
         endif
-       
+
         deallocate(eig_val)
         deallocate(num_elems)
         deallocate(offsets)
@@ -125,7 +126,7 @@ contains
 
     subroutine calc_pdos(self, E, PDOS)
         implicit none
-        class(k_space)          :: self
+    class(k_space)          :: self
         real(8), intent(in)     :: E(:)
         real(8), intent(out)    :: PDOS(:,:)
         real(8), allocatable    :: RWORK(:), eig_val(:), loc_PDOS(:,:)
@@ -143,7 +144,7 @@ contains
         allocate(WORK(lwork))
         allocate(RWORK(lrwork))
         allocate(IWORK(liwork))
-        
+
         num_atoms =  self%ham%UC%num_atoms
         allocate(loc_PDOS(2*num_atoms, self%num_DOS_pts))
 
@@ -178,7 +179,7 @@ contains
                     lor = self%lorentzian(E(E_idx) - eig_val(m)) 
                     do j = 1,N
                         loc_PDOS(j, E_idx) = loc_PDOS(j, E_idx) &
-                                           + lor * H(j,m)
+                            + lor * H(j,m)
                     enddo
                 enddo
             enddo
@@ -186,8 +187,8 @@ contains
         write (*,*) "ksz", size(self%k_pts, 2)
         loc_PDOS =  loc_PDOS / real(size(self%k_pts, 2))
         call MPI_Reduce(loc_PDOS,  PDOS,    size(loc_PDOS), &
-                        MPI_REAL8, MPI_SUM, root, &
-                        MPI_COMM_WORLD, ierr)
+            MPI_REAL8, MPI_SUM, root, &
+            MPI_COMM_WORLD, ierr)
 
         deallocate(loc_PDOS)
         deallocate(WORK)
@@ -198,7 +199,7 @@ contains
 
     subroutine calc_and_print_dos(self)
         implicit none
-        class(k_space)       :: self
+    class(k_space)       :: self
         real(8), allocatable :: DOS(:), PDOS(:,:), up(:), down(:)
         real(8)              :: dE
         integer(4)           :: i, num_atoms, info
@@ -212,7 +213,7 @@ contains
             if(self%me ==  root) write (*,*) "DOS k-grid not known"
             call MPI_Abort(MPI_COMM_WORLD, 0, info)
         endif
-        
+
         num_atoms =  self%ham%UC%num_atoms
         allocate(PDOS(2*num_atoms, self%num_DOS_pts))
 
@@ -225,7 +226,7 @@ contains
         endif
 
         call self%calc_pdos(self%E_DOS, PDOS)
-    
+
         if(self%me == root) then
             DOS  = sum(PDOS,1)
             up   = sum(PDOS(1:num_atoms, :),1)
@@ -254,7 +255,7 @@ contains
             ! integrated DOS ist unitless
             call save_npy(trim(self%prefix) // "DOS_integrated.npy", self%int_DOS)
         endif 
-        
+
         deallocate(self%k_pts)
         deallocate(PDOS)
         if(self%me == root) then 
@@ -270,13 +271,13 @@ contains
         type(CFG_t)           :: cfg
         real(8)               :: tmp
         integer(4)            :: sz, ierr
-        
+
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
 
         self%units = init_units(cfg, self%me)
         self%ham   = init_hamil(cfg)
-    
+
         if(self%me ==  0) then 
             call CFG_get(cfg, "output%band_prefix", self%prefix)
             call create_dir(self%prefix) 
@@ -299,7 +300,7 @@ contains
             call CFG_get(cfg, "band%num_points", self%num_k_pts)
 
             call CFG_get(cfg, "dos%k_pts_per_dim", self%DOS_num_k_pts)
-            
+
             call CFG_get(cfg, "dos%lower_E_bound", tmp)
             self%DOS_lower =  tmp * self%units%energy 
 
@@ -315,7 +316,7 @@ contains
     end function init_k_space
 
     subroutine Bcast_k_space(self)
-        class(k_space)         :: self
+    class(k_space)         :: self
         integer(4), parameter  :: num_cast =  12
         integer(4)             :: ierr(num_cast), sz(2)
 
@@ -323,48 +324,48 @@ contains
             sz(1) = size(self%k1_param)
             sz(2) = size(self%k2_param)
         endif
-        
+
         call MPI_Bcast(self%prefix,  300,            MPI_CHARACTER, &
-                      root,          MPI_COMM_WORLD, ierr(1))
+            root,          MPI_COMM_WORLD, ierr(1))
         call MPI_Bcast(self%filling, 300,            MPI_CHARACTER, &
-                      root,          MPI_COMM_WORLD, ierr(2))
+            root,          MPI_COMM_WORLD, ierr(2))
 
         call MPI_Bcast(self%DOS_gamma,   1,              MPI_REAL8,    &
-                        root,            MPI_COMM_WORLD, ierr(3))
+            root,            MPI_COMM_WORLD, ierr(3))
         call MPI_Bcast(self%num_DOS_pts, 1,              MPI_INTEGER4, &
-                        root,            MPI_COMM_WORLD, ierr(4))
-        
+            root,            MPI_COMM_WORLD, ierr(4))
+
         call MPI_Bcast(sz,   2,              MPI_INTEGER4, &
-                       root, MPI_COMM_WORLD, ierr(5))
+            root, MPI_COMM_WORLD, ierr(5))
 
         if(self%me /= root) then
             allocate(self%k1_param(sz(1)))
             allocate(self%k2_param(sz(2)))
         endif
         call MPI_Bcast(self%k1_param,      sz(1),          MPI_REAL8,    &
-                       root,               MPI_COMM_WORLD, ierr(5))
+            root,               MPI_COMM_WORLD, ierr(5))
         call MPI_Bcast(self%k2_param,      sz(2),          MPI_REAL8,    &
-                       root,               MPI_COMM_WORLD, ierr(6))
+            root,               MPI_COMM_WORLD, ierr(6))
         call MPI_Bcast(self%num_k_pts,     1,              MPI_INTEGER4, &
-                       root,               MPI_COMM_WORLD, ierr(7))
+            root,               MPI_COMM_WORLD, ierr(7))
         call MPI_Bcast(self%DOS_num_k_pts, 1,              MPI_INTEGER4, &
-                       root,               MPI_COMM_WORLD, ierr(8))
+            root,               MPI_COMM_WORLD, ierr(8))
         call MPI_Bcast(self%DOS_lower,     1,              MPI_REAL8, &
-                       root,               MPI_COMM_WORLD, ierr(9))
+            root,               MPI_COMM_WORLD, ierr(9))
         call MPI_Bcast(self%DOS_upper,     1,              MPI_REAL8, &
-                       root,               MPI_COMM_WORLD, ierr(10))
-        
+            root,               MPI_COMM_WORLD, ierr(10))
+
         ! Berry parameter
         call MPI_Bcast(self%berry_num_k_pts, 1,              MPI_INTEGER4, &
-                       root,                 MPI_COMM_WORLD, ierr(11))
+            root,                 MPI_COMM_WORLD, ierr(11))
         call MPI_Bcast(self%temp,            1,              MPI_REAL8,    &
-                       root,                 MPI_COMM_WORLD, ierr(12))
-       
+            root,                 MPI_COMM_WORLD, ierr(12))
+
     end subroutine Bcast_k_space
 
     subroutine setup_k_grid(self)
         implicit none
-        class(k_space)       :: self
+    class(k_space)       :: self
         real(8), allocatable :: kx_points(:), ky_points(:)
         real(8), allocatable :: kx_grid(:,:), ky_grid(:,:)
         integer(4)           :: sz_x, sz_y, i, j
@@ -406,7 +407,7 @@ contains
 
     subroutine setup_inte_grid_square(self, n_k)
         implicit none
-        class(k_space)        :: self
+    class(k_space)        :: self
         integer(4), intent(in):: n_k
         real(8), allocatable  :: ls(:), ls_help(:)
         real(8)               :: k1(3), k2(3)
@@ -419,7 +420,7 @@ contains
         k2 =  0d0 
         k1(1:2) =  self%ham%UC%rez_lattice(:,1)
         k2(1:2) =  self%ham%UC%rez_lattice(:,2)
-        
+
         call linspace(0d0, 1d0, n_k+1, ls_help)
         allocate(ls(n_k))
 
@@ -437,13 +438,21 @@ contains
 
     subroutine setup_inte_grid_hex(self, n_k)
         implicit none
-        class(k_space)         :: self
+    class(k_space)         :: self
         integer(4), intent(in) :: n_k
         real(8), allocatable   :: x(:), y(:)
-        real(8)                :: den, l, a
+        real(8)                :: den, l, a 
         real(8), parameter     :: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
         integer(4)             :: cnt_k, start, halt, my_n, i
-    
+
+        interface
+            subroutine run_triang(k_pts, ret_elem)
+                real(8), intent(in)              :: k_pts(:,:)
+                integer(4), allocatable          :: ret_elem(:,:)
+            end subroutine run_triang
+        end interface
+
+
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
         a = l / (2.0 * cos(deg_30))
         den =  (1.0*n_k)/a
@@ -454,34 +463,35 @@ contains
         do i =  1,size(y)
             cnt_k =  cnt_k + nint(2 * self%hex_border_x(y(i)) * den)
         enddo
-        
+
         if(allocated(self%k_pts)) deallocate(self%k_pts)
         allocate(self%k_pts(3, cnt_k))
-        
+
         self%k_pts = 0d0
 
         start = 1
         do i =  1,size(y)
             my_n = nint(2*self%hex_border_x(y(i)) * den)
             call linspace(-self%hex_border_x(y(i)), self%hex_border_x(y(i)), my_n, x)
-            
+
             halt = start + size(x) - 1
-            
+
             self%k_pts(1,start:halt) = x
             self%k_pts(2,start:halt) = y(i)
 
             start = halt + 1
         enddo
 
+        call run_triang(self%k_pts, self%elem_nodes)
     end subroutine setup_inte_grid_hex
 
     function hex_border_x(self, y) result(x)
         implicit none
-        class(k_space)      :: self
+    class(k_space)      :: self
         real(8), intent(in) :: y
         real(8)             :: m, b, l, a, x
         real(8), parameter  :: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
-        
+
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
         a = l / (2.0 * cos(deg_30))
         m =  - 2.0 * sin(deg_60)
@@ -492,7 +502,7 @@ contains
 
     subroutine setup_k_path_abs(self)
         implicit none
-        class(k_space)        :: self
+    class(k_space)        :: self
         integer(4)            :: n_pts, n_sec, start, halt, i
         real(8), allocatable  :: tmp(:)
 
@@ -523,7 +533,7 @@ contains
 
     subroutine setup_k_path_rel(self)
         implicit none
-        class(k_space)        :: self
+    class(k_space)        :: self
         real(8), allocatable :: c1_sec(:), c2_sec(:)
         real(8), dimension(3)              :: k1, k2
         integer(4) ::  n_pts, n_sec,i,j, start, halt, cnt
@@ -561,7 +571,7 @@ contains
 
     function vol_k_space_parallelo(self) result(vol)
         implicit none
-        class(k_space)         :: self
+    class(k_space)         :: self
         real(8)                :: vol, k1(3), k2(3)
 
         k1      = 0d0
@@ -574,10 +584,10 @@ contains
 
     function vol_k_hex(self) result(vol)
         implicit none
-        class(k_space)    :: self
+    class(k_space)    :: self
         real(8), parameter:: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
         real(8)           :: a, l, vol
-        
+
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
         a = l / (2.0 * cos(deg_30))
 
@@ -586,7 +596,7 @@ contains
 
     subroutine calc_hall_conductance(self, ret)
         implicit none
-        class(k_space)       :: self
+    class(k_space)       :: self
         real(8)              :: V_k, k(3)
         real(8), allocatable :: eig_val(:), omega_z(:), hall(:), ret(:)
         integer(4)  :: N_k, n, k_idx, first, last, ierr, n_atm, n_hall, info
@@ -620,7 +630,7 @@ contains
             k = self%k_pts(:,k_idx)
             call self%ham%calc_berry_z(k, omega_z)
             call self%ham%calc_single_eigenvalue(k, eig_val)
-            
+
             do n = 1,2*self%ham%UC%num_atoms
                 do n_hall =  1,size(hall)
                     hall(n_hall) = hall(n_hall) + omega_z(n) * self%fermi_distr(eig_val(n), n_hall)
@@ -632,8 +642,8 @@ contains
         hall = hall * V_k/real(N_k)
         hall = hall / (2d0*PI)
         call MPI_Reduce(hall, ret, size(hall), &
-                        MPI_REAL8, MPI_Sum, &
-                        root, MPI_COMM_WORLD, ierr)
+            MPI_REAL8, MPI_Sum, &
+            root, MPI_COMM_WORLD, ierr)
 
         if(self%me == root) then
             write (*,*) "saving hall cond with questionable unit"
@@ -645,7 +655,7 @@ contains
 
     subroutine plot_omega(self)
         implicit none
-        class(k_space)         :: self
+    class(k_space)         :: self
         real(8), allocatable   :: omega_z(:,:), tmp_vec(:), sec_omega_z(:,:)
         real(8)                :: k(3)
         integer(4)  :: N, k_idx, send_count, first, last, ierr, cnt, n_atm
@@ -664,7 +674,7 @@ contains
 
         allocate(omega_z(N, size(self%k_pts, 2)))
         allocate(tmp_vec(N))
-        
+
         call sections(self%nProcs, size(self%k_pts, 2), num_elems, offsets)
         call my_section(self%me, self%nProcs, size(self%k_pts, 2), first, last)
         num_elems =  num_elems * N
@@ -676,17 +686,17 @@ contains
         do k_idx = first,last
             write (*,*) "k_ind" , k_idx
             k = self%k_pts(:,k_idx)
-            
+
             call self%ham%calc_berry_z(k, tmp_vec)
-            
+
             sec_omega_z(:,cnt) =  tmp_vec 
             cnt = cnt + 1
         enddo
 
         call MPI_Gatherv(sec_omega_z, send_count, MPI_REAL8, &
-                         omega_z,    num_elems, offsets, MPI_REAL8, &
-                         root, MPI_COMM_WORLD, ierr)
-            
+            omega_z,    num_elems, offsets, MPI_REAL8, &
+            root, MPI_COMM_WORLD, ierr)
+
         if(self%me ==  root) then
             call save_npy(trim(self%prefix) //  "omega_xy_z.npy", omega_z)
             call save_npy(trim(self%prefix) //  "omega_xy_k.npy", self%k_pts)
@@ -697,8 +707,8 @@ contains
 
     subroutine set_fermi(self, cfg)
         implicit none
-        class(k_space)         :: self
-        class(CFG_t)           :: cfg
+    class(k_space)         :: self
+    class(CFG_t)           :: cfg
         real(8)                :: tmp(3)
         integer(4)             :: ierr, n_steps
 
@@ -715,8 +725,8 @@ contains
 
     subroutine find_fermi(self, cfg)
         implicit none
-        class(k_space)         :: self
-        class(CFG_t)           :: cfg
+    class(k_space)         :: self
+    class(CFG_t)           :: cfg
         real(8)                :: target, delta_old, delta_new
         integer(4)             :: i, ierr
 
@@ -724,7 +734,7 @@ contains
             call CFG_get(cfg, "dos%fermi_fill", target)
         endif
         call MPI_Bcast(self%E_fermi, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
-        
+
         target = target * self%int_DOS(size(self%int_DOS))
         i =  1
 
@@ -749,7 +759,7 @@ contains
 
     subroutine write_fermi(self)
         implicit none
-        class(k_space)         :: self
+    class(k_space)         :: self
         real(8)                :: fermi(1)
         if(self%me ==  root) then 
             fermi =  self%E_fermi
@@ -760,7 +770,7 @@ contains
 
     function lorentzian(self, x) result(lor)
         implicit none
-        class(k_space), intent(in)    :: self
+    class(k_space), intent(in)    :: self
         real(8), intent(in)           :: x
         real(8)                       :: lor
 
@@ -770,7 +780,7 @@ contains
 
     function fermi_distr(self, E, n_ferm) result(ferm)
         implicit none
-        class(k_space), intent(in)    :: self
+    class(k_space), intent(in)    :: self
         real(8), intent(in)           :: E
         integer(4), intent(in)        :: n_ferm
         real(8)                       :: ferm
