@@ -27,7 +27,6 @@ subroutine run_triang(k_pts, ret_elem)
 
     x =  k_pts(1,:)
     y =  k_pts(2,:)
-    write (*,*) "x size = ", size(k_pts(1,:))
 
     call my_tri(x,y, n_nodes, elem, n_elem, ierr)
     if(ierr /= 0) then

@@ -23,6 +23,7 @@ module Class_k_space
         integer(4) :: num_k_pts !> number of k_pts per segment
         integer(4) :: nProcs !> number of MPI Processes
         integer(4) :: me !> MPI rank
+        real(8), allocatable :: weights(:) !> weights for integration
         integer(4), allocatable :: elem_nodes(:,:) !> elements in triangulation
         real(8), allocatable :: k1_param(:) !> 1st k_space param
         real(8), allocatable :: k2_param(:) !> 2nd k_space param
@@ -47,6 +48,8 @@ module Class_k_space
         procedure :: calc_hall_conductance  => calc_hall_conductance
         procedure :: setup_inte_grid_square => setup_inte_grid_square
         procedure :: setup_inte_grid_hex    => setup_inte_grid_hex
+        procedure :: set_weights_ksp        => set_weights_ksp
+        procedure :: test_integration       => test_integration
         procedure :: Bcast_k_space          => Bcast_k_space
         procedure :: hex_border_x           => hex_border_x
         procedure :: vol_k_hex              => vol_k_hex
@@ -483,11 +486,52 @@ contains
         enddo
 
         call run_triang(self%k_pts, self%elem_nodes)
+        call self%set_weights_ksp()
     end subroutine setup_inte_grid_hex
+
+    subroutine test_integration(self)
+        implicit none
+        class(k_space)     :: self
+        integer(4)         :: i
+        real(8)            :: integral, kpt(3), f 
+
+        integral =  0d0 
+        do i =  1, size(self%k_pts,2)
+            kpt =  self%k_pts(:,i)
+            f = 2*kpt(1)**2 - kpt(2)**2
+            integral =  integral +  self%weights(i) * f
+            !write (*,*) kpt(1), kpt(2) , f, integral
+        enddo
+        write (*,*) "integration =  ", integral
+    end subroutine test_integration
+        
+    subroutine set_weights_ksp(self)
+        implicit none
+        class(k_space)   :: self
+        real(8)          :: A_proj, vec1(3), vec2(3), integr
+        integer(4)       :: ierr, i, j, k_idx
+
+        if(allocated(self%weights)) then
+            deallocate(self%weights)
+        endif
+        allocate(self%weights(size(self%k_pts,2)))
+
+        self%weights = 0d0
+        integr =  0
+        do i = 1,size(self%elem_nodes,1)
+            vec1 = self%k_pts(:,self%elem_nodes(i,1)) - self%k_pts(:,self%elem_nodes(i,2))
+            vec2 = self%k_pts(:,self%elem_nodes(i,1)) - self%k_pts(:,self%elem_nodes(i,3))
+            A_proj =  0.1666666666666d0 * my_norm2(cross_prod(vec1, vec2))
+            do j =  1,3
+                k_idx =  self%elem_nodes(i,j)
+                self%weights(k_idx) = self%weights(k_idx) +  A_proj
+            enddo
+        enddo
+    end subroutine set_weights_ksp
 
     function hex_border_x(self, y) result(x)
         implicit none
-    class(k_space)      :: self
+        class(k_space)      :: self
         real(8), intent(in) :: y
         real(8)             :: m, b, l, a, x
         real(8), parameter  :: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
@@ -633,13 +677,13 @@ contains
 
             do n = 1,2*self%ham%UC%num_atoms
                 do n_hall =  1,size(hall)
-                    hall(n_hall) = hall(n_hall) + omega_z(n) * self%fermi_distr(eig_val(n), n_hall)
+                    hall(n_hall) = hall(n_hall) + &
+                                   self%weights(k_idx) * omega_z(n) * self%fermi_distr(eig_val(n), n_hall)
                 enddo
             enddo
         enddo
         deallocate(self%ham%del_H)
 
-        hall = hall * V_k/real(N_k)
         hall = hall / (2d0*PI)
         call MPI_Reduce(hall, ret, size(hall), &
             MPI_REAL8, MPI_Sum, &
@@ -648,7 +692,7 @@ contains
         if(self%me == root) then
             write (*,*) "saving hall cond with questionable unit"
             call save_npy(trim(self%prefix) // "hall_cond.npy", ret)
-            call save_npy(trim(self%prefix) // "hall_E.npy", self%E_fermi)
+            call save_npy(trim(self%prefix) // "hall_E.npy", self%E_fermi / self%units%energy)
         endif
         deallocate(hall)
     end subroutine calc_hall_conductance
