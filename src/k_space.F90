@@ -55,6 +55,7 @@ module Class_k_space
         procedure :: vol_k_hex              => vol_k_hex
         procedure :: plot_omega             => plot_omega
         procedure :: free_ksp               => free_ksp
+        procedure :: find_E_max             => find_E_max
     end type k_space 
 
 contains
@@ -641,7 +642,7 @@ contains
     subroutine calc_hall_conductance(self, ret)
         implicit none
     class(k_space)       :: self
-        real(8)              :: V_k, k(3)
+        real(8)              :: V_k, k(3), Emax
         real(8), allocatable :: eig_val(:), omega_z(:), hall(:), ret(:)
         integer(4)  :: N_k, n, k_idx, first, last, ierr, n_atm, n_hall, info
 
@@ -661,18 +662,20 @@ contains
         endif
 
         N_k = size(self%k_pts, 2)
+        if(self%me == root) write (*,*) "Num k =  ", N_k
 
         call my_section(self%me, self%nProcs, N_k, first, last)
 
         allocate(hall(size(self%E_fermi)))
         allocate(ret(size(hall)))
         hall = 0d0
-
+        
+        Emax = self%find_E_max()
         n_atm =  self%ham%UC%num_atoms
         allocate(self%ham%del_H(2*n_atm,2*n_atm))
         do k_idx = first, last
             k = self%k_pts(:,k_idx)
-            call self%ham%calc_berry_z(k, omega_z)
+            call self%ham%calc_berry_z(k, omega_z, Emax)
             call self%ham%calc_single_eigenvalue(k, eig_val)
 
             do n = 1,2*self%ham%UC%num_atoms
@@ -832,6 +835,37 @@ contains
         ferm = 1d0 / (exp((E - self%E_fermi(n_ferm))&
             /(boltzmann_const * self%temp)) + 1d0)
     end function fermi_distr
+
+    function find_E_max(self) result(c)
+        implicit none
+        class(k_space), intent(in)   :: self
+        real(8)                      :: l, u, c
+        real(8), parameter           :: tol = 1d-6, tar = 1d-12
+        integer(4)                   :: Emax, cnt
+
+        l = - 25d0 * self%ham%t_nn
+        u = 25d0 * self%ham%t_nn
+        Emax  = size(self%E_fermi)
+
+        if((self%fermi_distr(l, Emax) - tar) &
+            * (self%fermi_distr(u, Emax) - tar) > 0d0) then
+            write (*,*) "Emax bisection failed. So crossing in window"
+            stop
+        endif
+        
+        c =  0.5 * (u + l)
+        cnt =  0
+        do while(abs((self%fermi_distr(c, Emax) - tar)/tar) > tol)
+            if(sign(1d0,self%fermi_distr(c, Emax) - tar) ==&
+                sign(1d0,self%fermi_distr(l,Emax)- tar)) then
+                l = c
+            else
+                u = c
+            endif
+            c =  0.5 * (u + l)
+            cnt =  cnt + 1
+        enddo
+    end function find_E_max
 
 end module
 

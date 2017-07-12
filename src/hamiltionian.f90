@@ -5,7 +5,7 @@ module Class_hamiltionian
     use m_npy
     use mpi
     implicit none
-    
+
     type hamil
         real(8)         :: E_s !> onsite eigenenergy
         real(8)         :: t_nn !> nearest neighbour hopping
@@ -41,7 +41,7 @@ module Class_hamiltionian
 contains
     subroutine free_ham(self)
         implicit none
-        class(hamil)     :: self
+    class(hamil)     :: self
 
         if(allocated(self%del_H)) deallocate(self%del_H)
         call self%UC%free_uc()
@@ -49,11 +49,11 @@ contains
 
     subroutine compare_derivative(self, k)
         implicit none 
-        class(hamil)                :: self
+    class(hamil)                :: self
         real(8), intent(in)         :: k(3)
         complex(8), allocatable     :: fd_H(:,:)
         integer(4)                  :: N, k_idx 
-        
+
         write (*,*) "bla" 
         N = 2 * self%UC%num_atoms
         allocate(fd_H(N,N))
@@ -64,7 +64,7 @@ contains
         do k_idx =  1,2
             call self%set_deriv_FD(k, k_idx, fd_H)
             call self%set_derivative_k(k, k_idx)
-            
+
             if(cnorm2(reshape(fd_H - self%del_H, [N*N])) >= 1d-8) then
                 write (*,*) "mist"
             else
@@ -81,7 +81,7 @@ contains
 
     subroutine setup_H(self,k,H)
         implicit none
-        class(hamil)        :: self
+    class(hamil)        :: self
         real(8), intent(in) :: k(3)
         complex(8), intent(inout) :: H(:,:)
 
@@ -89,25 +89,25 @@ contains
             write (*,*) "K_z is non-zero. Abort.", k
             stop
         endif
-       
+
         H =  0d0
-        
+
         if(self%E_s    /= 0d0) call self%set_EigenE(H)
         if(self%t_nn   /= 0d0) call self%set_hopping(k,H)
         if(self%t_so   /= 0d0) call self%set_rashba_SO(k,h)
         if(self%lambda /= 0d0) call self%set_loc_exch(H)
-    
+
     end subroutine setup_H
 
     subroutine test_herm(H)
         implicit none
         complex(8), intent(in) :: H(:,:)
         integer(4)             :: n
-        
+
         n = size(H, dim=1)
 
         if((my_norm2(reshape( real(H - transpose(conjg(H))),[n*n]))/(n**2) > 1d-10) .or.&
-           (my_norm2(reshape(aimag(H - transpose(conjg(H))),[n*n]))/(n**2) > 1d-10)) then
+            (my_norm2(reshape(aimag(H - transpose(conjg(H))),[n*n]))/(n**2) > 1d-10)) then
             write (*,*) "nope"
         else
             write (*,*) "Fine"
@@ -120,23 +120,23 @@ contains
         type(hamil)    :: self
         real(8)        :: tmp
         integer(4)     :: ierr
-        
+
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
-        
+
         self%units = init_units(cfg, self%me)
         self%UC    = init_unit(cfg)
 
         if(self%me ==  0) then 
             call CFG_get(cfg, "hamil%E_s", tmp)
             self%E_s =  tmp * self%units%energy
-            
+
             call CFG_get(cfg, "hamil%t_nn", tmp)
             self%t_nn =  tmp * self%units%energy
-            
+
             call CFG_get(cfg, "hamil%t_so", tmp)
             self%t_so =  tmp * self%units%energy
-            
+
             call CFG_get(cfg, "hamil%lambda", tmp)
             self%lambda =  tmp * self%units%energy
 
@@ -148,7 +148,7 @@ contains
 
     subroutine Bcast_hamil(self)
         implicit none
-        class(hamil)          :: self
+    class(hamil)          :: self
         integer(4), parameter :: num_cast =  5
         integer(4)            :: ierr(num_cast)
 
@@ -163,7 +163,7 @@ contains
 
     subroutine set_loc_exch(self,H)
         implicit none
-        class(hamil), intent(in)   :: self
+    class(hamil), intent(in)   :: self
         complex(8), intent(inout)  :: H(:,:)
         complex(8)                 :: S(2,2) !> Stonermatrix
         integer(4)                 :: i, i_up, i_dw
@@ -184,22 +184,22 @@ contains
 
     subroutine setup_Stoner_mtx(self,i,S)
         implicit none
-        class(hamil), intent(in) :: self
+    class(hamil), intent(in) :: self
         integer(4), intent(in)   :: i
         complex(8), intent(inout):: S(2,2)
         real(8)                  :: m(3), fac
-        
+
         m = self%UC%atoms(i)%get_m_cart()
         fac =  - 0.5d0 *  self%lambda
-        
+
         S = fac * ( m(1) * sigma_x &
-                  + m(2) * sigma_y &
-                  + m(3) * sigma_z)
+            + m(2) * sigma_y &
+            + m(3) * sigma_z)
     end subroutine setup_Stoner_mtx
 
     subroutine set_EigenE(self,H)
         implicit none
-        class(hamil), intent(in) :: self
+    class(hamil), intent(in) :: self
         complex(8), intent(inout):: H(:,:)
         integer(4) :: i
 
@@ -210,11 +210,11 @@ contains
 
     subroutine set_hopping(self,k, H)
         implicit none
-        class(hamil), intent(in)          :: self 
+    class(hamil), intent(in)          :: self 
         real(8), intent(in)               :: k(3)
         complex(8), intent(inout)         :: H(:,:)
         integer(4)                        :: i, i_d, j,&
-                                             j_d, conn
+            j_d, conn
         real(8)                           :: k_dot_r
         complex(8)                        :: new
 
@@ -223,7 +223,7 @@ contains
             do conn = 1,self%UC%atoms(i)%n_neigh
                 j =  self%UC%atoms(i)%neigh_idx(conn)
                 k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
-                
+
                 new = exp(i_unit * k_dot_r) * self%t_nn
                 H(i,j) =  H(i,j) + new
                 H(j,i) =  H(j,i) + conjg(new)
@@ -237,7 +237,7 @@ contains
 
                 j      = self%UC%atoms(i)%neigh_idx(conn)
                 j_d = j + self%UC%num_atoms
-                
+
                 k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
 
                 new =  exp(i_unit *  k_dot_r) * self%t_nn
@@ -250,7 +250,7 @@ contains
 
     subroutine set_rashba_SO(self, k, H)
         implicit none
-        class(hamil), intent(in)    :: self
+    class(hamil), intent(in)    :: self
         real(8), intent(in)         :: k(3)
         complex(8), intent(inout)   :: H(:,:)
         integer(4)                  :: i, conn, j, i_d, j_d
@@ -271,7 +271,7 @@ contains
 
                 ! hopping from i to j
                 new = exp(i_unit *  k_dot_r) * i_unit * self%t_so &
-                  * (sigma_x * d_ij(2) -  sigma_y * d_ij(1))
+                    * (sigma_x * d_ij(2) -  sigma_y * d_ij(1))
 
 
                 H(i, j) = H(i, j) + new(1,       1)
@@ -292,7 +292,7 @@ contains
 
     subroutine set_deriv_FD(self, k, k_idx, del_H)
         implicit none
-        class(hamil), intent(in) :: self
+    class(hamil), intent(in) :: self
         real(8), intent(in)      :: k(3)
         integer(4), intent(in)   :: k_idx
         complex(8), allocatable     :: H_forw(:,:), H_back(:,:), del_H(:,:)
@@ -303,12 +303,12 @@ contains
         N = 2 * self%UC%num_atoms
         allocate(H_back(N,N))
         allocate(H_forw(N,N))
-        
+
         if(k(3) /= 0) then
             write (*,*) "K_z not zero in set_derivative_k"
             stop
         endif
-    
+
         del_H = 0d0
         k_forw = k
         k_back = k
@@ -325,7 +325,7 @@ contains
 
     subroutine set_derivative_k(self, k, k_idx)
         implicit none
-        class(hamil)              :: self
+    class(hamil)              :: self
         integer(4), intent(in)    :: k_idx
         real(8), intent(in)       :: k(3)
 
@@ -333,7 +333,7 @@ contains
             write (*,*) "K_z not zero in set_derivative_k"
             stop
         endif
-    
+
         self%del_H = 0d0
         if(self%t_nn /= 0d0) call self%set_derivative_hopping(k, k_idx)
         if(self%t_so /= 0d0) call self%set_derivative_rashba_so(k, k_idx)
@@ -342,7 +342,7 @@ contains
 
     subroutine set_derivative_hopping(self, k, k_idx)
         implicit none
-        class(hamil)             :: self
+    class(hamil)             :: self
         real(8), intent(in)      :: k(3)
         integer(4), intent(in)   :: k_idx
         real(8)                   :: r(3), k_dot_r
@@ -363,13 +363,13 @@ contains
 
                 k_dot_r = dot_product(k, r)
                 forw    = i_unit * r(k_idx) * self%t_nn &
-                          * exp(i_unit * k_dot_r)
+                    * exp(i_unit * k_dot_r)
                 back =  conjg(forw)                
 
                 !Spin up
                 self%del_H(i,j)     = self%del_H(i,j) + forw 
                 self%del_H(j,i)     = self%del_H(j,i) + back
-                
+
                 !Spin down
                 self%del_H(i_d,j_d) = self%del_H(i_d,j_d) + forw
                 self%del_H(j_d,i_d) = self%del_H(j_d,i_d) + back
@@ -380,7 +380,7 @@ contains
 
     subroutine set_derivative_rashba_so(self, k, k_idx)
         implicit none
-        class(hamil)            :: self
+    class(hamil)            :: self
         real(8), intent(in)     :: k(3)
         integer(4), intent(in)  :: k_idx
         real(8)                 :: r(3), d_ij(3), k_dot_r
@@ -395,7 +395,7 @@ contains
             do conn = 1,self%UC%atoms(i)%n_neigh
                 j   =  self%UC%atoms(i)%neigh_idx(conn)
                 j_d = j + self%UC%num_atoms 
-                
+
                 r    = self%UC%atoms(i)%neigh_conn(conn,:)
                 d_ij = - r
 
@@ -422,32 +422,30 @@ contains
 
     function calc_deriv_elem(self, psi_nk, psi_mk) result(elem)
         implicit none
-        class(hamil)               :: self
+    class(hamil)               :: self
         complex(8), intent(in)     :: psi_nk(:), psi_mk(:)
         complex(8)                 :: elem
-        
+
         elem = dot_product(psi_nk, matvec(self%del_H, psi_mk))
     end function
 
-    subroutine calc_berry_z(self,k,z_comp)
+    subroutine calc_berry_z(self,k,z_comp, E_max)
         implicit none
-        class(hamil), intent(in)            :: self
-        real(8), intent(in)                 :: k(3)
+    class(hamil), intent(in)            :: self
+        real(8), intent(in)             :: k(3)
+        real(8), intent(in), optional   :: E_max
         real(8), allocatable                :: z_comp(:) !> \f$ \Omega^n_z \f$
         complex(8), allocatable  :: x_elems(:), y_elems(:), H(:,:), work(:)
         real(8), allocatable     :: eig_val(:), rwork(:)
         complex(8) :: fac, tmp
         integer(4), allocatable  :: iwork(:)
-        integer(4)   :: n_dim, n, m, lwork, lrwork, liwork, info
+        integer(4)   :: n_dim, n, m, lwork, lrwork, liwork, info, n_max
 
         n_dim = 2 * self%UC%num_atoms
         allocate(H(n_dim,n_dim))
         allocate(eig_val(n_dim))
 
-        
-        if(.not. allocated(z_comp))then
-            allocate(z_comp(n_dim))
-        endif
+
 
         H = 0d0
         call self%setup_H(k, H)
@@ -456,30 +454,48 @@ contains
         allocate(work(lwork))
         allocate(rwork(lrwork))
         allocate(iwork(liwork))
-        
+
         call zheevd('V', 'L', n_dim, H, n_dim, eig_val, &
-                    work, lwork, rwork, lrwork, iwork, liwork, info)
+            work, lwork, rwork, lrwork, iwork, liwork, info)
         if(info /= 0) then
             write (*,*) "ZHEEVD in berry calculation failed"
         endif
+    
+        if(present(E_max)) then
+            n_max =  1
+            do while(eig_val(n_max) <= E_max)
+                n_max = n_max + 1
+                if(n_max == n_dim) exit
+            enddo
+        else
+            n_max = n_dim
+        endif
+
+
+        if(allocated(z_comp)) then
+            if(size(z_comp) /= n_max) deallocate(z_comp)
+        endif
+
+        if(.not. allocated(z_comp)) allocate(z_comp(n_dim))
+
         allocate(x_elems(n_dim))
         allocate(y_elems(n_dim))
-        
-    
-        do n= 1,n_dim
+
+
+        do n= 1,n_max
             !calc del_kx H
             call self%set_derivative_k(k, 1)
-            
+
             !$omp parallel do default(shared) 
             do m=1,n_dim
                 if(m /= n)then
                     x_elems(m) = self%calc_deriv_elem(H(:,n), H(:,m))
                 endif
             enddo
-            
+
             !calc del_ky H
             call self%set_derivative_k(k, 2)
-            
+
             !$omp parallel do default(shared) 
             do m=1,n_dim
                 if(m /= n)then
@@ -510,7 +526,7 @@ contains
 
     Subroutine  calc_eigenvalues(self, k_list, eig_val)
         Implicit None
-        class(hamil)                      :: self
+    class(hamil)                      :: self
         real(8), intent(in)               :: k_list(:,:)
         real(8), allocatable,intent(out)  :: eig_val(:,:)
         real(8)                           :: k(3)
@@ -519,7 +535,7 @@ contains
         real(8), allocatable              :: RWORK(:)
         complex(8), allocatable           :: WORK(:)
         integer(4), allocatable           :: IWORK(:)
-        
+
         N =  2 * self%UC%num_atoms
         allocate(eig_val(N, size(k_list, 2)))
         allocate(H(N,N))
@@ -528,13 +544,13 @@ contains
         allocate(RWORK(lrwork))
         allocate(IWORK(liwork))
         allocate(WORK(lwork))
-        
+
         do i = 1,size(k_list,2)
             k =  k_list(:,i)
             call self%setup_H(k, H)
-            
+
             call zheevd('N', 'U', N, H, N, eig_val(:,i), WORK, lwork, &
-                                RWORK, lrwork, IWORK, liwork, info)
+                RWORK, lrwork, IWORK, liwork, info)
             if( info /= 0) then
                 write (*,*) "ZHEEV failed: ", info
                 stop
@@ -548,7 +564,7 @@ contains
 
     subroutine calc_single_eigenvalue(self, k, eig_val)
         implicit none
-        class(hamil)                      :: self
+    class(hamil)                      :: self
         real(8), intent(in)               :: k(3)
         real(8), allocatable, intent(out) :: eig_val(:)
         complex(8), allocatable           :: H(:,:), work(:)
@@ -557,7 +573,7 @@ contains
         integer(4)                        :: N, lwork, lrwork, liwork, info
 
         N = 2 * self%UC%num_atoms
-        
+
         allocate(eig_val(N))
         allocate(H(N,N))
         call calc_zheevd_size('N', H, eig_val, lwork, lrwork, liwork)
@@ -567,8 +583,8 @@ contains
 
         call self%setup_H(k, H)
         call zheevd('N', 'U', N, H, N, eig_val, work, lwork, &
-                     RWORK, lrwork, IWORK, liwork, info)
-        
+            RWORK, lrwork, IWORK, liwork, info)
+
         if(info /=  0) write (*,*) "ZHEEVD failed:", info
 
         deallocate(H)
