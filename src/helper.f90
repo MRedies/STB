@@ -180,4 +180,62 @@ contains
         enddo
     end subroutine check_ierr
 
+    recursive subroutine qargsort(data, idx, first_in, last_in)
+        implicit none
+        real(8)                 :: data(:)
+        integer(4), allocatable :: idx(:)
+        integer(4), optional    :: first_in, last_in
+        integer(4)              :: first, last, i, p
+
+        !setting up a nice interface
+        if(.not. present(first_in)) then
+            if(allocated(idx)) then
+                if(size(data) /= size(idx)) then
+                    deallocate(idx)
+                endif
+            endif
+
+            if(.not. allocated(idx)) allocate(idx(size(data)))
+
+            forall(i=1:size(idx)) idx(i) = i
+            first = 1
+            last  = size(data)
+        else
+            first = first_in
+            last  = last_in
+        endif
+
+        !actual algo
+        if(first < last) then
+            p = partition(data, idx, first, last)
+            call qargsort(data, idx, first, p - 1)
+            call qargsort(data, idx, p + 1, last)
+        endif
+    end subroutine qargsort
+
+    function partition(data, idx, first, last) result(p)
+        implicit none
+        real(8)                 :: data(:), pivot
+        integer(4), allocatable :: idx(:)
+        integer(4)              :: first, last, p, i, j, tmp
+
+        pivot = data(idx(last))
+        i = first - 1
+        do j = first, last-1
+            if(data(idx(j)) <= pivot) then
+                i = i + 1
+
+                !swap
+                tmp = idx(i)
+                idx(i) = idx(j)
+                idx(j) = tmp
+            endif
+        enddo
+        tmp = idx(i+1)
+        idx(i+1) = idx(last)
+        idx(last) = tmp
+
+        p = i + 1
+    end function partition
+
 end module Class_helper

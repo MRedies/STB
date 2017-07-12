@@ -36,8 +36,12 @@ subroutine run_triang(k_pts, ret_elem)
 
 
     resh =  reshape(elem, [2*n_nodes,3])
-    
-    allocate(ret_elem(n_elem,3))
+   
+    if(allocated(ret_elem))then
+        if(size(ret_elem,1) /= n_elem) deallocate(ret_elem)
+    endif
+    if(.not. allocated(ret_elem)) allocate(ret_elem(n_elem,3))
+
     ret_elem = resh(1:n_elem, :)
 
     deallocate(x)

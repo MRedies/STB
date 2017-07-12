@@ -56,6 +56,9 @@ module Class_k_space
         procedure :: plot_omega             => plot_omega
         procedure :: free_ksp               => free_ksp
         procedure :: find_E_max             => find_E_max
+        procedure :: area_of_elem           => area_of_elem
+        procedure :: centeroid_of_elem      => centeroid_of_elem
+        procedure :: pad_k_points_init      => pad_k_points_init
     end type k_space 
 
 contains
@@ -487,6 +490,8 @@ contains
         enddo
 
         call run_triang(self%k_pts, self%elem_nodes)
+        call self%pad_k_points_init()
+        if(self%me == root) write (*,*) "Berry kpts =  ", size(self%k_pts,2)
         call self%set_weights_ksp()
     end subroutine setup_inte_grid_hex
 
@@ -866,6 +871,93 @@ contains
             cnt =  cnt + 1
         enddo
     end function find_E_max
+
+    function area_of_elem(self, idx) result(area)
+        implicit none
+        class(k_space), intent(in) :: self
+        integer(4), intent(in)     :: idx
+        real(8)                    :: area
+        real(8)    :: vec1(3), vec2(3)
+
+        vec1 = self%k_pts(:,self%elem_nodes(idx,1)) - self%k_pts(:,self%elem_nodes(idx,2))
+        vec2 = self%k_pts(:,self%elem_nodes(idx,1)) - self%k_pts(:,self%elem_nodes(idx,3))
+        area =  0.5d0 * my_norm2(cross_prod(vec1, vec2))
+    end function area_of_elem
+
+    function centeroid_of_elem(self, idx) result(centeroid)
+        implicit none
+        class(k_space), intent(in)  :: self
+        integer(4), intent(in)      :: idx
+        integer(4)                  :: i,j
+        real(8)                     :: centeroid(2), x_avg, y_avg
+
+        centeroid =  0d0 
+        do i = 1,3
+            centeroid(1) =  centeroid(1) + self%k_pts(1,self%elem_nodes(idx,i))
+            centeroid(2) =  centeroid(2) + self%k_pts(2,self%elem_nodes(idx,i))
+        enddo
+        centeroid = centeroid * 0.33333333333d0
+    end function centeroid_of_elem
+
+    subroutine pad_k_points_init(self)
+        implicit none
+        class(k_space)                :: self
+        integer(4)  :: rest, i,j, cnt, n_kpts, n_elem
+        integer(4), allocatable :: sort(:)
+        real(8), allocatable    :: areas(:), new_ks(:,:), tmp(:,:)
+        
+        interface
+            subroutine run_triang(k_pts, ret_elem)
+                real(8), intent(in)              :: k_pts(:,:)
+                integer(4), allocatable          :: ret_elem(:,:)
+            end subroutine run_triang
+        end interface
+
+        n_kpts =  size(self%k_pts,2)
+        if(self%me == root) write (*,*) "nkpt = ", n_kpts
+        if(self%me == root) write (*,*) "nProcs", self%nProcs
+
+        rest =  self%nProcs - mod(n_kpts, self%nProcs)
+        if(self%me == root) write (*,*) "rest", rest
+        if(rest /= 0) then
+            !find biggest triangles
+            n_elem =  size(self%elem_nodes,1)
+            if(rest >  n_elem) then
+                write (*,*) "Not enough elements for padding"
+                stop
+            endif
+
+            allocate(areas(n_elem))
+            allocate(new_ks(3,rest))
+
+            forall(i = 1:n_elem) areas(i) = self%area_of_elem(i)
+            call qargsort(areas, sort)
+
+            !calculate new elements
+            new_ks =  0d0
+            cnt = 1
+            do i = n_elem, n_elem - rest + 1,-1
+                new_ks(1:2,cnt) = self%centeroid_of_elem(sort(i))
+                !if(self%me == root) write (*,*) self%centeroid_of_elem(i)
+                cnt = cnt + 1
+            enddo
+
+            !extent list
+            allocate(tmp(3,n_kpts))
+            forall(i=1:3, j=1:n_kpts) tmp(i,j) =  self%k_pts(i,j)
+            deallocate(self%k_pts)
+            allocate(self%k_pts(3, n_kpts +  rest))
+            forall(i=1:3, j=1:n_kpts) self%k_pts(i,j) = tmp(i,j)
+            deallocate(tmp)
+
+            !add new ones
+            forall(i=1:3, j=1:rest) self%k_pts(i,n_kpts+j) = new_ks(i,j)
+            call run_triang(self%k_pts, self%elem_nodes)
+        endif
+        if(self%me == root) call save_npy(trim(self%prefix) // "k_points.npy", self%k_pts)
+        if(self%me == root) call save_npy(trim(self%prefix) // "elem.npy", self%elem_nodes)
+        if(self%me == root)write (*,*) "Padded ", rest, "elements"
+    end subroutine pad_k_points_init
 
 end module
 

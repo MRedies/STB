@@ -17,8 +17,7 @@ program STB
     real(8), allocatable :: hall_cond(:)
     character(len=300), allocatable :: inp_files(:)
     character(len=300)   :: n_files_str, base_str, tmp_str
-
-
+    
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
     if(me == root) then
