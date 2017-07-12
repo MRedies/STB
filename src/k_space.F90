@@ -872,7 +872,7 @@ contains
         enddo
     end function find_E_max
 
-    function area_of_elem(self, idx) result(area)
+    pure function area_of_elem(self, idx) result(area)
         implicit none
         class(k_space), intent(in) :: self
         integer(4), intent(in)     :: idx

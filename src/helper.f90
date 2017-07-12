@@ -14,7 +14,7 @@ contains
         norm = sqrt(dot_product(vec,vec))
     end function cnorm2
 
-    function my_norm2(vec) result(norm)
+    pure function my_norm2(vec) result(norm)
         implicit none
         real(8), intent(in) :: vec(:)
         real(8)             :: norm
@@ -150,7 +150,7 @@ contains
         enddo
     end subroutine linspace
 
-    function cross_prod(a,b) result(c)
+    pure function cross_prod(a,b) result(c)
         implicit none
         real(8), intent(in)   :: a(3), b(3)
         real(8)               :: c(3)
