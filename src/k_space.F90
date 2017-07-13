@@ -23,6 +23,7 @@ module Class_k_space
         integer(4) :: num_k_pts !> number of k_pts per segment
         integer(4) :: nProcs !> number of MPI Processes
         integer(4) :: me !> MPI rank
+        integer(4) :: laplace_iter !> number of laplace iterations
         real(8), allocatable :: weights(:) !> weights for integration
         integer(4), allocatable :: elem_nodes(:,:) !> elements in triangulation
         real(8), allocatable :: k1_param(:) !> 1st k_space param
@@ -59,6 +60,10 @@ module Class_k_space
         procedure :: area_of_elem           => area_of_elem
         procedure :: centeroid_of_elem      => centeroid_of_elem
         procedure :: pad_k_points_init      => pad_k_points_init
+        procedure :: new_pt                 => new_pt
+        procedure :: on_hex_border          => on_hex_border
+        procedure :: hex_laplace_smoother   => hex_laplace_smoother
+        procedure :: in_points              => in_points
     end type k_space 
 
 contains
@@ -317,6 +322,8 @@ contains
             call CFG_get(cfg, "berry%k_pts_per_dim", self%berry_num_k_pts)
             call CFG_get(cfg, "berry%temperature", tmp)
             self%temp = tmp * self%units%temperature
+
+            call CFG_get(cfg, "berry%laplace_iter", self%laplace_iter)
         endif
         call MPI_Barrier(MPI_COMM_WORLD, ierr)
         call self%Bcast_k_space()
@@ -324,7 +331,7 @@ contains
 
     subroutine Bcast_k_space(self)
     class(k_space)         :: self
-        integer(4), parameter  :: num_cast =  12
+        integer(4), parameter  :: num_cast =  13
         integer(4)             :: ierr(num_cast), sz(2)
 
         if(self%me ==  root) then
@@ -367,6 +374,8 @@ contains
             root,                 MPI_COMM_WORLD, ierr(11))
         call MPI_Bcast(self%temp,            1,              MPI_REAL8,    &
             root,                 MPI_COMM_WORLD, ierr(12))
+        call MPI_Bcast(self%laplace_iter,    1,              MPI_INTEGER4, &
+            root,                 MPI_COMM_WORLD, ierr(13))
 
     end subroutine Bcast_k_space
 
@@ -491,7 +500,6 @@ contains
 
         call run_triang(self%k_pts, self%elem_nodes)
         call self%pad_k_points_init()
-        if(self%me == root) write (*,*) "Berry kpts =  ", size(self%k_pts,2)
         call self%set_weights_ksp()
     end subroutine setup_inte_grid_hex
 
@@ -515,7 +523,7 @@ contains
         implicit none
         class(k_space)   :: self
         real(8)          :: A_proj, vec1(3), vec2(3), integr
-        integer(4)       :: ierr, i, j, k_idx
+        integer(4)       :: i, j, k_idx
 
         if(allocated(self%weights)) then
             deallocate(self%weights)
@@ -884,12 +892,42 @@ contains
         area =  0.5d0 * my_norm2(cross_prod(vec1, vec2))
     end function area_of_elem
 
+    function new_pt(self, idx) result(pt)
+        implicit none
+        class(k_space), intent(in)   ::self
+        integer(4), intent(in)       :: idx
+        real(8)                      :: pt(2), start(2), vec(3), len, len_max
+
+        vec = self%k_pts(:,self%elem_nodes(idx,1)) - self%k_pts(:,self%elem_nodes(idx,2))
+        len =  my_norm2(vec)
+        len_max =  len
+        start =  self%k_pts(1:2,self%elem_nodes(idx,2))
+        pt = start + 0.5 * vec(1:2)
+        
+        vec = self%k_pts(:,self%elem_nodes(idx,1)) - self%k_pts(:,self%elem_nodes(idx,3))
+        len =  my_norm2(vec)
+        if(len >  len_max) then
+            len_max =  len
+            start =  self%k_pts(1:2,self%elem_nodes(idx,3))
+            pt = start + 0.5 * vec(1:2)
+        endif
+
+        vec = self%k_pts(:,self%elem_nodes(idx,2)) - self%k_pts(:,self%elem_nodes(idx,3))
+        len =  my_norm2(vec)
+        if(len >  len_max) then
+            len_max =  len
+            start =  self%k_pts(1:2,self%elem_nodes(idx,3))
+            pt = start + 0.5 * vec(1:2)
+        endif
+
+    end function new_pt
+
     function centeroid_of_elem(self, idx) result(centeroid)
         implicit none
         class(k_space), intent(in)  :: self
         integer(4), intent(in)      :: idx
-        integer(4)                  :: i,j
-        real(8)                     :: centeroid(2), x_avg, y_avg
+        integer(4)                  :: i
+        real(8)                     :: centeroid(2)
 
         centeroid =  0d0 
         do i = 1,3
@@ -902,9 +940,11 @@ contains
     subroutine pad_k_points_init(self)
         implicit none
         class(k_space)                :: self
-        integer(4)  :: rest, i,j, cnt, n_kpts, n_elem
+        integer(4)  :: rest, i,j, cnt, n_kpts, n_elem, ierr
         integer(4), allocatable :: sort(:)
         real(8), allocatable    :: areas(:), new_ks(:,:), tmp(:,:)
+        real(8)                 :: cand(2)
+
         
         interface
             subroutine run_triang(k_pts, ret_elem)
@@ -923,7 +963,7 @@ contains
             !find biggest triangles
             n_elem =  size(self%elem_nodes,1)
             if(rest >  n_elem) then
-                write (*,*) "Not enough elements for padding"
+                write (*,*) "Not enough elements for padding: ", n_elem
                 stop
             endif
 
@@ -935,13 +975,20 @@ contains
 
             !calculate new elements
             new_ks =  0d0
-            cnt = 1
-            do i = n_elem, n_elem - rest + 1,-1
-                new_ks(1:2,cnt) = self%centeroid_of_elem(sort(i))
-                !if(self%me == root) write (*,*) self%centeroid_of_elem(i)
-                cnt = cnt + 1
+            i = n_elem
+            do cnt = 1,rest
+                cand = self%new_pt(sort(i))
+                do while(self%in_points(cand, new_ks(1:2,1:cnt-1)))
+                    i = i - 1
+                    if(i < 1) then 
+                        write (*,*) "not enough elems for refinement"
+                        call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+                    endif
+                    cand = self%new_pt(sort(i))
+                enddo
+                new_ks(1:2,cnt) = cand
             enddo
-
+            
             !extent list
             allocate(tmp(3,n_kpts))
             forall(i=1:3, j=1:n_kpts) tmp(i,j) =  self%k_pts(i,j)
@@ -954,10 +1001,88 @@ contains
             forall(i=1:3, j=1:rest) self%k_pts(i,n_kpts+j) = new_ks(i,j)
             call run_triang(self%k_pts, self%elem_nodes)
         endif
-        if(self%me == root) call save_npy(trim(self%prefix) // "k_points.npy", self%k_pts)
-        if(self%me == root) call save_npy(trim(self%prefix) // "elem.npy", self%elem_nodes)
-        if(self%me == root)write (*,*) "Padded ", rest, "elements"
+        call self%hex_laplace_smoother()
     end subroutine pad_k_points_init
+
+    function in_points(self, pt, list) result(inside)
+        implicit none
+        class(k_space)       :: self
+        real(8), intent(in)  :: pt(2), list(:,:)
+        logical              :: inside
+        real(8)              :: l
+        integer(4)           :: i
+
+        inside =  .False.
+        l = my_norm2(self%ham%UC%rez_lattice(:,1))
+        
+        do i = 1,size(list,2)
+            if(my_norm2(pt - list(:,i)) < l * pos_eps) then
+                inside = .True.
+            endif
+        enddo
+    end function in_points
+
+    function on_hex_border(self, idx) result(on_border)
+        implicit none
+        class(k_space), intent(in)   :: self
+        integer(4)                   :: idx
+        real(8)                      :: pt(2)
+        logical                      :: on_border
+        real(8)                      :: l
+        
+        pt =  self%k_pts(1:2,idx)
+        l = my_norm2(self%ham%UC%rez_lattice(:,1))
+        
+        if(abs(abs(pt(2)) - 0.5d0 * l) < pos_eps * l) then
+            on_border = .True.
+        else
+            on_border = abs(abs(pt(1)) - self%hex_border_x(pt(2))) < pos_eps * l
+        endif
+    end function on_hex_border
+
+    subroutine hex_laplace_smoother(self)
+        implicit none
+        class(k_space)              :: self
+        real(8), allocatable        :: shift(:,:), n_neigh(:)
+        integer(4)                  :: i, j, point, neigh
+        integer(4), parameter       :: N = 4
+
+        interface
+            subroutine run_triang(k_pts, ret_elem)
+                real(8), intent(in)              :: k_pts(:,:)
+                integer(4), allocatable          :: ret_elem(:,:)
+            end subroutine run_triang
+        end interface
+        allocate(shift(2, size(self%k_pts,2)))
+        allocate(n_neigh(size(self%k_pts,2)))
+
+
+        do i =  1,self%laplace_iter
+            shift = 0d0
+            neigh = 0d0
+            do j = 1,size(self%elem_nodes,1)
+                do point = 1,3
+                    do neigh = 1,3
+                        if(.not. self%on_hex_border(self%elem_nodes(j,point)))then
+                            shift(:,self%elem_nodes(j,point)) = shift(:,self%elem_nodes(j,point)) + &
+                                (self%k_pts(1:2,self%elem_nodes(j,neigh)) - self%k_pts(1:2,self%elem_nodes(j,point)))
+                            n_neigh(self%elem_nodes(j,point)) =  n_neigh(self%elem_nodes(j,point)) + 1d0
+                        endif
+                    enddo
+                enddo
+            enddo
+            do j = 1,size(shift,2)
+                if(n_neigh(j) >  1d-6) then
+                    self%k_pts(1:2,j) =  self%k_pts(1:2,j) + shift(:,j) / n_neigh(j)
+                endif
+
+            enddo
+        enddo
+
+    end subroutine hex_laplace_smoother
+
+
+
 
 end module
 
