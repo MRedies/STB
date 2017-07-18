@@ -709,9 +709,9 @@ contains
         iter =  1
         do iter =1,self%berry_iter
             N_k = size(self%new_k_pts, 2)
-            allocate(eig_val_new(2*n_atm,N_k)) 
 
             call my_section(self%me, self%nProcs, N_k, first, last)
+            allocate(eig_val_new(2*n_atm,last-first+1))
             allocate(omega_z_new(last-first+1))
             allocate(omega_kidx_new(last-first+1))
 
@@ -730,10 +730,21 @@ contains
                 omega_z_all, omega_z_new)
             call self%append_kpts()
             call append_eigval(eig_val_all, eig_val_new)
+            write (*,*) self%me, " -> all shape: ", shape(eig_val_all)
             ! integrate hall conductance
             !call self%test_integration(iter)
+            
+            write (filename, "(A,I0.5,A,I0.5,A)") "omega_kidx_all_proc=", self%me, "_nk=", size(self%all_k_pts, 2), ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
 
-            call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall)
+
+            write (filename, "(A,I0.5,A,I0.5,A)") "omega_z_all_proc=", self%me, "_nk=", size(self%all_k_pts,2), ".npy"
+            if(allocated(tmp)) deallocate(tmp)
+            allocate(tmp(size(omega_z_all)))
+            forall (i=1:size(tmp)) tmp(i) = omega_z_all(i)%arr(1)
+            call save_npy(trim(self%prefix) // trim(filename), tmp)
+
+            call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall, iter)
 
             if(mod(iter, 10) ==  0) then
                 if(self%me == root) then
@@ -745,18 +756,6 @@ contains
                     write (filename, "(A,I0.5,A)") "hall_E_", iter, ".npy"
                     call save_npy(trim(self%prefix) // trim(filename), &
                         self%E_fermi / self%units%energy)
-                    
-                    write (filename, "(A,I0.5,A)") "eig_val_", iter, ".npy"
-                    call save_npy(trim(self%prefix) // trim(filename), &
-                        eig_val_all / self%units%energy)
-
-                    if(allocated(tmp)) deallocate(tmp)
-                    allocate(tmp(size(omega_z_all)))
-                    forall(i=1:size(tmp)) tmp(i) = omega_z_all(i)%arr(2)
-
-                    write (filename, "(A,I0.5,A)") "omega_z_", iter, ".npy"
-                    call save_npy(trim(self%prefix) // trim(filename), &
-                        tmp)
                 endif
 
                 if(self%me == root) then
@@ -769,7 +768,7 @@ contains
             endif
             
             call self%set_hall_weights(omega_z_all, omega_kidx_all)
-            call self%add_kpts_iter(100*self%nProcs, self%new_k_pts)
+            call self%add_kpts_iter(self%nProcs, self%new_k_pts)
 
         enddo
         deallocate(hall)
@@ -777,23 +776,30 @@ contains
         deallocate(self%new_k_pts)
     end subroutine calc_hall_conductance
 
-    subroutine integrate_hall(self, omega_kidx_all, omega_z_all, eig_val_all, hall)
+    subroutine integrate_hall(self, omega_kidx_all, omega_z_all, eig_val_all, hall, iter)
         implicit none
     class(k_space)          :: self
-        integer(4), intent(in)  :: omega_kidx_all(:)
+        integer(4), intent(in)  :: omega_kidx_all(:), iter
         type(r8arr), intent(in) :: omega_z_all(:)
         real(8), intent(in)     :: eig_val_all(:,:)
-        real(8), allocatable    :: hall(:), omega_z(:), tmp(:)
+        real(8), allocatable    :: hall(:), omega_z(:)
         integer(4)              :: loc_idx, n, n_hall, k_idx, ierr
+        character(len=300)      :: filename
 
         if(allocated(hall)) deallocate(hall)
         allocate(hall(size(self%E_fermi)))
-        allocate(tmp(size(hall)))
 
         !run triangulation
         call run_triang(self%all_k_pts, self%elem_nodes)
         call self%set_weights_ksp()
+        
+        write (filename, "(A,I0.5,A,I0.5,A)") "weights_proc=", self%me, "_nk=", &
+            size(self%all_k_pts,2), ".npy"
+        call save_npy(trim(self%prefix) // trim(filename), self%weights)
 
+        write (filename, "(A,I0.5,A,I0.5,A)") "eig_val_proc=", self%me, "_nk=", &
+            size(self%all_k_pts,2), ".npy"
+        call save_npy(trim(self%prefix) // trim(filename), eig_val_all)
         !perform integration with all points
         hall =  0d0
 
@@ -812,14 +818,19 @@ contains
         enddo
 
         hall = hall / (2d0*PI)
-        tmp  = hall
-        hall = 0d0
         
-        call MPI_Reduce(tmp, hall, size(hall), MPI_REAL8, MPI_SUM, &
-                        root, MPI_COMM_WORLD, ierr)
-        !call MPI_Allreduce(MPI_IN_PLACE, hall, size(hall), &
-                           !MPI_REAL8, MPI_Sum, &
-                           !MPI_COMM_WORLD, ierr)
+        write (filename, "(A,I0.5,A,I0.5,A)") "hall_proc=", self%me, "_nk=", &
+            size(self%all_k_pts,2), ".npy"
+        call save_npy(trim(self%prefix) // trim(filename), hall)
+        
+        if(self%me == root) then
+            call MPI_Reduce(MPI_IN_PLACE, hall, size(hall), MPI_REAL8, MPI_SUM, &
+                            root, MPI_COMM_WORLD, ierr)
+        else
+            call MPI_Reduce(hall, hall, size(hall), MPI_REAL8, MPI_SUM, &
+                            root, MPI_COMM_WORLD, ierr)
+        endif
+        call check_ierr([ierr], self%me, "Hall conductance")
     end subroutine integrate_hall
 
     subroutine set_hall_weights(self, omega_z_all, omega_kidx_all)

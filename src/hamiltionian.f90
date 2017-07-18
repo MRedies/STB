@@ -475,6 +475,7 @@ contains
         endif
 
         if(.not. allocated(z_comp)) allocate(z_comp(n_dim), stat=info)
+        z_comp = 0d0
 
         allocate(x_elems(n_dim))
         allocate(y_elems(n_dim))
