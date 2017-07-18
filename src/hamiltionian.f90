@@ -445,15 +445,14 @@ contains
         allocate(H(n_dim,n_dim))
         allocate(eig_val(n_dim))
 
-
-
         H = 0d0
         call self%setup_H(k, H)
 
         call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
-        allocate(work(lwork))
+        allocate(work(lwork), stat=info)
         allocate(rwork(lrwork))
         allocate(iwork(liwork))
+
 
         call zheevd('V', 'L', n_dim, H, n_dim, eig_val, &
             work, lwork, rwork, lrwork, iwork, liwork, info)
@@ -476,7 +475,7 @@ contains
             if(size(z_comp) /= n_max) deallocate(z_comp)
         endif
 
-        if(.not. allocated(z_comp)) allocate(z_comp(n_dim))
+        if(.not. allocated(z_comp)) allocate(z_comp(n_dim), stat=info)
 
         allocate(x_elems(n_dim))
         allocate(y_elems(n_dim))
@@ -566,7 +565,7 @@ contains
         implicit none
     class(hamil)                      :: self
         real(8), intent(in)               :: k(3)
-        real(8), allocatable, intent(out) :: eig_val(:)
+        real(8)             , intent(out) :: eig_val(:)
         complex(8), allocatable           :: H(:,:), work(:)
         real(8), allocatable              :: rwork(:)
         integer(4), allocatable           :: iwork(:)
@@ -574,7 +573,7 @@ contains
 
         N = 2 * self%UC%num_atoms
 
-        allocate(eig_val(N))
+        !allocate(eig_val(N))
         allocate(H(N,N))
         call calc_zheevd_size('N', H, eig_val, lwork, lrwork, liwork)
         allocate(work(lwork))

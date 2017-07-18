@@ -16038,7 +16038,7 @@ void my_tri(double *x, double *y, int *n_nodes, int *elem, int *n_elem, int *ier
     out.edgelist = (int *) NULL;             /* Needed only if -e switch used. */
     out.edgemarkerlist = (int *) NULL;   /* Needed if -e used and -B not used. */
 
-    triangulate("cQ", &in, &out, (struct triangulateio *) NULL);
+    triangulate("Q", &in, &out, (struct triangulateio *) NULL);
     if(*n_elem >= out.numberoftriangles){
         *ierr = 0;
     } else{

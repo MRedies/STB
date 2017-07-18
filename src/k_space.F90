@@ -7,7 +7,7 @@ module Class_k_space
     implicit none
 
     type k_space
-        real(8), allocatable :: k_pts(:,:)
+        real(8), allocatable :: new_k_pts(:,:), all_k_pts(:,:)
         real(8), allocatable :: int_DOS(:) !> integrated Density of states  
         real(8), allocatable :: E_DOS(:)
         real(8), allocatable :: E_fermi(:) !> Fermi lvl
@@ -24,8 +24,10 @@ module Class_k_space
         integer(4) :: nProcs !> number of MPI Processes
         integer(4) :: me !> MPI rank
         integer(4) :: laplace_iter !> number of laplace iterations
+        integer(4) :: berry_iter !> number of grid refinements
         real(8), allocatable :: weights(:) !> weights for integration
         integer(4), allocatable :: elem_nodes(:,:) !> elements in triangulation
+        real(8), allocatable :: hall_weights(:)
         real(8), allocatable :: k1_param(:) !> 1st k_space param
         real(8), allocatable :: k2_param(:) !> 2nd k_space param
         character(len=300)    :: filling, prefix
@@ -49,6 +51,7 @@ module Class_k_space
         procedure :: calc_hall_conductance  => calc_hall_conductance
         procedure :: setup_inte_grid_square => setup_inte_grid_square
         procedure :: setup_inte_grid_hex    => setup_inte_grid_hex
+        procedure :: setup_berry_inte_gird  => setup_berry_inte_gird
         procedure :: set_weights_ksp        => set_weights_ksp
         procedure :: test_integration       => test_integration
         procedure :: Bcast_k_space          => Bcast_k_space
@@ -64,14 +67,30 @@ module Class_k_space
         procedure :: on_hex_border          => on_hex_border
         procedure :: hex_laplace_smoother   => hex_laplace_smoother
         procedure :: in_points              => in_points
-    end type k_space 
+        procedure :: append_kpts            => append_kpts
+        procedure :: add_kpts_iter          => add_kpts_iter
+        procedure :: random_pt_hex          => random_pt_hex
+        procedure :: set_hall_weights       => set_hall_weights
+        procedure :: integrate_hall         => integrate_hall
+    end type k_space
+
+    type :: r8arr
+        real(8), allocatable :: arr(:)
+    end type r8arr
+
+    interface
+        subroutine run_triang(k_pts, ret_elem)
+            real(8), intent(in)              :: k_pts(:,:)
+            integer(4), allocatable          :: ret_elem(:,:)
+        end subroutine run_triang
+    end interface
 
 contains
     subroutine free_ksp(self)
         implicit none
     class(k_space)              :: self
 
-        if(allocated(self%k_pts)) deallocate(self%k_pts)
+        if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
         if(allocated(self%int_DOS)) deallocate(self%int_DOS)
         if(allocated(self%E_DOS)) deallocate(self%E_DOS)
         if(allocated(self%E_fermi)) deallocate(self%E_fermi)
@@ -99,18 +118,18 @@ contains
             stop
         endif
 
-        call my_section(self%me, self%nProcs, size(self%k_pts, 2), first, last)
+        call my_section(self%me, self%nProcs, size(self%new_k_pts, 2), first, last)
         allocate(k_pts_sec(3, last - first + 1))
-        k_pts_sec = self%k_pts(:,first:last)
+        k_pts_sec = self%new_k_pts(:,first:last)
 
         call self%ham%calc_eigenvalues(k_pts_sec, sec_eig_val)
 
 
         N = 2 *  self%ham%UC%num_atoms 
-        allocate(eig_val(N, size(self%k_pts,2)))
+        allocate(eig_val(N, size(self%new_k_pts,2)))
         allocate(num_elems(self%nProcs))
         allocate(offsets(self%nProcs))
-        call sections(self%nProcs, size(self%k_pts, 2), num_elems, offsets)
+        call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
         num_elems =  num_elems * N
         offsets   =  offsets   * N
 
@@ -121,7 +140,7 @@ contains
             root,        MPI_COMM_WORLD, ierr)
 
         if(self%me == root) then 
-            call save_npy(trim(self%prefix) //  "band_k.npy", self%k_pts / self%units%inv_length)
+            call save_npy(trim(self%prefix) //  "band_k.npy", self%new_k_pts / self%units%inv_length)
             call save_npy(trim(self%prefix) //  "band_E.npy", eig_val / self%units%energy)
             call save_npy(trim(self%prefix) //  "lattice.npy", &
                 self%ham%UC%lattice / self%units%length)
@@ -133,7 +152,7 @@ contains
         deallocate(num_elems)
         deallocate(offsets)
         deallocate(sec_eig_val)
-        deallocate(self%k_pts)
+        deallocate(self%new_k_pts)
     End Subroutine calc_and_print_band
 
     subroutine calc_pdos(self, E, PDOS)
@@ -163,9 +182,9 @@ contains
         loc_PDOS =  0d0
         PDOS = 0d0
 
-        call my_section(self%me, self%nProcs, size(self%k_pts,2), first, last)
+        call my_section(self%me, self%nProcs, size(self%new_k_pts,2), first, last)
         do k_idx=first, last
-            call self%ham%setup_H(self%k_pts(:,k_idx), H)
+            call self%ham%setup_H(self%new_k_pts(:,k_idx), H)
             call zheevd('V', 'U', N, H, N, eig_val, WORK, lwork, &
                 RWORK, lrwork, IWORK, liwork, info)
             if( info /= 0) then
@@ -196,8 +215,8 @@ contains
                 enddo
             enddo
         enddo
-        write (*,*) "ksz", size(self%k_pts, 2)
-        loc_PDOS =  loc_PDOS / real(size(self%k_pts, 2))
+        write (*,*) "ksz", size(self%new_k_pts, 2)
+        loc_PDOS =  loc_PDOS / real(size(self%new_k_pts, 2))
         call MPI_Reduce(loc_PDOS,  PDOS,    size(loc_PDOS), &
             MPI_REAL8, MPI_SUM, root, &
             MPI_COMM_WORLD, ierr)
@@ -268,7 +287,7 @@ contains
             call save_npy(trim(self%prefix) // "DOS_integrated.npy", self%int_DOS)
         endif 
 
-        deallocate(self%k_pts)
+        deallocate(self%new_k_pts)
         deallocate(PDOS)
         if(self%me == root) then 
             deallocate(DOS)
@@ -324,14 +343,14 @@ contains
             self%temp = tmp * self%units%temperature
 
             call CFG_get(cfg, "berry%laplace_iter", self%laplace_iter)
+            call CFG_get(cfg, "berry%refinement_iter", self%berry_iter)
         endif
-        call MPI_Barrier(MPI_COMM_WORLD, ierr)
         call self%Bcast_k_space()
     end function init_k_space
 
     subroutine Bcast_k_space(self)
     class(k_space)         :: self
-        integer(4), parameter  :: num_cast =  13
+        integer(4), parameter  :: num_cast =  14
         integer(4)             :: ierr(num_cast), sz(2)
 
         if(self%me ==  root) then
@@ -376,7 +395,8 @@ contains
             root,                 MPI_COMM_WORLD, ierr(12))
         call MPI_Bcast(self%laplace_iter,    1,              MPI_INTEGER4, &
             root,                 MPI_COMM_WORLD, ierr(13))
-
+        call MPI_Bcast(self%berry_iter,      1,              MPI_INTEGER4, &
+            root,                 MPI_COMM_WORLD, ierr(14))
     end subroutine Bcast_k_space
 
     subroutine setup_k_grid(self)
@@ -409,10 +429,10 @@ contains
             ky_grid(i+1,:) =  ky_points
         enddo
 
-        allocate(self%k_pts(3, sz_x* sz_y))
-        self%k_pts(1,:) =  reshape(kx_grid, (/sz_x * sz_y /))
-        self%k_pts(2,:) =  reshape(ky_grid, (/sz_x * sz_y /))
-        self%k_pts(3,:) =  0.0d0
+        allocate(self%new_k_pts(3, sz_x* sz_y))
+        self%new_k_pts(1,:) =  reshape(kx_grid, (/sz_x * sz_y /))
+        self%new_k_pts(2,:) =  reshape(ky_grid, (/sz_x * sz_y /))
+        self%new_k_pts(3,:) =  0.0d0
 
         deallocate(kx_grid)
         deallocate(ky_grid)
@@ -429,8 +449,8 @@ contains
         real(8)               :: k1(3), k2(3)
         integer(4)            :: i, j, cnt
 
-        if(allocated(self%k_pts)) deallocate(self%k_pts)
-        allocate(self%k_pts(3,n_k**2))
+        if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
+        allocate(self%new_k_pts(3,n_k**2))
 
         k1 =  0d0
         k2 =  0d0 
@@ -441,12 +461,12 @@ contains
         allocate(ls(n_k))
 
         ls         = ls_help(1:n_k)
-        self%k_pts = 0d0
+        self%new_k_pts = 0d0
         cnt        = 1
 
         do i = 1,n_k
             do j =  1,n_k
-                self%k_pts(:,cnt) = ls(i) *  k1 +  ls(j) *  k2
+                self%new_k_pts(:,cnt) = ls(i) *  k1 +  ls(j) *  k2
                 cnt =  cnt + 1
             enddo
         enddo
@@ -461,15 +481,8 @@ contains
         real(8), parameter     :: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
         integer(4)             :: cnt_k, start, halt, my_n, i
 
-        interface
-            subroutine run_triang(k_pts, ret_elem)
-                real(8), intent(in)              :: k_pts(:,:)
-                integer(4), allocatable          :: ret_elem(:,:)
-            end subroutine run_triang
-        end interface
-
-
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
+        if(self%me ==  root) write (*,*) "l =  ", l
         a = l / (2.0 * cos(deg_30))
         den =  (1.0*n_k)/a
 
@@ -480,10 +493,10 @@ contains
             cnt_k =  cnt_k + nint(2 * self%hex_border_x(y(i)) * den)
         enddo
 
-        if(allocated(self%k_pts)) deallocate(self%k_pts)
-        allocate(self%k_pts(3, cnt_k))
+        if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
+        allocate(self%new_k_pts(3, cnt_k))
 
-        self%k_pts = 0d0
+        self%new_k_pts = 0d0
 
         start = 1
         do i =  1,size(y)
@@ -492,52 +505,72 @@ contains
 
             halt = start + size(x) - 1
 
-            self%k_pts(1,start:halt) = x
-            self%k_pts(2,start:halt) = y(i)
+            self%new_k_pts(1,start:halt) = x
+            self%new_k_pts(2,start:halt) = y(i)
 
             start = halt + 1
         enddo
 
-        call run_triang(self%k_pts, self%elem_nodes)
+        call run_triang(self%new_k_pts, self%elem_nodes)
+
+        if(self%me == root) then
+            call save_npy(trim(self%prefix) // "k_pre_pad.npy", self%new_k_pts)
+            call save_npy(trim(self%prefix) // "elem_pre_pad.npy", self%elem_nodes)
+        endif
         call self%pad_k_points_init()
-        call self%set_weights_ksp()
+        if(self%me == root) then
+            call save_npy(trim(self%prefix) // "k_post_pad.npy", self%new_k_pts)
+            call save_npy(trim(self%prefix) // "elem_post_pad.npy", self%elem_nodes)
+        endif
     end subroutine setup_inte_grid_hex
 
-    subroutine test_integration(self)
+    subroutine test_integration(self, iter)
         implicit none
-        class(k_space)     :: self
-        integer(4)         :: i
-        real(8)            :: integral, kpt(3), f 
+    class(k_space)     :: self
+        integer(4)         :: i, iter
+        real(8)            :: integral, kpt(3), f, l
+        character(len=300) :: filename
 
+        call run_triang(self%all_k_pts, self%elem_nodes)
+        call self%set_weights_ksp()
         integral =  0d0 
-        do i =  1, size(self%k_pts,2)
-            kpt =  self%k_pts(:,i)
-            f = 2*kpt(1)**2 - kpt(2)**2
-            integral =  integral +  self%weights(i) * f
-            !write (*,*) kpt(1), kpt(2) , f, integral
+        do i =  1, size(self%all_k_pts,2)
+            kpt =  self%all_k_pts(:,i)
+            f = test_func(kpt(1:2))
+            integral =  integral + self%weights(i) * f
         enddo
-        write (*,*) "integration =  ", integral
-    end subroutine test_integration
+        if(self%me ==  root) write (*,*) iter, "integration =  ", integral
         
+        if(self%me == root) then
+            write (filename, "(A, I0.5, A)") "k_points_", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), self%all_k_pts)
+
+            write (filename, "(A, I0.5, A)") "elems_", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), self%elem_nodes)
+
+            write (filename, "(A, I0.5, A)") "integral_", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), [integral])
+        endif
+    end subroutine test_integration
+
     subroutine set_weights_ksp(self)
         implicit none
-        class(k_space)   :: self
-        real(8)          :: A_proj, vec1(3), vec2(3), integr
+    class(k_space)   :: self
+        real(8)          :: A_proj, vec1(3), vec2(3)
         integer(4)       :: i, j, k_idx
 
         if(allocated(self%weights)) then
             deallocate(self%weights)
         endif
-        allocate(self%weights(size(self%k_pts,2)))
+        allocate(self%weights(size(self%all_k_pts,2)))
 
         self%weights = 0d0
-        integr =  0
         do i = 1,size(self%elem_nodes,1)
-            vec1 = self%k_pts(:,self%elem_nodes(i,1)) - self%k_pts(:,self%elem_nodes(i,2))
-            vec2 = self%k_pts(:,self%elem_nodes(i,1)) - self%k_pts(:,self%elem_nodes(i,3))
+            vec1 = self%all_k_pts(:,self%elem_nodes(i,1)) - self%all_k_pts(:,self%elem_nodes(i,2))
+            vec2 = self%all_k_pts(:,self%elem_nodes(i,1)) - self%all_k_pts(:,self%elem_nodes(i,3))
             A_proj =  0.1666666666666d0 * my_norm2(cross_prod(vec1, vec2))
             do j =  1,3
-                k_idx =  self%elem_nodes(i,j)
+                k_idx = self%elem_nodes(i,j)
                 self%weights(k_idx) = self%weights(k_idx) +  A_proj
             enddo
         enddo
@@ -545,7 +578,7 @@ contains
 
     function hex_border_x(self, y) result(x)
         implicit none
-        class(k_space)      :: self
+    class(k_space)      :: self
         real(8), intent(in) :: y
         real(8)             :: m, b, l, a, x
         real(8), parameter  :: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
@@ -573,17 +606,17 @@ contains
         n_sec =  size(self%k1_param)-1
 
 
-        allocate(self%k_pts(3, n_sec * (self%num_k_pts-1) + 1))
-        self%k_pts(3,:) =  0d0
+        allocate(self%new_k_pts(3, n_sec * (self%num_k_pts-1) + 1))
+        self%new_k_pts(3,:) =  0d0
 
         start = 1
         do i =  1,n_sec
             halt =  start +  n_pts - 1
 
             call linspace(self%k1_param(i), self%k1_param(i+1), n_pts, tmp)
-            self%k_pts(1,start:halt) = tmp
+            self%new_k_pts(1,start:halt) = tmp
             call linspace(self%k2_param(i), self%k2_param(i+1), n_pts, tmp)
-            self%k_pts(2,start:halt) = tmp
+            self%new_k_pts(2,start:halt) = tmp
             start =  halt
         enddo
 
@@ -599,7 +632,7 @@ contains
         n_sec =  size(self%k1_param) - 1
         n_pts =  self%num_k_pts 
 
-        allocate(self%k_pts(3,n_sec * (n_pts - 1) + 1))
+        allocate(self%new_k_pts(3,n_sec * (n_pts - 1) + 1))
         allocate(c1_sec(n_sec))
         allocate(c2_sec(n_sec))
 
@@ -619,7 +652,7 @@ contains
 
             cnt =  1
             do j =  start,halt
-                self%k_pts(:,j) =  c1_sec(cnt) *  k1 +  c2_sec(cnt) *  k2
+                self%new_k_pts(:,j) =  c1_sec(cnt) *  k1 +  c2_sec(cnt) *  k2
                 cnt =  cnt + 1
             enddo
             start =  halt
@@ -649,69 +682,257 @@ contains
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
         a = l / (2.0 * cos(deg_30))
 
-        vol =  6 * a * a * sin(deg_60)
+        vol =  3d0 * a * a * sin(deg_60)
     end function vol_k_hex
 
-    subroutine calc_hall_conductance(self, ret)
+    subroutine calc_hall_conductance(self, hall)
         implicit none
-    class(k_space)       :: self
-        real(8)              :: V_k, k(3), Emax
-        real(8), allocatable :: eig_val(:), omega_z(:), hall(:), ret(:)
-        integer(4)  :: N_k, n, k_idx, first, last, ierr, n_atm, n_hall, info
+    class(k_space)          :: self
+        real(8)                 :: k(3), Emax
+        real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
+            hall(:)
+        integer(4), allocatable :: omega_kidx_all(:), omega_kidx_new(:)
+        type(r8arr), allocatable:: omega_z_all(:), omega_z_new(:)
+        real(8), allocatable    :: omega_z(:)
+        integer(4)  :: N_k, n, k_idx, first, last, ierr, n_atm, n_hall,&
+            iter, cnt, loc_idx, i, j
+        character(len=300)      :: filename
+        logical                 :: done
 
-        if(allocated(self%k_pts) )then
-            deallocate(self%k_pts)
+        call self%setup_berry_inte_gird()
+        N_k = size(self%new_k_pts, 2)
+
+        Emax = self%find_E_max()
+        n_atm =  self%ham%UC%num_atoms
+        allocate(self%ham%del_H(2*n_atm,2*n_atm))
+
+        iter =  1
+        do iter =1,self%berry_iter
+            N_k = size(self%new_k_pts, 2)
+            allocate(eig_val_new(2*n_atm,N_k)) 
+
+            call my_section(self%me, self%nProcs, N_k, first, last)
+            allocate(omega_z_new(last-first+1))
+            allocate(omega_kidx_new(last-first+1))
+
+            ! calculate 
+            cnt =  1
+            do k_idx = first, last
+                k = self%new_k_pts(:,k_idx)
+                omega_kidx_new(cnt) =  k_idx + size(self%all_k_pts,2)
+                call self%ham%calc_berry_z(k, omega_z_new(cnt)%arr, Emax)
+                call self%ham%calc_single_eigenvalue(k, eig_val_new(:,cnt))
+                cnt = cnt + 1
+            enddo
+
+            ! concat to old ones
+            call add_new_kpts_omega(omega_kidx_all, omega_kidx_new,&
+                omega_z_all, omega_z_new)
+            call self%append_kpts()
+            call append_eigval(eig_val_all, eig_val_new)
+            ! integrate hall conductance
+            !call self%test_integration(iter)
+
+            call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall)
+
+            if(mod(iter, 10) ==  0) then
+                if(self%me == root) then
+                    write (*,*) "saving hall cond with questionable unit"
+
+                    write (filename, "(A,I0.5,A)") "hall_cond_", iter, ".npy"
+                    call save_npy(trim(self%prefix) // trim(filename), hall)
+
+                    write (filename, "(A,I0.5,A)") "hall_E_", iter, ".npy"
+                    call save_npy(trim(self%prefix) // trim(filename), &
+                        self%E_fermi / self%units%energy)
+                endif
+
+                if(self%me == root) then
+                    write (filename, "(A, I0.5, A)") "k_points_", iter, ".npy"
+                    call save_npy(trim(self%prefix) // trim(filename), self%all_k_pts)
+
+                    write (filename, "(A, I0.5, A)") "elems_", iter, ".npy"
+                    call save_npy(trim(self%prefix) // trim(filename), self%elem_nodes)
+                endif
+            endif
+            
+            call self%set_hall_weights(omega_z_all, omega_kidx_all)
+            call self%add_kpts_iter(100*self%nProcs, self%new_k_pts)
+
+        enddo
+        deallocate(hall)
+        deallocate(self%ham%del_H)
+        deallocate(self%new_k_pts)
+    end subroutine calc_hall_conductance
+
+    subroutine integrate_hall(self, omega_kidx_all, omega_z_all, eig_val_all, hall)
+        implicit none
+    class(k_space)          :: self
+        integer(4), intent(in)  :: omega_kidx_all(:)
+        type(r8arr), intent(in) :: omega_z_all(:)
+        real(8), intent(in)     :: eig_val_all(:,:)
+        real(8), allocatable    :: hall(:), omega_z(:), tmp(:)
+        integer(4)              :: loc_idx, n, n_hall, k_idx, ierr
+
+        if(allocated(hall)) deallocate(hall)
+        allocate(hall(size(self%E_fermi)))
+        allocate(tmp(size(hall)))
+
+        !run triangulation
+        call run_triang(self%all_k_pts, self%elem_nodes)
+        call self%set_weights_ksp()
+
+        !perform integration with all points
+        hall =  0d0
+
+        do loc_idx = 1,size(omega_kidx_all)
+            k_idx =  omega_kidx_all(loc_idx)
+
+            omega_z =  omega_z_all(loc_idx)%arr
+            do n = 1,size(omega_z)
+                do n_hall =  1,size(hall)
+                    hall(n_hall) = hall(n_hall) + &
+                        self%weights(k_idx) * omega_z(n) *&
+                        self%fermi_distr(eig_val_all(n, loc_idx), n_hall)
+                enddo
+            enddo
+            deallocate(omega_z)
+        enddo
+
+        hall = hall / (2d0*PI)
+        tmp  = hall
+        hall = 0d0
+        
+        call MPI_Reduce(tmp, hall, size(hall), MPI_REAL8, MPI_SUM, &
+                        root, MPI_COMM_WORLD, ierr)
+        !call MPI_Allreduce(MPI_IN_PLACE, hall, size(hall), &
+                           !MPI_REAL8, MPI_Sum, &
+                           !MPI_COMM_WORLD, ierr)
+    end subroutine integrate_hall
+
+    subroutine set_hall_weights(self, omega_z_all, omega_kidx_all)
+        implicit none
+    class(k_space)         :: self
+        integer(4), intent(in) :: omega_kidx_all(:)
+        type(r8arr), intent(in):: omega_z_all(:)
+        integer(4)             :: i, n_elem, node, k_idx, loc_idx, ierr
+        real(8)                :: kpt(3)
+
+        n_elem = size(self%elem_nodes,1)
+        if(allocated(self%hall_weights)) then
+            if(size(self%hall_weights) /= n_elem) then
+                deallocate(self%hall_weights)
+            endif
+        endif
+        if(.not. allocated(self%hall_weights)) then
+            allocate(self%hall_weights(n_elem))
+        endif
+
+        self%hall_weights = 0d0
+
+        do i=1,n_elem
+            do node=1,3
+                k_idx = self%elem_nodes(i,node)
+                loc_idx =  find_list_idx(omega_kidx_all, k_idx)
+
+                if(loc_idx > 0) then
+                    kpt = self%all_k_pts(:,k_idx)
+                    self%hall_weights(i) = self%hall_weights(i) &
+                        + self%weights(k_idx) &!* abs(test_func(kpt(1:2)))
+                        * sum(abs(omega_z_all(loc_idx)%arr))
+                endif
+            enddo
+        enddo
+
+        call MPI_Allreduce(MPI_IN_PLACE,self%hall_weights,size(self%hall_weights),&
+            MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+    end subroutine set_hall_weights
+    
+
+    subroutine append_eigval(eig_val_all, eig_val_new)
+        implicit none
+        real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:), tmp(:,:)
+        integer(4) :: vec_sz, num_k_all, num_k_new, i,j
+
+        vec_sz =  size(eig_val_new, 1)
+        if(.not. allocated(eig_val_all)) allocate(eig_val_all(vec_sz,0))
+        num_k_all =  size(eig_val_all, 2)
+        num_k_new =  size(eig_val_new, 2)
+
+        allocate(tmp(vec_sz, num_k_all))
+        forall(i=1:vec_sz, j=1:num_k_all) tmp(i,j) =  eig_val_all(i,j)
+        deallocate(eig_val_all)
+
+        allocate(eig_val_all(vec_sz, num_k_all + num_k_new))
+        forall(i=1:vec_sz, j=1:num_k_all) eig_val_all(i,j) = tmp(i,j)
+        deallocate(tmp)
+
+        forall(i=1:vec_sz, j=1:num_k_new) eig_val_all(i,j+num_k_all) &
+                = eig_val_new(i,j)
+        deallocate(eig_val_new)
+    end subroutine append_eigval
+
+    subroutine add_new_kpts_omega(omega_kidx_all, omega_kidx_new, &
+            omega_z_all, omega_z_new)
+        implicit none
+        integer(4), allocatable   :: omega_kidx_all(:),omega_kidx_new(:) 
+        type(r8arr), allocatable  :: omega_z_new(:), omega_z_all(:), tmp_z(:)
+        integer(4)                :: n_old, i, ierr
+
+        if(allocated(omega_kidx_all)) then
+            omega_kidx_all =  [omega_kidx_all, omega_kidx_new]
+        else
+            omega_kidx_all =  omega_kidx_new
+        endif
+        deallocate(omega_kidx_new)
+
+        if(.not. allocated(omega_z_all)) then
+            allocate(omega_z_all(0))
+        endif
+
+        n_old =  size(omega_z_all)
+        allocate(tmp_z(n_old))
+
+        do i = 1,n_old
+            tmp_z(i) = omega_z_all(i)
+            deallocate(omega_z_all(i)%arr)
+        enddo
+
+        deallocate(omega_z_all)
+        allocate(omega_z_all(n_old + size(omega_z_new)))
+
+        do i = 1,n_old
+            omega_z_all(i) =  tmp_z(i)
+            deallocate(tmp_z(i)%arr)
+        enddo
+        deallocate(tmp_z)
+
+        do i = 1,size(omega_z_new)
+            omega_z_all(i+n_old) = omega_z_new(i)
+            deallocate(omega_z_new(i)%arr)
+        enddo
+        deallocate(omega_z_new)
+    end subroutine add_new_kpts_omega
+
+    subroutine setup_berry_inte_gird(self)
+        implicit none
+    class(k_space)           :: self
+        integer(4)           :: ierr
+
+        if(allocated(self%new_k_pts) )then
+            deallocate(self%new_k_pts)
         endif
 
         if(trim(self%ham%UC%uc_type) == "square_2d") then
             call self%setup_inte_grid_square(self%berry_num_k_pts)
-            V_k = self%vol_k_space_parallelo()
         elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
             call self%setup_inte_grid_hex(self%berry_num_k_pts)
-            V_k = self%vol_k_hex()
         else
             if(self%me ==  root) write (*,*) "berry k-grid not known"
-            call MPI_Abort(MPI_COMM_WORLD, 0, info)
+            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
         endif
 
-        N_k = size(self%k_pts, 2)
-        if(self%me == root) write (*,*) "Num k =  ", N_k
-
-        call my_section(self%me, self%nProcs, N_k, first, last)
-
-        allocate(hall(size(self%E_fermi)))
-        allocate(ret(size(hall)))
-        hall = 0d0
-        
-        Emax = self%find_E_max()
-        n_atm =  self%ham%UC%num_atoms
-        allocate(self%ham%del_H(2*n_atm,2*n_atm))
-        do k_idx = first, last
-            k = self%k_pts(:,k_idx)
-            call self%ham%calc_berry_z(k, omega_z, Emax)
-            call self%ham%calc_single_eigenvalue(k, eig_val)
-
-            do n = 1,2*self%ham%UC%num_atoms
-                do n_hall =  1,size(hall)
-                    hall(n_hall) = hall(n_hall) + &
-                                   self%weights(k_idx) * omega_z(n) * self%fermi_distr(eig_val(n), n_hall)
-                enddo
-            enddo
-        enddo
-        deallocate(self%ham%del_H)
-
-        hall = hall / (2d0*PI)
-        call MPI_Reduce(hall, ret, size(hall), &
-            MPI_REAL8, MPI_Sum, &
-            root, MPI_COMM_WORLD, ierr)
-
-        if(self%me == root) then
-            write (*,*) "saving hall cond with questionable unit"
-            call save_npy(trim(self%prefix) // "hall_cond.npy", ret)
-            call save_npy(trim(self%prefix) // "hall_E.npy", self%E_fermi / self%units%energy)
-        endif
-        deallocate(hall)
-    end subroutine calc_hall_conductance
+    end subroutine setup_berry_inte_gird
 
     subroutine plot_omega(self)
         implicit none
@@ -730,13 +951,13 @@ contains
         N = 2* self%ham%UC%num_atoms
         call self%setup_inte_grid_hex(dim_sz)
 
-        if(self%me ==  root) write (*,*) "nkpts =  ", size(self%k_pts, 2)
+        if(self%me ==  root) write (*,*) "nkpts =  ", size(self%new_k_pts, 2)
 
-        allocate(omega_z(N, size(self%k_pts, 2)))
+        allocate(omega_z(N, size(self%new_k_pts, 2)))
         allocate(tmp_vec(N))
 
-        call sections(self%nProcs, size(self%k_pts, 2), num_elems, offsets)
-        call my_section(self%me, self%nProcs, size(self%k_pts, 2), first, last)
+        call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
+        call my_section(self%me, self%nProcs, size(self%new_k_pts, 2), first, last)
         num_elems =  num_elems * N
         offsets   =  offsets   * N
         send_count =  N *  (last - first + 1)
@@ -745,7 +966,7 @@ contains
         cnt =  1
         do k_idx = first,last
             write (*,*) "k_ind" , k_idx
-            k = self%k_pts(:,k_idx)
+            k = self%new_k_pts(:,k_idx)
 
             call self%ham%calc_berry_z(k, tmp_vec)
 
@@ -759,7 +980,7 @@ contains
 
         if(self%me ==  root) then
             call save_npy(trim(self%prefix) //  "omega_xy_z.npy", omega_z)
-            call save_npy(trim(self%prefix) //  "omega_xy_k.npy", self%k_pts)
+            call save_npy(trim(self%prefix) //  "omega_xy_k.npy", self%new_k_pts)
             write (*,*) "Berry curvature saved unitless"
         endif
         deallocate(self%ham%del_H)
@@ -851,7 +1072,7 @@ contains
 
     function find_E_max(self) result(c)
         implicit none
-        class(k_space), intent(in)   :: self
+    class(k_space), intent(in)   :: self
         real(8)                      :: l, u, c
         real(8), parameter           :: tol = 1d-6, tar = 1d-12
         integer(4)                   :: Emax, cnt
@@ -865,7 +1086,7 @@ contains
             write (*,*) "Emax bisection failed. So crossing in window"
             stop
         endif
-        
+
         c =  0.5 * (u + l)
         cnt =  0
         do while(abs((self%fermi_distr(c, Emax) - tar)/tar) > tol)
@@ -880,85 +1101,80 @@ contains
         enddo
     end function find_E_max
 
-    function area_of_elem(self, idx) result(area)
+    function area_of_elem(self,kpts, idx) result(area)
         implicit none
-        class(k_space), intent(in) :: self
+    class(k_space), intent(in)     :: self
         integer(4), intent(in)     :: idx
+        real(8), intent(in)        :: kpts(:,:)
         real(8)                    :: area
         real(8)    :: vec1(3), vec2(3)
 
-        vec1 = self%k_pts(:,self%elem_nodes(idx,1)) - self%k_pts(:,self%elem_nodes(idx,2))
-        vec2 = self%k_pts(:,self%elem_nodes(idx,1)) - self%k_pts(:,self%elem_nodes(idx,3))
+        vec1 = kpts(:,self%elem_nodes(idx,1)) - kpts(:,self%elem_nodes(idx,2))
+        vec2 = kpts(:,self%elem_nodes(idx,1)) - kpts(:,self%elem_nodes(idx,3))
         area =  0.5d0 * my_norm2(cross_prod(vec1, vec2))
     end function area_of_elem
 
-    function new_pt(self, idx) result(pt)
+    function new_pt(self, idx, kpts) result(pt)
         implicit none
-        class(k_space), intent(in)   ::self
-        integer(4), intent(in)       :: idx
+    class(k_space), intent(in)   ::self
+        integer(4), intent(in)   :: idx
+        real(8), intent(in)      :: kpts(:,:)
         real(8)                      :: pt(2), start(2), vec(3), len, len_max
 
-        vec = self%k_pts(:,self%elem_nodes(idx,1)) - self%k_pts(:,self%elem_nodes(idx,2))
+        vec = kpts(:,self%elem_nodes(idx,1)) - kpts(:,self%elem_nodes(idx,2))
         len =  my_norm2(vec)
         len_max =  len
-        start =  self%k_pts(1:2,self%elem_nodes(idx,2))
+        start =  kpts(1:2,self%elem_nodes(idx,2))
         pt = start + 0.5 * vec(1:2)
-        
-        vec = self%k_pts(:,self%elem_nodes(idx,1)) - self%k_pts(:,self%elem_nodes(idx,3))
+
+        vec = kpts(:,self%elem_nodes(idx,1)) - kpts(:,self%elem_nodes(idx,3))
         len =  my_norm2(vec)
         if(len >  len_max) then
             len_max =  len
-            start =  self%k_pts(1:2,self%elem_nodes(idx,3))
+            start =  kpts(1:2,self%elem_nodes(idx,3))
             pt = start + 0.5 * vec(1:2)
         endif
 
-        vec = self%k_pts(:,self%elem_nodes(idx,2)) - self%k_pts(:,self%elem_nodes(idx,3))
+        vec = kpts(:,self%elem_nodes(idx,2)) - kpts(:,self%elem_nodes(idx,3))
         len =  my_norm2(vec)
         if(len >  len_max) then
             len_max =  len
-            start =  self%k_pts(1:2,self%elem_nodes(idx,3))
+            start =  kpts(1:2,self%elem_nodes(idx,3))
             pt = start + 0.5 * vec(1:2)
         endif
 
     end function new_pt
 
-    function centeroid_of_elem(self, idx) result(centeroid)
+    function centeroid_of_elem(self, idx, k_pts) result(centeroid)
         implicit none
-        class(k_space), intent(in)  :: self
+    class(k_space), intent(in)  :: self
         integer(4), intent(in)      :: idx
         integer(4)                  :: i
+        real(8), intent(in)         :: k_pts(:,:)
         real(8)                     :: centeroid(2)
 
         centeroid =  0d0 
         do i = 1,3
-            centeroid(1) =  centeroid(1) + self%k_pts(1,self%elem_nodes(idx,i))
-            centeroid(2) =  centeroid(2) + self%k_pts(2,self%elem_nodes(idx,i))
+            centeroid(1) =  centeroid(1) + k_pts(1,self%elem_nodes(idx,i))
+            centeroid(2) =  centeroid(2) + k_pts(2,self%elem_nodes(idx,i))
         enddo
         centeroid = centeroid * 0.33333333333d0
     end function centeroid_of_elem
 
     subroutine pad_k_points_init(self)
         implicit none
-        class(k_space)                :: self
-        integer(4)  :: rest, i,j, cnt, n_kpts, n_elem, ierr
+    class(k_space)                :: self
+        integer(4)  :: rest, i,j, cnt, n_kpts, n_elem, ierr, per_proc
         integer(4), allocatable :: sort(:)
         real(8), allocatable    :: areas(:), new_ks(:,:), tmp(:,:)
         real(8)                 :: cand(2)
 
-        
-        interface
-            subroutine run_triang(k_pts, ret_elem)
-                real(8), intent(in)              :: k_pts(:,:)
-                integer(4), allocatable          :: ret_elem(:,:)
-            end subroutine run_triang
-        end interface
 
-        n_kpts =  size(self%k_pts,2)
-        if(self%me == root) write (*,*) "nkpt = ", n_kpts
-        if(self%me == root) write (*,*) "nProcs", self%nProcs
+        n_kpts =  size(self%new_k_pts,2)
 
-        rest =  self%nProcs - mod(n_kpts, self%nProcs)
-        if(self%me == root) write (*,*) "rest", rest
+        per_proc = CEILING((1d0*n_kpts)/(1d0*self%nProcs))
+        rest =  self%nProcs * per_proc - n_kpts
+
         if(rest /= 0) then
             !find biggest triangles
             n_elem =  size(self%elem_nodes,1)
@@ -970,43 +1186,43 @@ contains
             allocate(areas(n_elem))
             allocate(new_ks(3,rest))
 
-            forall(i = 1:n_elem) areas(i) = self%area_of_elem(i)
+            forall(i = 1:n_elem) areas(i) = self%area_of_elem(self%new_k_pts, i)
             call qargsort(areas, sort)
 
             !calculate new elements
             new_ks =  0d0
             i = n_elem
             do cnt = 1,rest
-                cand = self%new_pt(sort(i))
+                cand = self%new_pt(sort(i), self%new_k_pts)
                 do while(self%in_points(cand, new_ks(1:2,1:cnt-1)))
                     i = i - 1
                     if(i < 1) then 
                         write (*,*) "not enough elems for refinement"
                         call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
                     endif
-                    cand = self%new_pt(sort(i))
+                    cand = self%new_pt(sort(i), self%new_k_pts)
                 enddo
                 new_ks(1:2,cnt) = cand
             enddo
-            
+
             !extent list
             allocate(tmp(3,n_kpts))
-            forall(i=1:3, j=1:n_kpts) tmp(i,j) =  self%k_pts(i,j)
-            deallocate(self%k_pts)
-            allocate(self%k_pts(3, n_kpts +  rest))
-            forall(i=1:3, j=1:n_kpts) self%k_pts(i,j) = tmp(i,j)
+            forall(i=1:3, j=1:n_kpts) tmp(i,j) =  self%new_k_pts(i,j)
+            deallocate(self%new_k_pts)
+            allocate(self%new_k_pts(3, n_kpts +  rest))
+            forall(i=1:3, j=1:n_kpts) self%new_k_pts(i,j) = tmp(i,j)
             deallocate(tmp)
 
             !add new ones
-            forall(i=1:3, j=1:rest) self%k_pts(i,n_kpts+j) = new_ks(i,j)
-            call run_triang(self%k_pts, self%elem_nodes)
+            forall(i=1:3, j=1:rest) self%new_k_pts(i,n_kpts+j) = new_ks(i,j)
+            call run_triang(self%new_k_pts, self%elem_nodes)
         endif
         call self%hex_laplace_smoother()
     end subroutine pad_k_points_init
 
     function in_points(self, pt, list) result(inside)
         implicit none
-        class(k_space)       :: self
+    class(k_space)       :: self
         real(8), intent(in)  :: pt(2), list(:,:)
         logical              :: inside
         real(8)              :: l
@@ -1014,7 +1230,7 @@ contains
 
         inside =  .False.
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
-        
+
         do i = 1,size(list,2)
             if(my_norm2(pt - list(:,i)) < l * pos_eps) then
                 inside = .True.
@@ -1024,15 +1240,15 @@ contains
 
     function on_hex_border(self, idx) result(on_border)
         implicit none
-        class(k_space), intent(in)   :: self
+    class(k_space), intent(in)   :: self
         integer(4)                   :: idx
         real(8)                      :: pt(2)
         logical                      :: on_border
         real(8)                      :: l
-        
-        pt =  self%k_pts(1:2,idx)
+
+        pt =  self%new_k_pts(1:2,idx)
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
-        
+
         if(abs(abs(pt(2)) - 0.5d0 * l) < pos_eps * l) then
             on_border = .True.
         else
@@ -1042,19 +1258,13 @@ contains
 
     subroutine hex_laplace_smoother(self)
         implicit none
-        class(k_space)              :: self
+    class(k_space)              :: self
         real(8), allocatable        :: shift(:,:), n_neigh(:)
         integer(4)                  :: i, j, point, neigh
         integer(4), parameter       :: N = 4
 
-        interface
-            subroutine run_triang(k_pts, ret_elem)
-                real(8), intent(in)              :: k_pts(:,:)
-                integer(4), allocatable          :: ret_elem(:,:)
-            end subroutine run_triang
-        end interface
-        allocate(shift(2, size(self%k_pts,2)))
-        allocate(n_neigh(size(self%k_pts,2)))
+        allocate(shift(2, size(self%new_k_pts,2)))
+        allocate(n_neigh(size(self%new_k_pts,2)))
 
 
         do i =  1,self%laplace_iter
@@ -1065,7 +1275,7 @@ contains
                     do neigh = 1,3
                         if(.not. self%on_hex_border(self%elem_nodes(j,point)))then
                             shift(:,self%elem_nodes(j,point)) = shift(:,self%elem_nodes(j,point)) + &
-                                (self%k_pts(1:2,self%elem_nodes(j,neigh)) - self%k_pts(1:2,self%elem_nodes(j,point)))
+                                (self%new_k_pts(1:2,self%elem_nodes(j,neigh)) - self%new_k_pts(1:2,self%elem_nodes(j,point)))
                             n_neigh(self%elem_nodes(j,point)) =  n_neigh(self%elem_nodes(j,point)) + 1d0
                         endif
                     enddo
@@ -1073,7 +1283,7 @@ contains
             enddo
             do j = 1,size(shift,2)
                 if(n_neigh(j) >  1d-6) then
-                    self%k_pts(1:2,j) =  self%k_pts(1:2,j) + shift(:,j) / n_neigh(j)
+                    self%new_k_pts(1:2,j) =  self%new_k_pts(1:2,j) + shift(:,j) / n_neigh(j)
                 endif
 
             enddo
@@ -1081,8 +1291,100 @@ contains
 
     end subroutine hex_laplace_smoother
 
+    subroutine add_kpts_iter(self, n_new, new_ks)
+        implicit none
+    class(k_space)          :: self
+        integer(4), intent(in)  :: n_new
+        real(8)                 :: cand(2), l
+        real(8), allocatable    :: new_ks(:,:), area(:)
+        integer(4)              :: n_elem, i, cnt, ierr
+        integer(4), allocatable :: sort(:)
+
+        if(allocated(new_ks)) then
+            if(size(new_ks,1) /= 3 .or. size(new_ks,2) /= n_new) then
+                deallocate(new_ks)
+            endif
+        endif
+        if(.not. allocated(new_ks)) allocate(new_ks(3, n_new))
+        n_elem = size(self%elem_nodes,1)
+
+        !do cnt =  1,20
+            !if(self%me == root) write(*,*) "here: ",  cnt, area(cnt)
+        !enddo
+        
+        call qargsort(self%hall_weights, sort)
+        !call qargsort(area, sort)
 
 
+        l = my_norm2(self%ham%UC%rez_lattice(:,1))
+        new_ks =  0d0
+        i = n_elem
+
+        !do cnt =  1,20
+            !if(self%me == root) write(*,*)"ho:", area(sort(cnt))
+        !enddo
+
+        do cnt = 1,n_new
+            !cand = self%centeroid_of_elem(sort(i), self%all_k_pts)
+            cand =  self%random_pt_hex()
+            i = i - 1
+            if(i ==  0) then
+                write (*,*) "Not enough elements for padding"
+                stop
+            endif
+
+            new_ks(1:2,cnt) = cand
+        enddo
+    end subroutine add_kpts_iter
+
+    subroutine append_kpts(self)
+        implicit none
+    class(k_space)         :: self
+        real(8), allocatable   :: tmp(:,:)
+        integer(4)             :: old_sz, new_sz, i,j
+
+        if(.not. allocated(self%all_k_pts)) allocate(self%all_k_pts(3,0))
+        old_sz = size(self%all_k_pts, 2)
+        new_sz = size(self%new_k_pts, 2)
+
+        allocate(tmp(3, old_sz))
+
+        forall(i=1:3, j=1:old_sz) tmp(i,j) = self%all_k_pts(i,j)
+
+        deallocate(self%all_k_pts)
+        allocate(self%all_k_pts(3, old_sz + new_sz))
+
+        forall(i=1:3, j=1:old_sz) self%all_k_pts(i,j)        = tmp(i,j)
+        forall(i=1:3, j=1:new_sz) self%all_k_pts(i,old_sz+j) = self%new_k_pts(i,j)
+
+        deallocate(tmp)
+        deallocate(self%new_k_pts)
+    end subroutine append_kpts
+
+    function test_func(kpt) result(ret)
+        implicit none
+        real(8)                :: kpt(2), ret, d 
+
+        d =  my_norm2(kpt)
+        ret = exp(-10d0*d)
+    end function test_func
+
+    function random_pt_hex(self) result(ret)
+        implicit none
+        class(k_space)            :: self
+        real(8)                   :: ret(2), l
+
+        l = my_norm2(self%ham%UC%rez_lattice(:,1))
+        
+        call random_number(ret)
+        ret =  2d0 * l * (ret - 0.5d0)
+
+        do while( (abs(ret(2)) > 0.5 * l) .or. &
+                  (abs(ret(1)) > self%hex_border_x(ret(2))))
+            call random_number(ret)
+            ret =  2d0 * l * (ret - 0.5d0)
+        enddo
+    end function random_pt_hex
 
 end module
 

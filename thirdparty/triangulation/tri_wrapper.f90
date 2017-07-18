@@ -1,4 +1,5 @@
 subroutine run_triang(k_pts, ret_elem)
+    use output
     use iso_c_binding, only : C_INT, C_DOUBLE
     implicit none
     real(8), intent(in)              :: k_pts(:,:)
@@ -30,7 +31,7 @@ subroutine run_triang(k_pts, ret_elem)
 
     call my_tri(x,y, n_nodes, elem, n_elem, ierr)
     if(ierr /= 0) then
-        write (*,*) "Error: Triangulation failed"
+        write (*,*) "Error: Triangulation failed", ierr
         stop 0
     endif
 
@@ -48,5 +49,4 @@ subroutine run_triang(k_pts, ret_elem)
     deallocate(y)
     deallocate(elem)
     deallocate(resh)
-
 end subroutine run_triang
