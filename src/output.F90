@@ -8,7 +8,7 @@ Module  output
                  print_mtx_real_no_unit, print_mtx_cmplx_no_unit, &
                  print_vec_real_no_unit, print_vec_int, &
                  print_vec_int_no_unit, print_mtx_int_no_unit, &
-                 print_mtx_int
+                 print_mtx_int, print_vec_cmplx, print_vec_cmplx_no_unit
     end interface
 contains
     subroutine print_mtx_int_no_unit(mtx)
@@ -70,6 +70,24 @@ contains
             write(p_unit, "(ES10.3)") vec(i)
         enddo
     end subroutine print_vec_real
+
+    subroutine print_vec_cmplx_no_unit(vec)
+        implicit none
+        complex(8), dimension(:), intent(in)      :: vec
+
+        call print_vec_cmplx(std_out,  vec)
+    end subroutine print_vec_cmplx_no_unit
+
+    subroutine print_vec_cmplx(p_unit, vec)
+        implicit none
+        complex(8), dimension(:), intent(in)      :: vec
+        integer(4), intent(in)                 :: p_unit
+        integer(4)                             :: i
+
+        do i =  1, size(vec)
+            write(p_unit, "(ES10.3)") vec(i)
+        enddo
+    end subroutine print_vec_cmplx
 
     subroutine print_mtx_real_no_unit(mtx)
         Implicit None

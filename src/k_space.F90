@@ -693,7 +693,7 @@ contains
             hall(:)
         integer(4), allocatable :: omega_kidx_all(:), omega_kidx_new(:)
         type(r8arr), allocatable:: omega_z_all(:), omega_z_new(:)
-        real(8), allocatable    :: omega_z(:)
+        real(8), allocatable    :: omega_z(:), tmp(:)
         integer(4)  :: N_k, n, k_idx, first, last, ierr, n_atm, n_hall,&
             iter, cnt, loc_idx, i, j
         character(len=300)      :: filename
@@ -745,6 +745,18 @@ contains
                     write (filename, "(A,I0.5,A)") "hall_E_", iter, ".npy"
                     call save_npy(trim(self%prefix) // trim(filename), &
                         self%E_fermi / self%units%energy)
+                    
+                    write (filename, "(A,I0.5,A)") "eig_val_", iter, ".npy"
+                    call save_npy(trim(self%prefix) // trim(filename), &
+                        eig_val_all / self%units%energy)
+
+                    if(allocated(tmp)) deallocate(tmp)
+                    allocate(tmp(size(omega_z_all)))
+                    forall(i=1:size(tmp)) tmp(i) = omega_z_all(i)%arr(2)
+
+                    write (filename, "(A,I0.5,A)") "omega_z_", iter, ".npy"
+                    call save_npy(trim(self%prefix) // trim(filename), &
+                        tmp)
                 endif
 
                 if(self%me == root) then

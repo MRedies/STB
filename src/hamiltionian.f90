@@ -54,7 +54,6 @@ contains
         complex(8), allocatable     :: fd_H(:,:)
         integer(4)                  :: N, k_idx 
 
-        write (*,*) "bla" 
         N = 2 * self%UC%num_atoms
         allocate(fd_H(N,N))
         if(.not. allocated(self%del_H)) then
@@ -66,15 +65,15 @@ contains
             call self%set_derivative_k(k, k_idx)
 
             if(cnorm2(reshape(fd_H - self%del_H, [N*N])) >= 1d-8) then
-                write (*,*) "mist"
-            else
-                write (*,*) "Cool"
+                write (*,*) "bad"
+                write (*,*) "FD"
+                call print_mtx(fd_H)
+                write (*,*) "analytic"
+                call print_mtx(self%del_H)
+                write (*,*) "diff"
+                call print_mtx(self%del_H -  fd_H)
             endif
-            call save_npy("analytic.npy", self%del_H)
-            call save_npy("FD.npy", fd_H)
-
         enddo
-        write (*,*) "blub" 
         deallocate(fd_H)
         !deallocate(self%del_H)
     end subroutine compare_derivative
@@ -397,7 +396,7 @@ contains
                 j_d = j + self%UC%num_atoms 
 
                 r    = self%UC%atoms(i)%neigh_conn(conn,:)
-                d_ij = - r
+                d_ij = - r / my_norm2(r)
 
                 k_dot_r =  dot_product(k, r)
 
@@ -434,7 +433,7 @@ contains
     class(hamil), intent(in)            :: self
         real(8), intent(in)             :: k(3)
         real(8), intent(in), optional   :: E_max
-        real(8), allocatable                :: z_comp(:) !> \f$ \Omega^n_z \f$
+        real(8), allocatable            :: z_comp(:) !> \f$ \Omega^n_z \f$
         complex(8), allocatable  :: x_elems(:), y_elems(:), H(:,:), work(:)
         real(8), allocatable     :: eig_val(:), rwork(:)
         complex(8) :: fac, tmp
