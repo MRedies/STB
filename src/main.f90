@@ -148,6 +148,7 @@ contains
         call CFG_add(cfg, "berry%temperature", 1d-5, "")
         call CFG_add(cfg, "berry%laplace_iter", 0, "")
         call CFG_add(cfg, "berry%refinement_iter", 1,"")
+        call CFG_add(cfg, "berry%kpts_per_step", 1, "")
 
         call CFG_add(cfg, "output%band_prefix", "bar/foo","")
     End Subroutine add_full_cfg

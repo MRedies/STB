@@ -25,6 +25,7 @@ module Class_k_space
         integer(4) :: me !> MPI rank
         integer(4) :: laplace_iter !> number of laplace iterations
         integer(4) :: berry_iter !> number of grid refinements
+        integer(4) :: kpts_per_step !> new kpts per step and Proc
         real(8), allocatable :: weights(:) !> weights for integration
         integer(4), allocatable :: elem_nodes(:,:) !> elements in triangulation
         real(8), allocatable :: hall_weights(:)
@@ -344,13 +345,15 @@ contains
 
             call CFG_get(cfg, "berry%laplace_iter", self%laplace_iter)
             call CFG_get(cfg, "berry%refinement_iter", self%berry_iter)
+            call CFG_get(cfg, "berry%kpts_per_step", self%kpts_per_step)
+
         endif
         call self%Bcast_k_space()
     end function init_k_space
 
     subroutine Bcast_k_space(self)
     class(k_space)         :: self
-        integer(4), parameter  :: num_cast =  14
+        integer(4), parameter  :: num_cast =  15
         integer(4)             :: ierr(num_cast), sz(2)
 
         if(self%me ==  root) then
@@ -390,13 +393,16 @@ contains
 
         ! Berry parameter
         call MPI_Bcast(self%berry_num_k_pts, 1,              MPI_INTEGER4, &
-            root,                 MPI_COMM_WORLD, ierr(11))
+            root,                            MPI_COMM_WORLD, ierr(11))
         call MPI_Bcast(self%temp,            1,              MPI_REAL8,    &
-            root,                 MPI_COMM_WORLD, ierr(12))
+            root,                            MPI_COMM_WORLD, ierr(12))
         call MPI_Bcast(self%laplace_iter,    1,              MPI_INTEGER4, &
-            root,                 MPI_COMM_WORLD, ierr(13))
+            root,                            MPI_COMM_WORLD, ierr(13))
         call MPI_Bcast(self%berry_iter,      1,              MPI_INTEGER4, &
-            root,                 MPI_COMM_WORLD, ierr(14))
+            root,                            MPI_COMM_WORLD, ierr(14))
+        call MPI_Bcast(self%kpts_per_step,   1,              MPI_INTEGER4, &
+            root,                            MPI_COMM_WORLD, ierr(15))
+        call check_ierr(ierr, self%me, "Ksp Bcast")
     end subroutine Bcast_k_space
 
     subroutine setup_k_grid(self)
@@ -730,25 +736,14 @@ contains
                 omega_z_all, omega_z_new)
             call self%append_kpts()
             call append_eigval(eig_val_all, eig_val_new)
-            write (*,*) self%me, " -> all shape: ", shape(eig_val_all)
             ! integrate hall conductance
-            !call self%test_integration(iter)
-            
-            write (filename, "(A,I0.5,A,I0.5,A)") "omega_kidx_all_proc=", self%me, "_nk=", size(self%all_k_pts, 2), ".npy"
-            call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
-
-
-            write (filename, "(A,I0.5,A,I0.5,A)") "omega_z_all_proc=", self%me, "_nk=", size(self%all_k_pts,2), ".npy"
-            if(allocated(tmp)) deallocate(tmp)
-            allocate(tmp(size(omega_z_all)))
-            forall (i=1:size(tmp)) tmp(i) = omega_z_all(i)%arr(1)
-            call save_npy(trim(self%prefix) // trim(filename), tmp)
 
             call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall, iter)
 
             if(mod(iter, 10) ==  0) then
                 if(self%me == root) then
-                    write (*,*) "saving hall cond with questionable unit"
+                    write (*,*) iter, size(self%all_k_pts,2), &
+                        "saving hall cond with questionable unit"
 
                     write (filename, "(A,I0.5,A)") "hall_cond_", iter, ".npy"
                     call save_npy(trim(self%prefix) // trim(filename), hall)
@@ -768,7 +763,7 @@ contains
             endif
             
             call self%set_hall_weights(omega_z_all, omega_kidx_all)
-            call self%add_kpts_iter(self%nProcs, self%new_k_pts)
+            call self%add_kpts_iter(self%kpts_per_step * self%nProcs, self%new_k_pts)
 
         enddo
         deallocate(hall)
@@ -793,13 +788,6 @@ contains
         call run_triang(self%all_k_pts, self%elem_nodes)
         call self%set_weights_ksp()
         
-        write (filename, "(A,I0.5,A,I0.5,A)") "weights_proc=", self%me, "_nk=", &
-            size(self%all_k_pts,2), ".npy"
-        call save_npy(trim(self%prefix) // trim(filename), self%weights)
-
-        write (filename, "(A,I0.5,A,I0.5,A)") "eig_val_proc=", self%me, "_nk=", &
-            size(self%all_k_pts,2), ".npy"
-        call save_npy(trim(self%prefix) // trim(filename), eig_val_all)
         !perform integration with all points
         hall =  0d0
 
@@ -818,10 +806,6 @@ contains
         enddo
 
         hall = hall / (2d0*PI)
-        
-        write (filename, "(A,I0.5,A,I0.5,A)") "hall_proc=", self%me, "_nk=", &
-            size(self%all_k_pts,2), ".npy"
-        call save_npy(trim(self%prefix) // trim(filename), hall)
         
         if(self%me == root) then
             call MPI_Reduce(MPI_IN_PLACE, hall, size(hall), MPI_REAL8, MPI_SUM, &
@@ -1202,7 +1186,7 @@ contains
             !find biggest triangles
             n_elem =  size(self%elem_nodes,1)
             if(rest >  n_elem) then
-                write (*,*) "Not enough elements for padding: ", n_elem
+                write (*,*) "Not enough elements for inital padding: ", n_elem
                 stop
             endif
 
@@ -1318,7 +1302,7 @@ contains
         implicit none
     class(k_space)          :: self
         integer(4), intent(in)  :: n_new
-        real(8)                 :: cand(2), l
+        real(8)                 :: cand(2), l, cand1(2), cand2(2)
         real(8), allocatable    :: new_ks(:,:), area(:)
         integer(4)              :: n_elem, i, cnt, ierr
         integer(4), allocatable :: sort(:)
@@ -1331,33 +1315,32 @@ contains
         if(.not. allocated(new_ks)) allocate(new_ks(3, n_new))
         n_elem = size(self%elem_nodes,1)
 
-        !do cnt =  1,20
-            !if(self%me == root) write(*,*) "here: ",  cnt, area(cnt)
-        !enddo
-        
-        call qargsort(self%hall_weights, sort)
+        !allocate(area(n_elem))
+        !forall(i = 1:n_elem) area(i) = self%area_of_elem(self%all_k_pts, i)
         !call qargsort(area, sort)
+        call qargsort(self%hall_weights, sort)
 
 
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
         new_ks =  0d0
         i = n_elem
 
-        !do cnt =  1,20
-            !if(self%me == root) write(*,*)"ho:", area(sort(cnt))
-        !enddo
-
         do cnt = 1,n_new
             !cand = self%centeroid_of_elem(sort(i), self%all_k_pts)
             cand =  self%random_pt_hex()
-            i = i - 1
-            if(i ==  0) then
-                write (*,*) "Not enough elements for padding"
-                stop
-            endif
+            !do while(self%in_points(cand(1:2),new_ks(1:2,1:cnt-1)))
+                !i = i - 1
+                !cand =  self%new_pt(sort(i), self%all_k_pts)
+                !if(i ==  0) then
+                    !write (*,*) "Not enough elements for padding"
+                    !stop
+                !endif
+            !enddo
 
+            !cand =  self%random_pt_hex()
             new_ks(1:2,cnt) = cand
         enddo
+        !deallocate(area)
     end subroutine add_kpts_iter
 
     subroutine append_kpts(self)
