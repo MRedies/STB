@@ -450,20 +450,20 @@ contains
         deallocate(tmp)
     end subroutine calc_berry_mtx
 
-    subroutine calc_berry_z(self,k,z_comp)
+    subroutine calc_berry_z(self,k,z_comp, eig_val)
         implicit none
-        class(hamil)            :: self
-        real(8), intent(in)             :: k(3)
-        real(8), allocatable            :: z_comp(:) !> \f$ \Omega^n_z \f$
+        class(hamil)             :: self
+        real(8), intent(in)      :: k(3)
+        real(8)                  :: eig_val(:)
+        real(8), allocatable     :: z_comp(:) !> \f$ \Omega^n_z \f$
         complex(8), allocatable  :: H(:,:), work(:), x_mtx(:,:), y_mtx(:,:)
-        real(8), allocatable     :: eig_val(:), rwork(:)
+        real(8), allocatable     :: rwork(:)
         complex(8) :: fac
         integer(4), allocatable  :: iwork(:)
         integer(4)   :: n_dim, n, m, lwork, lrwork, liwork, info
 
         n_dim = 2 * self%UC%num_atoms
         allocate(H(n_dim,n_dim))
-        allocate(eig_val(n_dim))
 
         H = 0d0
         call self%setup_H(k, H)
@@ -501,7 +501,6 @@ contains
         enddo
 
         deallocate(H)
-        deallocate(eig_val)
         deallocate(work)
         deallocate(rwork)
         deallocate(iwork)

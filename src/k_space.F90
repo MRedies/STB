@@ -724,8 +724,9 @@ contains
             do k_idx = first, last
                 k = self%new_k_pts(:,k_idx)
                 omega_kidx_new(cnt) =  k_idx + size(self%all_k_pts,2)
-                call self%ham%calc_berry_z(k, omega_z_new(cnt)%arr)
-                call self%ham%calc_single_eigenvalue(k, eig_val_new(:,cnt))
+                call self%ham%calc_berry_z(k, omega_z_new(cnt)%arr,&
+                                                   eig_val_new(:,cnt))
+                !call self%ham%calc_single_eigenvalue(k, eig_val_new(:,cnt))
                 cnt = cnt + 1
             enddo
 
@@ -941,7 +942,8 @@ contains
     subroutine plot_omega(self)
         implicit none
     class(k_space)         :: self
-        real(8), allocatable   :: omega_z(:,:), tmp_vec(:), sec_omega_z(:,:)
+        real(8), allocatable   :: omega_z(:,:), tmp_vec(:), sec_omega_z(:,:),&
+                                  eig_val(:)
         real(8)                :: k(3)
         integer(4)  :: N, k_idx, send_count, first, last, ierr, cnt, n_atm
         integer(4), allocatable:: num_elems(:), offsets(:)
@@ -957,6 +959,7 @@ contains
 
         if(self%me ==  root) write (*,*) "nkpts =  ", size(self%new_k_pts, 2)
 
+        allocate(eig_val(N))
         allocate(omega_z(N, size(self%new_k_pts, 2)))
         allocate(tmp_vec(N))
 
@@ -972,7 +975,7 @@ contains
             write (*,*) "k_ind" , k_idx
             k = self%new_k_pts(:,k_idx)
 
-            call self%ham%calc_berry_z(k, tmp_vec)
+            call self%ham%calc_berry_z(k, tmp_vec, eig_val)
 
             sec_omega_z(:,cnt) =  tmp_vec 
             cnt = cnt + 1
@@ -988,6 +991,7 @@ contains
             write (*,*) "Berry curvature saved unitless"
         endif
         deallocate(self%ham%del_H)
+        deallocate(eig_val)
     end subroutine plot_omega 
 
     subroutine set_fermi(self, cfg)
