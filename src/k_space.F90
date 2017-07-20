@@ -740,7 +740,7 @@ contains
 
             call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall, iter)
 
-            if(mod(iter, 10) ==  0) then
+            if(mod(iter, 5) ==  0) then
                 if(self%me == root) then
                     write (*,*) iter, size(self%all_k_pts,2), &
                         "saving hall cond with questionable unit"
@@ -1315,10 +1315,10 @@ contains
         if(.not. allocated(new_ks)) allocate(new_ks(3, n_new))
         n_elem = size(self%elem_nodes,1)
 
-        !allocate(area(n_elem))
-        !forall(i = 1:n_elem) area(i) = self%area_of_elem(self%all_k_pts, i)
-        !call qargsort(area, sort)
-        call qargsort(self%hall_weights, sort)
+        allocate(area(n_elem))
+        forall(i = 1:n_elem) area(i) = self%area_of_elem(self%all_k_pts, i)
+        call qargsort(area, sort)
+        !call qargsort(self%hall_weights, sort)
 
 
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
@@ -1326,8 +1326,14 @@ contains
         i = n_elem
 
         do cnt = 1,n_new
-            !cand = self%centeroid_of_elem(sort(i), self%all_k_pts)
-            cand =  self%random_pt_hex()
+            cand = self%centeroid_of_elem(sort(i), self%all_k_pts)
+            !cand = self%new_pt(sort(i), self%all_k_pts)
+            i = i - 1
+            if(i == 0) then
+                write (*,*) "Not enough elements"
+                stop
+            endif
+
             !do while(self%in_points(cand(1:2),new_ks(1:2,1:cnt-1)))
                 !i = i - 1
                 !cand =  self%new_pt(sort(i), self%all_k_pts)

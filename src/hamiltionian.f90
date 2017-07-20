@@ -423,9 +423,16 @@ contains
         implicit none
     class(hamil)               :: self
         complex(8), intent(in)     :: psi_nk(:), psi_mk(:)
+        complex(8)                 :: tmp(size(psi_nk))
         complex(8)                 :: elem
+        integer(4)                 :: N
 
-        elem = dot_product(psi_nk, matvec(self%del_H, psi_mk))
+        N = size(psi_mk)
+
+        call zgemv('N', N, N, c_1, self%del_H, N, psi_mk, 1, c_0, tmp, 1)
+        elem =  dot_product(psi_nk, tmp)
+
+        !elem = dot_product(psi_nk, matvec(self%del_H, psi_mk))
     end function
 
     subroutine calc_berry_z(self,k,z_comp, E_max)
