@@ -30,11 +30,8 @@ module Class_hamiltionian
         procedure :: set_derivative_k         => set_derivative_k
         procedure :: set_rashba_SO            => set_rashba_SO
         procedure :: set_deriv_FD             => set_deriv_FD
-        procedure :: calc_deriv_elem          => calc_deriv_elem
         procedure :: calc_berry_z             => calc_berry_z
-        procedure :: calc_berry_z2            => calc_berry_z2
         procedure :: calc_berry_mtx           => calc_berry_mtx
-        procedure :: check_berry_mtx          => check_berry_mtx
         procedure :: compare_derivative       => compare_derivative
         procedure :: set_derivative_hopping   => set_derivative_hopping
         procedure :: set_derivative_rashba_so => set_derivative_rashba_so
@@ -420,23 +417,7 @@ contains
                 self%del_H(j_d, i_d) = self%del_H(j_d,i_d) + back(2,2)
             enddo
         enddo
-    end subroutine set_derivative_rashba_so 
-
-    function calc_deriv_elem(self, psi_nk, psi_mk) result(elem)
-        implicit none
-    class(hamil)               :: self
-        complex(8), intent(in)     :: psi_nk(:), psi_mk(:)
-        complex(8)                 :: tmp(size(psi_nk))
-        complex(8)                 :: elem
-        integer(4)                 :: N
-
-        N = size(psi_mk)
-
-        call zgemv('N', N, N, c_1, self%del_H, N, psi_mk, 1, c_0, tmp, 1)
-        elem =  dot_product(psi_nk, tmp)
-
-        !elem = dot_product(psi_nk, matvec(self%del_H, psi_mk))
-    end function
+    end subroutine set_derivative_rashba_so
 
     subroutine calc_berry_mtx(self, k, derive_idx, H, ret)
         implicit none
@@ -469,176 +450,20 @@ contains
         deallocate(tmp)
     end subroutine calc_berry_mtx
 
-    subroutine check_berry_mtx(self, k, derive_idx)
+    subroutine calc_berry_z(self,k,z_comp)
         implicit none
         class(hamil)            :: self
-        real(8), intent(in)     :: k(3)
-        integer(4), intent(in)  :: derive_idx
-        complex(8), allocatable :: deriv_mtx(:,:), deriv_el(:,:), H(:,:), work(:)
-        real(8), allocatable    :: eig_val(:), rwork(:)
-        real(8)                 :: start
-        integer(4), allocatable :: iwork(:)
-        integer(4)              :: n_dim, i,j, lwork, lrwork, liwork, info
-
-        n_dim = 2 * self%UC%num_atoms
-        allocate(deriv_el(n_dim,n_dim))
-        allocate(H(n_dim, n_dim))
-        allocate(eig_val(n_dim))
-        if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
-
-        H = 0d0
-        call self%setup_H(k, H)
-        call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
-        allocate(work(lwork))
-        allocate(rwork(lrwork))
-        allocate(iwork(liwork))
-
-
-        call zheevd('V', 'L', n_dim, H, n_dim, eig_val, &
-            work, lwork, rwork, lrwork, iwork, liwork, info)
-        if(info /= 0) then
-            write (*,*) "ZHEEVD in berry calculation failed"
-        endif
-        
-        if(self%me ==  root) write (*,*) "Flag B"
-        call MPI_Barrier(MPI_COMM_WORLD, info)
-        start = MPI_Wtime()
-
-        call self%set_derivative_k(k, derive_idx)
-
-        do i = 1,n_dim
-            do j = 1,n_dim
-                deriv_el(i,j) = self%calc_deriv_elem(H(:,i), H(:,j))
-            enddo
-        enddo
-        if(self%me == root) write (*,*) "Time vec: ", MPI_Wtime() - start
-        
-        if(self%me ==  root) write (*,*) "Flag A"
-        call MPI_Barrier(MPI_COMM_WORLD, info)
-        start = MPI_Wtime()
-        call self%calc_berry_mtx(k, derive_idx, H, deriv_mtx)
-        if(self%me == root) write (*,*) "Time mtx: ", MPI_Wtime() - start
-
-        
-
-        write (*,*) "Max error",  derive_idx, maxval(abs(deriv_el - deriv_mtx))
-    
-    end subroutine check_berry_mtx
-
-    subroutine calc_berry_z(self,k,z_comp, E_max)
-        implicit none
-    class(hamil)                        :: self
         real(8), intent(in)             :: k(3)
-        real(8), intent(in), optional   :: E_max
         real(8), allocatable            :: z_comp(:) !> \f$ \Omega^n_z \f$
-        complex(8), allocatable  :: x_elems(:), y_elems(:), H(:,:), work(:)
+        complex(8), allocatable  :: H(:,:), work(:), x_mtx(:,:), y_mtx(:,:)
         real(8), allocatable     :: eig_val(:), rwork(:)
-        complex(8) :: fac, tmp
+        complex(8) :: fac
         integer(4), allocatable  :: iwork(:)
-        integer(4)   :: n_dim, n, m, lwork, lrwork, liwork, info, n_max
+        integer(4)   :: n_dim, n, m, lwork, lrwork, liwork, info
 
         n_dim = 2 * self%UC%num_atoms
         allocate(H(n_dim,n_dim))
         allocate(eig_val(n_dim))
-        allocate(self%del_H(n_dim, n_dim))
-
-        H = 0d0
-        call self%setup_H(k, H)
-
-        call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
-        allocate(work(lwork), stat=info)
-        allocate(rwork(lrwork))
-        allocate(iwork(liwork))
-
-
-        call zheevd('V', 'L', n_dim, H, n_dim, eig_val, &
-            work, lwork, rwork, lrwork, iwork, liwork, info)
-        if(info /= 0) then
-            write (*,*) "ZHEEVD in berry calculation failed"
-        endif
-    
-        if(present(E_max)) then
-            n_max =  1
-            do while(eig_val(n_max) <= E_max)
-                n_max = n_max + 1
-                if(n_max == n_dim) exit
-            enddo
-        else
-            n_max = n_dim
-        endif
-
-
-        if(allocated(z_comp)) then
-            if(size(z_comp) /= n_max) deallocate(z_comp)
-        endif
-
-        if(.not. allocated(z_comp)) allocate(z_comp(n_dim), stat=info)
-        z_comp = 0d0
-
-        allocate(x_elems(n_dim))
-        allocate(y_elems(n_dim))
-
-
-        do n= 1,n_max
-            !calc del_kx H
-            call self%set_derivative_k(k, 1)
-
-            !$omp parallel do default(shared) 
-            do m=1,n_dim
-                if(m /= n)then
-                    x_elems(m) = self%calc_deriv_elem(H(:,n), H(:,m))
-                endif
-            enddo
-
-            !calc del_ky H
-            call self%set_derivative_k(k, 2)
-
-            !$omp parallel do default(shared) 
-            do m=1,n_dim
-                if(m /= n)then
-                    y_elems(m) = self%calc_deriv_elem(H(:,m), H(:,n))
-                endif
-            enddo
-
-            tmp = 0d0
-            !$omp parallel do default(shared) &
-            !$omp private(fac)&
-            !$omp& reduction(+: tmp)
-            do m=1,n_dim
-                if(n /= m) then
-                    fac = 1d0 / ((eig_val(n) - eig_val(m))**2 + i_unit * small_imag)
-                    tmp = tmp + fac * x_elems(m) * y_elems(m)
-                endif
-            enddo
-            z_comp(n) = - 2d0 *  aimag(tmp)
-        enddo
-        deallocate(x_elems)
-        deallocate(y_elems)
-        deallocate(H)
-        deallocate(self%del_H)
-        deallocate(eig_val)
-        deallocate(work)
-        deallocate(rwork)
-        deallocate(iwork)
-    end subroutine calc_berry_z
-    
-    subroutine calc_berry_z2(self,k,z_comp, E_max)
-        implicit none
-        class(hamil)            :: self
-        real(8), intent(in)             :: k(3)
-        real(8), intent(in), optional   :: E_max
-        real(8), allocatable            :: z_comp(:) !> \f$ \Omega^n_z \f$
-        complex(8), allocatable  :: x_elems(:), y_elems(:), H(:,:), work(:)&
-                                    , x_mtx(:,:), y_mtx(:,:)
-        real(8), allocatable     :: eig_val(:), rwork(:)
-        complex(8) :: fac, tmp
-        integer(4), allocatable  :: iwork(:)
-        integer(4)   :: n_dim, n, m, lwork, lrwork, liwork, info, n_max
-
-        n_dim = 2 * self%UC%num_atoms
-        allocate(H(n_dim,n_dim))
-        allocate(eig_val(n_dim))
-        allocate(self%del_H(n_dim, n_dim))
 
         H = 0d0
         call self%setup_H(k, H)
@@ -676,12 +501,11 @@ contains
         enddo
 
         deallocate(H)
-        deallocate(self%del_H)
         deallocate(eig_val)
         deallocate(work)
         deallocate(rwork)
         deallocate(iwork)
-    end subroutine calc_berry_z2
+    end subroutine calc_berry_z
 
     Subroutine  calc_eigenvalues(self, k_list, eig_val)
         Implicit None

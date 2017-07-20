@@ -534,7 +534,7 @@ contains
         implicit none
     class(k_space)     :: self
         integer(4)         :: i, iter
-        real(8)            :: integral, kpt(3), f, l
+        real(8)            :: integral, kpt(3), f
         character(len=300) :: filename
 
         call run_triang(self%all_k_pts, self%elem_nodes)
@@ -699,11 +699,9 @@ contains
             hall(:)
         integer(4), allocatable :: omega_kidx_all(:), omega_kidx_new(:)
         type(r8arr), allocatable:: omega_z_all(:), omega_z_new(:)
-        real(8), allocatable    :: omega_z(:), tmp(:)
-        integer(4)  :: N_k, n, k_idx, first, last, ierr, n_atm, n_hall,&
-            iter, cnt, loc_idx, i, j
+        integer(4)  :: N_k, k_idx, first, last, n_atm,&
+            iter, cnt
         character(len=300)      :: filename
-        logical                 :: done
 
         call self%setup_berry_inte_gird()
         N_k = size(self%new_k_pts, 2)
@@ -726,7 +724,7 @@ contains
             do k_idx = first, last
                 k = self%new_k_pts(:,k_idx)
                 omega_kidx_new(cnt) =  k_idx + size(self%all_k_pts,2)
-                call self%ham%calc_berry_z(k, omega_z_new(cnt)%arr, Emax)
+                call self%ham%calc_berry_z(k, omega_z_new(cnt)%arr)
                 call self%ham%calc_single_eigenvalue(k, eig_val_new(:,cnt))
                 cnt = cnt + 1
             enddo
@@ -738,7 +736,7 @@ contains
             call append_eigval(eig_val_all, eig_val_new)
             ! integrate hall conductance
 
-            call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall, iter)
+            call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall)
 
             if(mod(iter, 5) ==  0) then
                 if(self%me == root) then
@@ -771,15 +769,14 @@ contains
         deallocate(self%new_k_pts)
     end subroutine calc_hall_conductance
 
-    subroutine integrate_hall(self, omega_kidx_all, omega_z_all, eig_val_all, hall, iter)
+    subroutine integrate_hall(self, omega_kidx_all, omega_z_all, eig_val_all, hall)
         implicit none
     class(k_space)          :: self
-        integer(4), intent(in)  :: omega_kidx_all(:), iter
+        integer(4), intent(in)  :: omega_kidx_all(:)
         type(r8arr), intent(in) :: omega_z_all(:)
         real(8), intent(in)     :: eig_val_all(:,:)
         real(8), allocatable    :: hall(:), omega_z(:)
         integer(4)              :: loc_idx, n, n_hall, k_idx, ierr
-        character(len=300)      :: filename
 
         if(allocated(hall)) deallocate(hall)
         allocate(hall(size(self%E_fermi)))
@@ -884,7 +881,7 @@ contains
         implicit none
         integer(4), allocatable   :: omega_kidx_all(:),omega_kidx_new(:) 
         type(r8arr), allocatable  :: omega_z_new(:), omega_z_all(:), tmp_z(:)
-        integer(4)                :: n_old, i, ierr
+        integer(4)                :: n_old, i
 
         if(allocated(omega_kidx_all)) then
             omega_kidx_all =  [omega_kidx_all, omega_kidx_new]
@@ -1302,9 +1299,9 @@ contains
         implicit none
     class(k_space)          :: self
         integer(4), intent(in)  :: n_new
-        real(8)                 :: cand(2), l, cand1(2), cand2(2)
+        real(8)                 :: cand(2), l
         real(8), allocatable    :: new_ks(:,:), area(:)
-        integer(4)              :: n_elem, i, cnt, ierr
+        integer(4)              :: n_elem, i, cnt
         integer(4), allocatable :: sort(:)
 
         if(allocated(new_ks)) then
