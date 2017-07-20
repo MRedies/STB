@@ -11,10 +11,10 @@ program STB
     type(CFG_t)        :: cfg
     character(len=25)  :: fermi_type
     character(len=*), parameter :: time_fmt =  "(A,F10.3,A)"
-    integer(4)         :: ierr, me, n_inp, n_files
+    integer(4)         :: ierr, me, n_inp, n_files,i 
     real(8)            :: start, halt
     logical :: perform_band, perform_dos, calc_hall
-    real(8), allocatable :: hall_cond(:)
+    real(8), allocatable :: hall_cond(:), z1(:), z2(:), z3(:)
     character(len=300), allocatable :: inp_files(:)
     character(len=300)   :: n_files_str, base_str, tmp_str
     
@@ -59,6 +59,23 @@ program STB
         call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
 
         Ksp =  init_k_space(cfg)
+        start =  MPI_Wtime()
+        call Ksp%ham%calc_berry_z2([0.4d0, 0.3d0,0d0], z2)
+        write (*,*) "done mtx: ", MPI_Wtime() - start
+        call Ksp%ham%calc_berry_z( [0.4d0, 0.3d0,0d0], z1)
+        write (*,*) "done vec: ", MPI_Wtime() - start
+
+        !call print_mtx(z1-z2)
+        write (*,*) "maxdiff =  ", maxval(abs(z1-z2))
+        write (*,*) "avgdiff =  ", sum(abs(z1-z2)) / (1d0 * size(z1))
+
+        z3 =  abs(z1 - z2)
+        forall(i = 1:size(z1)) z3(i) =  z3(i) / abs(z1(i))
+         
+        write (*,*) "rel error = ",  maxval(z3)
+
+        write (*,*) "Abort"
+        call MPI_Abort(MPI_COMM_WORLD, 6, ierr)
         !call Ksp%plot_omega()
         if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
 
