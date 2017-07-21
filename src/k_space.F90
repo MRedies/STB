@@ -705,7 +705,7 @@ contains
         call self%setup_berry_inte_grid(self%berry_k_shift)
         N_k = size(self%new_k_pts, 2)
 
-        Emax = self%find_E_max()
+        N_k = size(self%new_k_pts, 2)
         n_atm =  self%ham%UC%num_atoms
         allocate(self%ham%del_H(2*n_atm,2*n_atm))
         allocate(hall_old(size(self%E_fermi)))
@@ -722,6 +722,7 @@ contains
             ! calculate 
             cnt =  1
             do k_idx = first, last
+                if(self%me == root) write (*,*) k_idx, "of", last
                 k = self%new_k_pts(:,k_idx)
                 omega_kidx_new(cnt) =  k_idx + size(self%all_k_pts,2)
                 call self%ham%calc_berry_z(k, omega_z_new(cnt)%arr,&
@@ -750,9 +751,29 @@ contains
                 if(self%me == root) write (*,*) "Converged berry interation"
                 exit
             else
-                if(self%me == root) write (*,*) iter, "->", &
-                         my_norm2(hall - hall_old)/(1d0*size(hall)) 
+                if(self%me == root) write (*,*) iter, "nkpts", size(self%all_k_pts,2), "err", &
+                         my_norm2(hall - hall_old)/(1d0*size(hall))
             endif
+
+            if(self%me == root) then
+                write (filename, "(A,I0.5,A,I0.5,A)") "kpoint_proc=", self%me, "_iter=", iter, ".npy"
+                call save_npy(trim(self%prefix) // trim(filename), self%all_k_pts)
+                
+                write (filename, "(A,I0.5,A,I0.5,A)") "elem_proc=", self%me, "_iter=", iter, ".npy"
+                call save_npy(trim(self%prefix) // trim(filename), self%elem_nodes)
+                
+                write (filename, "(A,I0.5,A,I0.5,A)") "hall_proc=", self%me, "_iter=", iter, ".npy"
+                call save_npy(trim(self%prefix) // trim(filename), hall)
+                
+                write (filename, "(A,I0.5,A,I0.5,A)") "hallold_proc=", self%me, "_iter=", iter, ".npy"
+                call save_npy(trim(self%prefix) // trim(filename), hall_old)
+            endif
+
+            !write (filename, "(A,I0.5,A,I0.5,A)") "eigval_proc=", self%me, "_iter=", iter, ".npy"
+            !call save_npy(trim(self%prefix) // trim(filename), eig_val_all)
+            
+            !write (filename, "(A,I0.5,A,I0.5,A)") "omKidx_proc=", self%me, "_iter=", iter, ".npy"
+            !call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
             
             call self%set_hall_weights(omega_z_all, omega_kidx_all)
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
@@ -822,8 +843,9 @@ contains
     class(k_space)         :: self
         integer(4), intent(in) :: omega_kidx_all(:)
         type(r8arr), intent(in):: omega_z_all(:)
-        integer(4)             :: i, n_elem, node, k_idx, loc_idx, ierr
+        integer(4)             :: i, n_elem, node, k_idx, loc_idx, ierr(2)
         real(8)                :: kpt(3)
+        character(len=300)     :: filename
 
         n_elem = size(self%elem_nodes,1)
         if(allocated(self%hall_weights)) then
@@ -851,8 +873,29 @@ contains
             enddo
         enddo
 
-        call MPI_Allreduce(MPI_IN_PLACE,self%hall_weights,size(self%hall_weights),&
-            MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+        
+        write (filename, "(I0.5,A)") self%me,"_loc_ks.npy"
+        call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
+        
+        write (filename, "(I0.5,A)") self%me,"_hall_w.npy"
+        call save_npy(trim(self%prefix) // trim(filename), self%hall_weights)
+        
+        write (filename, "(I0.5,A)") self%me,"_k_w.npy"
+        call save_npy(trim(self%prefix) // trim(filename), self%weights)
+
+        call MPI_Barrier(MPI_COMM_WORLD, ierr(1))
+        call MPI_Abort(MPI_COMM_WORLD, 7, ierr(1))
+
+        if(self%me == root) then
+            call MPI_Reduce(MPI_IN_PLACE, self%hall_weights, n_elem,&
+                            MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+        else
+            call MPI_Reduce(self%hall_weights,self%hall_weights, n_elem, &
+                            MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+        endif
+        call MPI_Bcast(self%hall_weights, n_elem, MPI_REAL8, &
+                        root, MPI_COMM_WORLD, ierr(2))
+        call check_ierr(ierr, self%me, "set_hall_weights")
     end subroutine set_hall_weights
     
 
@@ -1316,6 +1359,7 @@ contains
         real(8), allocatable    :: new_ks(:,:)
         integer(4)              :: n_elem, i, cnt, ierr
         integer(4), allocatable :: sort(:)
+        character(len=300)      :: filename
 
         if(allocated(new_ks)) then
             if(size(new_ks,1) /= 3 .or. size(new_ks,2) /= n_new) then
@@ -1326,6 +1370,15 @@ contains
         n_elem = size(self%elem_nodes,1)
 
         call qargsort(self%hall_weights, sort)
+
+        write (filename, "(I0.4,A,I0.9,A)") self%me,&
+                                "_hall_weights_", size(sort), ".npy"
+        call save_npy(trim(self%prefix) // filename, self%hall_weights)
+
+        write (filename, "(I0.4,A,I0.9,A)") self%me,&
+                                "_k_weights_", size(sort), ".npy"
+        call save_npy(trim(self%prefix) // filename, self%weights)
+
 
         new_ks =  0d0
         i = n_elem
