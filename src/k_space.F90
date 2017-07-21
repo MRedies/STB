@@ -26,6 +26,8 @@ module Class_k_space
         integer(4) :: laplace_iter !> number of laplace iterations
         integer(4) :: berry_iter !> number of grid refinements
         integer(4) :: kpts_per_step !> new kpts per step and Proc
+        real(8)    :: berry_k_shift(3) !> shift of brillouine-zone
+        real(8)    :: berry_conv_crit !> convergance criterion for berry integration
         real(8), allocatable :: weights(:) !> weights for integration
         integer(4), allocatable :: elem_nodes(:,:) !> elements in triangulation
         real(8), allocatable :: hall_weights(:)
@@ -52,7 +54,7 @@ module Class_k_space
         procedure :: calc_hall_conductance  => calc_hall_conductance
         procedure :: setup_inte_grid_square => setup_inte_grid_square
         procedure :: setup_inte_grid_hex    => setup_inte_grid_hex
-        procedure :: setup_berry_inte_gird  => setup_berry_inte_gird
+        procedure :: setup_berry_inte_grid  => setup_berry_inte_grid
         procedure :: set_weights_ksp        => set_weights_ksp
         procedure :: test_integration       => test_integration
         procedure :: Bcast_k_space          => Bcast_k_space
@@ -240,7 +242,7 @@ contains
         if(trim(self%ham%UC%uc_type) == "square_2d") then
             call self%setup_inte_grid_square(self%DOS_num_k_pts)
         elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
-            call self%setup_inte_grid_hex(self%DOS_num_k_pts)
+            call self%setup_inte_grid_hex(self%DOS_num_k_pts, [0d0, 0d0, 0d0])
         else
             if(self%me ==  root) write (*,*) "DOS k-grid not known"
             call MPI_Abort(MPI_COMM_WORLD, 0, info)
@@ -346,14 +348,15 @@ contains
             call CFG_get(cfg, "berry%laplace_iter", self%laplace_iter)
             call CFG_get(cfg, "berry%refinement_iter", self%berry_iter)
             call CFG_get(cfg, "berry%kpts_per_step", self%kpts_per_step)
-
+            call CFG_get(cfg, "berry%k_shift", self%berry_k_shift)
+            call CFG_get(cfg, "berry%conv_criterion", self%berry_conv_crit)
         endif
         call self%Bcast_k_space()
     end function init_k_space
 
     subroutine Bcast_k_space(self)
     class(k_space)         :: self
-        integer(4), parameter  :: num_cast =  15
+        integer(4), parameter  :: num_cast =  17
         integer(4)             :: ierr(num_cast), sz(2)
 
         if(self%me ==  root) then
@@ -402,6 +405,11 @@ contains
             root,                            MPI_COMM_WORLD, ierr(14))
         call MPI_Bcast(self%kpts_per_step,   1,              MPI_INTEGER4, &
             root,                            MPI_COMM_WORLD, ierr(15))
+        call MPI_Bcast(self%berry_k_shift,   3,              MPI_REAL8,    &
+            root,                            MPI_COMM_WORLD, ierr(16))
+        call MPI_Bcast(self%berry_conv_crit, 1,              MPI_REAL8,    &
+            root,                            MPI_COMM_WORLD, ierr(17))
+
         call check_ierr(ierr, self%me, "Ksp Bcast")
     end subroutine Bcast_k_space
 
@@ -478,22 +486,20 @@ contains
         enddo
     end subroutine setup_inte_grid_square
 
-    subroutine setup_inte_grid_hex(self, n_k)
+    subroutine setup_inte_grid_hex(self, n_k, rel_shift)
         implicit none
     class(k_space)         :: self
         integer(4), intent(in) :: n_k
         real(8), allocatable   :: x(:), y(:)
-        real(8)                :: den, l, a 
+        real(8)                :: den, l, a, rel_shift(3)
         real(8), parameter     :: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
         integer(4)             :: cnt_k, start, halt, my_n, i
 
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
-        if(self%me ==  root) write (*,*) "l =  ", l
         a = l / (2.0 * cos(deg_30))
         den =  (1.0*n_k)/a
 
-
-        call linspace(-0.5*l, 0.5*l, nint(den * l),y)
+        call linspace(-0.5*(l), 0.5*l, nint(den * l),y)
         cnt_k =  0
         do i =  1,size(y)
             cnt_k =  cnt_k + nint(2 * self%hex_border_x(y(i)) * den)
@@ -518,16 +524,9 @@ contains
         enddo
 
         call run_triang(self%new_k_pts, self%elem_nodes)
-
-        if(self%me == root) then
-            call save_npy(trim(self%prefix) // "k_pre_pad.npy", self%new_k_pts)
-            call save_npy(trim(self%prefix) // "elem_pre_pad.npy", self%elem_nodes)
-        endif
         call self%pad_k_points_init()
-        if(self%me == root) then
-            call save_npy(trim(self%prefix) // "k_post_pad.npy", self%new_k_pts)
-            call save_npy(trim(self%prefix) // "elem_post_pad.npy", self%elem_nodes)
-        endif
+        forall(i = 1:cnt_k) self%new_k_pts(:,i) = &
+                self%new_k_pts(:,i) + l * rel_shift
     end subroutine setup_inte_grid_hex
 
     subroutine test_integration(self, iter)
@@ -696,19 +695,20 @@ contains
     class(k_space)          :: self
         real(8)                 :: k(3), Emax
         real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
-            hall(:)
+            hall(:), hall_old(:)
         integer(4), allocatable :: omega_kidx_all(:), omega_kidx_new(:)
         type(r8arr), allocatable:: omega_z_all(:), omega_z_new(:)
         integer(4)  :: N_k, k_idx, first, last, n_atm,&
             iter, cnt
         character(len=300)      :: filename
 
-        call self%setup_berry_inte_gird()
+        call self%setup_berry_inte_grid(self%berry_k_shift)
         N_k = size(self%new_k_pts, 2)
 
         Emax = self%find_E_max()
         n_atm =  self%ham%UC%num_atoms
         allocate(self%ham%del_H(2*n_atm,2*n_atm))
+        allocate(hall_old(size(self%E_fermi)))
 
         iter =  1
         do iter =1,self%berry_iter
@@ -737,34 +737,34 @@ contains
             call append_eigval(eig_val_all, eig_val_new)
             ! integrate hall conductance
 
+            if(allocated(hall))then
+                hall_old = hall
+            else 
+                hall_old =  1d35
+            endif
+
             call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall)
 
-            if(mod(iter, 5) ==  0) then
-                if(self%me == root) then
-                    write (*,*) iter, size(self%all_k_pts,2), &
-                        "saving hall cond with questionable unit"
-
-                    write (filename, "(A,I0.5,A)") "hall_cond_", iter, ".npy"
-                    call save_npy(trim(self%prefix) // trim(filename), hall)
-
-                    write (filename, "(A,I0.5,A)") "hall_E_", iter, ".npy"
-                    call save_npy(trim(self%prefix) // trim(filename), &
-                        self%E_fermi / self%units%energy)
-                endif
-
-                if(self%me == root) then
-                    write (filename, "(A, I0.5, A)") "k_points_", iter, ".npy"
-                    call save_npy(trim(self%prefix) // trim(filename), self%all_k_pts)
-
-                    write (filename, "(A, I0.5, A)") "elems_", iter, ".npy"
-                    call save_npy(trim(self%prefix) // trim(filename), self%elem_nodes)
-                endif
+            if(my_norm2(hall - hall_old)/(1d0*size(hall)) &
+                                             < self%berry_conv_crit) then
+                if(self%me == root) write (*,*) "Converged berry interation"
+                exit
+            else
+                if(self%me == root) write (*,*) iter, "->", &
+                         my_norm2(hall - hall_old)/(1d0*size(hall)) 
             endif
             
             call self%set_hall_weights(omega_z_all, omega_kidx_all)
-            call self%add_kpts_iter(self%kpts_per_step * self%nProcs, self%new_k_pts)
-
+            call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
         enddo
+        if(self%me == root) then
+            write (*,*) iter, size(self%all_k_pts,2), &
+                "saving hall cond with questionable unit"
+
+            call save_npy(trim(self%prefix) // "hall_cond.npy", hall)
+            call save_npy(trim(self%prefix) // "hall_E.npy", &
+                self%E_fermi / self%units%energy)
+        endif
         deallocate(hall)
         deallocate(self%ham%del_H)
         deallocate(self%new_k_pts)
@@ -777,7 +777,7 @@ contains
         type(r8arr), intent(in) :: omega_z_all(:)
         real(8), intent(in)     :: eig_val_all(:,:)
         real(8), allocatable    :: hall(:), omega_z(:)
-        integer(4)              :: loc_idx, n, n_hall, k_idx, ierr
+        integer(4)              :: loc_idx, n, n_hall, k_idx, ierr(2)
 
         if(allocated(hall)) deallocate(hall)
         allocate(hall(size(self%E_fermi)))
@@ -805,14 +805,16 @@ contains
 
         hall = hall / (2d0*PI)
         
+        ! Allreduce is not suitable for convergence criteria
         if(self%me == root) then
             call MPI_Reduce(MPI_IN_PLACE, hall, size(hall), MPI_REAL8, MPI_SUM, &
-                            root, MPI_COMM_WORLD, ierr)
+                            root, MPI_COMM_WORLD, ierr(1))
         else
             call MPI_Reduce(hall, hall, size(hall), MPI_REAL8, MPI_SUM, &
-                            root, MPI_COMM_WORLD, ierr)
+                            root, MPI_COMM_WORLD, ierr(1))
         endif
-        call check_ierr([ierr], self%me, "Hall conductance")
+        call MPI_Bcast(hall, size(hall), MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
+        call check_ierr(ierr, self%me, "Hall conductance")
     end subroutine integrate_hall
 
     subroutine set_hall_weights(self, omega_z_all, omega_kidx_all)
@@ -919,10 +921,18 @@ contains
         deallocate(omega_z_new)
     end subroutine add_new_kpts_omega
 
-    subroutine setup_berry_inte_gird(self)
+    subroutine setup_berry_inte_grid(self, rel_shift_in)
         implicit none
     class(k_space)           :: self
-        integer(4)           :: ierr
+        real(8), optional    :: rel_shift_in(3)
+        real(8)              :: rel_shift(3)
+        integer(4)           :: ierr 
+
+        if(present(rel_shift_in))then
+            rel_shift = rel_shift_in
+        else
+            rel_shift = 0d0
+        endif
 
         if(allocated(self%new_k_pts) )then
             deallocate(self%new_k_pts)
@@ -931,13 +941,13 @@ contains
         if(trim(self%ham%UC%uc_type) == "square_2d") then
             call self%setup_inte_grid_square(self%berry_num_k_pts)
         elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
-            call self%setup_inte_grid_hex(self%berry_num_k_pts)
+            call self%setup_inte_grid_hex(self%berry_num_k_pts, rel_shift)
         else
             if(self%me ==  root) write (*,*) "berry k-grid not known"
             call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
         endif
 
-    end subroutine setup_berry_inte_gird
+    end subroutine setup_berry_inte_grid
 
     subroutine plot_omega(self)
         implicit none
@@ -955,7 +965,7 @@ contains
         allocate(num_elems(self%nProcs))
         allocate(offsets(self%nProcs))
         N = 2* self%ham%UC%num_atoms
-        call self%setup_inte_grid_hex(dim_sz)
+        call self%setup_inte_grid_hex(dim_sz, [0d0, 0d0, 0d0])
 
         if(self%me ==  root) write (*,*) "nkpts =  ", size(self%new_k_pts, 2)
 
@@ -1303,9 +1313,8 @@ contains
         implicit none
     class(k_space)          :: self
         integer(4), intent(in)  :: n_new
-        real(8)                 :: cand(2), l
-        real(8), allocatable    :: new_ks(:,:), area(:)
-        integer(4)              :: n_elem, i, cnt
+        real(8), allocatable    :: new_ks(:,:)
+        integer(4)              :: n_elem, i, cnt, ierr
         integer(4), allocatable :: sort(:)
 
         if(allocated(new_ks)) then
@@ -1316,38 +1325,19 @@ contains
         if(.not. allocated(new_ks)) allocate(new_ks(3, n_new))
         n_elem = size(self%elem_nodes,1)
 
-        allocate(area(n_elem))
-        forall(i = 1:n_elem) area(i) = self%area_of_elem(self%all_k_pts, i)
-        call qargsort(area, sort)
-        !call qargsort(self%hall_weights, sort)
+        call qargsort(self%hall_weights, sort)
 
-
-        l = my_norm2(self%ham%UC%rez_lattice(:,1))
         new_ks =  0d0
         i = n_elem
 
         do cnt = 1,n_new
-            cand = self%centeroid_of_elem(sort(i), self%all_k_pts)
-            !cand = self%new_pt(sort(i), self%all_k_pts)
+            new_ks(1:2, cnt) = self%centeroid_of_elem(sort(i), self%all_k_pts)
             i = i - 1
             if(i == 0) then
                 write (*,*) "Not enough elements"
-                stop
+                call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
             endif
-
-            !do while(self%in_points(cand(1:2),new_ks(1:2,1:cnt-1)))
-                !i = i - 1
-                !cand =  self%new_pt(sort(i), self%all_k_pts)
-                !if(i ==  0) then
-                    !write (*,*) "Not enough elements for padding"
-                    !stop
-                !endif
-            !enddo
-
-            !cand =  self%random_pt_hex()
-            new_ks(1:2,cnt) = cand
         enddo
-        !deallocate(area)
     end subroutine add_kpts_iter
 
     subroutine append_kpts(self)

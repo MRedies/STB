@@ -150,6 +150,8 @@ contains
         call CFG_add(cfg, "berry%laplace_iter", 0, "")
         call CFG_add(cfg, "berry%refinement_iter", 1,"")
         call CFG_add(cfg, "berry%kpts_per_step", 1, "")
+        call CFG_add(cfg, "berry%k_shift", [0d0, 0d0, 0d0], "")
+        call CFG_add(cfg, "berry%conv_criterion", 0d0, "")
 
         call CFG_add(cfg, "output%band_prefix", "bar/foo","")
     End Subroutine add_full_cfg
