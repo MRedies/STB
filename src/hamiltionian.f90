@@ -30,8 +30,8 @@ module Class_hamiltionian
         procedure :: set_derivative_k         => set_derivative_k
         procedure :: set_rashba_SO            => set_rashba_SO
         procedure :: set_deriv_FD             => set_deriv_FD
-        procedure :: calc_deriv_elem          => calc_deriv_elem
         procedure :: calc_berry_z             => calc_berry_z
+        procedure :: calc_berry_mtx           => calc_berry_mtx
         procedure :: compare_derivative       => compare_derivative
         procedure :: set_derivative_hopping   => set_derivative_hopping
         procedure :: set_derivative_rashba_so => set_derivative_rashba_so
@@ -54,7 +54,6 @@ contains
         complex(8), allocatable     :: fd_H(:,:)
         integer(4)                  :: N, k_idx 
 
-        write (*,*) "bla" 
         N = 2 * self%UC%num_atoms
         allocate(fd_H(N,N))
         if(.not. allocated(self%del_H)) then
@@ -66,15 +65,15 @@ contains
             call self%set_derivative_k(k, k_idx)
 
             if(cnorm2(reshape(fd_H - self%del_H, [N*N])) >= 1d-8) then
-                write (*,*) "mist"
-            else
-                write (*,*) "Cool"
+                write (*,*) "bad"
+                write (*,*) "FD"
+                call print_mtx(fd_H)
+                write (*,*) "analytic"
+                call print_mtx(self%del_H)
+                write (*,*) "diff"
+                call print_mtx(self%del_H -  fd_H)
             endif
-            call save_npy("analytic.npy", self%del_H)
-            call save_npy("FD.npy", fd_H)
-
         enddo
-        write (*,*) "blub" 
         deallocate(fd_H)
         !deallocate(self%del_H)
     end subroutine compare_derivative
@@ -397,7 +396,7 @@ contains
                 j_d = j + self%UC%num_atoms 
 
                 r    = self%UC%atoms(i)%neigh_conn(conn,:)
-                d_ij = - r
+                d_ij = - r / my_norm2(r)
 
                 k_dot_r =  dot_product(k, r)
 
@@ -418,42 +417,62 @@ contains
                 self%del_H(j_d, i_d) = self%del_H(j_d,i_d) + back(2,2)
             enddo
         enddo
-    end subroutine set_derivative_rashba_so 
+    end subroutine set_derivative_rashba_so
 
-    function calc_deriv_elem(self, psi_nk, psi_mk) result(elem)
+    subroutine calc_berry_mtx(self, k, derive_idx, H, ret)
         implicit none
-    class(hamil)               :: self
-        complex(8), intent(in)     :: psi_nk(:), psi_mk(:)
-        complex(8)                 :: elem
-
-        elem = dot_product(psi_nk, matvec(self%del_H, psi_mk))
-    end function
-
-    subroutine calc_berry_z(self,k,z_comp, E_max)
-        implicit none
-    class(hamil), intent(in)            :: self
+        class(hamil)                    :: self
         real(8), intent(in)             :: k(3)
-        real(8), intent(in), optional   :: E_max
-        real(8), allocatable                :: z_comp(:) !> \f$ \Omega^n_z \f$
-        complex(8), allocatable  :: x_elems(:), y_elems(:), H(:,:), work(:)
-        real(8), allocatable     :: eig_val(:), rwork(:)
-        complex(8) :: fac, tmp
+        integer(4), intent(in)          :: derive_idx
+        complex(8), intent(in)          :: H(:,:)
+        complex(8), allocatable         :: ret(:,:), tmp(:,:)
+        integer(4)   :: n_dim
+
+        n_dim = 2 * self%UC%num_atoms
+        allocate(tmp(n_dim, n_dim))
+        
+        call self%set_derivative_k(k, derive_idx)
+        if(allocated(ret))then
+            if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
+                deallocate(ret)
+            endif
+        endif
+        if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
+
+        call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+                    c_1, self%del_H, n_dim,&
+                         H, n_dim,&
+                    c_0, tmp, n_dim)
+        call zgemm('C', 'N', n_dim, n_dim, n_dim, &
+                    c_1, H, n_dim, &
+                         tmp, n_dim, &
+                    c_0, ret, n_dim)
+        deallocate(tmp)
+    end subroutine calc_berry_mtx
+
+    subroutine calc_berry_z(self,k,z_comp, eig_val)
+        implicit none
+        class(hamil)             :: self
+        real(8), intent(in)      :: k(3)
+        real(8)                  :: eig_val(:)
+        real(8), allocatable     :: z_comp(:) !> \f$ \Omega^n_z \f$
+        complex(8), allocatable  :: H(:,:), work(:), x_mtx(:,:), y_mtx(:,:)
+        real(8), allocatable     :: rwork(:)
+        complex(8) :: fac
         integer(4), allocatable  :: iwork(:)
-        integer(4)   :: n_dim, n, m, lwork, lrwork, liwork, info, n_max
+        integer(4)   :: n_dim, n, m, lwork, lrwork, liwork, info
 
         n_dim = 2 * self%UC%num_atoms
         allocate(H(n_dim,n_dim))
-        allocate(eig_val(n_dim))
-
-
 
         H = 0d0
         call self%setup_H(k, H)
 
         call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
-        allocate(work(lwork))
+        allocate(work(lwork), stat=info)
         allocate(rwork(lrwork))
         allocate(iwork(liwork))
+
 
         call zheevd('V', 'L', n_dim, H, n_dim, eig_val, &
             work, lwork, rwork, lrwork, iwork, liwork, info)
@@ -461,64 +480,27 @@ contains
             write (*,*) "ZHEEVD in berry calculation failed"
         endif
     
-        if(present(E_max)) then
-            n_max =  1
-            do while(eig_val(n_max) <= E_max)
-                n_max = n_max + 1
-                if(n_max == n_dim) exit
-            enddo
-        else
-            n_max = n_dim
-        endif
-
 
         if(allocated(z_comp)) then
-            if(size(z_comp) /= n_max) deallocate(z_comp)
+            if(size(z_comp) /= n_dim) deallocate(z_comp)
         endif
 
-        if(.not. allocated(z_comp)) allocate(z_comp(n_dim))
-
-        allocate(x_elems(n_dim))
-        allocate(y_elems(n_dim))
-
-
-        do n= 1,n_max
-            !calc del_kx H
-            call self%set_derivative_k(k, 1)
-
-            !$omp parallel do default(shared) 
-            do m=1,n_dim
-                if(m /= n)then
-                    x_elems(m) = self%calc_deriv_elem(H(:,n), H(:,m))
-                endif
-            enddo
-
-            !calc del_ky H
-            call self%set_derivative_k(k, 2)
-
-            !$omp parallel do default(shared) 
-            do m=1,n_dim
-                if(m /= n)then
-                    y_elems(m) = self%calc_deriv_elem(H(:,m), H(:,n))
-                endif
-            enddo
-
-            tmp = 0d0
-            !$omp parallel do default(shared) &
-            !$omp private(fac)&
-            !$omp& reduction(+: tmp)
-            do m=1,n_dim
+        if(.not. allocated(z_comp)) allocate(z_comp(n_dim), stat=info)
+        z_comp = 0d0
+    
+        call self%calc_berry_mtx(k, 1, H, x_mtx)
+        call self%calc_berry_mtx(k, 2, H, y_mtx)
+        do n = 1,n_dim
+            do m = 1,n_dim
                 if(n /= m) then
                     fac = 1d0 / ((eig_val(n) - eig_val(m))**2 + i_unit * small_imag)
-                    tmp = tmp + fac * x_elems(m) * y_elems(m)
+                    z_comp(n) = z_comp(n) - 2d0 &
+                        * aimag(fac * x_mtx(n,m) * y_mtx(m,n))
                 endif
             enddo
-            z_comp(n) = - 2d0 *  aimag(tmp)
         enddo
-        deallocate(x_elems)
-        deallocate(y_elems)
+
         deallocate(H)
-        deallocate(eig_val)
         deallocate(work)
         deallocate(rwork)
         deallocate(iwork)
@@ -566,7 +548,7 @@ contains
         implicit none
     class(hamil)                      :: self
         real(8), intent(in)               :: k(3)
-        real(8), allocatable, intent(out) :: eig_val(:)
+        real(8)             , intent(out) :: eig_val(:)
         complex(8), allocatable           :: H(:,:), work(:)
         real(8), allocatable              :: rwork(:)
         integer(4), allocatable           :: iwork(:)
@@ -574,7 +556,7 @@ contains
 
         N = 2 * self%UC%num_atoms
 
-        allocate(eig_val(N))
+        !allocate(eig_val(N))
         allocate(H(N,N))
         call calc_zheevd_size('N', H, eig_val, lwork, lrwork, liwork)
         allocate(work(lwork))

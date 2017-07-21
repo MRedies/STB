@@ -5,6 +5,7 @@ module Constants
     !< complex parameter
     complex(8), parameter :: i_unit = (0d0, 1d0)
     complex(8), parameter :: c_0    = (0d0, 0d0)
+    complex(8), parameter :: c_1    = (1d0, 0d0)
     
     !< pauli matricies
     complex(8), parameter :: sigma_x(2,2) &

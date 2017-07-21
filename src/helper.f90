@@ -238,4 +238,18 @@ contains
         p = i + 1
     end function partition
 
+    function find_list_idx(list, elem) result(idx)
+        implicit none
+        integer(4), intent(in)   :: list(:), elem
+        integer(4)               :: idx
+
+        idx = 1
+        do while(list(idx) /= elem)
+            idx = idx + 1
+            if(idx > size(list)) then
+                idx =  -1
+                return
+            endif
+        enddo
+    end function find_list_idx
 end module Class_helper

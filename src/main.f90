@@ -59,6 +59,7 @@ program STB
         call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
 
         Ksp =  init_k_space(cfg)
+        
         !call Ksp%plot_omega()
         if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
 
@@ -146,6 +147,11 @@ contains
         call CFG_add(cfg, "berry%calc_hall", .False., "")
         call CFG_add(cfg, "berry%k_pts_per_dim", 25, "")
         call CFG_add(cfg, "berry%temperature", 1d-5, "")
+        call CFG_add(cfg, "berry%laplace_iter", 0, "")
+        call CFG_add(cfg, "berry%refinement_iter", 1,"")
+        call CFG_add(cfg, "berry%kpts_per_step", 1, "")
+        call CFG_add(cfg, "berry%k_shift", [0d0, 0d0, 0d0], "")
+        call CFG_add(cfg, "berry%conv_criterion", 0d0, "")
 
         call CFG_add(cfg, "output%band_prefix", "bar/foo","")
     End Subroutine add_full_cfg
