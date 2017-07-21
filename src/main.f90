@@ -69,6 +69,7 @@ program STB
         endif
 
         if(perform_band) then
+            if(root == me) write (*,*) "started Band"
             call Ksp%calc_and_print_band() 
         endif
 
@@ -77,6 +78,7 @@ program STB
         endif
 
         if(perform_dos) then
+            if(root == me) write (*,*) "started DOS"
             call Ksp%calc_and_print_dos()
 
             ! Only set Fermi energy relative if DOS was performed
@@ -87,6 +89,7 @@ program STB
         endif
 
         if(calc_hall) then
+            if(root == me) write (*,*) "started Hall"
             call Ksp%calc_hall_conductance(hall_cond)
         endif
 
