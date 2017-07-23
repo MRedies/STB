@@ -709,6 +709,10 @@ contains
         n_atm =  self%ham%UC%num_atoms
         allocate(self%ham%del_H(2*n_atm,2*n_atm))
         allocate(hall_old(size(self%E_fermi)))
+        allocate(eig_val_all(2*n_atm,0))
+        allocate(omega_z_all(0))
+        allocate(omega_kidx_all(0))
+        allocate(self%all_k_pts(3,0))
 
         iter =  1
         do iter =1,self%berry_iter
@@ -730,6 +734,9 @@ contains
                 !call self%ham%calc_single_eigenvalue(k, eig_val_new(:,cnt))
                 cnt = cnt + 1
             enddo
+            
+            write (filename, "(A,I0.5,A,I0.5,A)") "pre_omega_kidx_new=", self%me, "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), omega_kidx_new)
 
             ! concat to old ones
             call add_new_kpts_omega(omega_kidx_all, omega_kidx_new,&
@@ -768,6 +775,9 @@ contains
                 write (filename, "(A,I0.5,A,I0.5,A)") "hallold_proc=", self%me, "_iter=", iter, ".npy"
                 call save_npy(trim(self%prefix) // trim(filename), hall_old)
             endif
+            
+            write (filename, "(A,I0.5,A,I0.5,A)") "omega_kidx_all=", self%me, "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
 
             !write (filename, "(A,I0.5,A,I0.5,A)") "eigval_proc=", self%me, "_iter=", iter, ".npy"
             !call save_npy(trim(self%prefix) // trim(filename), eig_val_all)
@@ -844,7 +854,7 @@ contains
         integer(4), intent(in) :: omega_kidx_all(:)
         type(r8arr), intent(in):: omega_z_all(:)
         integer(4)             :: i, n_elem, node, k_idx, loc_idx, ierr(2)
-        real(8)                :: kpt(3)
+        real(8)                :: kpt(3), om_max
         character(len=300)     :: filename
 
         n_elem = size(self%elem_nodes,1)
@@ -858,6 +868,7 @@ contains
         endif
 
         self%hall_weights = 0d0
+        om_max =  0d0
 
         do i=1,n_elem
             do node=1,3
@@ -869,22 +880,17 @@ contains
                     self%hall_weights(i) = self%hall_weights(i) &
                         + self%weights(k_idx) &!* abs(test_func(kpt(1:2)))
                         * sum(abs(omega_z_all(loc_idx)%arr))
+                    !if(om_max < sum(abs(omega_z_all(loc_idx)%arr))) &
+                       !om_max =  sum(abs(omega_z_all(loc_idx)%arr))
                 endif
             enddo
         enddo
 
-        
-        write (filename, "(I0.5,A)") self%me,"_loc_ks.npy"
-        call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
-        
-        write (filename, "(I0.5,A)") self%me,"_hall_w.npy"
-        call save_npy(trim(self%prefix) // trim(filename), self%hall_weights)
-        
-        write (filename, "(I0.5,A)") self%me,"_k_w.npy"
-        call save_npy(trim(self%prefix) // trim(filename), self%weights)
+        !do i = 1,self%nProcs
+            !if(self%me == i-1) write (*,*) self%me, "->", om_max
+            !call MPI_Barrier(MPI_COMM_WORLD, ierr(1))
+        !enddo
 
-        call MPI_Barrier(MPI_COMM_WORLD, ierr(1))
-        call MPI_Abort(MPI_COMM_WORLD, 7, ierr(1))
 
         if(self%me == root) then
             call MPI_Reduce(MPI_IN_PLACE, self%hall_weights, n_elem,&
@@ -896,6 +902,15 @@ contains
         call MPI_Bcast(self%hall_weights, n_elem, MPI_REAL8, &
                         root, MPI_COMM_WORLD, ierr(2))
         call check_ierr(ierr, self%me, "set_hall_weights")
+        
+        write (filename, "(I0.5,A)") self%me,"_loc_ks.npy"
+        call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
+        
+        write (filename, "(I0.5,A)") self%me,"_hall_w.npy"
+        call save_npy(trim(self%prefix) // trim(filename), self%hall_weights)
+        
+        write (filename, "(I0.5,A)") self%me,"_k_w.npy"
+        call save_npy(trim(self%prefix) // trim(filename), self%weights)
     end subroutine set_hall_weights
     
 
