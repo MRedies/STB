@@ -242,7 +242,7 @@ contains
         if(trim(self%ham%UC%uc_type) == "square_2d") then
             call self%setup_inte_grid_square(self%DOS_num_k_pts)
         elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
-            call self%setup_inte_grid_hex(self%DOS_num_k_pts, [0d0, 0d0, 0d0])
+            call self%setup_inte_grid_hex(self%DOS_num_k_pts)
         else
             if(self%me ==  root) write (*,*) "DOS k-grid not known"
             call MPI_Abort(MPI_COMM_WORLD, 0, info)
@@ -486,12 +486,12 @@ contains
         enddo
     end subroutine setup_inte_grid_square
 
-    subroutine setup_inte_grid_hex(self, n_k, rel_shift)
+    subroutine setup_inte_grid_hex(self, n_k)
         implicit none
     class(k_space)         :: self
         integer(4), intent(in) :: n_k
         real(8), allocatable   :: x(:), y(:)
-        real(8)                :: den, l, a, rel_shift(3)
+        real(8)                :: den, l, a
         real(8), parameter     :: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
         integer(4)             :: cnt_k, start, halt, my_n, i
 
@@ -522,11 +522,11 @@ contains
 
             start = halt + 1
         enddo
-
+        
         call run_triang(self%new_k_pts, self%elem_nodes)
         call self%pad_k_points_init()
-        forall(i = 1:cnt_k) self%new_k_pts(:,i) = &
-                self%new_k_pts(:,i) + l * rel_shift
+        forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
+                self%new_k_pts(:,i) + l * self%berry_k_shift
     end subroutine setup_inte_grid_hex
 
     subroutine test_integration(self, iter)
@@ -702,7 +702,7 @@ contains
             iter, cnt
         character(len=300)      :: filename
 
-        call self%setup_berry_inte_grid(self%berry_k_shift)
+        call self%setup_berry_inte_grid()
         N_k = size(self%new_k_pts, 2)
 
         N_k = size(self%new_k_pts, 2)
@@ -979,18 +979,10 @@ contains
         deallocate(omega_z_new)
     end subroutine add_new_kpts_omega
 
-    subroutine setup_berry_inte_grid(self, rel_shift_in)
+    subroutine setup_berry_inte_grid(self)
         implicit none
     class(k_space)           :: self
-        real(8), optional    :: rel_shift_in(3)
-        real(8)              :: rel_shift(3)
         integer(4)           :: ierr 
-
-        if(present(rel_shift_in))then
-            rel_shift = rel_shift_in
-        else
-            rel_shift = 0d0
-        endif
 
         if(allocated(self%new_k_pts) )then
             deallocate(self%new_k_pts)
@@ -999,7 +991,7 @@ contains
         if(trim(self%ham%UC%uc_type) == "square_2d") then
             call self%setup_inte_grid_square(self%berry_num_k_pts)
         elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
-            call self%setup_inte_grid_hex(self%berry_num_k_pts, rel_shift)
+            call self%setup_inte_grid_hex(self%berry_num_k_pts)
         else
             if(self%me ==  root) write (*,*) "berry k-grid not known"
             call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
@@ -1023,7 +1015,7 @@ contains
         allocate(num_elems(self%nProcs))
         allocate(offsets(self%nProcs))
         N = 2* self%ham%UC%num_atoms
-        call self%setup_inte_grid_hex(dim_sz, [0d0, 0d0, 0d0])
+        call self%setup_inte_grid_hex(dim_sz)
 
         if(self%me ==  root) write (*,*) "nkpts =  ", size(self%new_k_pts, 2)
 
