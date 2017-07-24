@@ -1380,7 +1380,7 @@ contains
         call qargsort(self%hall_weights, sort)
 
         write (filename, "(I0.4,A,I0.9,A)") self%me,&
-                                "_sorting", size(sort), ".npy"
+                                "_sorting_", size(sort), ".npy"
         call save_npy(trim(self%prefix) // filename, sort)
         
         write (filename, "(I0.4,A,I0.9,A)") self%me,&
