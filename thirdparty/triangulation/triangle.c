@@ -16013,7 +16013,8 @@ void my_tri(double *x, double *y, int *n_nodes, int *elem, int *n_elem, int *ier
     in.pointlist = (REAL *) malloc(in.numberofpoints * 2 * sizeof(REAL));
     in.pointmarkerlist = (int *) malloc(in.numberofpoints * sizeof(int));
 
-    for(int i = 0; i < in.numberofpoints; i++){
+    int i, j;
+    for(i = 0; i < in.numberofpoints; i++){
         in.pointlist[2*i]   = x[i];
         in.pointlist[2*i+1] = y[i];
         in.pointmarkerlist[i] = 0;
@@ -16045,8 +16046,8 @@ void my_tri(double *x, double *y, int *n_nodes, int *elem, int *n_elem, int *ier
         *ierr = 7;
     }
 
-    for(int i = 0; i < out.numberoftriangles; i++){
-        for(int j = 0; j <3; j++){
+    for(i = 0; i < out.numberoftriangles; i++){
+        for(j = 0; j <3; j++){
             elem[i + *n_elem * j] = out.trianglelist[3*i + j];
         }
     }
