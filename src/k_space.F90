@@ -524,6 +524,7 @@ contains
         enddo
         
         call run_triang(self%new_k_pts, self%elem_nodes)
+        if(self%me == root)write (*,*) "elem_post pad", shape(self%elem_nodes)
         call self%pad_k_points_init()
         forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
                 self%new_k_pts(:,i) + l * self%berry_k_shift
@@ -815,6 +816,7 @@ contains
 
         !run triangulation
         call run_triang(self%all_k_pts, self%elem_nodes)
+        if(self%me == root)write (*,*) "elem integr", shape(self%elem_nodes)
         call self%set_weights_ksp()
         
         !perform integration with all points
@@ -1289,6 +1291,7 @@ contains
             !add new ones
             forall(i=1:3, j=1:rest) self%new_k_pts(i,n_kpts+j) = new_ks(i,j)
             call run_triang(self%new_k_pts, self%elem_nodes)
+            if(self%me == root)write (*,*) "elem_post pad", shape(self%elem_nodes)
         endif
     end subroutine pad_k_points_init
 
