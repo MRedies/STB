@@ -1244,6 +1244,9 @@ contains
         per_proc = CEILING((1d0*n_kpts)/(1d0*self%nProcs))
         rest =  self%nProcs * per_proc - n_kpts
 
+        if(self%me == root) write (*,*) "per_proc", per_proc
+        if(self%me == root) write (*,*) "rest", rest
+
 
         if(rest /= 0) then
             !find biggest triangles
@@ -1378,6 +1381,7 @@ contains
         n_elem = size(self%elem_nodes,1)
 
         call qargsort(self%hall_weights, sort)
+        if(self%me == root) write (*,*) "size sort", shape(sort)
 
         write (filename, "(I0.4,A,I0.9,A)") self%me,&
                                 "_sorting_", size(sort), ".npy"
