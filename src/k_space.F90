@@ -1285,7 +1285,6 @@ contains
             forall(i=1:3, j=1:rest) self%new_k_pts(i,n_kpts+j) = new_ks(i,j)
             call run_triang(self%new_k_pts, self%elem_nodes)
         endif
-        call self%hex_laplace_smoother()
     end subroutine pad_k_points_init
 
     function in_points(self, pt, list) result(inside)
