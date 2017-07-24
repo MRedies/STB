@@ -500,6 +500,9 @@ contains
             enddo
         enddo
 
+        if(maxval(abs(z_comp)) > 1d50) write (*,*) "hier auch:", &
+            maxval(abs(z_comp))
+
         deallocate(H)
         deallocate(work)
         deallocate(rwork)
