@@ -1239,9 +1239,11 @@ contains
 
 
         n_kpts =  size(self%new_k_pts,2)
+        if(self%me == root) write (*,*) "nkpts =  ", n_kpts
 
         per_proc = CEILING((1d0*n_kpts)/(1d0*self%nProcs))
         rest =  self%nProcs * per_proc - n_kpts
+
 
         if(rest /= 0) then
             !find biggest triangles
@@ -1377,6 +1379,10 @@ contains
 
         call qargsort(self%hall_weights, sort)
 
+        write (filename, "(I0.4,A,I0.9,A)") self%me,&
+                                "_sorting", size(sort), ".npy"
+        call save_npy(trim(self%prefix) // filename, sort)
+        
         write (filename, "(I0.4,A,I0.9,A)") self%me,&
                                 "_hall_weights_", size(sort), ".npy"
         call save_npy(trim(self%prefix) // filename, self%hall_weights)
