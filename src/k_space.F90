@@ -1138,10 +1138,16 @@ contains
     class(k_space), intent(in)    :: self
         real(8), intent(in)           :: E
         integer(4), intent(in)        :: n_ferm
-        real(8)                       :: ferm
+        real(8)                       :: ferm, exp_term
 
-        ferm = 1d0 / (exp((E - self%E_fermi(n_ferm))&
-            /(boltzmann_const * self%temp)) + 1d0)
+
+        exp_term =  (E - self%E_fermi(n_ferm)) /&
+                     (boltzmann_const * self%temp)
+        if(exp_term > 700d0) then
+            ferm =  0d0
+        else 
+            ferm = 1d0 / (exp(exp_term) + 1d0)
+        endif
     end function fermi_distr
 
     function find_E_max(self) result(c)
