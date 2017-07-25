@@ -52,7 +52,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "IBM")
     #set(CMAKE_Fortran_COMPILER scorep)
     #set(dialect "mpixlf2008_r -O3 -qstrict -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm")
     set(CMAKE_Fortran_COMPILER mpixlf2008_r)
-    set(dialect "-O3 -qstrict -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm")
+    set(dialect "-O2 -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm")
     set(debug "-C")
 endif()
 
