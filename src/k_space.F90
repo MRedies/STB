@@ -785,6 +785,9 @@ contains
             write (filename, "(A,I0.5,A,I0.5,A)") "omKidx_proc=", self%me, "_iter=", iter, ".npy"
             call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
             
+            write (filename, "(A,I0.5,A,I0.5,A)") "om_z_all_proc=", self%me, "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), omega_z_all)
+            
             call self%set_hall_weights(omega_z_all, omega_kidx_all)
             write (filename, "(A,I0.5,A,I0.5,A)") "hallweigh_proc=", self%me, "_iter=", iter, ".npy"
             call save_npy(trim(self%prefix) // trim(filename), self%hall_weights)
