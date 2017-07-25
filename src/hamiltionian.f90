@@ -455,7 +455,7 @@ contains
         class(hamil)             :: self
         real(8), intent(in)      :: k(3)
         real(8)                  :: eig_val(:)
-        real(8), allocatable     :: z_comp(:) !> \f$ \Omega^n_z \f$
+        real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
         complex(8), allocatable  :: H(:,:), work(:), x_mtx(:,:), y_mtx(:,:)
         real(8), allocatable     :: rwork(:)
         complex(8) :: fac
@@ -480,12 +480,6 @@ contains
             write (*,*) "ZHEEVD in berry calculation failed"
         endif
     
-
-        if(allocated(z_comp)) then
-            if(size(z_comp) /= n_dim) deallocate(z_comp)
-        endif
-
-        if(.not. allocated(z_comp)) allocate(z_comp(n_dim), stat=info)
         z_comp = 0d0
     
         call self%calc_berry_mtx(k, 1, H, x_mtx)
@@ -499,9 +493,6 @@ contains
                 endif
             enddo
         enddo
-
-        if(maxval(abs(z_comp)) > 1d50) write (*,*) "hier auch:", &
-            maxval(abs(z_comp))
 
         deallocate(H)
         deallocate(work)

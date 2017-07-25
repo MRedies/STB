@@ -700,9 +700,8 @@ contains
     class(k_space)          :: self
         real(8)                 :: k(3), Emax
         real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
-            hall(:), hall_old(:)
+            hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:)
         integer(4), allocatable :: omega_kidx_all(:), omega_kidx_new(:)
-        type(r8arr), allocatable:: omega_z_all(:), omega_z_new(:)
         integer(4)  :: N_k, k_idx, first, last, n_atm,&
             iter, cnt
         character(len=300)      :: filename
@@ -715,7 +714,7 @@ contains
         allocate(self%ham%del_H(2*n_atm,2*n_atm))
         allocate(hall_old(size(self%E_fermi)))
         allocate(eig_val_all(2*n_atm,0))
-        allocate(omega_z_all(0))
+        allocate(omega_z_all(2*n_atm,0))
         allocate(omega_kidx_all(0))
         allocate(self%all_k_pts(3,0))
 
@@ -725,22 +724,18 @@ contains
 
             call my_section(self%me, self%nProcs, N_k, first, last)
             allocate(eig_val_new(2*n_atm,last-first+1))
-            allocate(omega_z_new(last-first+1))
+            allocate(omega_z_new(2*n_atm,last-first+1))
             allocate(omega_kidx_new(last-first+1))
 
             ! calculate 
             cnt =  1
             do k_idx = first, last
-                !if(self%me == root) write (*,*) k_idx, "of", last
                 k = self%new_k_pts(:,k_idx)
                 omega_kidx_new(cnt) =  k_idx + size(self%all_k_pts,2)
-                call self%ham%calc_berry_z(k, omega_z_new(cnt)%arr,&
+                call self%ham%calc_berry_z(k, omega_z_new(:,cnt),&
                                                    eig_val_new(:,cnt))
                 cnt = cnt + 1
             enddo
-            
-            !write (filename, "(A,I0.5,A,I0.5,A)") "pre_omega_kidx_new=", self%me, "_iter=", iter, ".npy"
-            !call save_npy(trim(self%prefix) // trim(filename), omega_kidx_new)
 
             ! concat to old ones
             call add_new_kpts_omega(omega_kidx_all, omega_kidx_new,&
@@ -766,28 +761,24 @@ contains
                          my_norm2(hall - hall_old)/(1d0*size(hall))
             endif
 
-            if(self%me == root) then
-                write (filename, "(A,I0.5,A,I0.5,A)") "kpoint_proc=", self%me, "_iter=", iter, ".npy"
-                call save_npy(trim(self%prefix) // trim(filename), self%all_k_pts)
-                
-                write (filename, "(A,I0.5,A,I0.5,A)") "elem_proc=", self%me, "_iter=", iter, ".npy"
-                call save_npy(trim(self%prefix) // trim(filename), self%elem_nodes)
-                
-                write (filename, "(A,I0.5,A,I0.5,A)") "kweigh_proc=", self%me, "_iter=", iter, ".npy"
-                call save_npy(trim(self%prefix) // trim(filename), self%weights)
-                
-                write (filename, "(A,I0.5,A,I0.5,A)") "hallweigh_proc=", self%me, "_iter=", iter, ".npy"
-                call save_npy(trim(self%prefix) // trim(filename), self%hall_weights)
-                
-                write (filename, "(A,I0.5,A,I0.5,A)") "hall_proc=", self%me, "_iter=", iter, ".npy"
-                call save_npy(trim(self%prefix) // trim(filename), hall)
-                
-                write (filename, "(A,I0.5,A,I0.5,A)") "nkpts_proc=", self%me, "_iter=", iter, ".npy"
-                call save_npy(trim(self%prefix) // trim(filename), [size(self%all_k_pts,2)])
+            write (filename, "(A,I0.5,A,I0.5,A)") "kpoint_proc=", self%me, "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), self%all_k_pts)
+            
+            write (filename, "(A,I0.5,A,I0.5,A)") "elem_proc=", self%me, "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), self%elem_nodes)
+            
+            write (filename, "(A,I0.5,A,I0.5,A)") "kweigh_proc=", self%me, "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), self%weights)
+            
+            
+            write (filename, "(A,I0.5,A,I0.5,A)") "hall_proc=", self%me, "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), hall)
+            
+            write (filename, "(A,I0.5,A,I0.5,A)") "nkpts_proc=", self%me, "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), [size(self%all_k_pts,2)])
 
-                write (filename, "(A,I0.5,A,I0.5,A)") "hallold_proc=", self%me, "_iter=", iter, ".npy"
-                call save_npy(trim(self%prefix) // trim(filename), hall_old)
-            endif
+            write (filename, "(A,I0.5,A,I0.5,A)") "hallold_proc=", self%me, "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), hall_old)
             
             write (filename, "(A,I0.5,A,I0.5,A)") "omega_kidx_all=", self%me, "_iter=", iter, ".npy"
             call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
@@ -799,6 +790,8 @@ contains
             call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
             
             call self%set_hall_weights(omega_z_all, omega_kidx_all)
+            write (filename, "(A,I0.5,A,I0.5,A)") "hallweigh_proc=", self%me, "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), self%hall_weights)
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
         enddo
         if(self%me == root) then
@@ -818,9 +811,8 @@ contains
         implicit none
     class(k_space)          :: self
         integer(4), intent(in)  :: omega_kidx_all(:)
-        type(r8arr), intent(in) :: omega_z_all(:)
-        real(8), intent(in)     :: eig_val_all(:,:)
-        real(8), allocatable    :: hall(:), omega_z(:)
+        real(8), intent(in)     :: eig_val_all(:,:), omega_z_all(:,:)
+        real(8), allocatable    :: hall(:)
         integer(4)              :: loc_idx, n, n_hall, k_idx, ierr(2)
 
         if(allocated(hall)) deallocate(hall)
@@ -828,7 +820,6 @@ contains
 
         !run triangulation
         call run_triang(self%all_k_pts, self%elem_nodes)
-        if(self%me == root)write (*,*) "elem integr", shape(self%elem_nodes)
         call self%set_weights_ksp()
         
         !perform integration with all points
@@ -836,16 +827,13 @@ contains
 
         do loc_idx = 1,size(omega_kidx_all)
             k_idx =  omega_kidx_all(loc_idx)
-
-            omega_z =  omega_z_all(loc_idx)%arr
-            do n = 1,size(omega_z)
+            do n = 1,size(omega_z_all,1)
                 do n_hall =  1,size(hall)
                     hall(n_hall) = hall(n_hall) + &
-                        self%weights(k_idx) * omega_z(n) *&
+                        self%weights(k_idx) * omega_z_all(n, loc_idx) *&
                         self%fermi_distr(eig_val_all(n, loc_idx), n_hall)
                 enddo
             enddo
-            deallocate(omega_z)
         enddo
 
         hall = hall / (2d0*PI)
@@ -866,7 +854,7 @@ contains
         implicit none
     class(k_space)         :: self
         integer(4), intent(in) :: omega_kidx_all(:)
-        type(r8arr), intent(in):: omega_z_all(:)
+        real(8)                :: omega_z_all(:,:)
         integer(4)             :: i, n_elem, node, k_idx, loc_idx, ierr(2)
         real(8)                :: kpt(3), om_max
         character(len=300)     :: filename
@@ -893,7 +881,7 @@ contains
                     kpt = self%all_k_pts(:,k_idx)
                     self%hall_weights(i) = self%hall_weights(i) &
                         + self%weights(k_idx) &!* abs(test_func(kpt(1:2)))
-                        * sum(abs(omega_z_all(loc_idx)%arr))
+                        * sum(abs(omega_z_all(:,loc_idx)))
                     !if(om_max < sum(abs(omega_z_all(loc_idx)%arr))) &
                        !om_max =  sum(abs(omega_z_all(loc_idx)%arr))
                 endif
@@ -955,8 +943,8 @@ contains
             omega_z_all, omega_z_new)
         implicit none
         integer(4), allocatable   :: omega_kidx_all(:),omega_kidx_new(:) 
-        type(r8arr), allocatable  :: omega_z_new(:), omega_z_all(:), tmp_z(:)
-        integer(4)                :: n_old, i
+        real(8), allocatable      :: omega_z_new(:,:), omega_z_all(:,:), tmp_z(:,:)
+        integer(4)                :: n_old, i, vec_sz, num_k_old, num_k_new
 
         if(allocated(omega_kidx_all)) then
             omega_kidx_all =  [omega_kidx_all, omega_kidx_new]
@@ -965,31 +953,18 @@ contains
         endif
         deallocate(omega_kidx_new)
 
-        if(.not. allocated(omega_z_all)) then
-            allocate(omega_z_all(0))
-        endif
+        num_k_old = size(omega_z_all, 2)
+        num_k_new = size(omega_z_new, 2)
+        vec_sz =  size(omega_z_new, 1)
 
-        n_old =  size(omega_z_all)
-        allocate(tmp_z(n_old))
-
-        do i = 1,n_old
-            tmp_z(i) = omega_z_all(i)
-            deallocate(omega_z_all(i)%arr)
-        enddo
-
+        allocate(tmp_z(vec_sz, num_k_old))
+        tmp_z = omega_z_all
         deallocate(omega_z_all)
-        allocate(omega_z_all(n_old + size(omega_z_new)))
+        allocate(omega_z_all(vec_sz, num_k_old + num_k_new))
 
-        do i = 1,n_old
-            omega_z_all(i) =  tmp_z(i)
-            deallocate(tmp_z(i)%arr)
-        enddo
+        omega_z_all(:,1:num_k_old) = tmp_z
+        omega_z_all(:,num_k_old+1:num_k_old+num_k_new) = omega_z_new
         deallocate(tmp_z)
-
-        do i = 1,size(omega_z_new)
-            omega_z_all(i+n_old) = omega_z_new(i)
-            deallocate(omega_z_new(i)%arr)
-        enddo
         deallocate(omega_z_new)
     end subroutine add_new_kpts_omega
 
