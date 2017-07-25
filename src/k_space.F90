@@ -1123,13 +1123,20 @@ contains
         real(8)                       :: ferm, exp_term
 
 
-        exp_term =  (E - self%E_fermi(n_ferm)) /&
-                     (boltzmann_const * self%temp)
-        if(exp_term > 700d0) then
-            ferm =  0d0
-        else 
-            ferm = 1d0 / (exp(exp_term) + 1d0)
+        if(E-self%E_fermi(n_ferm) > 0) then
+            ferm = 0d0
+        else
+            ferm = 1d0
         endif
+
+
+        !exp_term =  (E - self%E_fermi(n_ferm)) /&
+                     !(boltzmann_const * self%temp)
+        !if(exp_term > 700d0) then
+            !ferm =  0d0
+        !else 
+            !ferm = 1d0 / (exp(exp_term) + 1d0)
+        !endif
     end function fermi_distr
 
     function find_E_max(self) result(c)
