@@ -35,6 +35,7 @@ module Class_k_space
         real(8), allocatable :: k2_param(:) !> 2nd k_space param
         character(len=300)    :: filling, prefix
         logical      :: perform_dos_integration !> param to toggle dos integr.
+        logical      :: perform_pad !> should the k-grid be padded, to match cores
         type(hamil)  :: ham
         type(units)  :: units
     contains
@@ -350,13 +351,14 @@ contains
             call CFG_get(cfg, "berry%kpts_per_step", self%kpts_per_step)
             call CFG_get(cfg, "berry%k_shift", self%berry_k_shift)
             call CFG_get(cfg, "berry%conv_criterion", self%berry_conv_crit)
+            call CFG_get(cfg, "berry%perform_pad", self%perform_pad)
         endif
         call self%Bcast_k_space()
     end function init_k_space
 
     subroutine Bcast_k_space(self)
     class(k_space)         :: self
-        integer(4), parameter  :: num_cast =  17
+        integer(4), parameter  :: num_cast =  18
         integer(4)             :: ierr(num_cast), sz(2)
 
         if(self%me ==  root) then
@@ -409,6 +411,8 @@ contains
             root,                            MPI_COMM_WORLD, ierr(16))
         call MPI_Bcast(self%berry_conv_crit, 1,              MPI_REAL8,    &
             root,                            MPI_COMM_WORLD, ierr(17))
+        call MPI_Bcast(self%perform_pad,     1,              MPI_LOGICAL,  &
+            root,                            MPI_COMM_WORLD, ierr(18))
 
         call check_ierr(ierr, self%me, "Ksp Bcast")
     end subroutine Bcast_k_space
@@ -524,8 +528,8 @@ contains
         enddo
         
         call run_triang(self%new_k_pts, self%elem_nodes)
-        if(self%me == root)write (*,*) "elem_post pad", shape(self%elem_nodes)
-        call self%pad_k_points_init()
+        if(self%perform_pad) call self%pad_k_points_init()
+        
         forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
                 self%new_k_pts(:,i) + l * self%berry_k_shift
     end subroutine setup_inte_grid_hex
@@ -732,7 +736,6 @@ contains
                 omega_kidx_new(cnt) =  k_idx + size(self%all_k_pts,2)
                 call self%ham%calc_berry_z(k, omega_z_new(cnt)%arr,&
                                                    eig_val_new(:,cnt))
-                !call self%ham%calc_single_eigenvalue(k, eig_val_new(:,cnt))
                 cnt = cnt + 1
             enddo
             
@@ -764,31 +767,36 @@ contains
             endif
 
             if(self%me == root) then
-                !write (filename, "(A,I0.5,A,I0.5,A)") "kpoint_proc=", self%me, "_iter=", iter, ".npy"
-                !call save_npy(trim(self%prefix) // trim(filename), self%all_k_pts)
+                write (filename, "(A,I0.5,A,I0.5,A)") "kpoint_proc=", self%me, "_iter=", iter, ".npy"
+                call save_npy(trim(self%prefix) // trim(filename), self%all_k_pts)
                 
-                !write (filename, "(A,I0.5,A,I0.5,A)") "elem_proc=", self%me, "_iter=", iter, ".npy"
-                !call save_npy(trim(self%prefix) // trim(filename), self%elem_nodes)
+                write (filename, "(A,I0.5,A,I0.5,A)") "elem_proc=", self%me, "_iter=", iter, ".npy"
+                call save_npy(trim(self%prefix) // trim(filename), self%elem_nodes)
+                
+                write (filename, "(A,I0.5,A,I0.5,A)") "kweigh_proc=", self%me, "_iter=", iter, ".npy"
+                call save_npy(trim(self%prefix) // trim(filename), self%weights)
+                
+                write (filename, "(A,I0.5,A,I0.5,A)") "hallweigh_proc=", self%me, "_iter=", iter, ".npy"
+                call save_npy(trim(self%prefix) // trim(filename), self%hall_weights)
                 
                 write (filename, "(A,I0.5,A,I0.5,A)") "hall_proc=", self%me, "_iter=", iter, ".npy"
                 call save_npy(trim(self%prefix) // trim(filename), hall)
                 
                 write (filename, "(A,I0.5,A,I0.5,A)") "nkpts_proc=", self%me, "_iter=", iter, ".npy"
-                
-                call save_npy(trim(self%prefix) // trim(filename), &
-                                [size(self%all_k_pts,2)])
-                !write (filename, "(A,I0.5,A,I0.5,A)") "hallold_proc=", self%me, "_iter=", iter, ".npy"
-                !call save_npy(trim(self%prefix) // trim(filename), hall_old)
+                call save_npy(trim(self%prefix) // trim(filename), [size(self%all_k_pts,2)])
+
+                write (filename, "(A,I0.5,A,I0.5,A)") "hallold_proc=", self%me, "_iter=", iter, ".npy"
+                call save_npy(trim(self%prefix) // trim(filename), hall_old)
             endif
             
-            !write (filename, "(A,I0.5,A,I0.5,A)") "omega_kidx_all=", self%me, "_iter=", iter, ".npy"
-            !call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
+            write (filename, "(A,I0.5,A,I0.5,A)") "omega_kidx_all=", self%me, "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
 
-            !write (filename, "(A,I0.5,A,I0.5,A)") "eigval_proc=", self%me, "_iter=", iter, ".npy"
-            !call save_npy(trim(self%prefix) // trim(filename), eig_val_all)
+            write (filename, "(A,I0.5,A,I0.5,A)") "eigval_proc=", self%me, "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), eig_val_all)
             
-            !write (filename, "(A,I0.5,A,I0.5,A)") "omKidx_proc=", self%me, "_iter=", iter, ".npy"
-            !call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
+            write (filename, "(A,I0.5,A,I0.5,A)") "omKidx_proc=", self%me, "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
             
             call self%set_hall_weights(omega_z_all, omega_kidx_all)
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
