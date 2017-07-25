@@ -1,6 +1,7 @@
 program STB
     use Class_k_space
     use m_config
+    use m_npy
     use output
     use mpi
     use Constants
@@ -11,15 +12,18 @@ program STB
     type(CFG_t)        :: cfg
     character(len=25)  :: fermi_type
     character(len=*), parameter :: time_fmt =  "(A,F10.3,A)"
-    integer(4)         :: ierr, me, n_inp, n_files
+    integer(4)         :: ierr, me, n_inp, n_files, i
     real(8)            :: start, halt
     logical :: perform_band, perform_dos, calc_hall
-    real(8), allocatable :: hall_cond(:)
+    real(8), allocatable :: hall_cond(:), Es(:), outp(:)
     character(len=300), allocatable :: inp_files(:)
     character(len=300)   :: n_files_str, base_str, tmp_str
     
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
+
+
+
     if(me == root) then
         if(command_argument_count() == 1) then
             n_files = 1
@@ -91,6 +95,17 @@ program STB
         if(calc_hall) then
             if(root == me) write (*,*) "started Hall"
             call Ksp%calc_hall_conductance(hall_cond)
+            if(me == root) then
+                call linspace(-4d0, 4d0, 10000, Es)
+                allocate(outp(size(Es)))
+                do i = 1,size(Es)
+                    outp(i) =  Ksp%fermi_distr(Es(i), 1)
+                enddo
+                call save_npy("Eferm.npy", Es)
+                call save_npy("ferm.npy", outp)
+            endif
+        call MPI_Barrier(MPI_COMM_WORLD, ierr)
+        call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
         endif
 
         halt = MPI_Wtime()
