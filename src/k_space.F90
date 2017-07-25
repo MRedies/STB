@@ -78,10 +78,6 @@ module Class_k_space
         procedure :: integrate_hall         => integrate_hall
     end type k_space
 
-    type :: r8arr
-        real(8), allocatable :: arr(:)
-    end type r8arr
-
     interface
         subroutine run_triang(k_pts, ret_elem)
             real(8), intent(in)              :: k_pts(:,:)
