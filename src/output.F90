@@ -154,7 +154,7 @@ contains
         integer(4)       :: succ
 
 #ifdef IBM_COMPILER_USED        
-        call rmdir(folder)
+        call rmdir(trim(folder))
         if(succ /= 0) then
             write (*,*) "Could not delete dir"
             call MPI_Abort(MPI_COMM_WORLD, 0, succ)

@@ -697,7 +697,7 @@ contains
         real(8)                 :: k(3), Emax
         real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
             hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:)
-        integer(4), allocatable :: omega_kidx_all(:), omega_kidx_new(:)
+        integer(4), allocatable :: omega_kidx_all(:), omega_kidx_new(:), n_kpts(:)
         integer(4)  :: N_k, k_idx, first, last, n_atm,&
             iter, cnt
         character(len=300)      :: filename
@@ -713,6 +713,7 @@ contains
         allocate(omega_z_all(2*n_atm,0))
         allocate(omega_kidx_all(0))
         allocate(self%all_k_pts(3,0))
+        allocate(n_kpts(0))
 
         iter =  1
         do iter =1,self%berry_iter
@@ -738,6 +739,7 @@ contains
                 omega_z_all, omega_z_new)
             call self%append_kpts()
             call append_eigval(eig_val_all, eig_val_new)
+            n_kpts = [n_kpts, size(self%all_k_pts,2)]
             ! integrate hall conductance
 
             if(allocated(hall))then
@@ -748,6 +750,21 @@ contains
 
             call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall)
 
+            if(self%me == root) then
+                write (filename, "(A,I0.5,A)") "hall_cond_iter=", iter, ".npy"
+                call save_npy(trim(self%prefix) // trim(filename), hall)
+
+                !write (filename, "(A,I0.5,A)") "kpts_cond_iter=", iter, ".npy"
+                !call save_npy(trim(self%prefix) // trim(filename), self%all_k_pts)
+
+                !write (filename, "(A,I0.5,A)") "elems_iter=", iter, ".npy"
+                !call save_npy(trim(self%prefix) // trim(filename), self%elem_nodes)
+
+                call save_npy(trim(self%prefix) // "hall_E.npy", &
+                    self%E_fermi / self%units%energy)
+                call save_npy(trim(self%prefix) // "nkpts.npy", n_kpts)
+            endif
+
             if(my_norm2(hall - hall_old)/(1d0*size(hall)) &
                                              < self%berry_conv_crit) then
                 if(self%me == root) write (*,*) "Converged berry interation"
@@ -757,40 +774,7 @@ contains
                          my_norm2(hall - hall_old)/(1d0*size(hall))
             endif
 
-            write (filename, "(A,I0.5,A,I0.5,A)") "kpoint_proc=", self%me, "_iter=", iter, ".npy"
-            call save_npy(trim(self%prefix) // trim(filename), self%all_k_pts)
-            
-            write (filename, "(A,I0.5,A,I0.5,A)") "elem_proc=", self%me, "_iter=", iter, ".npy"
-            call save_npy(trim(self%prefix) // trim(filename), self%elem_nodes)
-            
-            write (filename, "(A,I0.5,A,I0.5,A)") "kweigh_proc=", self%me, "_iter=", iter, ".npy"
-            call save_npy(trim(self%prefix) // trim(filename), self%weights)
-            
-            
-            write (filename, "(A,I0.5,A,I0.5,A)") "hall_proc=", self%me, "_iter=", iter, ".npy"
-            call save_npy(trim(self%prefix) // trim(filename), hall)
-            
-            write (filename, "(A,I0.5,A,I0.5,A)") "nkpts_proc=", self%me, "_iter=", iter, ".npy"
-            call save_npy(trim(self%prefix) // trim(filename), [size(self%all_k_pts,2)])
-
-            write (filename, "(A,I0.5,A,I0.5,A)") "hallold_proc=", self%me, "_iter=", iter, ".npy"
-            call save_npy(trim(self%prefix) // trim(filename), hall_old)
-            
-            write (filename, "(A,I0.5,A,I0.5,A)") "omega_kidx_all=", self%me, "_iter=", iter, ".npy"
-            call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
-
-            write (filename, "(A,I0.5,A,I0.5,A)") "eigval_proc=", self%me, "_iter=", iter, ".npy"
-            call save_npy(trim(self%prefix) // trim(filename), eig_val_all)
-            
-            write (filename, "(A,I0.5,A,I0.5,A)") "omKidx_proc=", self%me, "_iter=", iter, ".npy"
-            call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
-            
-            write (filename, "(A,I0.5,A,I0.5,A)") "om_z_all_proc=", self%me, "_iter=", iter, ".npy"
-            call save_npy(trim(self%prefix) // trim(filename), omega_z_all)
-            
             call self%set_hall_weights(omega_z_all, omega_kidx_all)
-            write (filename, "(A,I0.5,A,I0.5,A)") "hallweigh_proc=", self%me, "_iter=", iter, ".npy"
-            call save_npy(trim(self%prefix) // trim(filename), self%hall_weights)
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
         enddo
         if(self%me == root) then
@@ -904,14 +888,6 @@ contains
                         root, MPI_COMM_WORLD, ierr(2))
         call check_ierr(ierr, self%me, "set_hall_weights")
         
-        !write (filename, "(I0.5,A)") self%me,"_loc_ks.npy"
-        !call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
-        
-        !write (filename, "(I0.5,A)") self%me,"_hall_w.npy"
-        !call save_npy(trim(self%prefix) // trim(filename), self%hall_weights)
-        
-        !write (filename, "(I0.5,A)") self%me,"_k_w.npy"
-        !call save_npy(trim(self%prefix) // trim(filename), self%weights)
     end subroutine set_hall_weights
     
 
@@ -1132,10 +1108,13 @@ contains
 
         exp_term =  (E - self%E_fermi(n_ferm)) /&
                      (boltzmann_const * self%temp)
-        !cutting off at exp(x) =  10^24
-        if(exp_term > 55d0) then
-            ferm =  0d0
-        else 
+        !cutting off at exp(x) =  10^16
+        ! which is at the machine eps 
+        if(exp_term > 36d0) then
+            ferm = 0d0
+        elseif(exp_term < -36d0) then
+            ferm = 1d0
+        else
             ferm = 1d0 / (exp(exp_term) + 1d0)
         endif
     end function fermi_distr
@@ -1384,20 +1363,6 @@ contains
         n_elem = size(self%elem_nodes,1)
 
         call qargsort(self%hall_weights, sort)
-        if(self%me == root) write (*,*) "size sort", shape(sort)
-
-        !write (filename, "(I0.4,A,I0.9,A)") self%me,&
-                                !"_sorting_", size(sort), ".npy"
-        !call save_npy(trim(self%prefix) // filename, sort)
-        
-        !write (filename, "(I0.4,A,I0.9,A)") self%me,&
-                                !"_hall_weights_", size(sort), ".npy"
-        !call save_npy(trim(self%prefix) // filename, self%hall_weights)
-
-        !write (filename, "(I0.4,A,I0.9,A)") self%me,&
-                                !"_k_weights_", size(sort), ".npy"
-        !call save_npy(trim(self%prefix) // filename, self%weights)
-
 
         new_ks =  0d0
         i = n_elem

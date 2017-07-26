@@ -95,17 +95,6 @@ program STB
         if(calc_hall) then
             if(root == me) write (*,*) "started Hall"
             call Ksp%calc_hall_conductance(hall_cond)
-            if(me == root) then
-                call linspace(-4d0, 4d0, 10000, Es)
-                allocate(outp(size(Es)))
-                do i = 1,size(Es)
-                    outp(i) =  Ksp%fermi_distr(Es(i), 1)
-                enddo
-                call save_npy("Eferm.npy", Es)
-                call save_npy("ferm.npy", outp)
-            endif
-        call MPI_Barrier(MPI_COMM_WORLD, ierr)
-        call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
         endif
 
         halt = MPI_Wtime()
