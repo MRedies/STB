@@ -24,6 +24,6 @@ module Constants
     integer(4), parameter :: root = 0
     
     !< 
-    real(8), parameter  :: small_imag = 1d-12
+    real(8), parameter  :: small_imag = 1d-24
     real(8), parameter  :: pos_eps    = 1d-6
 end module Constants 
