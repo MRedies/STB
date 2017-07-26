@@ -735,7 +735,7 @@ contains
             enddo
 
             ! concat to old ones
-            call add_new_kpts_omega(omega_kidx_all, omega_kidx_new,&
+            call append_omega(omega_kidx_all, omega_kidx_new,&
                 omega_z_all, omega_z_new)
             call self%append_kpts()
             call append_eigval(eig_val_all, eig_val_new)
@@ -894,18 +894,19 @@ contains
     subroutine append_eigval(eig_val_all, eig_val_new)
         implicit none
         real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:), tmp(:,:)
-        integer(4) :: vec_sz, num_k_all, num_k_new, i,j
+        integer(4) :: vec_sz, num_k_all, num_k_new, i,j, ierr(2)
 
         vec_sz =  size(eig_val_new, 1)
         if(.not. allocated(eig_val_all)) allocate(eig_val_all(vec_sz,0))
         num_k_all =  size(eig_val_all, 2)
         num_k_new =  size(eig_val_new, 2)
 
-        allocate(tmp(vec_sz, num_k_all))
+        allocate(tmp(vec_sz, num_k_all), stat=ierr(1))
         forall(i=1:vec_sz, j=1:num_k_all) tmp(i,j) =  eig_val_all(i,j)
         deallocate(eig_val_all)
 
-        allocate(eig_val_all(vec_sz, num_k_all + num_k_new))
+        allocate(eig_val_all(vec_sz, num_k_all + num_k_new), stat=ierr(2))
+        call check_ierr(ierr, info="append_eigval")
         forall(i=1:vec_sz, j=1:num_k_all) eig_val_all(i,j) = tmp(i,j)
         deallocate(tmp)
 
@@ -914,12 +915,12 @@ contains
         deallocate(eig_val_new)
     end subroutine append_eigval
 
-    subroutine add_new_kpts_omega(omega_kidx_all, omega_kidx_new, &
+    subroutine append_omega(omega_kidx_all, omega_kidx_new, &
             omega_z_all, omega_z_new)
         implicit none
         integer(4), allocatable   :: omega_kidx_all(:),omega_kidx_new(:) 
         real(8), allocatable      :: omega_z_new(:,:), omega_z_all(:,:), tmp_z(:,:)
-        integer(4)                :: n_old, i, vec_sz, num_k_old, num_k_new
+        integer(4)                :: n_old, i, vec_sz, num_k_old, num_k_new, ierr(2)
 
         if(allocated(omega_kidx_all)) then
             omega_kidx_all =  [omega_kidx_all, omega_kidx_new]
@@ -932,16 +933,17 @@ contains
         num_k_new = size(omega_z_new, 2)
         vec_sz =  size(omega_z_new, 1)
 
-        allocate(tmp_z(vec_sz, num_k_old))
+        allocate(tmp_z(vec_sz, num_k_old),stat=ierr(1))
         tmp_z = omega_z_all
         deallocate(omega_z_all)
-        allocate(omega_z_all(vec_sz, num_k_old + num_k_new))
+        allocate(omega_z_all(vec_sz, num_k_old + num_k_new), stat=ierr(2))
+        call check_ierr(ierr, info="append_omega")
 
         omega_z_all(:,1:num_k_old) = tmp_z
         omega_z_all(:,num_k_old+1:num_k_old+num_k_new) = omega_z_new
         deallocate(tmp_z)
         deallocate(omega_z_new)
-    end subroutine add_new_kpts_omega
+    end subroutine append_omega
 
     subroutine setup_berry_inte_grid(self)
         implicit none
@@ -1381,18 +1383,19 @@ contains
         implicit none
     class(k_space)         :: self
         real(8), allocatable   :: tmp(:,:)
-        integer(4)             :: old_sz, new_sz, i,j
+        integer(4)             :: old_sz, new_sz, i,j, ierr(2)
 
         if(.not. allocated(self%all_k_pts)) allocate(self%all_k_pts(3,0))
         old_sz = size(self%all_k_pts, 2)
         new_sz = size(self%new_k_pts, 2)
 
-        allocate(tmp(3, old_sz))
+        allocate(tmp(3, old_sz), stat=ierr(1))
 
         forall(i=1:3, j=1:old_sz) tmp(i,j) = self%all_k_pts(i,j)
 
         deallocate(self%all_k_pts)
-        allocate(self%all_k_pts(3, old_sz + new_sz))
+        allocate(self%all_k_pts(3, old_sz + new_sz), stat=ierr(2))
+        call check_ierr(ierr, self%me, "append_kpts")
 
         forall(i=1:3, j=1:old_sz) self%all_k_pts(i,j)        = tmp(i,j)
         forall(i=1:3, j=1:new_sz) self%all_k_pts(i,old_sz+j) = self%new_k_pts(i,j)

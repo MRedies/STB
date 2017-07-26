@@ -161,11 +161,18 @@ contains
     end function cross_prod
 
 
-    subroutine check_ierr(ierr, me, info)
+    subroutine check_ierr(ierr, me_in, info)
         implicit none
-        integer(4), intent(in)     :: ierr(:), me
-        integer(4)                 :: error, i
+        integer(4), intent(in)     :: ierr(:)
+        integer(4), optional       :: me_in
+        integer(4)                 :: error, i, me, holder
         character(len=*), optional :: info
+
+        if(present(me_in)) then
+            me = me_in
+        else
+            call MPI_Comm_rank(MPI_COMM_WORLD, me, holder)
+        endif
 
         do i = 1,size(ierr)
             if(ierr(i) /= 0) then
