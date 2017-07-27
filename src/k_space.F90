@@ -694,7 +694,7 @@ contains
     subroutine calc_hall_conductance(self, hall)
         implicit none
     class(k_space)          :: self
-        real(8)                 :: k(3), Emax
+        real(8)                 :: k(3), Emax, start, halt
         real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
             hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:)
         integer(4), allocatable :: omega_kidx_all(:), omega_kidx_new(:), n_kpts(:)
@@ -740,8 +740,8 @@ contains
             call self%append_kpts()
             call append_eigval(eig_val_all, eig_val_new)
             n_kpts = [n_kpts, size(self%all_k_pts,2)]
+            
             ! integrate hall conductance
-
             if(allocated(hall))then
                 hall_old = hall
             else 
@@ -790,6 +790,7 @@ contains
         integer(4), intent(in)  :: omega_kidx_all(:)
         real(8), intent(in)     :: eig_val_all(:,:), omega_z_all(:,:)
         real(8), allocatable    :: hall(:)
+        real(8)                 :: start, halt
         integer(4)              :: loc_idx, n, n_hall, k_idx, ierr(2), iter
         character(len=300)        :: filename
 
@@ -798,6 +799,7 @@ contains
 
         !run triangulation
         call run_triang(self%all_k_pts, self%elem_nodes)
+
         call self%set_weights_ksp()
         
         !perform integration with all points
