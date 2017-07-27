@@ -754,12 +754,6 @@ contains
                 write (filename, "(A,I0.5,A)") "hall_cond_iter=", iter, ".npy"
                 call save_npy(trim(self%prefix) // trim(filename), hall)
 
-                !write (filename, "(A,I0.5,A)") "kpts_cond_iter=", iter, ".npy"
-                !call save_npy(trim(self%prefix) // trim(filename), self%all_k_pts)
-
-                !write (filename, "(A,I0.5,A)") "elems_iter=", iter, ".npy"
-                !call save_npy(trim(self%prefix) // trim(filename), self%elem_nodes)
-
                 call save_npy(trim(self%prefix) // "hall_E.npy", &
                     self%E_fermi / self%units%energy)
                 call save_npy(trim(self%prefix) // "nkpts.npy", n_kpts)
@@ -808,15 +802,6 @@ contains
         
         !perform integration with all points
         hall =  0d0
-        
-        write (filename, "(I0.2,A,I0.3,A)") self%me, "_weights_iter=", iter, ".npy"
-        call save_npy(trim(self%prefix) // trim(filename), self%weights)
-        write (filename, "(I0.2,A,I0.3,A)") self%me, "_eig_val_iter=", iter, ".npy"
-        call save_npy(trim(self%prefix) // trim(filename), eig_val_all)
-        write (filename, "(I0.2,A,I0.3,A)") self%me, "_omKidx_iter=", iter, ".npy"
-        call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
-        write (filename, "(I0.2,A,I0.3,A)") self%me, "_omZ_iter=", iter, ".npy"
-        call save_npy(trim(self%prefix) // trim(filename), omega_z_all)
 
         do loc_idx = 1,size(omega_kidx_all)
             k_idx =  omega_kidx_all(loc_idx)
@@ -830,9 +815,6 @@ contains
         enddo
 
         hall = hall / (2d0*PI)
-        
-        write (filename, "(I0.2,A,I0.3,A)") self%me, "_hall_preReduce_iter=", iter, ".npy"
-        call save_npy(trim(self%prefix) // trim(filename), hall)
         
         ! Allreduce is not suitable for convergence criteria
         if(self%me == root) then
