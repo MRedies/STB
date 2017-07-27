@@ -454,7 +454,7 @@ contains
         implicit none
         class(hamil)             :: self
         real(8), intent(in)      :: k(3)
-        real(8)                  :: eig_val(:)
+        real(8)                  :: eig_val(:), dE
         real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
         complex(8), allocatable  :: H(:,:), work(:), x_mtx(:,:), y_mtx(:,:)
         real(8), allocatable     :: rwork(:)
@@ -487,7 +487,9 @@ contains
         do n = 1,n_dim
             do m = 1,n_dim
                 if(n /= m) then
-                    fac = 1d0 / ((eig_val(n) - eig_val(m))**2 + eta_sq)
+                    dE =  eig_val(n) - eig_val(m)
+                    ! fac =  Re[dE + ieta]^2
+                    fac =  dE**2/(dE**2 + eta_sq)**2
                     z_comp(n) = z_comp(n) - 2d0 &
                         * aimag(fac * x_mtx(n,m) * y_mtx(m,n))
                 endif
