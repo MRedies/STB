@@ -694,7 +694,7 @@ contains
     subroutine calc_hall_conductance(self, hall)
         implicit none
     class(k_space)          :: self
-        real(8)                 :: k(3), Emax, start, halt
+        real(8)                 :: k(3)
         real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
             hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:)
         integer(4), allocatable :: omega_kidx_all(:), omega_kidx_new(:), n_kpts(:)
@@ -748,7 +748,7 @@ contains
                 hall_old =  1d35
             endif
 
-            call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall, iter)
+            call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall)
 
             if(self%me == root) then
                 write (filename, "(A,I0.5,A)") "hall_cond_iter=", iter, ".npy"
@@ -784,15 +784,14 @@ contains
         deallocate(self%new_k_pts)
     end subroutine calc_hall_conductance
 
-    subroutine integrate_hall(self, omega_kidx_all, omega_z_all, eig_val_all, hall, iter)
+    subroutine integrate_hall(self, omega_kidx_all, omega_z_all, eig_val_all, hall)
         implicit none
     class(k_space)          :: self
         integer(4), intent(in)  :: omega_kidx_all(:)
         real(8), intent(in)     :: eig_val_all(:,:), omega_z_all(:,:)
         real(8), allocatable    :: hall(:)
-        real(8)                 :: start, halt, ferm
-        integer(4)              :: loc_idx, n, n_hall, k_idx, ierr(2), iter
-        character(len=300)        :: filename
+        real(8)                 :: ferm
+        integer(4)              :: loc_idx, n, n_hall, k_idx, ierr(2)
 
         if(allocated(hall)) deallocate(hall)
         allocate(hall(size(self%E_fermi)))
@@ -841,7 +840,6 @@ contains
         real(8)                :: omega_z_all(:,:)
         integer(4)             :: i, n_elem, node, k_idx, loc_idx, ierr(2)
         real(8)                :: kpt(3), om_max
-        character(len=300)     :: filename
 
         n_elem = size(self%elem_nodes,1)
         if(allocated(self%hall_weights)) then
@@ -921,7 +919,7 @@ contains
         implicit none
         integer(4), allocatable   :: omega_kidx_all(:),omega_kidx_new(:) 
         real(8), allocatable      :: omega_z_new(:,:), omega_z_all(:,:), tmp_z(:,:)
-        integer(4)                :: n_old, i, vec_sz, num_k_old, num_k_new, ierr(2)
+        integer(4)                :: vec_sz, num_k_old, num_k_new, ierr(2)
 
         if(allocated(omega_kidx_all)) then
             omega_kidx_all =  [omega_kidx_all, omega_kidx_new]
@@ -1355,7 +1353,6 @@ contains
         real(8), allocatable    :: new_ks(:,:)
         integer(4)              :: n_elem, i, cnt, ierr
         integer(4), allocatable :: sort(:)
-        character(len=300)      :: filename
 
         if(allocated(new_ks)) then
             if(size(new_ks,1) /= 3 .or. size(new_ks,2) /= n_new) then

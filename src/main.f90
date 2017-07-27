@@ -12,10 +12,10 @@ program STB
     type(CFG_t)        :: cfg
     character(len=25)  :: fermi_type
     character(len=*), parameter :: time_fmt =  "(A,F10.3,A)"
-    integer(4)         :: ierr, me, n_inp, n_files, i
+    integer(4)         :: ierr, me, n_inp, n_files
     real(8)            :: start, halt
     logical :: perform_band, perform_dos, calc_hall
-    real(8), allocatable :: hall_cond(:), Es(:), outp(:)
+    real(8), allocatable :: hall_cond(:)
     character(len=300), allocatable :: inp_files(:)
     character(len=300)   :: n_files_str, base_str, tmp_str
     
