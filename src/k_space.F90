@@ -748,7 +748,7 @@ contains
                 hall_old =  1d35
             endif
 
-            call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall)
+            call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall, iter)
 
             if(self%me == root) then
                 write (filename, "(A,I0.5,A)") "hall_cond_iter=", iter, ".npy"
@@ -790,13 +790,14 @@ contains
         deallocate(self%new_k_pts)
     end subroutine calc_hall_conductance
 
-    subroutine integrate_hall(self, omega_kidx_all, omega_z_all, eig_val_all, hall)
+    subroutine integrate_hall(self, omega_kidx_all, omega_z_all, eig_val_all, hall, iter)
         implicit none
     class(k_space)          :: self
         integer(4), intent(in)  :: omega_kidx_all(:)
         real(8), intent(in)     :: eig_val_all(:,:), omega_z_all(:,:)
         real(8), allocatable    :: hall(:)
-        integer(4)              :: loc_idx, n, n_hall, k_idx, ierr(2)
+        integer(4)              :: loc_idx, n, n_hall, k_idx, ierr(2), iter
+        character(len=300)        :: filename
 
         if(allocated(hall)) deallocate(hall)
         allocate(hall(size(self%E_fermi)))
@@ -807,6 +808,15 @@ contains
         
         !perform integration with all points
         hall =  0d0
+        
+        write (filename, "(I0.2,A,I0.3,A)") self%me, "_weights_iter=", iter, ".npy"
+        call save_npy(trim(self%prefix) // trim(filename), self%weights)
+        write (filename, "(I0.2,A,I0.3,A)") self%me, "_eig_val_iter=", iter, ".npy"
+        call save_npy(trim(self%prefix) // trim(filename), eig_val_all)
+        write (filename, "(I0.2,A,I0.3,A)") self%me, "_omKidx_iter=", iter, ".npy"
+        call save_npy(trim(self%prefix) // trim(filename), omega_kidx_all)
+        write (filename, "(I0.2,A,I0.3,A)") self%me, "_omZ_iter=", iter, ".npy"
+        call save_npy(trim(self%prefix) // trim(filename), omega_z_all)
 
         do loc_idx = 1,size(omega_kidx_all)
             k_idx =  omega_kidx_all(loc_idx)
@@ -820,6 +830,9 @@ contains
         enddo
 
         hall = hall / (2d0*PI)
+        
+        write (filename, "(I0.2,A,I0.3,A)") self%me, "_hall_preReduce_iter=", iter, ".npy"
+        call save_npy(trim(self%prefix) // trim(filename), hall)
         
         ! Allreduce is not suitable for convergence criteria
         if(self%me == root) then
