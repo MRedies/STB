@@ -790,7 +790,7 @@ contains
         integer(4), intent(in)  :: omega_kidx_all(:)
         real(8), intent(in)     :: eig_val_all(:,:), omega_z_all(:,:)
         real(8), allocatable    :: hall(:)
-        real(8)                 :: start, halt
+        real(8)                 :: start, halt, ferm
         integer(4)              :: loc_idx, n, n_hall, k_idx, ierr(2), iter
         character(len=300)        :: filename
 
@@ -807,24 +807,28 @@ contains
 
         do loc_idx = 1,size(omega_kidx_all)
             k_idx =  omega_kidx_all(loc_idx)
-            do n = 1,size(omega_z_all,1)
-                do n_hall =  1,size(hall)
-                    hall(n_hall) = hall(n_hall) + &
-                        self%weights(k_idx) * omega_z_all(n, loc_idx) *&
-                        self%fermi_distr(eig_val_all(n, loc_idx), n_hall)
-                enddo
+            do n_hall =  1,size(hall)
+                n_loop: do n = 1,size(omega_z_all,1)
+                    ferm  =  self%fermi_distr(eig_val_all(n, loc_idx), n_hall)
+                    if(ferm /=  0d0) then
+                        hall(n_hall) = hall(n_hall) + &
+                            self%weights(k_idx) * omega_z_all(n, loc_idx) * ferm
+                    else
+                        exit n_loop
+                    endif
+                enddo n_loop
             enddo
         enddo
 
         hall = hall / (2d0*PI)
-        
+
         ! Allreduce is not suitable for convergence criteria
         if(self%me == root) then
             call MPI_Reduce(MPI_IN_PLACE, hall, size(hall), MPI_REAL8, MPI_SUM, &
-                            root, MPI_COMM_WORLD, ierr(1))
+                root, MPI_COMM_WORLD, ierr(1))
         else
             call MPI_Reduce(hall, hall, size(hall), MPI_REAL8, MPI_SUM, &
-                            root, MPI_COMM_WORLD, ierr(1))
+                root, MPI_COMM_WORLD, ierr(1))
         endif
         call MPI_Bcast(hall, size(hall), MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
         call check_ierr(ierr, self%me, "Hall conductance")
@@ -863,30 +867,30 @@ contains
                         + self%weights(k_idx) &!* abs(test_func(kpt(1:2)))
                         * sum(abs(omega_z_all(:,loc_idx)))
                     !if(om_max < sum(abs(omega_z_all(loc_idx)%arr))) &
-                       !om_max =  sum(abs(omega_z_all(loc_idx)%arr))
+                    !om_max =  sum(abs(omega_z_all(loc_idx)%arr))
                 endif
             enddo
         enddo
 
         !do i = 1,self%nProcs
-            !if(self%me == i-1) write (*,*) self%me, "->", om_max
-            !call MPI_Barrier(MPI_COMM_WORLD, ierr(1))
+        !if(self%me == i-1) write (*,*) self%me, "->", om_max
+        !call MPI_Barrier(MPI_COMM_WORLD, ierr(1))
         !enddo
 
 
         if(self%me == root) then
             call MPI_Reduce(MPI_IN_PLACE, self%hall_weights, n_elem,&
-                            MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+                MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
         else
             call MPI_Reduce(self%hall_weights,self%hall_weights, n_elem, &
-                            MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+                MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
         endif
         call MPI_Bcast(self%hall_weights, n_elem, MPI_REAL8, &
-                        root, MPI_COMM_WORLD, ierr(2))
+            root, MPI_COMM_WORLD, ierr(2))
         call check_ierr(ierr, self%me, "set_hall_weights")
-        
+
     end subroutine set_hall_weights
-    
+
 
     subroutine append_eigval(eig_val_all, eig_val_new)
         implicit none
@@ -908,7 +912,7 @@ contains
         deallocate(tmp)
 
         forall(i=1:vec_sz, j=1:num_k_new) eig_val_all(i,j+num_k_all) &
-                = eig_val_new(i,j)
+              = eig_val_new(i,j)
         deallocate(eig_val_new)
     end subroutine append_eigval
 
@@ -966,7 +970,7 @@ contains
         implicit none
     class(k_space)         :: self
         real(8), allocatable   :: omega_z(:,:), tmp_vec(:), sec_omega_z(:,:),&
-                                  eig_val(:)
+            eig_val(:)
         real(8)                :: k(3)
         integer(4)  :: N, k_idx, send_count, first, last, ierr, cnt, n_atm
         integer(4), allocatable:: num_elems(:), offsets(:)
@@ -1099,14 +1103,14 @@ contains
 
 
         !if(E-self%E_fermi(n_ferm) > 0) then
-            !ferm = 0d0
+        !ferm = 0d0
         !else
-            !ferm = 1d0
+        !ferm = 1d0
         !endif
 
 
         exp_term =  (E - self%E_fermi(n_ferm)) /&
-                     (boltzmann_const * self%temp)
+            (boltzmann_const * self%temp)
         !cutting off at exp(x) =  10^16
         ! which is at the machine eps 
         if(exp_term > 36d0) then
@@ -1411,16 +1415,16 @@ contains
 
     function random_pt_hex(self) result(ret)
         implicit none
-        class(k_space)            :: self
+    class(k_space)            :: self
         real(8)                   :: ret(2), l
 
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
-        
+
         call random_number(ret)
         ret =  2d0 * l * (ret - 0.5d0)
 
         do while( (abs(ret(2)) > 0.5 * l) .or. &
-                  (abs(ret(1)) > self%hex_border_x(ret(2))))
+                (abs(ret(1)) > self%hex_border_x(ret(2))))
             call random_number(ret)
             ret =  2d0 * l * (ret - 0.5d0)
         enddo
