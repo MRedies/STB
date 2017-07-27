@@ -487,11 +487,9 @@ contains
         do n = 1,n_dim
             do m = 1,n_dim
                 if(n /= m) then
-                    if(abs(eig_val(n) - eig_val(m)) > 1d-8) then
-                        fac = 1d0 / ((eig_val(n) - eig_val(m))**2)
-                        z_comp(n) = z_comp(n) - 2d0 &
-                            * aimag(fac * x_mtx(n,m) * y_mtx(m,n))
-                    endif
+                    fac = 1d0 / ((eig_val(n) - eig_val(m))**2 + eta_sq)
+                    z_comp(n) = z_comp(n) - 2d0 &
+                        * aimag(fac * x_mtx(n,m) * y_mtx(m,n))
                 endif
             enddo
         enddo
