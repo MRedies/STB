@@ -26,7 +26,7 @@ module Class_k_space
         integer(4) :: laplace_iter !> number of laplace iterations
         integer(4) :: berry_iter !> number of grid refinements
         integer(4) :: kpts_per_step !> new kpts per step and Proc
-        real(8)    :: berry_k_shift(3) !> shift of brillouine-zone
+        real(8)    :: k_shift(3) !> shift of brillouine-zone
         real(8)    :: berry_conv_crit !> convergance criterion for berry integration
         real(8), allocatable :: weights(:) !> weights for integration
         integer(4), allocatable :: elem_nodes(:,:) !> elements in triangulation
@@ -215,7 +215,6 @@ contains
                 enddo
             enddo
         enddo
-        write (*,*) "ksz", size(self%new_k_pts, 2)
         loc_PDOS =  loc_PDOS / real(size(self%new_k_pts, 2))
         call MPI_Reduce(loc_PDOS,  PDOS,    size(loc_PDOS), &
             MPI_REAL8, MPI_SUM, root, &
@@ -239,7 +238,7 @@ contains
         if(trim(self%ham%UC%uc_type) == "square_2d") then
             call self%setup_inte_grid_square(self%DOS_num_k_pts)
         elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
-            call self%setup_inte_grid_hex(self%DOS_num_k_pts)
+            call self%setup_inte_grid_hex(self%DOS_num_k_pts, .False.)
         else
             if(self%me ==  root) write (*,*) "DOS k-grid not known"
             call MPI_Abort(MPI_COMM_WORLD, 0, info)
@@ -310,6 +309,7 @@ contains
         self%ham   = init_hamil(cfg)
 
         if(self%me ==  0) then 
+            call CFG_get(cfg, "grid%k_shift", self%k_shift)
             call CFG_get(cfg, "output%band_prefix", self%prefix)
             call create_dir(self%prefix) 
             call CFG_get(cfg, "band%filling", self%filling)
@@ -345,7 +345,6 @@ contains
             call CFG_get(cfg, "berry%laplace_iter", self%laplace_iter)
             call CFG_get(cfg, "berry%refinement_iter", self%berry_iter)
             call CFG_get(cfg, "berry%kpts_per_step", self%kpts_per_step)
-            call CFG_get(cfg, "berry%k_shift", self%berry_k_shift)
             call CFG_get(cfg, "berry%conv_criterion", self%berry_conv_crit)
             call CFG_get(cfg, "berry%perform_pad", self%perform_pad)
         endif
@@ -403,7 +402,7 @@ contains
             root,                            MPI_COMM_WORLD, ierr(14))
         call MPI_Bcast(self%kpts_per_step,   1,              MPI_INTEGER4, &
             root,                            MPI_COMM_WORLD, ierr(15))
-        call MPI_Bcast(self%berry_k_shift,   3,              MPI_REAL8,    &
+        call MPI_Bcast(self%k_shift,   3,              MPI_REAL8,    &
             root,                            MPI_COMM_WORLD, ierr(16))
         call MPI_Bcast(self%berry_conv_crit, 1,              MPI_REAL8,    &
             root,                            MPI_COMM_WORLD, ierr(17))
@@ -486,10 +485,11 @@ contains
         enddo
     end subroutine setup_inte_grid_square
 
-    subroutine setup_inte_grid_hex(self, n_k)
+    subroutine setup_inte_grid_hex(self, n_k, padd)
         implicit none
     class(k_space)         :: self
         integer(4), intent(in) :: n_k
+        logical, intent(in)    :: padd
         real(8), allocatable   :: x(:), y(:)
         real(8)                :: den, l, a
         real(8), parameter     :: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
@@ -524,10 +524,10 @@ contains
         enddo
         
         call run_triang(self%new_k_pts, self%elem_nodes)
-        if(self%perform_pad) call self%pad_k_points_init()
+        if(padd) call self%pad_k_points_init()
         
         forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
-                self%new_k_pts(:,i) + l * self%berry_k_shift
+                self%new_k_pts(:,i) + l * self%k_shift
     end subroutine setup_inte_grid_hex
 
     subroutine test_integration(self, iter)
@@ -956,7 +956,7 @@ contains
         if(trim(self%ham%UC%uc_type) == "square_2d") then
             call self%setup_inte_grid_square(self%berry_num_k_pts)
         elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
-            call self%setup_inte_grid_hex(self%berry_num_k_pts)
+            call self%setup_inte_grid_hex(self%berry_num_k_pts, self%perform_pad)
         else
             if(self%me ==  root) write (*,*) "berry k-grid not known"
             call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
@@ -980,7 +980,7 @@ contains
         allocate(num_elems(self%nProcs))
         allocate(offsets(self%nProcs))
         N = 2* self%ham%UC%num_atoms
-        call self%setup_inte_grid_hex(dim_sz)
+        call self%setup_inte_grid_hex(dim_sz, .False.)
 
         if(self%me ==  root) write (*,*) "nkpts =  ", size(self%new_k_pts, 2)
 
