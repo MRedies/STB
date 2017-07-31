@@ -165,7 +165,7 @@ contains
         complex(8), allocatable :: H(:,:), WORK(:)
         integer(4), allocatable :: IWORK(:)
         integer(4)  :: k_idx, E_idx, j, m, N, info, first, last, ierr, num_atoms
-        integer(4)  :: lwork, liwork, lrwork
+        integer(4)  :: lwork, liwork, lrwork, percentage
 
         N =  2 * self%ham%UC%num_atoms
         allocate(H(N,N))
@@ -183,7 +183,14 @@ contains
         PDOS = 0d0
 
         call my_section(self%me, self%nProcs, size(self%new_k_pts,2), first, last)
+        percentage = 0
         do k_idx=first, last
+            if(self%me == root) then
+                if(percentage /=  nint(100d0 * k_idx / (1d0 * last))) then
+                    percentage =  nint(100d0 * k_idx / (1d0 * last))
+                    write (*,"(I3,A)") percentage, "%"
+                endif
+            endif
             call self%ham%setup_H(self%new_k_pts(:,k_idx), H)
             call zheevd('V', 'U', N, H, N, eig_val, WORK, lwork, &
                 RWORK, lrwork, IWORK, liwork, info)
