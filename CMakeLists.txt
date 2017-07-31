@@ -11,7 +11,8 @@ file(GLOB_RECURSE sources  src/*.f90
 
 
 
-link_directories($ENV{LAPACK_LIB} /bgsys/local/lib thirdparty/triangulation/)
+#link_directories($ENV{LAPACK_LIB} /bgsys/local/lib thirdparty/triangulation/)
+link_directories($ENV{LAPACK_LIB} /bgsys/local/lib thirdparty/triangulation/ /opt/ibmcmp/xlsmp/bg/3.1/bglib64)
 enable_language(Fortran)
 add_executable(stb.x ${sources})
 
@@ -47,7 +48,8 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "IBM")
     MESSAGE(STATUS "IBM")
-    target_link_libraries(stb.x lapack esslbg)
+    #target_link_libraries(stb.x lapack esslbg)
+    target_link_libraries(stb.x lapack esslsmpbg xlsmp)
     set(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
     #set(CMAKE_Fortran_COMPILER scorep)
     #set(dialect "mpixlf2008_r -O3 -qstrict -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm")
