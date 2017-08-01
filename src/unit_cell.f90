@@ -603,7 +603,7 @@ contains
         real(8), intent(in)    :: pos(3), hex(:,:), transl_mtx(:,:)
         integer(4), intent(in) :: till
         logical                :: inside
-        real(8)                :: new(3), delta
+        real(8)                :: new(3), delta_vec(3), delta
         integer(4)             :: n_transl, i, trl
 
         n_transl = size(transl_mtx, dim = 1)
@@ -612,15 +612,19 @@ contains
 
         outer: do i =  1, till
             do trl =  1, n_transl
-                new   =  pos + transl_mtx(trl,:)
-                delta =  my_norm2(hex(i,:) -  new)
+
+                new       = pos + transl_mtx(trl,:)
+                delta_vec = hex(i,:) - new
+                delta     = my_norm2(delta_vec)
                 
                 if(delta <= pos_eps) then
                     inside = .True.
                     exit outer
                 endif
-                new   =  pos - transl_mtx(trl,:)
-                delta =  my_norm2(hex(i,:) -  new)
+
+                new       = pos - transl_mtx(trl,:)
+                delta_vec = hex(i,:) - new
+                delta     = my_norm2(delta_vec)
                 
                 if(delta <= pos_eps) then
                     inside = .True.
@@ -637,7 +641,7 @@ contains
         class(unit_cell), intent(in)          :: self
         real(8), intent(in) :: start(3) !> RS start position
         real(8), intent(in) :: conn(3) !> RZ connection
-        real(8) :: new(3), delta
+        real(8) :: new(3), delta_vec(3), delta
         integer(4) :: idx 
         integer(4) :: i
 
@@ -645,8 +649,8 @@ contains
 
         idx =  -1
         do i =  1, self%num_atoms
-
-            delta =  my_norm2(new -  self%atoms(i)%pos)
+            delta_vec = new - self%atoms(i)%pos
+            delta     = my_norm2(delta_vec)
 
             if(delta < self%eps) then
                 idx =  i
