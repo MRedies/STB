@@ -509,7 +509,7 @@ contains
         real(8), allocatable,intent(out)  :: eig_val(:,:)
         real(8)                           :: k(3)
         complex(8), allocatable           :: H(:,:)
-        integer(4) :: i, N, lwork, lrwork, liwork, info
+        integer(4) :: i, N, lwork, lrwork, liwork, info, percentage
         real(8), allocatable              :: RWORK(:)
         complex(8), allocatable           :: WORK(:)
         integer(4), allocatable           :: IWORK(:)
@@ -523,7 +523,14 @@ contains
         allocate(IWORK(liwork))
         allocate(WORK(lwork))
 
+        percentage = 0
         do i = 1,size(k_list,2)
+            if(self%me == root) then
+                if(percentage /=  nint(100d0 * i / (1d0 * size(k_list,2)))) then
+                    percentage =  nint(100d0 * i / (1d0 * size(k_list,2)))
+                    write (*,"(I3,A)") percentage, "%"
+                endif
+            endif
             k =  k_list(:,i)
             call self%setup_H(k, H)
 

@@ -155,11 +155,8 @@ contains
 
 #ifdef IBM_COMPILER_USED        
         call rmdir(trim(folder))
-        if(succ /= 0) then
-            write (*,*) "Could not delete dir"
-            call MPI_Abort(MPI_COMM_WORLD, 0, succ)
-        endif
-        call mkdir(trim(folder), %val(o'0755'))
+        call mkdir(trim(folder), %val(755))
+        write (*,*) "created: ", trim(folder)
         succ =  0
 #else
         inquire(directory=folder, exist=already)

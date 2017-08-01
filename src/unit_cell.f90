@@ -626,7 +626,8 @@ contains
 
                 new       = pos - transl_mtx(trl,:)
                 delta_vec = hex(i,:) - new
-                delta     = my_norm2(delta_vec)
+                delta =  sqrt(dot_product(delta_vec, delta_vec))
+                !delta     = my_norm2(delta_vec)
                 
                 if(delta <= pos_eps) then
                     inside = .True.
