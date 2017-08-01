@@ -519,7 +519,10 @@ contains
         n_conn =  size(conn_mtx, 1)
         allocate(found_conn(n_conn))
         allocate(neigh_cand(n_conn))
-
+        
+        !$omp parallel do default(shared) schedule(static)&
+        !$omp& private(start_pos, n_found, found_conn, cnt, neigh_cand, j, conn, &
+        !$omp& candidate)
         do i =  1, self%num_atoms
             start_pos             =  self%atoms(i)%pos
 
@@ -533,7 +536,6 @@ contains
                 candidate = self%gen_find_neigh(start_pos, conn, transl_mtx)
 
                 if(candidate /= - 1) then
-                    !self%atoms(i)%neigh_idx(cnt) = candidate
                     found_conn(j) =  .True.
                     neigh_cand(j) =  candidate
                     n_found = n_found + 1
@@ -650,7 +652,9 @@ contains
         idx =  -1
         do i =  1, self%num_atoms
             delta_vec = new - self%atoms(i)%pos
-            delta     = my_norm2(delta_vec)
+            ! inlining could help
+            delta     = sqrt(dot_product(delta_vec, delta_vec))
+            !delta     = my_norm2(delta_vec)
 
             if(delta < self%eps) then
                 idx =  i
