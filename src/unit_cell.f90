@@ -26,6 +26,7 @@ module Class_unit_cell
         real(8) :: eps !> threshold for positional accuracy
         real(8) :: ferro_phi, ferro_theta
         real(8) :: atan_factor !> how fast do we change the border wall
+        real(8) :: random_width !> how much do we distort the magnetization randomly
         type(atom), dimension(:), allocatable :: atoms !> array containing all atoms
         type(units)       :: units
         character(len=25) :: uc_type !> indicates shape of unitcell
@@ -48,6 +49,7 @@ module Class_unit_cell
         procedure :: set_mag_atan_skyrm_honey    => set_mag_atan_skyrm_honey
         procedure :: set_mag_linrot_skrym_square => set_mag_linrot_skrym_square
         procedure :: set_mag_linrot_skrym_honey  => set_mag_linrot_skrym_honey
+        procedure :: add_mag_randomness          => add_mag_randomness
         procedure :: Bcast_UC                    => Bcast_UC
         procedure :: setup_honey                 => setup_honey
         procedure :: free_uc                     => free_uc
@@ -107,6 +109,7 @@ contains
             call CFG_get(cfg, "grid%ferro_phi",   self%ferro_phi)
             call CFG_get(cfg, "grid%ferro_theta", self%ferro_theta)
             call CFG_get(cfg, "grid%atan_fac", self%atan_factor)
+            call CFG_get(cfg, "grid%mag_randomness", self%random_width)
         endif
 
         call self%Bcast_UC()
@@ -120,6 +123,7 @@ contains
             stop
         endif
 
+        if(self%random_width /= 0d0) call self%add_mag_randomness(self%random_width)
 
         ! calculate reciprocal grid
         self%rez_lattice =  transpose(self%lattice)
@@ -142,7 +146,7 @@ contains
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer(4), parameter         :: num_cast = 9
+        integer(4), parameter         :: num_cast = 10
         integer(4)                    :: ierr(num_cast)
         
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
@@ -164,6 +168,9 @@ contains
                        root,             MPI_COMM_WORLD, ierr(8))
         call MPI_Bcast(self%atan_factor, 1,              MPI_REAL8, &
                        root,             MPI_COMM_WORLD, ierr(9))
+
+        call MPI_Bcast(self%random_width, 1,              MPI_REAL8, &
+                       root,             MPI_COMM_WORLD, ierr(10))
         
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
@@ -370,6 +377,42 @@ contains
             call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
         enddo
     end subroutine set_mag_linrot_skyrm
+
+    subroutine add_mag_randomness(self, sigma)
+        implicit none
+        class(unit_cell)    :: self
+        real(8), intent(in) :: sigma
+        real(8)             :: rand_arr(2), new_ang
+        integer(4)          :: i
+
+        do i = 1,self%num_atoms
+            call gaussian_noise(rand_arr, sigma, 0d0)
+            
+            if(self%atoms(i)%m_theta + rand_arr(1) < PI) then
+                self%atoms(i)%m_theta =  &
+                    self%atoms(i)%m_theta + rand_arr(1)
+            else
+                new_ang =  2*PI - (self%atoms(i)%m_theta + rand_arr(1))
+                self%atoms(i)%m_theta = new_ang
+                
+                self%atoms(i)%m_phi =  self%atoms(i)%m_phi + PI
+                if(self%atoms(i)%m_phi >  PI)then
+                    self%atoms(i)%m_phi =  self%atoms(i)%m_phi - 2d0 * PI
+                endif
+                if(self%atoms(i)%m_phi < - PI)then
+                    self%atoms(i)%m_phi =  self%atoms(i)%m_phi + 2d0 * PI
+                endif
+            endif
+
+            self%atoms(i)%m_phi =  self%atoms(i)%m_phi + rand_arr(2)
+            if(self%atoms(i)%m_phi >  PI)then
+                self%atoms(i)%m_phi = self%atoms(i)%m_phi - 2d0 * PI
+            endif
+            if(self%atoms(i)%m_phi < - PI)then
+                self%atoms(i)%m_phi = self%atoms(i)%m_phi + 2d0 *  PI
+            endif
+        enddo
+    end subroutine add_mag_randomness
 
     subroutine set_mag_atan_skyrm(self, center, radius)
         implicit none

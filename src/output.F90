@@ -154,10 +154,10 @@ contains
         integer(4)       :: succ
 
 #ifdef IBM_COMPILER_USED        
-        call rmdir(trim(folder))
-        call mkdir(trim(folder), %val(755))
-        write (*,*) "created: ", trim(folder)
-        succ =  0
+        !call rmdir(trim(folder))
+        !call mkdir(trim(folder), %val(755))
+        !write (*,*) "created: ", trim(folder)
+        !succ =  0
 #else
         inquire(directory=folder, exist=already)
         if(already) then

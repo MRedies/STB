@@ -12,17 +12,21 @@ program STB
     type(CFG_t)        :: cfg
     character(len=25)  :: fermi_type
     character(len=*), parameter :: time_fmt =  "(A,F10.3,A)"
-    integer(4)         :: ierr, me, n_inp, n_files
+    integer(4)         :: ierr, me, n_inp, n_files, seed_sz
+    integer(4), allocatable :: seed(:)
     real(8)            :: start, halt
     logical :: perform_band, perform_dos, calc_hall
-    real(8), allocatable :: hall_cond(:)
+    real(8), allocatable :: hall_cond(:), tmp(:)
     character(len=300), allocatable :: inp_files(:)
     character(len=300)   :: n_files_str, base_str, tmp_str
     
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
-
-
+    
+    call random_seed(size = seed_sz)
+    allocate(seed(seed_sz))
+    seed =  7
+    call random_seed(put=seed) 
 
     if(me == root) then
         if(command_argument_count() == 1) then
@@ -122,14 +126,15 @@ contains
         call CFG_add(cfg, "hamil%lambda",    0d0,   "")
         call CFG_add(cfg, "hamil%lambda_nl", 0d0,   "")
 
-        call CFG_add(cfg, "grid%atoms_per_dim",    -1,   "")
-        call CFG_add(cfg, "grid%unit_cell_type",   "",   "")
-        call CFG_add(cfg, "grid%lattice_constant", 0d0,  "")
-        call CFG_add(cfg, "grid%epsilon",          1d-6, "")
-        call CFG_add(cfg, "grid%mag_type",         "",   "")
-        call CFG_add(cfg, "grid%ferro_phi",        0d0,  "")
-        call CFG_add(cfg, "grid%ferro_theta",      0d0,  "")
-        call CFG_add(cfg, "grid%atan_fac",         0d0,  "")
+        call CFG_add(cfg, "grid%atoms_per_dim",      -1,   "")
+        call CFG_add(cfg, "grid%unit_cell_type",     "",   "")
+        call CFG_add(cfg, "grid%lattice_constant",   0d0,  "")
+        call CFG_add(cfg, "grid%epsilon",            1d-6, "")
+        call CFG_add(cfg, "grid%mag_type",           "",   "")
+        call CFG_add(cfg, "grid%ferro_phi",          0d0,  "")
+        call CFG_add(cfg, "grid%ferro_theta",        0d0,  "")
+        call CFG_add(cfg, "grid%atan_fac",           0d0,  "")
+        call CFG_add(cfg, "grid%mag_randomness", 0d0,  "")
 
         call CFG_add(cfg, "band%perform_band",  .False., "")
         call CFG_add(cfg, "band%k_label",    (/ ""/),   "",&

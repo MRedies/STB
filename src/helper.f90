@@ -259,4 +259,30 @@ contains
             endif
         enddo
     end function find_list_idx
+
+    subroutine gaussian_noise(out_arr, sigma, mu)
+        implicit none
+        real(8), intent(out)  :: out_arr(:)
+        real(8), intent(in)   :: sigma, mu
+        real(8)               :: u(size(out_arr)), fac, u_odd(2)
+        integer(4)            :: even_end, i
+
+        call random_number(u)
+        even_end = size(out_arr) - mod(size(out_arr),2)
+
+        do i = 1,even_end,2
+            fac = sqrt(-2d0 *  log(u(i)))
+            out_arr(i)   = fac * cos(2d0 * PI * u(i+1))
+            out_arr(i+1) = fac * sin(2d0 * PI * u(i+1))
+        enddo
+
+        if(mod(size(out_arr),2) ==  1)then
+            call random_number(u_odd)
+            fac  = sqrt(-2d0 *  log(u_odd(1)))
+            out_arr(size(out_arr))   = fac * cos(2d0 * PI * u(2))
+        endif
+
+        out_arr =  sigma * out_arr + mu
+    end subroutine gaussian_noise
+
 end module Class_helper
