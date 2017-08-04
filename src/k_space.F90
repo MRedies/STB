@@ -706,30 +706,34 @@ contains
             hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:)
         integer(4), allocatable :: omega_kidx_all(:), omega_kidx_new(:), n_kpts(:)
         integer(4)  :: N_k, k_idx, first, last, n_atm,&
-            iter, cnt
-        character(len=300)      :: filename
+            iter, cnt, all_err(7), new_err(3), deall_err(9)
+        character(len=300)      :: filename, msg(9)
 
         call self%setup_berry_inte_grid()
         N_k = size(self%new_k_pts, 2)
 
         N_k = size(self%new_k_pts, 2)
         n_atm =  self%ham%UC%num_atoms
-        allocate(self%ham%del_H(2*n_atm,2*n_atm))
-        allocate(hall_old(size(self%E_fermi)))
-        allocate(eig_val_all(2*n_atm,0))
-        allocate(omega_z_all(2*n_atm,0))
-        allocate(omega_kidx_all(0))
-        allocate(self%all_k_pts(3,0))
-        allocate(n_kpts(0))
+        
+        allocate(self%ham%del_H(2*n_atm, 2*n_atm), stat=all_err(1))
+        allocate(hall_old(size(self%E_fermi)),     stat=all_err(2))
+        allocate(eig_val_all(2*n_atm, 0),          stat=all_err(3))
+        allocate(omega_z_all(2*n_atm, 0),          stat=all_err(4))
+        allocate(omega_kidx_all(0),                stat=all_err(5))
+        allocate(self%all_k_pts(3,0),              stat=all_err(6))
+        allocate(n_kpts(0),                        stat=all_err(7))
+        
+        call check_ierr(all_err, self%me, "allocate hall vars")
 
         iter =  1
         do iter =1,self%berry_iter
             N_k = size(self%new_k_pts, 2)
 
             call my_section(self%me, self%nProcs, N_k, first, last)
-            allocate(eig_val_new(2*n_atm,last-first+1))
-            allocate(omega_z_new(2*n_atm,last-first+1))
-            allocate(omega_kidx_new(last-first+1))
+            allocate(eig_val_new(2*n_atm,last-first+1), stat=new_err(1))
+            allocate(omega_z_new(2*n_atm,last-first+1), stat=new_err(2))
+            allocate(omega_kidx_new(last-first+1),      stat=new_err(3))
+            call check_ierr(new_err, self%me, "new chunk alloc")
 
             ! calculate 
             cnt =  1
@@ -786,9 +790,19 @@ contains
             call save_npy(trim(self%prefix) // "hall_E.npy", &
                 self%E_fermi / self%units%energy)
         endif
-        deallocate(hall)
-        deallocate(self%ham%del_H)
-        deallocate(self%new_k_pts)
+
+        deallocate(hall,           stat=deall_err(1), errmsg=msg(1))
+        write (*,*) self%me, "-> Allocated: ", allocated(self%new_k_pts)
+        deallocate(self%new_k_pts, stat=deall_err(2), errmsg=msg(2))
+        deallocate(self%ham%del_H, stat=deall_err(3), errmsg=msg(3))
+        deallocate(hall_old,       stat=deall_err(4), errmsg=msg(4))
+        deallocate(eig_val_all,    stat=deall_err(5), errmsg=msg(5))
+        deallocate(omega_z_all,    stat=deall_err(6), errmsg=msg(6))
+        deallocate(omega_kidx_all, stat=deall_err(7), errmsg=msg(7))
+        deallocate(self%all_k_pts, stat=deall_err(8), errmsg=msg(8))
+        deallocate(n_kpts,         stat=deall_err(9), errmsg=msg(9))
+        
+        call check_ierr(deall_err, self%me, " deallocate hall vars", msg=msg)
     end subroutine calc_hall_conductance
 
     subroutine integrate_hall(self, omega_kidx_all, omega_z_all, eig_val_all, hall)
@@ -798,10 +812,11 @@ contains
         real(8), intent(in)     :: eig_val_all(:,:), omega_z_all(:,:)
         real(8), allocatable    :: hall(:)
         real(8)                 :: ferm
-        integer(4)              :: loc_idx, n, n_hall, k_idx, ierr(2)
+        integer(4)              :: loc_idx, n, n_hall, k_idx, ierr(2), all_err(1)
 
         if(allocated(hall)) deallocate(hall)
-        allocate(hall(size(self%E_fermi)))
+        allocate(hall(size(self%E_fermi)), stat=all_err(1))
+        call check_ierr(all_err, self%me, "integrate hall allocation")
 
         !run triangulation
         call run_triang(self%all_k_pts, self%elem_nodes)
@@ -845,18 +860,24 @@ contains
     class(k_space)         :: self
         integer(4), intent(in) :: omega_kidx_all(:)
         real(8)                :: omega_z_all(:,:)
-        integer(4)             :: i, n_elem, node, k_idx, loc_idx, ierr(2)
+        integer(4)             :: i, n_elem, node, k_idx, loc_idx, ierr(2), error(2)
         real(8)                :: kpt(3), om_max
-
+        character(len=300)     :: msg
+        
+        error = 0
+        msg =  " "
         n_elem = size(self%elem_nodes,1)
         if(allocated(self%hall_weights)) then
             if(size(self%hall_weights) /= n_elem) then
-                deallocate(self%hall_weights)
+                deallocate(self%hall_weights, stat=error(1), errmsg=msg)
+                if(error(1) /= 0) write (*,*) self%me, "Error: ", error,&
+                                  " msg: ", msg
             endif
         endif
         if(.not. allocated(self%hall_weights)) then
-            allocate(self%hall_weights(n_elem))
+            allocate(self%hall_weights(n_elem), stat=error(2))
         endif
+        call check_ierr(error, self%me, " set_hall_weights errors")
 
         self%hall_weights = 0d0
         om_max =  0d0
@@ -900,25 +921,25 @@ contains
     subroutine append_eigval(eig_val_all, eig_val_new)
         implicit none
         real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:), tmp(:,:)
-        integer(4) :: vec_sz, num_k_all, num_k_new, i,j, ierr(2)
+        integer(4) :: vec_sz, num_k_all, num_k_new, i,j, ierr(6)
 
         vec_sz =  size(eig_val_new, 1)
-        if(.not. allocated(eig_val_all)) allocate(eig_val_all(vec_sz,0))
+        if(.not. allocated(eig_val_all)) allocate(eig_val_all(vec_sz,0), stat=ierr(1))
         num_k_all =  size(eig_val_all, 2)
         num_k_new =  size(eig_val_new, 2)
 
-        allocate(tmp(vec_sz, num_k_all), stat=ierr(1))
+        allocate(tmp(vec_sz, num_k_all), stat=ierr(2))
         forall(i=1:vec_sz, j=1:num_k_all) tmp(i,j) =  eig_val_all(i,j)
-        deallocate(eig_val_all)
+        deallocate(eig_val_all, stat=ierr(3))
 
-        allocate(eig_val_all(vec_sz, num_k_all + num_k_new), stat=ierr(2))
-        call check_ierr(ierr, info="append_eigval")
+        allocate(eig_val_all(vec_sz, num_k_all + num_k_new), stat=ierr(4))
         forall(i=1:vec_sz, j=1:num_k_all) eig_val_all(i,j) = tmp(i,j)
-        deallocate(tmp)
+        deallocate(tmp, stat=ierr(5))
 
         forall(i=1:vec_sz, j=1:num_k_new) eig_val_all(i,j+num_k_all) &
               = eig_val_new(i,j)
-        deallocate(eig_val_new)
+        deallocate(eig_val_new, stat=ierr(6))
+        call check_ierr(ierr, info="append_eigval")
     end subroutine append_eigval
 
     subroutine append_omega(omega_kidx_all, omega_kidx_new, &

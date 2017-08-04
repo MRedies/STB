@@ -161,12 +161,12 @@ contains
     end function cross_prod
 
 
-    subroutine check_ierr(ierr, me_in, info)
+    subroutine check_ierr(ierr, me_in, info, msg)
         implicit none
-        integer(4), intent(in)     :: ierr(:)
+        integer(4), intent(inout)  :: ierr(:)
         integer(4), optional       :: me_in
         integer(4)                 :: error, i, me, holder
-        character(len=*), optional :: info
+        character(len=*), optional :: info, msg(:)
 
         if(present(me_in)) then
             me = me_in
@@ -177,14 +177,18 @@ contains
         do i = 1,size(ierr)
             if(ierr(i) /= 0) then
                 if(present(info)) then
-                    write (*, "(A, I3, A, I3)")  "[", me, "] Bcast error at :", i, info
+                    write (*, "(A,I5,A,I3,A)")  "[", me, "]  error at : ", i, info
                 else
-                    write (*, "(A, I3, A, I3)")  "[", me, "] Bcast error at :", i
+                    write (*, "(A, I5, A, I3)")  "[", me, "] error at : ", i
+                endif
+                if(present(msg)) then
+                    write (*,"(I5, A)") me, msg
                 endif
                 call MPI_Barrier(MPI_COMM_WORLD, error)
                 call MPI_Abort(MPI_COMM_WORLD, 0, error)
             endif
         enddo
+        ierr =  0
     end subroutine check_ierr
 
     recursive subroutine qargsort(data, idx, first_in, last_in)
