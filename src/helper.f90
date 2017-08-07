@@ -289,4 +289,29 @@ contains
         out_arr =  sigma * out_arr + mu
     end subroutine gaussian_noise
 
+    function date_time() result(res)
+        implicit none
+        character(10)  :: time
+        character(8)   :: date
+        character(23)  :: res
+
+        call date_and_time(time=time, date=date)
+        write (*,*) "time = ", time
+
+        res(1:2) = time(1:2)
+        res(3:3) = ":"
+        res(4:5) = time(3:4)
+        res(6:6) = ":"
+        res(7:12) = time(5:10)
+        res(13:13) = " "
+
+        res(14:15) =  date(7:8)
+        res(16:16) =  "."
+        res(17:18) =  date(5:6)
+        res(19:19) =  "."
+        res(20:23) =  date(1:4)
+    end function date_time 
+
+
+
 end module Class_helper

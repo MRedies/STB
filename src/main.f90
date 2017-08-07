@@ -19,7 +19,7 @@ program STB
     real(8), allocatable :: hall_cond(:), tmp(:)
     character(len=300), allocatable :: inp_files(:)
     character(len=300)   :: n_files_str, base_str, tmp_str
-    
+
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
     
@@ -67,6 +67,7 @@ program STB
         call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
 
         Ksp =  init_k_space(cfg)
+        if(me == root) call save_cfg(cfg)
         
         !call Ksp%plot_omega()
         if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
@@ -168,5 +169,16 @@ contains
 
         call CFG_add(cfg, "output%band_prefix", "bar/foo","")
     End Subroutine add_full_cfg
+
+    subroutine save_cfg(cfg)
+        Implicit None
+        type(CFG_t)            :: cfg
+        character(len=300)    :: filling, prefix
+
+        call CFG_add(cfg, "calculation%start_time", date_time(), "")
+        call CFG_get(cfg, "output%band_prefix", prefix)
+        call CFG_write(cfg, trim(prefix) // "setup.cfg")
+
+        end subroutine save_cfg
 end program STB
 
