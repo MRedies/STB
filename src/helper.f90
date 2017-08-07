@@ -296,7 +296,6 @@ contains
         character(23)  :: res
 
         call date_and_time(time=time, date=date)
-        write (*,*) "time = ", time
 
         res(1:2) = time(1:2)
         res(3:3) = ":"
