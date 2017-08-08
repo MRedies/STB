@@ -135,6 +135,7 @@ contains
         call CFG_add(cfg, "grid%ferro_phi",          0d0,  "")
         call CFG_add(cfg, "grid%ferro_theta",        0d0,  "")
         call CFG_add(cfg, "grid%atan_fac",           0d0,  "")
+        call CFG_add(cfg, "grid%dblatan_width",      0d0,  "")
         call CFG_add(cfg, "grid%mag_randomness", 0d0,  "")
 
         call CFG_add(cfg, "band%perform_band",  .False., "")
