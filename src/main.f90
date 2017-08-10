@@ -12,13 +12,13 @@ program STB
     type(CFG_t)        :: cfg
     character(len=25)  :: fermi_type
     character(len=*), parameter :: time_fmt =  "(A,F10.3,A)"
-    integer(4)         :: ierr, me, n_inp, n_files, seed_sz
+    integer(4)         :: ierr, me, n_inp, n_files, seed_sz, start_idx, end_idx, cnt
     integer(4), allocatable :: seed(:)
     real(8)            :: start, halt
     logical :: perform_band, perform_dos, calc_hall
     real(8), allocatable :: hall_cond(:), tmp(:)
     character(len=300), allocatable :: inp_files(:)
-    character(len=300)   :: n_files_str, base_str, tmp_str
+    character(len=300)   :: n_files_str, base_str, tmp_str, start_str, end_str
 
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
@@ -33,15 +33,30 @@ program STB
             n_files = 1
             allocate(inp_files(1))
             call get_command_argument(1, inp_files(1))
-        else
+        else if(command_argument_count() == 2) then
             call get_command_argument(2, n_files_str)
             read(n_files_str,*) n_files
             allocate(inp_files(n_files))
             call get_command_argument(1, base_str)
 
-            do n_inp = 1,n_files
-                write(tmp_str, "(I6)") n_inp-1
-                inp_files(n_inp) = trim(base_str) // trim(adjustl(tmp_str)) // ".cfg"
+            do n_inp = 0,n_files-1
+                write(tmp_str, "(I6)") n_inp
+                inp_files(n_inp+1) = trim(base_str) // trim(adjustl(tmp_str)) // ".cfg"
+            enddo
+        else if(command_argument_count() == 3) then
+            call get_command_argument(2, start_str)
+            call get_command_argument(3, end_str)
+            read(start_str, *) start_idx
+            read(end_str, * ) end_idx
+            n_files =  end_idx -  start_idx + 1
+            allocate(inp_files(n_files))
+            call get_command_argument(1, base_str)
+
+            cnt = 1
+            do n_inp = start_idx, end_idx
+                write(tmp_str, "(I6)") n_inp
+                inp_files(cnt) = trim(base_str) // trim(adjustl(tmp_str)) // ".cfg"
+                cnt = cnt + 1
             enddo
         endif
     endif
