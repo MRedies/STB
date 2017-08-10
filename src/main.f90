@@ -53,7 +53,7 @@ program STB
         if(me ==  root)then
             write (*,*) "running: ", trim(inp_files(n_inp))
             call CFG_read_file(cfg, trim(inp_files(n_inp)))
-            if(n_inp == 1) call add_full_cfg(cfg)
+            call add_full_cfg(cfg)
 
             call CFG_get(cfg, "band%perform_band", perform_band)
             call CFG_get(cfg, "dos%perform_dos",   perform_dos)
@@ -107,6 +107,7 @@ program STB
             write (*,time_fmt) "Total: ", halt-start, "s"
         endif
         call Ksp%free_ksp()
+        if(me == root) call CFG_clear(cfg)
     enddo
 
     call MPI_Finalize(ierr)
