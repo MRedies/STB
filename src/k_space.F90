@@ -792,8 +792,12 @@ contains
         endif
 
         deallocate(hall,           stat=deall_err(1), errmsg=msg(1))
-        write (*,*) self%me, "-> Allocated: ", allocated(self%new_k_pts)
-        deallocate(self%new_k_pts, stat=deall_err(2), errmsg=msg(2))
+        if(allocated(self%new_k_pts)) then
+            deallocate(self%new_k_pts, stat=deall_err(2), errmsg=msg(2))
+        else
+            deall_err(2) = 0
+            msg(2) =  "nicht mal was gemacht"
+        endif
         deallocate(self%ham%del_H, stat=deall_err(3), errmsg=msg(3))
         deallocate(hall_old,       stat=deall_err(4), errmsg=msg(4))
         deallocate(eig_val_all,    stat=deall_err(5), errmsg=msg(5))
