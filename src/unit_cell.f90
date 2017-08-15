@@ -28,6 +28,7 @@ module Class_unit_cell
         real(8) :: atan_factor !> how fast do we change the border wall
         real(8) :: dblatan_dist !> width of the atan plateau
         real(8) :: random_width !> how much do we distort the magnetization randomly
+        real(8) :: skyrm_middle !> position of inplane 
         type(atom), dimension(:), allocatable :: atoms !> array containing all atoms
         type(units)       :: units
         character(len=25) :: uc_type !> indicates shape of unitcell
@@ -112,6 +113,7 @@ contains
             call CFG_get(cfg, "grid%ferro_phi",   self%ferro_phi)
             call CFG_get(cfg, "grid%ferro_theta", self%ferro_theta)
             call CFG_get(cfg, "grid%atan_fac", self%atan_factor)
+            call CFG_get(cfg, "grid%skyrm_middle", self%skyrm_middle)
             call CFG_get(cfg, "grid%dblatan_width", self%dblatan_dist)
             call CFG_get(cfg, "grid%mag_randomness", self%random_width)
         endif
@@ -150,7 +152,7 @@ contains
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer(4), parameter         :: num_cast = 11
+        integer(4), parameter         :: num_cast = 12
         integer(4)                    :: ierr(num_cast)
         
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
@@ -177,6 +179,10 @@ contains
 
         call MPI_Bcast(self%random_width, 1,              MPI_REAL8, &
                        root,             MPI_COMM_WORLD, ierr(11))
+
+        call MPI_Bcast(self%skyrm_middle, 1,              MPI_REAL8, &
+                       root,             MPI_COMM_WORLD, ierr(12))
+
         
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
@@ -440,7 +446,8 @@ contains
         integer(4)            :: i
 
         a       = self%atan_factor
-        x0      = 0.5d0 * radius
+        x0      = self%skyrm_middle * radius
+
         y_min   = - atan(- a * x0) +  0.5d0 * PI
         y_max   = - atan(a * (radius - x0)) + 0.5d0 * PI
         scaling = PI / (y_max - y_min)

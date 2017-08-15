@@ -2,16 +2,26 @@ import numpy as np
 
 
 
-atan = np.linspace(0.0,0.4, 10)
+#atan = np.linspace(1.95, 2.05, 10)
+#atan = np.arange(10,360,5)
 #atan = np.logspace(-2, 1.0,12)
 #rad = np.arange(21,60,3)
-prefix = "./inis/"
+
+# theta = np.load("m_theta.npy")
+# phi   = np.load("m_phi.npy")
+
+r = np.linspace(0,1,35)
+
+
+prefix = "/home/matthias/STB/inis/"
 
 cnt = 0
-for i in atan:
+for mid in r:
     with open(prefix + "example.cfg", "rt") as fin:
-        with open(prefix + "rand_scan_{}.cfg".format(cnt), "wt") as fout:
+        with open(prefix + "middle_{}.cfg".format(cnt), "wt") as fout:
             for line in fin:
-                #fout.write(line.replace('%rad%', "{:04d}".format(i)))
-                fout.write(line.replace('%rand%', "{:011.6f}".format(i)))
+                #line = line.replace('%m_phi%',   "{:011.6f}".format(phi[i]))
+                #line = line.replace('%m_theta%', "{:011.6f}".format(theta[i]))
+                line = line.replace('%middle%', "{:011.6f}".format(mid))
+                fout.write(line)
     cnt +=1
