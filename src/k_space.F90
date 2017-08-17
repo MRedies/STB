@@ -1059,7 +1059,7 @@ contains
         integer(4)             :: ierr, n_steps
 
         if(root == self%me) then
-            call CFG_get(cfg, "dos%E_fermi", tmp)
+            call CFG_get(cfg, "berry%E_fermi", tmp)
         endif
         call MPI_Bcast(tmp, 3, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
         n_steps = nint(tmp(3))

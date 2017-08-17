@@ -10,7 +10,7 @@ import numpy as np
 # theta = np.load("m_theta.npy")
 # phi   = np.load("m_phi.npy")
 
-r = np.linspace(0,1,35)
+r = np.linspace(0.1, 0.9, 7)
 
 
 prefix = "/home/matthias/STB/inis/"
@@ -18,7 +18,7 @@ prefix = "/home/matthias/STB/inis/"
 cnt = 0
 for mid in r:
     with open(prefix + "example.cfg", "rt") as fin:
-        with open(prefix + "middle_{}.cfg".format(cnt), "wt") as fout:
+        with open(prefix + "shift_middle_{}.cfg".format(cnt), "wt") as fout:
             for line in fin:
                 #line = line.replace('%m_phi%',   "{:011.6f}".format(phi[i]))
                 #line = line.replace('%m_theta%', "{:011.6f}".format(theta[i]))

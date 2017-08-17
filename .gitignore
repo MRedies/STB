@@ -6,6 +6,7 @@ cmake_install.cmake
 *.mod
 *.x
 *.o
+*.pdf
 output/*
 inis/*cfg
 !inis/example.cfg

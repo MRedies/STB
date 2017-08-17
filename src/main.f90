@@ -16,7 +16,7 @@ program STB
     integer(4), allocatable :: seed(:)
     real(8)            :: start, halt
     logical :: perform_band, perform_dos, calc_hall
-    real(8), allocatable :: hall_cond(:), tmp(:)
+    real(8), allocatable :: hall_cond(:)
     character(len=300), allocatable :: inp_files(:)
     character(len=300)   :: n_files_str, base_str, tmp_str, start_str, end_str
 
@@ -72,7 +72,7 @@ program STB
 
             call CFG_get(cfg, "band%perform_band", perform_band)
             call CFG_get(cfg, "dos%perform_dos",   perform_dos)
-            call CFG_get(cfg, "dos%fermi_type", fermi_type) 
+            call CFG_get(cfg, "berry%fermi_type", fermi_type) 
             call CFG_get(cfg, "berry%calc_hall", calc_hall)
         endif
 
@@ -171,8 +171,8 @@ contains
         call CFG_add(cfg, "dos%num_points",       300,     "")
         call CFG_add(cfg, "dos%lower_E_bound",    0d0,     "")
         call CFG_add(cfg, "dos%upper_E_bound",    0d0,     "")
-        call CFG_add(cfg, "dos%fermi_type",       "",      "")
-        call CFG_add(cfg, "dos%E_fermi",          [0d0, 0d0, 0d0],   "")
+        call CFG_add(cfg, "berry%fermi_type",       "",      "")
+        call CFG_add(cfg, "berry%E_fermi",          [0d0, 0d0, 0d0],   "")
         call CFG_add(cfg, "dos%fermi_fill",       0.5d0,   "")
 
         call CFG_add(cfg, "berry%calc_hall", .False., "")
@@ -191,7 +191,7 @@ contains
     subroutine save_cfg(cfg)
         Implicit None
         type(CFG_t)            :: cfg
-        character(len=300)    :: filling, prefix
+        character(len=300)     :: prefix
 
         call CFG_add(cfg, "calculation%start_time", date_time(), "")
         call CFG_get(cfg, "output%band_prefix", prefix)
