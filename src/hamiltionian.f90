@@ -31,7 +31,8 @@ module Class_hamiltionian
         procedure :: set_rashba_SO            => set_rashba_SO
         procedure :: set_deriv_FD             => set_deriv_FD
         procedure :: calc_berry_z             => calc_berry_z
-        procedure :: calc_berry_mtx           => calc_berry_mtx
+        procedure :: calc_velo_mtx            => calc_velo_mtx
+        procedure :: calc_eig_and_velo        => calc_eig_and_velo
         procedure :: compare_derivative       => compare_derivative
         procedure :: set_derivative_hopping   => set_derivative_hopping
         procedure :: set_derivative_rashba_so => set_derivative_rashba_so
@@ -419,12 +420,12 @@ contains
         enddo
     end subroutine set_derivative_rashba_so
 
-    subroutine calc_berry_mtx(self, k, derive_idx, H, ret)
+    subroutine calc_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
         implicit none
         class(hamil)                    :: self
         real(8), intent(in)             :: k(3)
         integer(4), intent(in)          :: derive_idx
-        complex(8), intent(in)          :: H(:,:)
+        complex(8), intent(in)          :: eig_vec_mtx(:,:)
         complex(8), allocatable         :: ret(:,:), tmp(:,:)
         integer(4)   :: n_dim
 
@@ -441,14 +442,50 @@ contains
 
         call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                     c_1, self%del_H, n_dim,&
-                         H, n_dim,&
+                         eig_vec_mtx, n_dim,&
                     c_0, tmp, n_dim)
         call zgemm('C', 'N', n_dim, n_dim, n_dim, &
-                    c_1, H, n_dim, &
+                    c_1, eig_vec_mtx, n_dim, &
                          tmp, n_dim, &
                     c_0, ret, n_dim)
         deallocate(tmp)
-    end subroutine calc_berry_mtx
+    end subroutine calc_velo_mtx
+
+    subroutine calc_eig_and_velo(self, k, eig_val, eig_vec, del_kx, del_ky)
+        implicit none
+        class(hamil)             :: self
+        real(8), intent(in)      :: k(3)
+        real(8)                  :: eig_val(:)
+        complex(8), allocatable  :: eig_vec(:,:), del_kx(:,:), del_ky(:,:), work(:)
+        real(8), allocatable     :: rwork(:)
+        integer(4), allocatable  :: iwork(:)
+        integer(4)   :: n_dim, lwork, lrwork, liwork, info
+
+        n_dim = 2 * self%UC%num_atoms
+        allocate(eig_vec(n_dim,n_dim))
+
+        eig_vec = 0d0
+        call self%setup_H(k, eig_vec)
+
+        call calc_zheevd_size('V', eig_vec, eig_val, lwork, lrwork, liwork)
+        allocate(work(lwork), stat=info)
+        allocate(rwork(lrwork))
+        allocate(iwork(liwork))
+
+
+        call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
+            work, lwork, rwork, lrwork, iwork, liwork, info)
+        if(info /= 0) then
+            write (*,*) "ZHEEVD in berry calculation failed"
+        endif
+        
+        call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
+        call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
+
+        deallocate(work)
+        deallocate(rwork)
+        deallocate(iwork)
+    end subroutine calc_eig_and_velo
 
     subroutine calc_berry_z(self,k,z_comp, eig_val)
         implicit none
@@ -456,34 +493,13 @@ contains
         real(8), intent(in)      :: k(3)
         real(8)                  :: eig_val(:), dE
         real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
-        complex(8), allocatable  :: H(:,:), work(:), x_mtx(:,:), y_mtx(:,:)
-        real(8), allocatable     :: rwork(:)
+        complex(8), allocatable  :: H(:,:), x_mtx(:,:), y_mtx(:,:)
         complex(8) :: fac
-        integer(4), allocatable  :: iwork(:)
         integer(4)   :: n_dim, n, m, lwork, lrwork, liwork, info
-
+    
+        call self%calc_eig_and_velo(k, eig_val, H, x_mtx, y_mtx)
+        
         n_dim = 2 * self%UC%num_atoms
-        allocate(H(n_dim,n_dim))
-
-        H = 0d0
-        call self%setup_H(k, H)
-
-        call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
-        allocate(work(lwork), stat=info)
-        allocate(rwork(lrwork))
-        allocate(iwork(liwork))
-
-
-        call zheevd('V', 'L', n_dim, H, n_dim, eig_val, &
-            work, lwork, rwork, lrwork, iwork, liwork, info)
-        if(info /= 0) then
-            write (*,*) "ZHEEVD in berry calculation failed"
-        endif
-    
-        z_comp = 0d0
-    
-        call self%calc_berry_mtx(k, 1, H, x_mtx)
-        call self%calc_berry_mtx(k, 2, H, y_mtx)
         do n = 1,n_dim
             do m = 1,n_dim
                 if(n /= m) then
@@ -497,9 +513,6 @@ contains
         enddo
 
         deallocate(H)
-        deallocate(work)
-        deallocate(rwork)
-        deallocate(iwork)
     end subroutine calc_berry_z
 
     Subroutine  calc_eigenvalues(self, k_list, eig_val)
@@ -525,12 +538,12 @@ contains
 
         percentage = 0
         do i = 1,size(k_list,2)
-            if(self%me == root) then
-                if(percentage /=  nint(100d0 * i / (1d0 * size(k_list,2)))) then
-                    percentage =  nint(100d0 * i / (1d0 * size(k_list,2)))
-                    write (*,"(I3,A)") percentage, "%"
-                endif
-            endif
+            !if(self%me == root) then
+                !if(percentage /=  nint(100d0 * i / (1d0 * size(k_list,2)))) then
+                    !percentage =  nint(100d0 * i / (1d0 * size(k_list,2)))
+                    !write (*,"(I3,A)") percentage, "%"
+                !endif
+            !endif
             k =  k_list(:,i)
             call self%setup_H(k, H)
 
