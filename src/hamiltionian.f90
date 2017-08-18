@@ -462,7 +462,7 @@ contains
         integer(4)   :: n_dim, lwork, lrwork, liwork, info
 
         n_dim = 2 * self%UC%num_atoms
-        allocate(eig_vec(n_dim,n_dim))
+        if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
 
         eig_vec = 0d0
         call self%setup_H(k, eig_vec)
@@ -487,19 +487,18 @@ contains
         deallocate(iwork)
     end subroutine calc_eig_and_velo
 
-    subroutine calc_berry_z(self,k,z_comp, eig_val)
+    subroutine calc_berry_z(self,k,z_comp, eig_val, eig_vec, x_mtx, y_mtx)
         implicit none
         class(hamil)             :: self
         real(8), intent(in)      :: k(3)
         real(8)                  :: eig_val(:), dE
         real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
-        complex(8), allocatable  :: H(:,:), x_mtx(:,:), y_mtx(:,:)
+        complex(8)               :: eig_vec(:,:), x_mtx(:,:), y_mtx(:,:)
         complex(8) :: fac
         integer(4)   :: n_dim, n, m, lwork, lrwork, liwork, info
     
-        call self%calc_eig_and_velo(k, eig_val, H, x_mtx, y_mtx)
-        
         n_dim = 2 * self%UC%num_atoms
+        z_comp =  0d0
         do n = 1,n_dim
             do m = 1,n_dim
                 if(n /= m) then
@@ -512,7 +511,6 @@ contains
             enddo
         enddo
 
-        deallocate(H)
     end subroutine calc_berry_z
 
     Subroutine  calc_eigenvalues(self, k_list, eig_val)

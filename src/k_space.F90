@@ -30,7 +30,7 @@ module Class_k_space
         real(8)    :: berry_conv_crit !> convergance criterion for berry integration
         real(8), allocatable :: weights(:) !> weights for integration
         integer(4), allocatable :: elem_nodes(:,:) !> elements in triangulation
-        real(8), allocatable :: hall_weights(:)
+        real(8), allocatable :: refine_weights(:)
         real(8), allocatable :: k1_param(:) !> 1st k_space param
         real(8), allocatable :: k2_param(:) !> 2nd k_space param
         character(len=300)    :: filling, prefix
@@ -61,7 +61,7 @@ module Class_k_space
         procedure :: Bcast_k_space          => Bcast_k_space
         procedure :: hex_border_x           => hex_border_x
         procedure :: vol_k_hex              => vol_k_hex
-        procedure :: plot_omega             => plot_omega
+        !procedure :: plot_omega             => plot_omega
         procedure :: free_ksp               => free_ksp
         procedure :: find_E_max             => find_E_max
         procedure :: area_of_elem           => area_of_elem
@@ -76,6 +76,9 @@ module Class_k_space
         procedure :: random_pt_hex          => random_pt_hex
         procedure :: set_hall_weights       => set_hall_weights
         procedure :: integrate_hall         => integrate_hall
+        procedure :: finalize_integr        => finalize_integr
+        procedure :: process_step           => process_step
+        procedure :: calc_new_hall_points   => calc_new_hall_points
     end type k_space
 
     interface
@@ -701,49 +704,33 @@ contains
     subroutine calc_hall_conductance(self, hall)
         implicit none
     class(k_space)          :: self
-        real(8)                 :: k(3)
         real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
             hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:)
         integer(4), allocatable :: omega_kidx_all(:), omega_kidx_new(:), n_kpts(:)
-        integer(4)  :: N_k, k_idx, first, last, n_atm,&
-            iter, cnt, all_err(7), new_err(3), deall_err(9)
-        character(len=300)      :: filename, msg(9)
+        integer(4)  :: N_k, n_atm, iter, all_err(8), info
+        !complex(8), allocatable :: eig_vec(:,:), del_kx(:,:), del_ky(:,:)
+        character(len=300)       :: msg, filename
+
 
         call self%setup_berry_inte_grid()
-        N_k = size(self%new_k_pts, 2)
-
         N_k = size(self%new_k_pts, 2)
         n_atm =  self%ham%UC%num_atoms
         
         allocate(self%ham%del_H(2*n_atm, 2*n_atm), stat=all_err(1))
         allocate(hall_old(size(self%E_fermi)),     stat=all_err(2))
-        allocate(eig_val_all(2*n_atm, 0),          stat=all_err(3))
-        allocate(omega_z_all(2*n_atm, 0),          stat=all_err(4))
-        allocate(omega_kidx_all(0),                stat=all_err(5))
-        allocate(self%all_k_pts(3,0),              stat=all_err(6))
-        allocate(n_kpts(0),                        stat=all_err(7))
-        
+        allocate(hall(size(self%E_fermi)),         stat=all_err(3))
+        allocate(eig_val_all(2*n_atm, 0),          stat=all_err(4))
+        allocate(omega_z_all(2*n_atm, 0),          stat=all_err(5))
+        allocate(omega_kidx_all(0),                stat=all_err(6))
+        allocate(self%all_k_pts(3,0),              stat=all_err(7))
+        allocate(n_kpts(0),                        stat=all_err(8))
+
+        hall =  1e35
         call check_ierr(all_err, self%me, "allocate hall vars")
 
         iter =  1
         do iter =1,self%berry_iter
-            N_k = size(self%new_k_pts, 2)
-
-            call my_section(self%me, self%nProcs, N_k, first, last)
-            allocate(eig_val_new(2*n_atm,last-first+1), stat=new_err(1))
-            allocate(omega_z_new(2*n_atm,last-first+1), stat=new_err(2))
-            allocate(omega_kidx_new(last-first+1),      stat=new_err(3))
-            call check_ierr(new_err, self%me, "new chunk alloc")
-
-            ! calculate 
-            cnt =  1
-            do k_idx = first, last
-                k = self%new_k_pts(:,k_idx)
-                omega_kidx_new(cnt) =  k_idx + size(self%all_k_pts,2)
-                call self%ham%calc_berry_z(k, omega_z_new(:,cnt),&
-                                                   eig_val_new(:,cnt))
-                cnt = cnt + 1
-            enddo
+            call self%calc_new_hall_points(eig_val_new, omega_z_new, omega_kidx_new)
 
             ! concat to old ones
             call append_omega(omega_kidx_all, omega_kidx_new,&
@@ -753,61 +740,114 @@ contains
             n_kpts = [n_kpts, size(self%all_k_pts,2)]
             
             ! integrate hall conductance
-            if(allocated(hall))then
-                hall_old = hall
-            else 
-                hall_old =  1d35
-            endif
+            hall_old = hall
 
             call self%integrate_hall(omega_kidx_all, omega_z_all, eig_val_all, hall)
 
-            if(self%me == root) then
-                write (filename, "(A,I0.5,A)") "hall_cond_iter=", iter, ".npy"
-                call save_npy(trim(self%prefix) // trim(filename), hall)
-
-                call save_npy(trim(self%prefix) // "hall_E.npy", &
-                    self%E_fermi / self%units%energy)
-                call save_npy(trim(self%prefix) // "nkpts.npy", n_kpts)
-            endif
-
-            if(my_norm2(hall - hall_old)/(1d0*size(hall)) &
-                                             < self%berry_conv_crit) then
-                if(self%me == root) write (*,*) "Converged berry interation"
-                exit
-            else
-                if(self%me == root) write (*,*) iter, "nkpts", size(self%all_k_pts,2), "err", &
-                         my_norm2(hall - hall_old)/(1d0*size(hall))
-            endif
+            ! save current iteration and check if converged
+            if(self%process_step(hall, hall_old, n_kpts, iter, "hall")) exit
 
             call self%set_hall_weights(omega_z_all, omega_kidx_all)
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
         enddo
-        if(self%me == root) then
-            write (*,*) iter, size(self%all_k_pts,2), &
-                "saving hall cond with questionable unit"
+        
+        call self%finalize_integr(hall, "hall")
+        
+        if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
+        deallocate(self%ham%del_H, hall_old, eig_val_all, omega_z_all, &
+                   omega_kidx_all, self%all_k_pts, n_kpts, &
+                   hall, stat=info, errmsg=msg)
+       
+    end subroutine calc_hall_conductance
 
-            call save_npy(trim(self%prefix) // "hall_cond.npy", hall)
-            call save_npy(trim(self%prefix) // "hall_E.npy", &
+    !subroutine calc_orbmag(self, orbmag)
+        !implicit none
+        !class(k_space)            :: self
+        !real(8), allocatable      :: orbmag 
+        !call self%setup_berry_inte_grid()
+
+    !end subroutine calc_orbmag
+
+    subroutine calc_new_hall_points(self, eig_val_new, omega_z_new, omega_kidx_new)
+        implicit none
+        class(k_space)            :: self
+        integer(4)                :: N_k, first, last, err(3), cnt, k_idx, n_atm
+        real(8)                   :: k(3)
+        real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:)
+        complex(8), allocatable   :: del_kx(:,:), del_ky(:,:), eig_vec(:,:)
+        integer(4), allocatable   :: omega_kidx_new(:)
+
+        N_k = size(self%new_k_pts, 2)
+        n_atm =  self%ham%UC%num_atoms
+
+        call my_section(self%me, self%nProcs, N_k, first, last)
+        allocate(eig_val_new(2*n_atm,last-first+1), stat=err(1))
+        allocate(omega_z_new(2*n_atm,last-first+1), stat=err(2))
+        allocate(omega_kidx_new(last-first+1),      stat=err(3))
+        call check_ierr(err, self%me, "new chunk alloc")
+
+        ! calculate 
+        cnt =  1
+        do k_idx = first, last
+            k = self%new_k_pts(:,k_idx)
+            omega_kidx_new(cnt) =  k_idx + size(self%all_k_pts,2)
+            call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), eig_vec,&
+                                            del_kx, del_ky)
+            call self%ham%calc_berry_z(k, omega_z_new(:,cnt),&
+                                          eig_val_new(:,cnt), eig_vec, del_kx, del_ky)
+            cnt = cnt + 1
+        enddo
+        deallocate(del_kx, del_ky, eig_vec)
+    end subroutine calc_new_hall_points
+    
+    function process_step(self, var, var_old, n_kpts, iter, var_name) result(cancel)
+        implicit none
+        class(k_space)                 :: self
+        real(8), intent(in)            :: var(:), var_old(:)
+        integer(4), intent(in)         :: n_kpts(:), iter
+        character(len=*), intent(in)   :: var_name
+        character(len=300)             :: filename
+        logical                        :: cancel
+        real(8)                        :: rel_error
+
+        cancel = .False.
+
+        ! save current iteration data
+        if(self%me == root) then
+            write (filename, "(A,I0.5,A)") trim(var_name) // "_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), var)
+
+            call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
+                self%E_fermi / self%units%energy)
+            call save_npy(trim(self%prefix) // "nkpts.npy", n_kpts)
+        endif
+
+        ! check for convergence
+        rel_error = my_norm2(var - var_old) / (1d0*size(var))
+
+        write (*,*) iter, "nkpts", size(self%all_k_pts,2), "err", rel_error
+        
+        if(rel_error < self%berry_conv_crit) then
+            if(self%me == root) write (*,*) "Converged " // trim(var_name) //   " interation"
+            cancel = .True.
+        endif
+    end function process_step
+
+    subroutine finalize_integr(self, var, var_name)
+        implicit none        
+        class(k_space)          :: self
+        real(8), intent(in)     :: var(:)
+        character(len=*)        :: var_name 
+
+        if(self%me == root) then
+            write (*,*) size(self%all_k_pts,2), &
+                "saving " // var_name // " with questionable unit"
+
+            call save_npy(trim(self%prefix) // trim(var_name) // "_cond.npy", var)
+            call save_npy(trim(self%prefix) // trim(var_name) // "_E.npy", &
                 self%E_fermi / self%units%energy)
         endif
-
-        deallocate(hall,           stat=deall_err(1), errmsg=msg(1))
-        if(allocated(self%new_k_pts)) then
-            deallocate(self%new_k_pts, stat=deall_err(2), errmsg=msg(2))
-        else
-            deall_err(2) = 0
-            msg(2) =  "nicht mal was gemacht"
-        endif
-        deallocate(self%ham%del_H, stat=deall_err(3), errmsg=msg(3))
-        deallocate(hall_old,       stat=deall_err(4), errmsg=msg(4))
-        deallocate(eig_val_all,    stat=deall_err(5), errmsg=msg(5))
-        deallocate(omega_z_all,    stat=deall_err(6), errmsg=msg(6))
-        deallocate(omega_kidx_all, stat=deall_err(7), errmsg=msg(7))
-        deallocate(self%all_k_pts, stat=deall_err(8), errmsg=msg(8))
-        deallocate(n_kpts,         stat=deall_err(9), errmsg=msg(9))
-        
-        call check_ierr(deall_err, self%me, " deallocate hall vars", msg=msg)
-    end subroutine calc_hall_conductance
+    end subroutine finalize_integr 
 
     subroutine integrate_hall(self, omega_kidx_all, omega_z_all, eig_val_all, hall)
         implicit none
@@ -859,32 +899,65 @@ contains
         call check_ierr(ierr, self%me, "Hall conductance")
     end subroutine integrate_hall
 
+    subroutine integrate_orbmag(self, Q_kidx_all, Q_all, orb_mag)
+        implicit none
+        class(k_space)          :: self
+        integer(4), intent(in)  :: Q_kidx_all(:)
+        real(8), intent(in)     :: Q_all(:, :)
+        real(8), allocatable    :: orb_mag(:)
+        integer(4)              :: n_ferm, loc_idx, k_idx, ierr(2)
+
+        if(allocated(orb_mag))then
+            if(size(orb_mag) /= size(self%E_fermi)) deallocate(orb_mag)
+        endif
+        if(.not. allocated(orb_mag)) allocate(orb_mag(size(self%E_fermi)))
+
+        !run triangulation
+        call run_triang(self%all_k_pts, self%elem_nodes)
+        call self%set_weights_ksp()
+
+        orb_mag = 0d0
+
+        do n_ferm = 1, size(orb_mag)
+            do loc_idx =  1,size(Q_kidx_all)
+                k_idx =  Q_kidx_all(loc_idx)
+                orb_mag(n_ferm) = orb_mag(n_ferm) &
+                                + self%weights(k_idx) * Q_all(n_ferm, loc_idx)
+            enddo
+        enddo
+
+        if(self%me == root) then
+            call MPI_Reduce(MPI_IN_PLACE, orb_mag, size(orb_mag), MPI_REAL8, MPI_SUM, &
+                            root, MPI_COMM_WORLD, ierr(1))
+        else
+            call MPI_Reduce(orb_mag, orb_mag, size(orb_mag), MPI_REAL8, MPI_SUM, &
+                            root, MPI_COMM_WORLD, ierr(1))
+        endif
+
+        call MPI_Bcast(orb_mag, size(orb_mag), MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
+        call check_ierr(ierr, self%me, "Hall conductance")
+    end subroutine integrate_orbmag
+
     subroutine set_hall_weights(self, omega_z_all, omega_kidx_all)
         implicit none
     class(k_space)         :: self
         integer(4), intent(in) :: omega_kidx_all(:)
         real(8)                :: omega_z_all(:,:)
-        integer(4)             :: i, n_elem, node, k_idx, loc_idx, ierr(2), error(2)
-        real(8)                :: kpt(3), om_max
-        character(len=300)     :: msg
+        integer(4)             :: i, n_elem, node, k_idx, loc_idx, ierr(2), error(2) = [0,0]
+        character(len=300)     :: msg = ""
         
-        error = 0
-        msg =  " "
         n_elem = size(self%elem_nodes,1)
-        if(allocated(self%hall_weights)) then
-            if(size(self%hall_weights) /= n_elem) then
-                deallocate(self%hall_weights, stat=error(1), errmsg=msg)
-                if(error(1) /= 0) write (*,*) self%me, "Error: ", error,&
-                                  " msg: ", msg
+        if(allocated(self%refine_weights)) then
+            if(size(self%refine_weights) /= n_elem) then
+                deallocate(self%refine_weights, stat=error(1), errmsg=msg)
             endif
         endif
-        if(.not. allocated(self%hall_weights)) then
-            allocate(self%hall_weights(n_elem), stat=error(2))
+        if(.not. allocated(self%refine_weights)) then
+            allocate(self%refine_weights(n_elem), stat=error(2))
         endif
-        call check_ierr(error, self%me, " set_hall_weights errors")
+        call check_ierr(error, self%me, "hall: set_refine_weights errors")
 
-        self%hall_weights = 0d0
-        om_max =  0d0
+        self%refine_weights = 0d0
 
         do i=1,n_elem
             do node=1,3
@@ -892,35 +965,117 @@ contains
                 loc_idx =  find_list_idx(omega_kidx_all, k_idx)
 
                 if(loc_idx > 0) then
-                    kpt = self%all_k_pts(:,k_idx)
-                    self%hall_weights(i) = self%hall_weights(i) &
-                        + self%weights(k_idx) &!* abs(test_func(kpt(1:2)))
+                    self%refine_weights(i) = self%refine_weights(i) &
+                        + self%weights(k_idx) &
                         * sum(abs(omega_z_all(:,loc_idx)))
-                    !if(om_max < sum(abs(omega_z_all(loc_idx)%arr))) &
-                    !om_max =  sum(abs(omega_z_all(loc_idx)%arr))
                 endif
             enddo
         enddo
 
-        !do i = 1,self%nProcs
-        !if(self%me == i-1) write (*,*) self%me, "->", om_max
-        !call MPI_Barrier(MPI_COMM_WORLD, ierr(1))
-        !enddo
-
-
         if(self%me == root) then
-            call MPI_Reduce(MPI_IN_PLACE, self%hall_weights, n_elem,&
+            call MPI_Reduce(MPI_IN_PLACE, self%refine_weights, n_elem,&
                 MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
         else
-            call MPI_Reduce(self%hall_weights,self%hall_weights, n_elem, &
+            call MPI_Reduce(self%refine_weights,self%refine_weights, n_elem, &
                 MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
         endif
-        call MPI_Bcast(self%hall_weights, n_elem, MPI_REAL8, &
+        call MPI_Bcast(self%refine_weights, n_elem, MPI_REAL8, &
             root, MPI_COMM_WORLD, ierr(2))
-        call check_ierr(ierr, self%me, "set_hall_weights")
+        call check_ierr(ierr, self%me, "hall: set_refine_weights")
 
     end subroutine set_hall_weights
 
+    subroutine set_orbmag_weights(self, Q_all, Q_kidx_all)
+        implicit none
+        class(k_space)            :: self 
+        real(8), intent(in)       :: Q_all(:,:)
+        integer(4), intent(in)    :: Q_kidx_all(:)
+        integer(4)                :: n_elem, error(2), i, node, k_idx, loc_idx, ierr(2)
+        character(len=300)        :: msg
+
+        n_elem = size(self%elem_nodes,1)
+        if(allocated(self%refine_weights)) then
+            if(size(self%refine_weights) /= n_elem) then
+                deallocate(self%refine_weights, stat=error(1), errmsg=msg)
+            endif
+        endif
+        if(.not. allocated(self%refine_weights)) then
+            allocate(self%refine_weights(n_elem), stat=error(2))
+        endif
+        call check_ierr(error, self%me, "orb mag: set_refine_weights errors")
+        
+        self%refine_weights = 0d0
+        do i=1,n_elem
+            do node=1,3
+                k_idx = self%elem_nodes(i,node)
+                loc_idx =  find_list_idx(Q_kidx_all, k_idx)
+
+                if(loc_idx > 0) then
+                    self%refine_weights(i) = self%refine_weights(i) &
+                        + self%weights(k_idx) * sum(abs(Q_all(:,loc_idx)))
+                endif
+            enddo
+        enddo
+
+        if(self%me == root) then
+            call MPI_Reduce(MPI_IN_PLACE, self%refine_weights, n_elem,&
+                MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+        else
+            call MPI_Reduce(self%refine_weights,self%refine_weights, n_elem, &
+                MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+        endif
+        call MPI_Bcast(self%refine_weights, n_elem, MPI_REAL8, &
+            root, MPI_COMM_WORLD, ierr(2))
+        call check_ierr(ierr, self%me, "orb_mag: set_refine_weights")
+
+
+    end subroutine set_orbmag_weights
+
+    subroutine calc_orbmag_z_singleK(self, k, Q, eig_val)
+        implicit none
+        class(k_space)           :: self
+        real(8)                  :: k(3), f_nk, dE, Ef
+        complex(8), allocatable  :: Vx_mtx(:,:), Vy_mtx(:,:)
+        real(8), allocatable     :: A_mtx(:,:), Q(:), eig_val(:)
+        complex(8), allocatable  :: eig_vec(:,:)
+        integer(4)               :: m, n, n_ferm
+
+        call self%ham%calc_eig_and_velo(k, eig_val, eig_vec, Vx_mtx, Vy_mtx)
+        
+        allocate(A_mtx(size(Vx_mtx,1), size(Vx_mtx,2)))
+        allocate(Q(size(self%E_fermi)))
+        
+        !$omp parallel do private(n) default(shared)
+        do m = 1,size(Vx_mtx,1)
+            do n = 1,size(Vx_mtx,2)
+                A_mtx(m, n) = aimag(Vx_mtx(m, n) *  Vy_mtx(n, m))
+            enddo
+        enddo
+        
+        Q = 0
+        !$omp parallel do private(n, m, Ef, f_nk, dE) default(shared)
+        do n_ferm = 1, size(Q)
+            Ef =  self%E_fermi(n_ferm)
+            n_loop: do n = 1, size(A_mtx,1)
+                f_nk =  self%fermi_distr(eig_val(n), n_ferm)
+                if(f_nk /= 0d0) then
+                    do m = 1, size(A_mtx,1)
+                        if(n /= m) then
+                            dE =  eig_val(m) -  eig_val(n)
+                            Q(n_ferm) = Q(n_ferm) + f_nk * ( A_mtx(n,m)/dE &
+                                                            - 2d0 * (Ef - eig_val(n)) & 
+                                                                  * A_mtx(n,m) / (dE**2))
+                        endif ! m != n
+                    enddo !m
+                else
+                    exit n_loop
+                endif
+            enddo n_loop !n
+        enddo ! n_ferm
+        Q = Q / ((2*PI)**2)
+
+        deallocate(A_mtx, eig_val, eig_vec)
+    end subroutine calc_orbmag_z_singleK
 
     subroutine append_eigval(eig_val_all, eig_val_new)
         implicit none
@@ -996,60 +1151,60 @@ contains
 
     end subroutine setup_berry_inte_grid
 
-    subroutine plot_omega(self)
-        implicit none
-    class(k_space)         :: self
-        real(8), allocatable   :: omega_z(:,:), tmp_vec(:), sec_omega_z(:,:),&
-            eig_val(:)
-        real(8)                :: k(3)
-        integer(4)  :: N, k_idx, send_count, first, last, ierr, cnt, n_atm
-        integer(4), allocatable:: num_elems(:), offsets(:)
-        integer(4)  :: dim_sz
+    !subroutine plot_omega(self)
+        !implicit none
+    !class(k_space)         :: self
+        !real(8), allocatable   :: omega_z(:,:), tmp_vec(:), sec_omega_z(:,:),&
+            !eig_val(:)
+        !real(8)                :: k(3)
+        !integer(4)  :: N, k_idx, send_count, first, last, ierr, cnt, n_atm
+        !integer(4), allocatable:: num_elems(:), offsets(:)
+        !integer(4)  :: dim_sz
 
-        dim_sz =  self%berry_num_k_pts
-        n_atm =  self%ham%UC%num_atoms
-        allocate(self%ham%del_H(2*n_atm,2*n_atm))
-        allocate(num_elems(self%nProcs))
-        allocate(offsets(self%nProcs))
-        N = 2* self%ham%UC%num_atoms
-        call self%setup_inte_grid_hex(dim_sz, .False.)
+        !dim_sz =  self%berry_num_k_pts
+        !n_atm =  self%ham%UC%num_atoms
+        !allocate(self%ham%del_H(2*n_atm,2*n_atm))
+        !allocate(num_elems(self%nProcs))
+        !allocate(offsets(self%nProcs))
+        !N = 2* self%ham%UC%num_atoms
+        !call self%setup_inte_grid_hex(dim_sz, .False.)
 
-        if(self%me ==  root) write (*,*) "nkpts =  ", size(self%new_k_pts, 2)
+        !if(self%me ==  root) write (*,*) "nkpts =  ", size(self%new_k_pts, 2)
 
-        allocate(eig_val(N))
-        allocate(omega_z(N, size(self%new_k_pts, 2)))
-        allocate(tmp_vec(N))
+        !allocate(eig_val(N))
+        !allocate(omega_z(N, size(self%new_k_pts, 2)))
+        !allocate(tmp_vec(N))
 
-        call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
-        call my_section(self%me, self%nProcs, size(self%new_k_pts, 2), first, last)
-        num_elems =  num_elems * N
-        offsets   =  offsets   * N
-        send_count =  N *  (last - first + 1)
-        allocate(sec_omega_z(N, send_count))
+        !call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
+        !call my_section(self%me, self%nProcs, size(self%new_k_pts, 2), first, last)
+        !num_elems =  num_elems * N
+        !offsets   =  offsets   * N
+        !send_count =  N *  (last - first + 1)
+        !allocate(sec_omega_z(N, send_count))
 
-        cnt =  1
-        do k_idx = first,last
-            write (*,*) "k_ind" , k_idx
-            k = self%new_k_pts(:,k_idx)
+        !cnt =  1
+        !do k_idx = first,last
+            !write (*,*) "k_ind" , k_idx
+            !k = self%new_k_pts(:,k_idx)
 
-            call self%ham%calc_berry_z(k, tmp_vec, eig_val)
+            !call self%ham%calc_berry_z(k, tmp_vec, eig_val)
 
-            sec_omega_z(:,cnt) =  tmp_vec 
-            cnt = cnt + 1
-        enddo
+            !sec_omega_z(:,cnt) =  tmp_vec 
+            !cnt = cnt + 1
+        !enddo
 
-        call MPI_Gatherv(sec_omega_z, send_count, MPI_REAL8, &
-            omega_z,    num_elems, offsets, MPI_REAL8, &
-            root, MPI_COMM_WORLD, ierr)
+        !call MPI_Gatherv(sec_omega_z, send_count, MPI_REAL8, &
+            !omega_z,    num_elems, offsets, MPI_REAL8, &
+            !root, MPI_COMM_WORLD, ierr)
 
-        if(self%me ==  root) then
-            call save_npy(trim(self%prefix) //  "omega_xy_z.npy", omega_z)
-            call save_npy(trim(self%prefix) //  "omega_xy_k.npy", self%new_k_pts)
-            write (*,*) "Berry curvature saved unitless"
-        endif
-        deallocate(self%ham%del_H)
-        deallocate(eig_val)
-    end subroutine plot_omega 
+        !if(self%me ==  root) then
+            !call save_npy(trim(self%prefix) //  "omega_xy_z.npy", omega_z)
+            !call save_npy(trim(self%prefix) //  "omega_xy_k.npy", self%new_k_pts)
+            !write (*,*) "Berry curvature saved unitless"
+        !endif
+        !deallocate(self%ham%del_H)
+        !deallocate(eig_val)
+    !end subroutine plot_omega 
 
     subroutine set_fermi(self, cfg)
         implicit none
@@ -1130,14 +1285,6 @@ contains
         real(8), intent(in)           :: E
         integer(4), intent(in)        :: n_ferm
         real(8)                       :: ferm, exp_term
-
-
-        !if(E-self%E_fermi(n_ferm) > 0) then
-        !ferm = 0d0
-        !else
-        !ferm = 1d0
-        !endif
-
 
         exp_term =  (E - self%E_fermi(n_ferm)) /&
             (boltzmann_const * self%temp)
@@ -1394,7 +1541,7 @@ contains
         if(.not. allocated(new_ks)) allocate(new_ks(3, n_new))
         n_elem = size(self%elem_nodes,1)
 
-        call qargsort(self%hall_weights, sort)
+        call qargsort(self%refine_weights, sort)
 
         new_ks =  0d0
         i = n_elem
