@@ -451,7 +451,7 @@ contains
         deallocate(tmp)
     end subroutine calc_velo_mtx
 
-    subroutine calc_eig_and_velo(self, k, eig_val, eig_vec, del_kx, del_ky)
+    subroutine calc_eig_and_velo(self, k, eig_val, del_kx, del_ky)
         implicit none
         class(hamil)             :: self
         real(8), intent(in)      :: k(3)
@@ -487,15 +487,14 @@ contains
         deallocate(iwork)
     end subroutine calc_eig_and_velo
 
-    subroutine calc_berry_z(self,k,z_comp, eig_val, eig_vec, x_mtx, y_mtx)
+    subroutine calc_berry_z(self, z_comp, eig_val, x_mtx, y_mtx)
         implicit none
         class(hamil)             :: self
-        real(8), intent(in)      :: k(3)
         real(8)                  :: eig_val(:), dE
         real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
-        complex(8)               :: eig_vec(:,:), x_mtx(:,:), y_mtx(:,:)
+        complex(8)               :: x_mtx(:,:), y_mtx(:,:)
         complex(8) :: fac
-        integer(4)   :: n_dim, n, m, lwork, lrwork, liwork, info
+        integer(4)   :: n_dim, n, m
     
         n_dim = 2 * self%UC%num_atoms
         z_comp =  0d0

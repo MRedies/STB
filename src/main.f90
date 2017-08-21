@@ -15,8 +15,7 @@ program STB
     integer(4)         :: ierr, me, n_inp, n_files, seed_sz, start_idx, end_idx, cnt
     integer(4), allocatable :: seed(:)
     real(8)            :: start, halt
-    logical :: perform_band, perform_dos, calc_hall
-    real(8), allocatable :: hall_cond(:)
+    logical :: perform_band, perform_dos, calc_hall, calc_orbmag
     character(len=300), allocatable :: inp_files(:)
     character(len=300)   :: n_files_str, base_str, tmp_str, start_str, end_str
 
@@ -74,12 +73,14 @@ program STB
             call CFG_get(cfg, "dos%perform_dos",   perform_dos)
             call CFG_get(cfg, "berry%fermi_type", fermi_type) 
             call CFG_get(cfg, "berry%calc_hall", calc_hall)
+            call CFG_get(cfg, "berry%calc_orbmag", calc_orbmag)
         endif
 
         call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
         call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
         call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
         call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(calc_orbmag,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
 
         Ksp =  init_k_space(cfg)
         if(me == root) call save_cfg(cfg)
@@ -112,9 +113,9 @@ program STB
 
         endif
 
-        if(calc_hall) then
-            if(root == me) write (*,*) "started Hall"
-            call Ksp%calc_hall_conductance(hall_cond)
+        if(calc_hall .or. calc_orbmag) then
+            if(root == me) write (*,*) "started Berry"
+            call Ksp%call_berry_quantities()
         endif
 
         halt = MPI_Wtime()
@@ -176,6 +177,7 @@ contains
         call CFG_add(cfg, "dos%fermi_fill",       0.5d0,   "")
 
         call CFG_add(cfg, "berry%calc_hall", .False., "")
+        call CFG_add(cfg, "berry%calc_orbmag", .False., "")
         call CFG_add(cfg, "berry%k_pts_per_dim", 25, "")
         call CFG_add(cfg, "berry%temperature", 1d-5, "")
         call CFG_add(cfg, "berry%laplace_iter", 0, "")
@@ -184,6 +186,7 @@ contains
         call CFG_add(cfg, "grid%k_shift", [0d0, 0d0, 0d0], "")
         call CFG_add(cfg, "berry%conv_criterion", 0d0, "")
         call CFG_add(cfg, "berry%perform_pad", .True., "")
+        call CFG_add(cfg, "berry%weights", "", "")
 
         call CFG_add(cfg, "output%band_prefix", "bar/foo","")
     End Subroutine add_full_cfg
