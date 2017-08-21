@@ -768,6 +768,8 @@ contains
 
                 ! save current iteration and check if converged
                 done_hall =  self%process_step(hall, hall_old, n_kpts, iter, "hall_cond")
+            else
+                done_hall = .True.
             endif
             
             if(self%calc_orbmag) then
@@ -776,6 +778,8 @@ contains
 
                 ! save current iteration and check if converged
                 done_orbmag = self%process_step(orbmag, orbmag_old, n_kpts, iter, "orbmag")
+            else
+                done_orbmag = .True.
             endif
 
             ! Stop if both converged
@@ -835,8 +839,8 @@ contains
 
         call my_section(self%me, self%nProcs, N_k, first, last)
         allocate(eig_val_new(2*n_atm, last-first+1), stat=err(1))
-        allocate(omega_z_new(2*n_atm, last-first+1), stat=err(2))
-        allocate(Q_new(n_ferm,        last-first+1), stat=err(3))
+        if(self%calc_hall)   allocate(omega_z_new(2*n_atm, last-first+1), stat=err(2))
+        if(self%calc_orbmag) allocate(Q_new(n_ferm,        last-first+1), stat=err(3))
         call check_ierr(err, self%me, "new chunk alloc")
 
         ! calculate 
@@ -1093,7 +1097,7 @@ contains
     subroutine calc_orbmag_z_singleK(self, Q, eig_val, Vx_mtx, Vy_mtx)
         implicit none
         class(k_space)           :: self
-        real(8)                  :: f_nk, dE, Ef, Q(:), eig_val(:)
+        real(8)                  :: f_nk, dE, Ef, fst_term, snd_term, Q(:), eig_val(:)
         complex(8)               :: Vx_mtx(:,:), Vy_mtx(:,:)
         real(8), allocatable     :: A_mtx(:,:)
         integer(4)               :: m, n, n_ferm
@@ -1117,9 +1121,13 @@ contains
                     do m = 1, size(A_mtx,1)
                         if(n /= m) then
                             dE =  eig_val(m) -  eig_val(n)
-                            Q(n_ferm) = Q(n_ferm) + f_nk * ( A_mtx(n,m)/dE &
-                                                            - 2d0 * (Ef - eig_val(n)) & 
-                                                                  * A_mtx(n,m) / (dE**2))
+                            
+                            if(abs(dE) >  eta) then
+                                Q(n_ferm) = Q(n_ferm) &
+                                            + f_nk * ( A_mtx(n,m)/dE &
+                                                         - 2d0 * (Ef - eig_val(n)) & 
+                                                           * A_mtx(n,m) / (dE**2))
+                            endif
                         endif ! m != n
                     enddo !m
                 else

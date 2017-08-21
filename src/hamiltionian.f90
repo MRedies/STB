@@ -502,7 +502,7 @@ contains
             do m = 1,n_dim
                 if(n /= m) then
                     dE =  eig_val(n) - eig_val(m)
-                    ! fac =  Re[dE + ieta]^2
+                    ! fac =  Re[1/(dE + ieta)]^2
                     fac =  dE**2/(dE**2 + eta_sq)**2
                     z_comp(n) = z_comp(n) - 2d0 &
                         * aimag(fac * x_mtx(n,m) * y_mtx(m,n))

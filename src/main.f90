@@ -115,7 +115,7 @@ program STB
 
         if(calc_hall .or. calc_orbmag) then
             if(root == me) write (*,*) "started Berry"
-            call Ksp%call_berry_quantities()
+            call Ksp%calc_berry_quantities()
         endif
 
         halt = MPI_Wtime()
