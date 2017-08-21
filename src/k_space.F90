@@ -785,13 +785,29 @@ contains
             ! Stop if both converged
             if(done_hall .and. done_orbmag) exit
 
-            if(trim(self%chosen_weights) == "hall")then           
+            if(trim(self%chosen_weights) == "hall")then 
+                if(.not.self%calc_hall) then
+                    if(self%me == root) then
+                        write (*,*) "Must calculate hall to use it as weights"
+                        call MPI_Abort(MPI_COMM_WORLD, 0, info)
+                    endif
+                endif
+
                 call self%set_hall_weights(omega_z_all, kidx_all)
             elseif(trim(self%chosen_weights) == "orbmag")then
+                if(.not.self%calc_orbmag) then
+                    if(self%me == root) then
+                        write (*,*) "Must calculate orbmag to use it as weights"
+                        call MPI_Abort(MPI_COMM_WORLD, 0, info)
+                    endif
+                endif
+
                 call self%set_orbmag_weights(Q_all, kidx_all)
             else
-                if(self%me == root) write (*,*) "weights not known"
-                call MPI_Abort(MPI_COMM_WORLD, 0, info)
+                if(self%me == root) then
+                    write (*,*) "weights not known"
+                    call MPI_Abort(MPI_COMM_WORLD, 0, info)
+                endif
             endif
 
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
@@ -1097,7 +1113,7 @@ contains
     subroutine calc_orbmag_z_singleK(self, Q, eig_val, Vx_mtx, Vy_mtx)
         implicit none
         class(k_space)           :: self
-        real(8)                  :: f_nk, dE, Ef, fst_term, snd_term, Q(:), eig_val(:)
+        real(8)                  :: f_nk, dE, Ef, Q(:), eig_val(:)
         complex(8)               :: Vx_mtx(:,:), Vy_mtx(:,:)
         real(8), allocatable     :: A_mtx(:,:)
         integer(4)               :: m, n, n_ferm
@@ -1122,7 +1138,7 @@ contains
                         if(n /= m) then
                             dE =  eig_val(m) -  eig_val(n)
                             
-                            if(abs(dE) >  eta) then
+                            if(abs(dE) >=  eta) then
                                 Q(n_ferm) = Q(n_ferm) &
                                             + f_nk * ( A_mtx(n,m)/dE &
                                                          - 2d0 * (Ef - eig_val(n)) & 

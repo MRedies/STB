@@ -59,3 +59,15 @@ M_{orb}^{i,d} &= \varepsilon_{ijk}  \frac{e}{2\hbar c}  \int\frac{d^2k}{(2\pi)^2
                   &= \varepsilon_{ijk}  \frac{e}{2\hbar c}  \int d^2k \underbrace{\frac{1}{(2\pi)^2} \sum_n f_{nk}^d \sum_{m\neq n} \left( \frac{a_{nm}^i}{\Delta E} - 2 (\mu -E_{nk}  ) \frac{a_{nm}^i}{\left(\Delta E\right)^2} \right)}_{\text{precalc for all fermi energies d} =: K_d(k)}
 \end{align}
 $$
+
+Using Sokhotski-Plemelj theorem:
+$$
+lim_{\varepsilon \rightarrow 0^+} \int_a^b \frac{f(x)}{x \pm i \varepsilon} dx= \mp \pi f(0) + \mathcal{P} \left[ \int_a^b \frac{f(x)}{x}dx \right]
+$$
+, where $\mathcal{P}$ denotes the principal value we can approximate:
+$$
+\begin{align}
+M_{orb}^{i,d} &= \varepsilon_{ijk}  \frac{e}{2\hbar c}  \int\frac{d^2k}{(2\pi)^2} \sum_n f_{nk}^d \sum_{m\neq n} \left( \frac{a_{nm}^i}{\Delta E} - 2 (\mu -E_{nk}  ) \frac{a_{nm}^i}{\left(\Delta E\right)^2} \right) \\
+                  &= \varepsilon_{ijk}  \frac{e}{2\hbar c}  \int d^2k \frac{1}{(2\pi)^2} \sum_n f_{nk}^d \sum_{m\neq n} \left( Re\left[\frac{a_{nm}^i}{\Delta E + i\varepsilon}\right] - 2 (\mu -E_{nk}  )a_{nm}^i \underbrace{\frac{\Delta E^2}{\left(\Delta E^2 + \varepsilon^2\right)^2}}_{Re\left[1/(\Delta E + i\varepsilon)\right]^2} \right)
+\end{align}
+$$
