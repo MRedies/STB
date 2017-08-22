@@ -854,10 +854,11 @@ contains
         n_atm =  self%ham%UC%num_atoms
 
         call my_section(self%me, self%nProcs, N_k, first, last)
+        err =  0
         allocate(eig_val_new(2*n_atm, last-first+1), stat=err(1))
         if(self%calc_hall)   allocate(omega_z_new(2*n_atm, last-first+1), stat=err(2))
         if(self%calc_orbmag) allocate(Q_new(n_ferm,        last-first+1), stat=err(3))
-        call check_ierr(err, self%me, "new chunk alloc")
+        call check_ierr(err, self%me, " new chunk alloc")
 
         ! calculate 
         cnt =  1
@@ -1073,6 +1074,7 @@ contains
         character(len=300)        :: msg
 
         n_elem = size(self%elem_nodes,1)
+        error = 0
         if(allocated(self%refine_weights)) then
             if(size(self%refine_weights) /= n_elem) then
                 deallocate(self%refine_weights, stat=error(1), errmsg=msg)
@@ -1096,6 +1098,7 @@ contains
             enddo
         enddo
 
+        ierr =  0
         if(self%me == root) then
             call MPI_Reduce(MPI_IN_PLACE, self%refine_weights, n_elem,&
                 MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
@@ -1160,6 +1163,8 @@ contains
         implicit none
         real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:), tmp(:,:)
         integer(4) :: vec_sz, num_k_all, num_k_new, i,j, ierr(6)
+
+        ierr=0
 
         vec_sz =  size(eig_val_new, 1)
         if(.not. allocated(eig_val_all)) allocate(eig_val_all(vec_sz,0), stat=ierr(1))
