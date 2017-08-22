@@ -1,14 +1,20 @@
 module Class_atom
     implicit none
+   
+    enum, bind(c)  !> A or B site in graphene
+        enumerator :: A_site, B_site, no_site
+    end enum 
 
     type atom
-        real(8)  :: m_phi   !> azimuthal spin angle \f$\phi\f$
-                            !> see german wikipedia, not english
-        real(8)  :: m_theta !> polar spin angle \f$\theta\f$
-                            !> see german wikipedia, not english                        
-        real(8), dimension(3) :: pos !> Position in RS in atomic units
-        integer(4)  :: n_neigh !> number of neighbours
-        integer(4), dimension(:), allocatable  :: neigh_idx !> index of neighbour atom
+        real(8)               :: m_phi   !> azimuthal spin angle \f$\phi\f$
+                                         !> see german wikipedia, not english
+        real(8)               :: m_theta !> polar spin angle \f$\theta\f$
+                                         !> see german wikipedia, not english                 
+        real(8), dimension(3) :: pos     !> Position in RS in atomic units
+        integer(4)            :: n_neigh !> number of neighbours
+        integer               :: site_type !> A or B site
+        
+        integer(4), dimension(:), allocatable  :: neigh_idx  !> index of neighbour atom
         real(8), dimension(:,:), allocatable   :: neigh_conn !> real space connection to neighbour. 
         !> First index connection, second element of connection.
 
@@ -38,10 +44,17 @@ contains
         coord(3) = cos(self%m_theta)
     end function get_m_cart
     
-    function init_ferro_z(p_pos) result(ret)
+    function init_ferro_z(p_pos, site) result(ret)
         implicit none
-        type(atom)          :: ret
-        real(8), intent(in) :: p_pos(3)
+        type(atom)                 :: ret
+        real(8), intent(in)        :: p_pos(3)
+        integer, optional          :: site
+
+        if(present(site)) then
+            ret%site_type = site
+        else
+            ret%site_type =  no_site
+        endif
 
         ret%m_phi      = 0d0 
         ret%m_theta    = 0d0

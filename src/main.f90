@@ -138,11 +138,13 @@ contains
         call CFG_add(cfg, "units%inv_length", "none", "")
         call CFG_add(cfg, "units%temperature", "none", "")
 
-        call CFG_add(cfg, "hamil%t_nn",      0.0d0, "")
-        call CFG_add(cfg, "hamil%t_so",      0d0,   "")
-        call CFG_add(cfg, "hamil%E_s",       0.0d0, "")
-        call CFG_add(cfg, "hamil%lambda",    0d0,   "")
-        call CFG_add(cfg, "hamil%lambda_nl", 0d0,   "")
+        call CFG_add(cfg, "hamil%t_nn",      0d0, "")
+        call CFG_add(cfg, "hamil%t_so",      0d0, "")
+        call CFG_add(cfg, "hamil%E_s",       0d0, "")
+        call CFG_add(cfg, "hamil%E_A",       0d0, "")
+        call CFG_add(cfg, "hamil%E_B",       0d0, "")
+        call CFG_add(cfg, "hamil%lambda",    0d0, "")
+        call CFG_add(cfg, "hamil%lambda_nl", 0d0, "")
 
         call CFG_add(cfg, "grid%atoms_per_dim",      -1,   "")
         call CFG_add(cfg, "grid%unit_cell_type",     "",   "")

@@ -8,6 +8,7 @@ module Class_hamiltionian
 
     type hamil
         real(8)         :: E_s !> onsite eigenenergy
+        real(8)         :: E_A, E_B !> onsite energies for A and B sites in honeycomb
         real(8)         :: t_nn !> nearest neighbour hopping
         real(8)         :: t_so !> Rashba spin orb
         real(8)         :: lambda !> local exchange
@@ -130,6 +131,11 @@ contains
         if(self%me ==  0) then 
             call CFG_get(cfg, "hamil%E_s", tmp)
             self%E_s =  tmp * self%units%energy
+            
+            call CFG_get(cfg, "hamil%E_A", tmp)
+            self%E_A =  tmp * self%units%energy
+            call CFG_get(cfg, "hamil%E_B", tmp)
+            self%E_B =  tmp * self%units%energy
 
             call CFG_get(cfg, "hamil%t_nn", tmp)
             self%t_nn =  tmp * self%units%energy
@@ -149,14 +155,16 @@ contains
     subroutine Bcast_hamil(self)
         implicit none
     class(hamil)          :: self
-        integer(4), parameter :: num_cast =  5
+        integer(4), parameter :: num_cast =  7
         integer(4)            :: ierr(num_cast)
 
         call MPI_Bcast(self%E_s,       1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(1))
-        call MPI_Bcast(self%t_nn,      1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
-        call MPI_Bcast(self%t_so,      1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(3))
-        call MPI_Bcast(self%lambda,    1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(4))
-        call MPI_Bcast(self%lambda_nl, 1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(5))
+        call MPI_Bcast(self%E_A,       1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
+        call MPI_Bcast(self%E_B,       1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(3))
+        call MPI_Bcast(self%t_nn,      1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(4))
+        call MPI_Bcast(self%t_so,      1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(5))
+        call MPI_Bcast(self%lambda,    1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(6))
+        call MPI_Bcast(self%lambda_nl, 1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(7))
 
         call check_ierr(ierr, self%me, "Hamiltionian check err")
     end subroutine
@@ -201,10 +209,21 @@ contains
         implicit none
     class(hamil), intent(in) :: self
         complex(8), intent(inout):: H(:,:)
-        integer(4) :: i
+        integer(4) :: i, ierr
 
         do i =  1,size(H,dim=1)
-            H(i,i) = H(i,i) + self%E_s
+            select case(self%UC%atoms(i)%site_type)
+            case(A_site)
+                H(i,i) = H(i,i) + self%E_A
+            case(B_site)
+                H(i,i) = H(i,i) + self%E_B
+            case(no_site)
+                H(i,i) = H(i,i) + self%E_s
+            case default
+                write (*,*) "unknown site type"
+                call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+            end select
+
         enddo
     end subroutine set_EigenE 
 
@@ -422,7 +441,7 @@ contains
 
     subroutine calc_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
         implicit none
-        class(hamil)                    :: self
+    class(hamil)                    :: self
         real(8), intent(in)             :: k(3)
         integer(4), intent(in)          :: derive_idx
         complex(8), intent(in)          :: eig_vec_mtx(:,:)
@@ -431,7 +450,7 @@ contains
 
         n_dim = 2 * self%UC%num_atoms
         allocate(tmp(n_dim, n_dim))
-        
+
         call self%set_derivative_k(k, derive_idx)
         if(allocated(ret))then
             if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
@@ -441,19 +460,19 @@ contains
         if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
 
         call zgemm('N', 'N', n_dim, n_dim, n_dim, &
-                    c_1, self%del_H, n_dim,&
-                         eig_vec_mtx, n_dim,&
-                    c_0, tmp, n_dim)
+            c_1, self%del_H, n_dim,&
+            eig_vec_mtx, n_dim,&
+            c_0, tmp, n_dim)
         call zgemm('C', 'N', n_dim, n_dim, n_dim, &
-                    c_1, eig_vec_mtx, n_dim, &
-                         tmp, n_dim, &
-                    c_0, ret, n_dim)
+            c_1, eig_vec_mtx, n_dim, &
+            tmp, n_dim, &
+            c_0, ret, n_dim)
         deallocate(tmp)
     end subroutine calc_velo_mtx
 
     subroutine calc_eig_and_velo(self, k, eig_val, del_kx, del_ky)
         implicit none
-        class(hamil)             :: self
+    class(hamil)             :: self
         real(8), intent(in)      :: k(3)
         real(8)                  :: eig_val(:)
         complex(8), allocatable  :: eig_vec(:,:), del_kx(:,:), del_ky(:,:), work(:)
@@ -478,7 +497,7 @@ contains
         if(info /= 0) then
             write (*,*) "ZHEEVD in berry calculation failed"
         endif
-        
+
         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
 
@@ -489,13 +508,13 @@ contains
 
     subroutine calc_berry_z(self, z_comp, eig_val, x_mtx, y_mtx)
         implicit none
-        class(hamil)             :: self
+    class(hamil)             :: self
         real(8)                  :: eig_val(:), dE
         real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
         complex(8)               :: x_mtx(:,:), y_mtx(:,:)
         complex(8) :: fac
         integer(4)   :: n_dim, n, m
-    
+
         n_dim = 2 * self%UC%num_atoms
         z_comp =  0d0
         do n = 1,n_dim
@@ -536,10 +555,10 @@ contains
         percentage = 0
         do i = 1,size(k_list,2)
             !if(self%me == root) then
-                !if(percentage /=  nint(100d0 * i / (1d0 * size(k_list,2)))) then
-                    !percentage =  nint(100d0 * i / (1d0 * size(k_list,2)))
-                    !write (*,"(I3,A)") percentage, "%"
-                !endif
+            !if(percentage /=  nint(100d0 * i / (1d0 * size(k_list,2)))) then
+            !percentage =  nint(100d0 * i / (1d0 * size(k_list,2)))
+            !write (*,"(I3,A)") percentage, "%"
+            !endif
             !endif
             k =  k_list(:,i)
             call self%setup_H(k, H)

@@ -17,7 +17,7 @@ module Class_unit_cell
         real(8), public :: rez_lattice(2,2) !> translation vectors
         !> of the reciprocal lattice. Indexs same as lattice
         ! number of non-redundant atoms pre unit cell
-        integer(4) :: num_atoms  !> number of non-redundant atmos in a unit cell
+        integer(4) :: num_atoms  !> number of non-redundant atoms in a unit cell
         integer(4) :: atom_per_dim !> atoms along the radius of the unit_cell
         integer(4) :: nProcs
         integer(4) :: me
@@ -225,6 +225,7 @@ contains
         type(unit_cell), intent(inout)   :: ret
         real(8)  :: transl_mtx(3,3), l, base_len_uc, pos(3), conn_mtx(3,3)
         real(8), allocatable             :: grid(:,:), hexagon(:,:)
+        integer, allocatable             :: site_type(:)
         real(8), parameter               :: deg_30 =  30.0 * PI / 180.0
         real(8), parameter               :: deg_60 =  60.0 * PI / 180.0
         integer(4)                       :: apd, cnt, i
@@ -244,6 +245,7 @@ contains
         ret%num_atoms = calc_num_atoms_non_red_honey(apd)
         allocate(ret%atoms(ret%num_atoms))
         allocate(hexagon(ret%num_atoms, 3))
+        allocate(site_type(ret%num_atoms))
         hexagon = 0d0
         call gen_honey_grid(ret%lattice_constant, apd, grid)
 
@@ -253,11 +255,16 @@ contains
             if(in_hexagon(pos, base_len_uc)) then
                 if(.not. already_in_red(pos, hexagon, cnt-1, transl_mtx)) then
                     hexagon(cnt,:) =  grid(i,:)
+                    if(i <= (2*apd+1)**2) then
+                        site_type(cnt) = A_site
+                    else
+                        site_type(cnt) = B_site
+                    endif
                     cnt =  cnt + 1
                 endif
             endif
         enddo
-        call ret%setup_honey(hexagon)
+        call ret%setup_honey(hexagon, site_type)
         
         if(trim(ret%mag_type) == "ferro") then
             call ret%set_mag_ferro()
@@ -282,6 +289,7 @@ contains
         
         
         call ret%setup_gen_conn(conn_mtx, transl_mtx)  
+        deallocate(hexagon, site_type)
     end subroutine init_unit_honey
 
     subroutine set_mag_ferro(self)
@@ -525,28 +533,22 @@ contains
         character(len=*)        :: folder
         real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
         integer(4)              :: i
+        integer, allocatable    :: site_type(:)
         
         allocate(x(self%num_atoms))
         allocate(y(self%num_atoms))
         allocate(z(self%num_atoms))
         allocate(phi(self%num_atoms))
         allocate(theta(self%num_atoms))
+        allocate(site_type(self%num_atoms))
 
-        do i =  1,self%num_atoms
-            x(i)     = self%atoms(i)%pos(1)
-            y(i)     = self%atoms(i)%pos(2)
-            z(i)     = self%atoms(i)%pos(3)
-            phi(i)   = self%atoms(i)%m_phi
-            theta(i) = self%atoms(i)%m_theta
-
-            !if(self%atoms(i)%n_neigh > 0) then
-                !write(conn_name, '(a,i4.4,a,a)') 'conn_', i, '.npy'
-                !call save_npy(folder // trim(conn_name), self%atoms(i)%neigh_conn)
-                
-                !write(conn_name, '(a,i4.4,a,a)') 'connidx_', i, '.npy'
-                !call save_npy(folder // trim(conn_name), self%atoms(i)%neigh_idx)
-            !endif
-
+        do i = 1,self%num_atoms
+            x(i)         = self%atoms(i)%pos(1)
+            y(i)         = self%atoms(i)%pos(2)
+            z(i)         = self%atoms(i)%pos(3)
+            phi(i)       = self%atoms(i)%m_phi
+            theta(i)     = self%atoms(i)%m_theta
+            site_type(i) = self%atoms(i)%site_type
         enddo
 
         call save_npy(folder // "pos_x.npy", x / self%units%length)
@@ -554,6 +556,7 @@ contains
         call save_npy(folder // "pos_z.npy", z / self%units%length)
         call save_npy(folder // "m_phi.npy", phi)
         call save_npy(folder // "m_theta.npy", theta)
+        call save_npy(folder // "site_type.npy", site_type)
 
     end subroutine save_unit_cell
 
@@ -602,16 +605,17 @@ contains
                                             *  self%lattice_constant
     end subroutine setup_square
 
-    subroutine setup_honey(self, hexagon)
+    subroutine setup_honey(self, hexagon, site_type)
         implicit none
         class(unit_cell), intent(inout)  :: self
         real(8), intent(in)              :: hexagon(:,:)
+        integer, intent(in)              :: site_type(:)
         real(8)                          :: pos(3)
         integer(4)                       :: i
 
         do i =  1, size(hexagon, dim=1)
             pos           =  hexagon(i,:)
-            self%atoms(i) =  init_ferro_z(pos)
+            self%atoms(i) =  init_ferro_z(pos, site_type(i))
         enddo
     end subroutine setup_honey
 
