@@ -374,6 +374,7 @@ contains
     class(k_space)         :: self
         integer(4), parameter  :: num_cast =  21
         integer(4)             :: ierr(num_cast), sz(2)
+        ierr =  0
 
         if(self%me ==  root) then
             sz(1) = size(self%k1_param)
@@ -732,6 +733,7 @@ contains
         N_k = size(self%new_k_pts, 2)
         n_atm =  self%ham%UC%num_atoms
         n_ferm = size(self%E_fermi)
+        all_err = 0
         
         allocate(self%ham%del_H(2*n_atm, 2*n_atm), stat=all_err(1))
         allocate(hall_old(size(self%E_fermi)),     stat=all_err(2))
@@ -939,6 +941,7 @@ contains
         real(8)                 :: ferm
         integer(4)              :: loc_idx, n, n_hall, k_idx, ierr(2), all_err(1)
 
+        all_err = 0
         if(allocated(hall)) deallocate(hall)
         allocate(hall(size(self%E_fermi)), stat=all_err(1))
         call check_ierr(all_err, self%me, "integrate hall allocation")
@@ -969,6 +972,7 @@ contains
         hall = hall / (2d0*PI)
 
         ! Allreduce is not suitable for convergence criteria
+        ierr = 0
         if(self%me == root) then
             call MPI_Reduce(MPI_IN_PLACE, hall, size(hall), MPI_REAL8, MPI_SUM, &
                 root, MPI_COMM_WORLD, ierr(1))
@@ -1028,6 +1032,7 @@ contains
         character(len=300)     :: msg = ""
         
         n_elem = size(self%elem_nodes,1)
+        error = 0
         if(allocated(self%refine_weights)) then
             if(size(self%refine_weights) /= n_elem) then
                 deallocate(self%refine_weights, stat=error(1), errmsg=msg)
@@ -1053,6 +1058,7 @@ contains
             enddo
         enddo
 
+        ierr = 0
         if(self%me == root) then
             call MPI_Reduce(MPI_IN_PLACE, self%refine_weights, n_elem,&
                 MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
@@ -1062,7 +1068,7 @@ contains
         endif
         call MPI_Bcast(self%refine_weights, n_elem, MPI_REAL8, &
             root, MPI_COMM_WORLD, ierr(2))
-        call check_ierr(ierr, self%me, "hall: set_refine_weights")
+        call check_ierr(ierr, self%me, " hall: set_refine_weights")
 
     end subroutine set_hall_weights
 
@@ -1084,7 +1090,7 @@ contains
         if(.not. allocated(self%refine_weights)) then
             allocate(self%refine_weights(n_elem), stat=error(2))
         endif
-        call check_ierr(error, self%me, "orb mag: set_refine_weights errors")
+        call check_ierr(error, self%me, " orb mag: set_refine_weights errors")
         
         self%refine_weights = 0d0
         do i=1,n_elem
@@ -1109,7 +1115,7 @@ contains
         endif
         call MPI_Bcast(self%refine_weights, n_elem, MPI_REAL8, &
             root, MPI_COMM_WORLD, ierr(2))
-        call check_ierr(ierr, self%me, "orb_mag: set_refine_weights")
+        call check_ierr(ierr, self%me, " orb_mag: set_refine_weights")
 
 
     end subroutine set_orbmag_weights
@@ -1205,13 +1211,14 @@ contains
 
         num_k_old = size(quantity_all, 2)
         num_k_new = size(quantity_new, 2)
-        vec_sz =  size(quantity_new, 1)
+        vec_sz    = size(quantity_new, 1)
+        ierr      = 0
 
         allocate(tmp_z(vec_sz, num_k_old),stat=ierr(1))
         tmp_z = quantity_all
         deallocate(quantity_all)
         allocate(quantity_all(vec_sz, num_k_old + num_k_new), stat=ierr(2))
-        call check_ierr(ierr, info="append_quantitiy")
+        call check_ierr(ierr, info=" append_quantitiy")
 
         quantity_all(:,1:num_k_old) = tmp_z
         quantity_all(:,num_k_old+1:num_k_old+num_k_new) = quantity_new
@@ -1653,6 +1660,7 @@ contains
         if(.not. allocated(self%all_k_pts)) allocate(self%all_k_pts(3,0))
         old_sz = size(self%all_k_pts, 2)
         new_sz = size(self%new_k_pts, 2)
+        ierr   = 0
 
         allocate(tmp(3, old_sz), stat=ierr(1))
 
@@ -1660,7 +1668,7 @@ contains
 
         deallocate(self%all_k_pts)
         allocate(self%all_k_pts(3, old_sz + new_sz), stat=ierr(2))
-        call check_ierr(ierr, self%me, "append_kpts")
+        call check_ierr(ierr, self%me, " append_kpts")
 
         forall(i=1:3, j=1:old_sz) self%all_k_pts(i,j)        = tmp(i,j)
         forall(i=1:3, j=1:new_sz) self%all_k_pts(i,old_sz+j) = self%new_k_pts(i,j)
