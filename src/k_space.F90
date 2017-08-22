@@ -908,7 +908,7 @@ contains
         rel_error = my_norm2(var - var_old) / (1d0*size(var))
 
         if(self%me == root) write (*,*) iter, "var: ", var_name, &
-                             "nkpts", size(self%all_k_pts,2), "err", rel_error
+                             " nkpts ", size(self%all_k_pts,2), " err ", rel_error
         
         if(rel_error < self%berry_conv_crit) then
             if(self%me == root) write (*,*) "Converged " // trim(var_name) //   " interation"
