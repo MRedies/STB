@@ -905,7 +905,8 @@ contains
         ! check for convergence
         rel_error = my_norm2(var - var_old) / (1d0*size(var))
 
-        write (*,*) iter, "nkpts", size(self%all_k_pts,2), "err", rel_error
+        if(self%me == root) write (*,*) iter, "var: ", var_name, &
+                             "nkpts", size(self%all_k_pts,2), "err", rel_error
         
         if(rel_error < self%berry_conv_crit) then
             if(self%me == root) write (*,*) "Converged " // trim(var_name) //   " interation"
@@ -1164,7 +1165,7 @@ contains
         real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:), tmp(:,:)
         integer(4) :: vec_sz, num_k_all, num_k_new, i,j, ierr(6)
 
-        ierr=0
+        ierr = 0
 
         vec_sz =  size(eig_val_new, 1)
         if(.not. allocated(eig_val_all)) allocate(eig_val_all(vec_sz,0), stat=ierr(1))
