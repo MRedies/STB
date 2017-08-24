@@ -67,7 +67,7 @@ module Class_k_space
         procedure :: free_ksp               => free_ksp
         procedure :: find_E_max             => find_E_max
         procedure :: area_of_elem           => area_of_elem
-        procedure :: centeroid_of_elem      => centeroid_of_elem
+        procedure :: centeroid_of_triang    => centeroid_of_triang
         procedure :: pad_k_points_init      => pad_k_points_init
         procedure :: new_pt                 => new_pt
         procedure :: on_hex_border          => on_hex_border
@@ -518,7 +518,6 @@ contains
         logical, intent(in)    :: padd
         real(8), allocatable   :: x(:), y(:)
         real(8)                :: den, l, a
-        real(8), parameter     :: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
         integer(4)             :: cnt_k, start, halt, my_n, i
 
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
@@ -613,7 +612,6 @@ contains
     class(k_space)      :: self
         real(8), intent(in) :: y
         real(8)             :: m, b, l, a, x
-        real(8), parameter  :: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
 
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
         a = l / (2.0 * cos(deg_30))
@@ -708,7 +706,6 @@ contains
     function vol_k_hex(self) result(vol)
         implicit none
     class(k_space)    :: self
-        real(8), parameter:: deg_30 = 30.0/180.0*PI, deg_60 = 60.0/180.0*PI
         real(8)           :: a, l, vol
 
         l = my_norm2(self%ham%UC%rez_lattice(:,1))
@@ -1469,7 +1466,7 @@ contains
 
     end function new_pt
 
-    function centeroid_of_elem(self, idx, k_pts) result(centeroid)
+    function centeroid_of_triang(self, idx, k_pts) result(centeroid)
         implicit none
     class(k_space), intent(in)  :: self
         integer(4), intent(in)      :: idx
@@ -1483,7 +1480,7 @@ contains
             centeroid(2) =  centeroid(2) + k_pts(2,self%elem_nodes(idx,i))
         enddo
         centeroid = centeroid * 0.33333333333d0
-    end function centeroid_of_elem
+    end function centeroid_of_triang
 
     subroutine pad_k_points_init(self)
         implicit none
@@ -1642,7 +1639,7 @@ contains
         i = n_elem
 
         do cnt = 1,n_new
-            new_ks(1:2, cnt) = self%centeroid_of_elem(sort(i), self%all_k_pts)
+            new_ks(1:2, cnt) = self%centeroid_of_triang(sort(i), self%all_k_pts)
             i = i - 1
             if(i == 0) then
                 write (*,*) "Not enough elements"

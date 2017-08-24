@@ -14,8 +14,10 @@ module Class_atom
         integer(4)            :: n_neigh !> number of neighbours
         integer               :: site_type !> A or B site
         
-        integer(4), dimension(:), allocatable  :: neigh_idx  !> index of neighbour atom
-        real(8), dimension(:,:), allocatable   :: neigh_conn !> real space connection to neighbour. 
+        integer(4), allocatable  :: neigh_idx(:)  !> index of neighbour atom
+        integer(4), allocatable  :: snd_neigh_idx_clk(:)  !> index of next ot nearest neighbour atom clock-wise only
+        real(8), allocatable     :: neigh_conn(:,:) !> real space connection to neighbour. 
+        real(8), allocatable     :: snd_neigh_conn_clk(:,:) !> real space_connection to 2nd nearest neigh 
         !> First index connection, second element of connection.
 
     contains

@@ -28,4 +28,8 @@ module Constants
     real(8), parameter  :: eta_sq =  1d-16
     real(8), parameter  :: eta    =  1d-8
     real(8), parameter  :: pos_eps    = 1d-6
+        
+    !> some useful angles
+    real(8), parameter               :: deg_30 =  30.0 * PI / 180.0
+    real(8), parameter               :: deg_60 =  60.0 * PI / 180.0
 end module Constants 

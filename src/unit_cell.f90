@@ -53,6 +53,7 @@ module Class_unit_cell
         procedure :: set_mag_dblatan_skyrm_honey => set_mag_dblatan_skyrm_honey
         procedure :: set_mag_linrot_skrym_square => set_mag_linrot_skrym_square
         procedure :: set_mag_linrot_skrym_honey  => set_mag_linrot_skrym_honey
+        procedure :: set_honey_snd_nearest       => set_honey_snd_nearest
         procedure :: add_mag_randomness          => add_mag_randomness
         procedure :: Bcast_UC                    => Bcast_UC
         procedure :: setup_honey                 => setup_honey
@@ -76,8 +77,8 @@ contains
         implicit none
         real(8), dimension(2), intent(in)   :: a,b 
         real(8)                             :: ang
-        ang                                       = dot_product(a,b)/(my_norm2(a)* my_norm2(b))
-        ang                                       = 180.0d0 / PI *  acos(ang)
+        ang = dot_product(a,b)/(my_norm2(a)* my_norm2(b))
+        ang = 180.0d0 / PI *  acos(ang)
     end function angle
     
     function init_unit(cfg) result(self)
@@ -226,8 +227,6 @@ contains
         real(8)  :: transl_mtx(3,3), l, base_len_uc, pos(3), conn_mtx(3,3)
         real(8), allocatable             :: grid(:,:), hexagon(:,:)
         integer, allocatable             :: site_type(:)
-        real(8), parameter               :: deg_30 =  30.0 * PI / 180.0
-        real(8), parameter               :: deg_60 =  60.0 * PI / 180.0
         integer(4)                       :: apd, cnt, i
         
 
@@ -289,8 +288,72 @@ contains
         
         
         call ret%setup_gen_conn(conn_mtx, transl_mtx)  
+        call ret%set_honey_snd_nearest()
         deallocate(hexagon, site_type)
     end subroutine init_unit_honey
+
+    subroutine set_honey_snd_nearest(self)
+        implicit none
+        class(unit_cell)        :: self
+        integer(4)              :: i, j, cand, ierr, apd
+        real(8)                 :: l, conn_mtx_A(3,3), conn_mtx_B(3,3), start_pos(3), conn(3), transl_mtx(3,3)
+    
+        apd = self%atom_per_dim
+        l   =  2d0 * cos(deg_30) * self%lattice_constant
+        transl_mtx(1, :) = apd * l *  [1d0,   0d0,           0d0]
+        transl_mtx(2, :) = apd * l *  [0.5d0, sin(deg_60),   0d0]
+        transl_mtx(3, :) = apd * l *  [0.5d0, - sin(deg_60), 0d0]
+        
+        !only clockwise connections
+        conn_mtx_A(1, :) =   l * [-1d0,  0d0,          0d0]
+        conn_mtx_A(2, :) =   l * [0.5d0, sin(deg_60),  0d0]
+        conn_mtx_A(3, :) =   l * [0.5d0, -sin(deg_60), 0d0]
+        
+        conn_mtx_B(1, :) = - l * [-1d0,  0d0,          0d0]
+        conn_mtx_B(2, :) = - l * [0.5d0, sin(deg_60),  0d0]
+        conn_mtx_B(3, :) = - l * [0.5d0, -sin(deg_60), 0d0]
+
+        do i = 1,self%num_atoms
+            allocate(self%atoms(i)%snd_neigh_idx_clk(3))
+            allocate(self%atoms(i)%snd_neigh_conn_clk(3,3))
+            start_pos             =  self%atoms(i)%pos
+            
+            do j = 1,3
+                if(self%atoms(i)%site_type == A_site) then
+                    conn = conn_mtx_A(j,:)
+                elseif(self%atoms(i)%site_type == B_site) then
+                    conn = conn_mtx_B(j,:)
+                else
+                    if(self%me == root)then
+                        write (*,*) "2nd nearest only in honey"
+                        call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+                    endif
+                endif
+
+                cand = self%gen_find_neigh(start_pos, conn, transl_mtx)
+                if(cand /= - 1) then
+                    self%atoms(i)%snd_neigh_idx_clk(j)    = cand
+                    self%atoms(i)%snd_neigh_conn_clk(j,:) = conn
+                else
+                    if(self%me == root) write (*,*) "couldn't make a match"
+                endif
+            enddo
+        enddo
+
+    end subroutine set_honey_snd_nearest
+
+    function clockwise(v1, v2, v3) result(clock)
+        implicit none
+        real(8), intent(in)  :: v1(3), v2(3), v3(3)
+        real(8)              :: tmp
+        logical              :: clock
+
+        tmp =        (v2(1) - v1(1)) * (v2(2) + v1(2))
+        tmp = tmp + (v3(1) - v2(1)) * (v3(2) + v2(2))
+        tmp = tmp + (v1(1) - v3(1)) * (v1(2) + v3(2))
+    
+        clock = tmp > 0d0
+    end function clockwise
 
     subroutine set_mag_ferro(self)
         implicit none
@@ -557,7 +620,6 @@ contains
         call save_npy(folder // "m_phi.npy", phi)
         call save_npy(folder // "m_theta.npy", theta)
         call save_npy(folder // "site_type.npy", site_type)
-
     end subroutine save_unit_cell
 
     subroutine setup_single_hex(self)
@@ -658,8 +720,6 @@ contains
                     cnt     = cnt + 1 
                 endif
             enddo
-
-
 
             allocate(self%atoms(i)%neigh_idx(n_found))
             allocate(self%atoms(i)%neigh_conn(n_found, 3))
@@ -818,7 +878,6 @@ contains
         implicit none
         real(8), intent(in)         :: pos(3), a
         real(8)                     :: m, b
-        real(8), parameter          :: deg_30 =  30d0/180d0 * PI
         logical                     :: inside
 
         m =  - tan(deg_30)
@@ -840,7 +899,6 @@ contains
         integer(4), intent(in)  :: max_ind
         real(8), allocatable    :: grid(:,:)
         real(8)                 :: v1(3), v2(3)
-        real(8), parameter      :: deg_30 =  30d0/180d0 * PI
         integer(4)              :: cnt, i, j
 
         if(.not. allocated(grid)) then
@@ -865,7 +923,6 @@ contains
         integer(4), intent(in)     :: max_ind
         real(8), allocatable       :: grid(:,:), tmp(:,:)
         real(8)                    :: l, origin(3)
-        real(8), parameter         :: deg_30 =  30d0/180d0 * PI
         integer(4)                 :: n
 
         n = 2 * max_ind + 1

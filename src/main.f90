@@ -139,6 +139,8 @@ contains
         call CFG_add(cfg, "units%temperature", "none", "")
 
         call CFG_add(cfg, "hamil%t_nn",      0d0, "")
+        call CFG_add(cfg, "hamil%t_2",       0d0, "")
+        call CFG_add(cfg, "hamil%phi_2",     0d0, "")
         call CFG_add(cfg, "hamil%t_so",      0d0, "")
         call CFG_add(cfg, "hamil%E_s",       0d0, "")
         call CFG_add(cfg, "hamil%E_A",       0d0, "")

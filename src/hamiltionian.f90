@@ -10,6 +10,8 @@ module Class_hamiltionian
         real(8)         :: E_s !> onsite eigenenergy
         real(8)         :: E_A, E_B !> onsite energies for A and B sites in honeycomb
         real(8)         :: t_nn !> nearest neighbour hopping
+        real(8)         :: t_2 !> amplitude for 2nd nearest neighbour hopping
+        real(8)         :: phi_2 !> polar angle of 2nd nearest neighbour hopping in rad
         real(8)         :: t_so !> Rashba spin orb
         real(8)         :: lambda !> local exchange
         real(8)         :: lambda_nl !> non-local exchange (not implemented yet)
@@ -20,24 +22,26 @@ module Class_hamiltionian
         type(units)     :: units
     contains
 
-        procedure :: Bcast_hamil              => Bcast_hamil
-        procedure :: setup_H                  => setup_H
-        procedure :: calc_eigenvalues         => calc_eigenvalues
-        procedure :: calc_single_eigenvalue   => calc_single_eigenvalue
-        procedure :: set_EigenE               => set_EigenE
-        procedure :: set_hopping              => set_hopping
-        procedure :: set_loc_exch             => set_loc_exch
-        procedure :: setup_Stoner_mtx         => setup_Stoner_mtx
-        procedure :: set_derivative_k         => set_derivative_k
-        procedure :: set_rashba_SO            => set_rashba_SO
-        procedure :: set_deriv_FD             => set_deriv_FD
-        procedure :: calc_berry_z             => calc_berry_z
-        procedure :: calc_velo_mtx            => calc_velo_mtx
-        procedure :: calc_eig_and_velo        => calc_eig_and_velo
-        procedure :: compare_derivative       => compare_derivative
-        procedure :: set_derivative_hopping   => set_derivative_hopping
-        procedure :: set_derivative_rashba_so => set_derivative_rashba_so
-        procedure :: free_ham                 => free_ham
+        procedure :: Bcast_hamil                => Bcast_hamil
+        procedure :: setup_H                    => setup_H
+        procedure :: calc_eigenvalues           => calc_eigenvalues
+        procedure :: calc_single_eigenvalue     => calc_single_eigenvalue
+        procedure :: set_EigenE                 => set_EigenE
+        procedure :: set_hopping                => set_hopping
+        procedure :: set_snd_hopping            => set_snd_hopping
+        procedure :: set_loc_exch               => set_loc_exch
+        procedure :: setup_Stoner_mtx           => setup_Stoner_mtx
+        procedure :: set_derivative_k           => set_derivative_k
+        procedure :: set_rashba_SO              => set_rashba_SO
+        procedure :: set_deriv_FD               => set_deriv_FD
+        procedure :: calc_berry_z               => calc_berry_z
+        procedure :: calc_velo_mtx              => calc_velo_mtx
+        procedure :: calc_eig_and_velo          => calc_eig_and_velo
+        procedure :: compare_derivative         => compare_derivative
+        procedure :: set_derivative_hopping     => set_derivative_hopping
+        procedure :: set_derivative_snd_hopping => set_derivative_snd_hopping
+        procedure :: set_derivative_rashba_so   => set_derivative_rashba_so
+        procedure :: free_ham                   => free_ham
     end type hamil
 
 contains
@@ -74,6 +78,8 @@ contains
                 call print_mtx(self%del_H)
                 write (*,*) "diff"
                 call print_mtx(self%del_H -  fd_H)
+            else
+                write (*,*) "great"
             endif
         enddo
         deallocate(fd_H)
@@ -82,9 +88,10 @@ contains
 
     subroutine setup_H(self,k,H)
         implicit none
-    class(hamil)        :: self
-        real(8), intent(in) :: k(3)
+        class(hamil)              :: self
+        real(8), intent(in)       :: k(3)
         complex(8), intent(inout) :: H(:,:)
+        logical                   :: has_E
 
         if(k(3) /= 0d0) then
             write (*,*) "K_z is non-zero. Abort.", k
@@ -93,8 +100,10 @@ contains
 
         H =  0d0
 
-        if(self%E_s    /= 0d0) call self%set_EigenE(H)
+        has_E = (self%E_s /= 0) .or. (self%E_A /= 0) .or. (self%E_B /= 0)
+        if(has_E) call self%set_EigenE(H)
         if(self%t_nn   /= 0d0) call self%set_hopping(k,H)
+        if(self%t_2    /= 0d0) call self%set_snd_hopping(k,H)
         if(self%t_so   /= 0d0) call self%set_rashba_SO(k,h)
         if(self%lambda /= 0d0) call self%set_loc_exch(H)
 
@@ -129,16 +138,13 @@ contains
         self%UC    = init_unit(cfg)
 
         if(self%me ==  0) then 
-            call CFG_get(cfg, "hamil%E_s", tmp)
-            self%E_s =  tmp * self%units%energy
-            
-            call CFG_get(cfg, "hamil%E_A", tmp)
-            self%E_A =  tmp * self%units%energy
-            call CFG_get(cfg, "hamil%E_B", tmp)
-            self%E_B =  tmp * self%units%energy
-
             call CFG_get(cfg, "hamil%t_nn", tmp)
             self%t_nn =  tmp * self%units%energy
+            
+            call CFG_get(cfg, "hamil%t_2", tmp)
+            self%t_2 =  tmp * self%units%energy
+
+            call CFG_get(cfg, "hamil%phi_2", self%phi_2)
 
             call CFG_get(cfg, "hamil%t_so", tmp)
             self%t_so =  tmp * self%units%energy
@@ -148,6 +154,14 @@ contains
 
             call CFG_get(cfg, "hamil%lambda_nl", tmp)
             self%lambda_nl =  tmp * self%units%energy
+            
+            call CFG_get(cfg, "hamil%E_s", tmp)
+            self%E_s =  tmp * self%units%energy
+            
+            call CFG_get(cfg, "hamil%E_A", tmp)
+            self%E_A =  tmp * self%units%energy
+            call CFG_get(cfg, "hamil%E_B", tmp)
+            self%E_B =  tmp * self%units%energy
         endif
         call self%Bcast_hamil()
     end function init_hamil
@@ -155,16 +169,18 @@ contains
     subroutine Bcast_hamil(self)
         implicit none
     class(hamil)          :: self
-        integer(4), parameter :: num_cast =  7
+        integer(4), parameter :: num_cast =  9
         integer(4)            :: ierr(num_cast)
 
         call MPI_Bcast(self%E_s,       1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(1))
         call MPI_Bcast(self%E_A,       1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
         call MPI_Bcast(self%E_B,       1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(3))
         call MPI_Bcast(self%t_nn,      1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(4))
-        call MPI_Bcast(self%t_so,      1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(5))
-        call MPI_Bcast(self%lambda,    1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(6))
-        call MPI_Bcast(self%lambda_nl, 1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(7))
+        call MPI_Bcast(self%t_2,       1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(5))
+        call MPI_Bcast(self%phi_2,     1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(6))
+        call MPI_Bcast(self%t_so,      1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(7))
+        call MPI_Bcast(self%lambda,    1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(8))
+        call MPI_Bcast(self%lambda_nl, 1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(9))
 
         call check_ierr(ierr, self%me, "Hamiltionian check err")
     end subroutine
@@ -266,6 +282,38 @@ contains
         enddo
 
     end subroutine set_hopping
+    
+    subroutine set_snd_hopping(self,k, H)
+        implicit none
+    class(hamil), intent(in)          :: self 
+        real(8), intent(in)               :: k(3)
+        complex(8), intent(inout)         :: H(:,:)
+        integer(4)                        :: i, i_d, j, j_d, conn
+        real(8)                           :: k_dot_r
+        complex(8)                        :: forw, back, t_full
+
+        t_full =  self%t_2 * exp(i_unit * self%phi_2)
+        
+        ! Spin up
+        do i = 1,self%UC%num_atoms
+            i_d =  i + self%UC%num_atoms
+            do conn = 1,3
+                j =  self%UC%atoms(i)%snd_neigh_idx_clk(conn)
+                j_d = j + self%UC%num_atoms
+                
+                k_dot_r =  dot_product(k, self%UC%atoms(i)%snd_neigh_conn_clk(conn,:))
+                forw =  exp(i_unit * k_dot_r) * t_full
+                back =  conjg(forw)
+
+                H(i,j) =  H(i,j) + forw 
+                H(j,i) =  H(j,i) + back
+
+                H(i_d, j_d) = H(i_d, j_d) + forw 
+                H(j_d, i_d) = H(j_d, i_d) + back
+            enddo
+        enddo
+
+    end subroutine set_snd_hopping
 
     subroutine set_rashba_SO(self, k, H)
         implicit none
@@ -356,6 +404,7 @@ contains
         self%del_H = 0d0
         if(self%t_nn /= 0d0) call self%set_derivative_hopping(k, k_idx)
         if(self%t_so /= 0d0) call self%set_derivative_rashba_so(k, k_idx)
+        if(self%t_2  /= 0d0) call self%set_derivative_snd_hopping(k, k_idx)
 
     end subroutine set_derivative_k
 
@@ -394,8 +443,43 @@ contains
                 self%del_H(j_d,i_d) = self%del_H(j_d,i_d) + back
             enddo
         enddo
-
     end subroutine set_derivative_hopping
+    
+    subroutine set_derivative_snd_hopping(self, k, k_idx)
+        implicit none
+        class(hamil)              :: self
+        real(8), intent(in)       :: k(3)
+        integer(4), intent(in)    :: k_idx
+        real(8)                   :: r(3), k_dot_r
+        complex(8)                :: forw, back, t_full
+        integer(4)                :: i, j, conn, i_d, j_d
+        
+        t_full =  self%t_2 * exp(i_unit * self%phi_2)
+
+        !$omp parallel do default(shared) &
+        !$omp& private(i_d, conn, j, j_d, r, k_dot_r, forw, back)&
+        !$omp& schedule(static)
+        do i = 1,self%UC%num_atoms
+            i_d =  i + self%UC%num_atoms
+            do conn = 1,3
+                j   = self%UC%atoms(i)%snd_neigh_idx_clk(conn)
+                j_d = j + self%UC%num_atoms
+                r   = self%UC%atoms(i)%snd_neigh_conn_clk(conn,:)
+
+                k_dot_r = dot_product(k, r)
+                forw    = i_unit * r(k_idx) * t_full * exp(i_unit * k_dot_r)
+                back =  conjg(forw)                
+
+                !Spin up
+                self%del_H(i,j)     = self%del_H(i,j) + forw 
+                self%del_H(j,i)     = self%del_H(j,i) + back
+
+                !Spin down
+                self%del_H(i_d,j_d) = self%del_H(i_d,j_d) + forw
+                self%del_H(j_d,i_d) = self%del_H(j_d,i_d) + back
+            enddo
+        enddo
+    end subroutine set_derivative_snd_hopping
 
     subroutine set_derivative_rashba_so(self, k, k_idx)
         implicit none
