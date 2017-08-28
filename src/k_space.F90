@@ -812,8 +812,8 @@ contains
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
         enddo
         
-        if(self%calc_hall)   call self%finalize_integr(hall, "hall")
-        if(self%calc_orbmag) call self%finalize_integr(orbmag, "orbmag")
+        if(self%calc_hall)   call self%finalize_integr(hall, "hall_cond")
+        if(self%calc_orbmag) call self%finalize_integr(orbmag/self%units%mag_dipol, "orbmag")
         
         if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
         deallocate(self%ham%del_H, hall_old, eig_val_all, omega_z_all, &
@@ -923,7 +923,7 @@ contains
             write (*,*) size(self%all_k_pts,2), &
                 "saving " // var_name // " with questionable unit"
 
-            call save_npy(trim(self%prefix) // trim(var_name) // "_cond.npy", var)
+            call save_npy(trim(self%prefix) // trim(var_name) // ".npy", var)
             call save_npy(trim(self%prefix) // trim(var_name) // "_E.npy", &
                 self%E_fermi / self%units%energy)
         endif
@@ -1008,6 +1008,8 @@ contains
             enddo
         enddo
 
+        orb_mag = orb_mag / (2d0 * speed_of_light * (2d0*PI)**2)
+
         if(self%me == root) then
             call MPI_Reduce(MPI_IN_PLACE, orb_mag, size(orb_mag), MPI_REAL8, MPI_SUM, &
                             root, MPI_COMM_WORLD, ierr(1))
@@ -1015,6 +1017,7 @@ contains
             call MPI_Reduce(orb_mag, orb_mag, size(orb_mag), MPI_REAL8, MPI_SUM, &
                             root, MPI_COMM_WORLD, ierr(1))
         endif
+
 
         call MPI_Bcast(orb_mag, size(orb_mag), MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
         call check_ierr(ierr, self%me, "Hall conductance")
@@ -1147,7 +1150,7 @@ contains
                             
                             if(abs(dE) >=  eta) then
                                 Q(n_ferm) = Q(n_ferm) &
-                                            + f_nk * ( A_mtx(n,m)/dE &
+                                            + f_nk *  (A_mtx(n,m)/dE &
                                                          - 2d0 * (Ef - eig_val(n)) & 
                                                            * A_mtx(n,m) / (dE**2))
                             endif
@@ -1158,7 +1161,6 @@ contains
                 endif
             enddo n_loop !n
         enddo ! n_ferm
-        Q = Q / ((2*PI)**2)
 
         deallocate(A_mtx)
     end subroutine calc_orbmag_z_singleK

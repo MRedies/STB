@@ -107,6 +107,8 @@ contains
         if(self%t_so   /= 0d0) call self%set_rashba_SO(k,h)
         if(self%lambda /= 0d0) call self%set_loc_exch(H)
 
+        call test_herm(H)
+
     end subroutine setup_H
 
     subroutine test_herm(H)
@@ -119,8 +121,8 @@ contains
         if((my_norm2(reshape( real(H - transpose(conjg(H))),[n*n]))/(n**2) > 1d-10) .or.&
             (my_norm2(reshape(aimag(H - transpose(conjg(H))),[n*n]))/(n**2) > 1d-10)) then
             write (*,*) "nope"
-        else
-            write (*,*) "Fine"
+        !else
+            !write (*,*) "Fine"
         endif
     end subroutine test_herm
 
@@ -225,18 +227,24 @@ contains
         implicit none
     class(hamil), intent(in) :: self
         complex(8), intent(inout):: H(:,:)
-        integer(4) :: i, ierr
+        integer(4) :: i,id, ierr, n_atms
 
-        do i =  1,size(H,dim=1)
+        n_atms =  self%UC%num_atoms
+
+        do i =  1,n_atms
+            id = i +  n_atms
             select case(self%UC%atoms(i)%site_type)
             case(A_site)
-                H(i,i) = H(i,i) + self%E_A
+                H(i,  i)  = H(i,   i) + self%E_A
+                H(id, id) = H(id, id) + self%E_A
             case(B_site)
-                H(i,i) = H(i,i) + self%E_B
+                H(i,  i)  = H(i,   i) + self%E_B
+                H(id, id) = H(id, id) + self%E_B
             case(no_site)
-                H(i,i) = H(i,i) + self%E_s
+                H(i,  i)  = H(i,   i) + self%E_s 
+                H(id, id) = H(id, id) + self%E_s
             case default
-                write (*,*) "unknown site type"
+                write (*,*) i, "unknown site type: ", self%UC%atoms(i)%site_type
                 call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
             end select
 
@@ -406,6 +414,7 @@ contains
         if(self%t_so /= 0d0) call self%set_derivative_rashba_so(k, k_idx)
         if(self%t_2  /= 0d0) call self%set_derivative_snd_hopping(k, k_idx)
 
+        call test_herm(self%del_H)
     end subroutine set_derivative_k
 
     subroutine set_derivative_hopping(self, k, k_idx)

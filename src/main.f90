@@ -137,6 +137,7 @@ contains
         call CFG_add(cfg, "units%inv_energy", "none", "")
         call CFG_add(cfg, "units%inv_length", "none", "")
         call CFG_add(cfg, "units%temperature", "none", "")
+        call CFG_add(cfg, "units%mag_dipol", "none", "")
 
         call CFG_add(cfg, "hamil%t_nn",      0d0, "")
         call CFG_add(cfg, "hamil%t_2",       0d0, "")

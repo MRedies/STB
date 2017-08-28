@@ -5,7 +5,7 @@ module class_Units
     implicit none
 
     type, public :: units
-        real(8) :: length, energy, inv_length, temperature
+        real(8) :: length, energy, inv_length, temperature, mag_dipol
     end type units
 contains
     function init_units(cfg, me) result(ret)
@@ -18,6 +18,7 @@ contains
         ret%energy      = get_unit_conv("energy",      cfg, me, .True.)
         ret%inv_length  = get_unit_conv("inv_length",  cfg, me, .True.)
         ret%temperature = get_unit_conv("temperature", cfg, me, .True.)
+        ret%mag_dipol   = get_unit_conv("mag_dipol",   cfg, me, .True.)
     end function
         
     function get_unit_conv(field_name, cfg, me, bcast) result(factor)
@@ -42,13 +43,15 @@ contains
 
             select case(trim(unit_name))
             case ("a0")
-                factor =  1.0d0
+                factor = 1.0d0
             case ("eV")
-                factor =  0.03674932d0
+                factor = 0.03674932d0
             case ("a0^-1") 
                 factor = 1.0d0
             case ("K")
                 factor = 1.0d0
+            case ("mu_B")
+                factor = 2d0
             case default
                 write (*,*) "Unit unknown"
                 stop
