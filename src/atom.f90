@@ -6,18 +6,17 @@ module Class_atom
     end enum 
 
     type atom
-        real(8)               :: m_phi   !> azimuthal spin angle \f$\phi\f$
-                                         !> see german wikipedia, not english
-        real(8)               :: m_theta !> polar spin angle \f$\theta\f$
-                                         !> see german wikipedia, not english                 
-        real(8), dimension(3) :: pos     !> Position in RS in atomic units
-        integer(4)            :: n_neigh !> number of neighbours
-        integer               :: site_type !> A or B site
+        real(8)                  :: m_phi   !> azimuthal spin angle \f$\phi\f$
+                                            !> see german wikipedia, not english
+        real(8)                  :: m_theta !> polar spin angle \f$\theta\f$
+                                            !> see german wikipedia, not english                 
+        real(8), dimension(3)    :: pos     !> Position in RS in atomic units
+        integer                  :: site_type !> A or B site
+        integer(4)               :: layer !> layer 
         
         integer(4), allocatable  :: neigh_idx(:)  !> index of neighbour atom
-        integer(4), allocatable  :: snd_neigh_idx_clk(:)  !> index of next ot nearest neighbour atom clock-wise only
         real(8), allocatable     :: neigh_conn(:,:) !> real space connection to neighbour. 
-        real(8), allocatable     :: snd_neigh_conn_clk(:,:) !> real space_connection to 2nd nearest neigh 
+        integer, allocatable     :: conn_type(:) !> type of connection 
         !> First index connection, second element of connection.
 
     contains
@@ -46,16 +45,23 @@ contains
         coord(3) = cos(self%m_theta)
     end function get_m_cart
     
-    function init_ferro_z(p_pos, site) result(ret)
+    function init_ferro_z(p_pos, site, layer) result(ret)
         implicit none
         type(atom)                 :: ret
         real(8), intent(in)        :: p_pos(3)
         integer, optional          :: site
+        integer(4), optional       :: layer
 
         if(present(site)) then
             ret%site_type = site
         else
             ret%site_type =  no_site
+        endif
+
+        if(present(layer)) then
+            ret%layer = layer
+        else
+            ret%layer = 1
         endif
 
         ret%m_phi      = 0d0 

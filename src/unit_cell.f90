@@ -10,6 +10,10 @@ module Class_unit_cell
 
     implicit none
 
+    enum, bind(c)
+        enumerator :: nn_conn=1, snd_nn_conn=2, oop_conn=3
+    end enum
+
     type unit_cell
         real(8), public :: lattice(2,2) !> translation vectors
         !> of the real-space lattice. First index: element of vector
@@ -18,6 +22,7 @@ module Class_unit_cell
         !> of the reciprocal lattice. Indexs same as lattice
         ! number of non-redundant atoms pre unit cell
         integer(4) :: num_atoms  !> number of non-redundant atoms in a unit cell
+        integer(4) :: num_layers !> number of layers
         integer(4) :: atom_per_dim !> atoms along the radius of the unit_cell
         integer(4) :: nProcs
         integer(4) :: me
@@ -28,13 +33,18 @@ module Class_unit_cell
         real(8) :: atan_factor !> how fast do we change the border wall
         real(8) :: dblatan_dist !> width of the atan plateau
         real(8) :: random_width !> how much do we distort the magnetization randomly
-        real(8) :: skyrm_middle !> position of inplane 
+        real(8) :: skyrm_middle !> position of inplane
+        real(8) :: layer_height !> distance between the layers
         type(atom), dimension(:), allocatable :: atoms !> array containing all atoms
         type(units)       :: units
         character(len=25) :: uc_type !> indicates shape of unitcell
         character(len=25) :: mag_type !> indicates type of magnetization
+        character(len=25) :: stacking_type !> indicates how we stack
     contains
-
+    
+        procedure :: init_unit_honey             => init_unit_honey
+        procedure :: init_unit_square            => init_unit_square
+        procedure :: init_unit_honey_film        => init_unit_honey_film
         procedure :: get_num_atoms               => get_num_atoms
         procedure :: setup_square                => setup_square
         procedure :: setup_single_hex            => setup_single_hex
@@ -57,6 +67,8 @@ module Class_unit_cell
         procedure :: add_mag_randomness          => add_mag_randomness
         procedure :: Bcast_UC                    => Bcast_UC
         procedure :: setup_honey                 => setup_honey
+        procedure :: make_hexagon                => make_hexagon
+        procedure :: stack_layer                 => stack_layer
         procedure :: free_uc                     => free_uc
     end type unit_cell
 contains
@@ -111,20 +123,26 @@ contains
 
             call CFG_get(cfg, "grid%atoms_per_dim", self%atom_per_dim)
 
-            call CFG_get(cfg, "grid%ferro_phi",   self%ferro_phi)
-            call CFG_get(cfg, "grid%ferro_theta", self%ferro_theta)
-            call CFG_get(cfg, "grid%atan_fac", self%atan_factor)
-            call CFG_get(cfg, "grid%skyrm_middle", self%skyrm_middle)
-            call CFG_get(cfg, "grid%dblatan_width", self%dblatan_dist)
+            call CFG_get(cfg, "grid%ferro_phi",      self%ferro_phi)
+            call CFG_get(cfg, "grid%ferro_theta",    self%ferro_theta)
+            call CFG_get(cfg, "grid%atan_fac",       self%atan_factor)
+            call CFG_get(cfg, "grid%skyrm_middle",   self%skyrm_middle)
+            call CFG_get(cfg, "grid%dblatan_width",  self%dblatan_dist)
             call CFG_get(cfg, "grid%mag_randomness", self%random_width)
+
+            call CFG_get(cfg, "grid%number_of_layers", self%num_layers)
+            call CFG_get(cfg, "grid%stacking_type",    self%stacking_type)
+            call CFG_get(cfg, "grid%layer_height",     self%layer_height)
         endif
 
         call self%Bcast_UC()
         
         if(trim(self%uc_type) == "square_2d") then
-            call init_unit_square(self)
+            call self%init_unit_square()
         else if(trim(self%uc_type) == "honey_2d") then
-            call init_unit_honey(self)
+            call self%init_unit_honey()
+        else if(trim(self%uc_type) == "honey_3d") then
+            call self%init_unit_honey_film()
         else
             write (*,*) self%me, ": Cell type unknown"
             stop
@@ -153,7 +171,7 @@ contains
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer(4), parameter         :: num_cast = 12
+        integer(4), parameter         :: num_cast = 15
         integer(4)                    :: ierr(num_cast)
         
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
@@ -184,13 +202,21 @@ contains
         call MPI_Bcast(self%skyrm_middle, 1,              MPI_REAL8, &
                        root,             MPI_COMM_WORLD, ierr(12))
 
+        !layering vars
+        call MPI_Bcast(self%num_layers,    1,              MPI_INTEGER4,  &
+                       root,               MPI_COMM_WORLD, ierr(13))
+        call MPI_Bcast(self%stacking_type, 25,             MPI_CHARACTER, &
+                       root,               MPI_COMM_WORLD, ierr(14))
+        call MPI_Bcast(self%layer_height,  1,              MPI_REAL8,     &
+                       root,               MPI_COMM_WORLD, ierr(15))
+
         
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
     subroutine init_unit_square(ret)
         implicit none
-        type(unit_cell), intent(inout) :: ret
+        class(unit_cell), intent(inout) :: ret
         real(8)                        :: conn_mtx(2,3), transl_mtx(2,3)
         
         ret%num_atoms = ret%atom_per_dim * ret%atom_per_dim
@@ -205,7 +231,7 @@ contains
         transl_mtx(1,1:2) = ret%lattice(:,1)
         transl_mtx(2,1:2) = ret%lattice(:,2)
 
-        call ret%setup_gen_conn(conn_mtx, transl_mtx)    
+        call ret%setup_gen_conn(conn_mtx,[nn_conn, nn_conn], transl_mtx)    
 
         if(trim(ret%mag_type) ==  "x_spiral") then
             call ret%set_mag_x_spiral_square()
@@ -221,32 +247,27 @@ contains
         endif
     end subroutine init_unit_square
 
-    subroutine init_unit_honey(ret)
+    subroutine make_hexagon(self, hexagon, site_type)
         implicit none
-        type(unit_cell), intent(inout)   :: ret
-        real(8)  :: transl_mtx(3,3), l, base_len_uc, pos(3), conn_mtx(3,3)
-        real(8), allocatable             :: grid(:,:), hexagon(:,:)
+        class(unit_cell), intent(inout)   :: self
+        real(8)                          :: transl_mtx(3,3), base_len_uc, l, pos(3)
+        real(8), allocatable             :: hexagon(:,:), grid(:,:)
+        integer(4)                       :: num_atoms, cnt, apd, i 
         integer, allocatable             :: site_type(:)
-        integer(4)                       :: apd, cnt, i
         
-
-        apd         = ret%atom_per_dim
-        base_len_uc = ret%lattice_constant * apd
+        apd         = self%atom_per_dim
+        base_len_uc = self%lattice_constant * apd
         l           = 2 *  cos(deg_30) * base_len_uc
-    
+        
         transl_mtx(1, :) =  l *  [1d0,   0d0,           0d0]
         transl_mtx(2, :) =  l *  [0.5d0, sin(deg_60),   0d0]
         transl_mtx(3, :) =  l *  [0.5d0, - sin(deg_60), 0d0]
+        num_atoms =  calc_num_atoms_non_red_honey(apd)
 
-        ret%lattice(:,1) =  transl_mtx(1,1:2)
-        ret%lattice(:,2) =  transl_mtx(2,1:2)
-
-        ret%num_atoms = calc_num_atoms_non_red_honey(apd)
-        allocate(ret%atoms(ret%num_atoms))
-        allocate(hexagon(ret%num_atoms, 3))
-        allocate(site_type(ret%num_atoms))
+        allocate(hexagon(num_atoms, 3))
+        allocate(site_type(num_atoms))
         hexagon = 0d0
-        call gen_honey_grid(ret%lattice_constant, apd, grid)
+        call gen_honey_grid(self%lattice_constant, apd, grid)
 
         cnt =  1
         do i =  1,size(grid,1)
@@ -263,6 +284,140 @@ contains
                 endif
             endif
         enddo
+        deallocate(grid)
+    end subroutine make_hexagon
+
+    subroutine init_unit_honey_film(self)
+        implicit none
+        class(unit_cell), intent(inout)   :: self
+        integer(4)                       :: apd, ierr
+        real(8)  :: base_len_uc, trans_len, a, transl_mtx(3,3), conn_mtx(3,3), out_mtx(6,3)
+        real(8)  :: l, h
+        real(8), allocatable             :: shifts(:,:), hexagon(:,:)
+        integer, allocatable             :: site_type(:)
+        integer                          :: conn_type(9)
+
+        apd         = self%atom_per_dim
+        base_len_uc = self%lattice_constant * apd
+        trans_len   = 2 * cos(deg_30) * base_len_uc
+        a           = self%lattice_constant
+        l           = 2 * cos(deg_30) *  a
+
+        transl_mtx(1, :) =  trans_len *  [1d0,   0d0,           0d0]
+        transl_mtx(2, :) =  trans_len *  [0.5d0, sin(deg_60),   0d0]
+        transl_mtx(3, :) =  trans_len *  [0.5d0, - sin(deg_60), 0d0]
+
+        self%lattice(:,1) =  transl_mtx(1,1:2)
+        self%lattice(:,2) =  transl_mtx(2,1:2)
+        
+        call self%make_hexagon(hexagon, site_type)
+
+        if(self%stacking_type == "AB") then
+            allocate(shifts(2,2))
+            shifts(1, :) = [0d0, 0d0]
+            shifts(2, :) = [0d0,  -a]
+        elseif(self%stacking_type == "ABC") then
+            allocate(shifts(3,2))
+            shifts(1, :) = [0d0,    0d0]
+            shifts(2, :) = [0d0,     -a]
+            shifts(3, :) = [0d0, -2d0*a]
+        else
+            if(self%me == root) write (*,*) "Stacking type not known"
+            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+        endif
+        
+        call self%stack_layer(hexagon, shifts, site_type)
+
+        if(trim(self%mag_type) == "ferro") then
+            call self%set_mag_ferro()
+        else
+            if(self%me == root) write (*,*) "only ferro implemented"
+            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+        endif
+        
+        deallocate(hexagon, site_type)
+
+        h = self%layer_height
+
+        ! inplane connections
+        conn_mtx(1, :) = self%lattice_constant * [0d0,          1d0,           0d0]
+        conn_mtx(2, :) = self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
+        conn_mtx(3, :) = self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
+        conn_type(1:3) = nn_conn
+
+        ! out of plane connectios
+        out_mtx(1, :)  = [0d0,      a,        h]
+        out_mtx(2, :)  = [0d0,      -a,       h]
+        out_mtx(3, :)  = [0.5d0*l,  0.5d0*a,  h]
+        out_mtx(4, :)  = [0.5d0*l,  -0.5d0*a, h]
+        out_mtx(5, :)  = [-0.5d0*l, 0.5d0*a,  h]
+        out_mtx(6, :)  = [-0.5d0*l, -0.5d0*a, h]
+        conn_type(4:9) = oop_conn
+        
+        call self%setup_gen_conn(conn_mtx, conn_type, transl_mtx)
+        call self%set_honey_snd_nearest()
+    end subroutine init_unit_honey_film
+
+    subroutine stack_layer(self, layer, shifts, site_type)
+        implicit none
+        class(unit_cell), intent(inout) :: self
+        real(8) :: layer(:,:), shifts(:,:), curr_shift(3), pos(3)
+        integer(4) :: atoms_in_layer, cnt, shift_idx, num_shifts, lay, atm
+        integer, optional :: site_type(:)
+
+        atoms_in_layer = size(layer, 1) 
+        num_shifts     = size(shifts,1)
+
+        self%num_atoms  = self%num_layers * atoms_in_layer
+        allocate(self%atoms(self%num_atoms))
+
+        cnt = 1
+        do lay=1,self%num_layers
+            shift_idx = mod(lay-1, num_shifts) + 1
+            
+            curr_shift =  0d0
+            curr_shift(1:2) =  shifts(shift_idx,:)
+            curr_shift(3) =  (lay-1) * self%layer_height
+            write (*,*) "layer =  ", lay, " shift_idx: ", shift_idx
+            call print_mtx(curr_shift)
+
+            do atm = 1,atoms_in_layer
+                pos = layer(atm,:) +  curr_shift
+                if(present(site_type)) then
+                    self%atoms(cnt) = init_ferro_z(pos, site=site_type(atm), layer=lay)
+                else
+                    self%atoms(cnt) = init_ferro_z(pos, layer=lay)
+                endif
+                cnt = cnt + 1
+            enddo
+        enddo
+
+    end subroutine stack_layer
+    
+    subroutine init_unit_honey(ret)
+        implicit none
+        class(unit_cell), intent(inout)   :: ret
+        real(8)  :: transl_mtx(3,3), l, base_len_uc, conn_mtx(3,3)
+        real(8), allocatable             :: hexagon(:,:)
+        integer, allocatable             :: site_type(:)
+        integer(4)                       :: apd
+        
+
+        apd         = ret%atom_per_dim
+        base_len_uc = ret%lattice_constant * apd
+        l           = 2 *  cos(deg_30) * base_len_uc
+    
+        transl_mtx(1, :) =  l *  [1d0,   0d0,           0d0]
+        transl_mtx(2, :) =  l *  [0.5d0, sin(deg_60),   0d0]
+        transl_mtx(3, :) =  l *  [0.5d0, - sin(deg_60), 0d0]
+
+        ret%lattice(:,1) =  transl_mtx(1,1:2)
+        ret%lattice(:,2) =  transl_mtx(2,1:2)
+
+        ret%num_atoms = calc_num_atoms_non_red_honey(apd)
+        allocate(ret%atoms(ret%num_atoms))
+
+        call ret%make_hexagon(hexagon, site_type)
         call ret%setup_honey(hexagon, site_type)
         
         if(trim(ret%mag_type) == "ferro") then
@@ -286,8 +441,7 @@ contains
         conn_mtx(2, :) =  ret%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
         conn_mtx(3, :) =  ret%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
         
-        
-        call ret%setup_gen_conn(conn_mtx, transl_mtx)  
+        call ret%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
         call ret%set_honey_snd_nearest()
         deallocate(hexagon, site_type)
     end subroutine init_unit_honey
@@ -296,8 +450,10 @@ contains
         implicit none
         class(unit_cell)        :: self
         integer(4)              :: i, j, cand, ierr, apd
-        real(8)                 :: l, conn_mtx_A(3,3), conn_mtx_B(3,3), start_pos(3), conn(3), transl_mtx(3,3)
-    
+        real(8)                 :: l, conn_mtx_A(3,3), conn_mtx_B(3,3), start_pos(3),&
+                                   conn(3), transl_mtx(3,3), conn_storage(3,3)
+        real(8), allocatable    :: tmp(:,:)
+        integer(4)              :: idx(3), curr_size
         apd = self%atom_per_dim
         l   =  2d0 * cos(deg_30) * self%lattice_constant
         transl_mtx(1, :) = apd * l *  [1d0,   0d0,           0d0]
@@ -314,8 +470,6 @@ contains
         conn_mtx_B(3, :) = - l * [0.5d0, -sin(deg_60), 0d0]
 
         do i = 1,self%num_atoms
-            allocate(self%atoms(i)%snd_neigh_idx_clk(3))
-            allocate(self%atoms(i)%snd_neigh_conn_clk(3,3))
             start_pos             =  self%atoms(i)%pos
             
             do j = 1,3
@@ -332,12 +486,20 @@ contains
 
                 cand = self%gen_find_neigh(start_pos, conn, transl_mtx)
                 if(cand /= - 1) then
-                    self%atoms(i)%snd_neigh_idx_clk(j)    = cand
-                    self%atoms(i)%snd_neigh_conn_clk(j,:) = conn
+                    idx(j)            = cand
+                    conn_storage(j,:) = conn
                 else
                     if(self%me == root) write (*,*) "couldn't make a match"
-                endif
+                endif 
             enddo
+            !append 1D-arrays
+            self%atoms(i)%neigh_idx = [self%atoms(i)%neigh_idx, idx]
+            self%atoms(i)%conn_type = [self%atoms(i)%conn_type, [oop_conn, oop_conn, oop_conn]]
+            curr_size = size(self%atoms(i)%neigh_conn,1)
+            allocate(tmp(curr_size + 3, 3))
+            tmp(1:curr_size,:)             = self%atoms(i)%neigh_conn
+            tmp(curr_size+1:curr_size+3,:) = conn_storage 
+            call move_alloc(tmp, self%atoms(i)%neigh_conn)
         enddo
 
     end subroutine set_honey_snd_nearest
@@ -595,8 +757,9 @@ contains
         class(unit_cell)        :: self
         character(len=*)        :: folder
         real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
-        integer(4)              :: i
-        integer, allocatable    :: site_type(:)
+        integer(4)              :: i, n_neigh
+        integer(4), allocatable :: neigh(:,:)
+        integer, allocatable    :: site_type(:), conn_type(:,:)
         
         allocate(x(self%num_atoms))
         allocate(y(self%num_atoms))
@@ -604,14 +767,24 @@ contains
         allocate(phi(self%num_atoms))
         allocate(theta(self%num_atoms))
         allocate(site_type(self%num_atoms))
+        allocate(neigh(self%num_atoms,20))
+        allocate(conn_type(self%num_atoms,20))
+
+        neigh     = - 1
+        conn_type = - 1
 
         do i = 1,self%num_atoms
-            x(i)         = self%atoms(i)%pos(1)
-            y(i)         = self%atoms(i)%pos(2)
-            z(i)         = self%atoms(i)%pos(3)
-            phi(i)       = self%atoms(i)%m_phi
-            theta(i)     = self%atoms(i)%m_theta
-            site_type(i) = self%atoms(i)%site_type
+
+            x(i)               = self%atoms(i)%pos(1)
+            y(i)               = self%atoms(i)%pos(2)
+            z(i)               = self%atoms(i)%pos(3)
+            phi(i)             = self%atoms(i)%m_phi
+            theta(i)           = self%atoms(i)%m_theta
+            site_type(i)       = self%atoms(i)%site_type
+
+            n_neigh                = size(self%atoms(i)%neigh_idx)
+            neigh(i,1:n_neigh)     = self%atoms(i)%neigh_idx
+            conn_type(i,1:n_neigh) = self%atoms(i)%conn_type
         enddo
 
         call save_npy(folder // "pos_x.npy", x / self%units%length)
@@ -620,6 +793,8 @@ contains
         call save_npy(folder // "m_phi.npy", phi)
         call save_npy(folder // "m_theta.npy", theta)
         call save_npy(folder // "site_type.npy", site_type)
+        call save_npy(folder // "neigh.npy", neigh)
+        call save_npy(folder // "conn_type.npy", conn_type)
     end subroutine save_unit_cell
 
     subroutine setup_single_hex(self)
@@ -632,7 +807,6 @@ contains
         allocate(self%atoms(1)%neigh_idx(3))
         allocate(self%atoms(1)%neigh_conn(3,3))
 
-        self%atoms(1)%n_neigh   = 3
         self%atoms(1)%neigh_idx = (/ 1,1,1 /)
 
         base_len = self%lattice_constant
@@ -677,29 +851,30 @@ contains
 
         do i =  1, size(hexagon, dim=1)
             pos           =  hexagon(i,:)
-            self%atoms(i) =  init_ferro_z(pos, site_type(i))
+            self%atoms(i) =  init_ferro_z(pos, site=site_type(i))
         enddo
     end subroutine setup_honey
 
-    subroutine setup_gen_conn(self, conn_mtx, transl_mtx)
+    subroutine setup_gen_conn(self, conn_mtx, conn_type, transl_mtx)
         implicit none
         class(unit_cell)    :: self
         real(8), intent(in) :: conn_mtx(:,:) !> Matrix containing
         !> real-space connections. The first index inidcates
         !> the connection vector, the second the vector element
+        integer, intent(in) :: conn_type(:)
         real(8), intent(in) :: transl_mtx(:,:) !> Matrix containing
         !> real-space translation vectors. Notation as in conn_mtx
-        integer(4)                        :: i, j, cnt, candidate, n_conn, n_found
-        integer(4), allocatable :: neigh_cand(:)
+        integer(4)              :: i, j, cnt, candidate, n_conn, n_found
+        integer(4), allocatable :: neigh(:)
         real(8)  :: start_pos(3), conn(3)
         logical, allocatable :: found_conn(:)
 
         n_conn =  size(conn_mtx, 1)
         allocate(found_conn(n_conn))
-        allocate(neigh_cand(n_conn))
+        allocate(neigh(n_conn))
         
         !$omp parallel do default(shared) schedule(static)&
-        !$omp& private(start_pos, n_found, found_conn, cnt, neigh_cand, j, conn, &
+        !$omp& private(start_pos, n_found, found_conn, cnt, neigh, j, conn, &
         !$omp& candidate)
         do i =  1, self%num_atoms
             start_pos             =  self%atoms(i)%pos
@@ -707,7 +882,7 @@ contains
             n_found    = 0
             found_conn = .False.
             cnt        = 1
-            neigh_cand =  - 1
+            neigh =  - 1
 
             do j =  1,n_conn
                 conn =  conn_mtx(j,:)
@@ -715,7 +890,7 @@ contains
 
                 if(candidate /= - 1) then
                     found_conn(j) =  .True.
-                    neigh_cand(j) =  candidate
+                    neigh(j) =  candidate
                     n_found = n_found + 1
                     cnt     = cnt + 1 
                 endif
@@ -723,19 +898,20 @@ contains
 
             allocate(self%atoms(i)%neigh_idx(n_found))
             allocate(self%atoms(i)%neigh_conn(n_found, 3))
-            self%atoms(i)%n_neigh =  n_found
+            allocate(self%atoms(i)%conn_type(n_found))
             
             cnt =  1
             do j = 1,n_conn
                 if(found_conn(j)) then
-                    self%atoms(i)%neigh_conn(cnt,:) =  conn_mtx(j,:)
-                    self%atoms(i)%neigh_idx(cnt)    = neigh_cand(j)
+                    self%atoms(i)%neigh_conn(cnt,:) = conn_mtx(j,:)
+                    self%atoms(i)%conn_type(cnt)    = conn_type(j)
+                    self%atoms(i)%neigh_idx(cnt)    = neigh(j)
                     cnt =  cnt + 1
                 endif
             enddo
         enddo
         deallocate(found_conn)
-        deallocate(neigh_cand)
+        deallocate(neigh)
     end subroutine setup_gen_conn
 
     function gen_find_neigh(self, start, conn, transl_mtx) result(neigh)

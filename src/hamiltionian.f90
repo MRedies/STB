@@ -263,7 +263,7 @@ contains
 
         ! Spin up
         do i = 1,self%UC%num_atoms
-            do conn = 1,self%UC%atoms(i)%n_neigh
+            do conn = 1,size(self%UC%atoms(i)%neigh_idx)
                 j =  self%UC%atoms(i)%neigh_idx(conn)
                 k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
 
@@ -276,7 +276,7 @@ contains
         ! Spin down
         do i = 1,self%UC%num_atoms
             i_d =  i + self%UC%num_atoms
-            do conn = 1,self%UC%atoms(i)%n_neigh
+            do conn = 1,size(self%UC%atoms(i)%neigh_idx)
 
                 j      = self%UC%atoms(i)%neigh_idx(conn)
                 j_d = j + self%UC%num_atoms
@@ -305,19 +305,21 @@ contains
         ! Spin up
         do i = 1,self%UC%num_atoms
             i_d =  i + self%UC%num_atoms
-            do conn = 1,3
-                j =  self%UC%atoms(i)%snd_neigh_idx_clk(conn)
-                j_d = j + self%UC%num_atoms
-                
-                k_dot_r =  dot_product(k, self%UC%atoms(i)%snd_neigh_conn_clk(conn,:))
-                forw =  exp(i_unit * k_dot_r) * t_full
-                back =  conjg(forw)
+            do conn = 1,size(self%UC%atoms(i)%neigh_idx)
+                if(self%UC%atoms(i)%conn_type(conn) == snd_nn_conn) then
+                    j =  self%UC%atoms(i)%neigh_idx(conn)
+                    j_d = j + self%UC%num_atoms
+                    
+                    k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
+                    forw =  exp(i_unit * k_dot_r) * t_full
+                    back =  conjg(forw)
 
-                H(i,j) =  H(i,j) + forw 
-                H(j,i) =  H(j,i) + back
+                    H(i,j) =  H(i,j) + forw 
+                    H(j,i) =  H(j,i) + back
 
-                H(i_d, j_d) = H(i_d, j_d) + forw 
-                H(j_d, i_d) = H(j_d, i_d) + back
+                    H(i_d, j_d) = H(i_d, j_d) + forw 
+                    H(j_d, i_d) = H(j_d, i_d) + back
+                endif
             enddo
         enddo
 
@@ -334,7 +336,7 @@ contains
 
         do i =  1, self%UC%num_atoms
             i_d =  i + self%UC%num_atoms
-            do conn =  1,self%UC%atoms(i)%n_neigh
+            do conn =  1,size(self%UC%atoms(i)%neigh_idx)
                 j =  self%UC%atoms(i)%neigh_idx(conn)
                 j_d = j + self%UC%num_atoms
 
@@ -432,7 +434,7 @@ contains
         !$omp& schedule(static)
         do i = 1,self%UC%num_atoms
             i_d =  i + self%UC%num_atoms
-            do conn = 1,self%UC%atoms(i)%n_neigh
+            do conn = 1,size(self%UC%atoms(i)%neigh_idx)
 
                 j   = self%UC%atoms(i)%neigh_idx(conn)
                 j_d = j + self%UC%num_atoms
@@ -470,22 +472,24 @@ contains
         !$omp& schedule(static)
         do i = 1,self%UC%num_atoms
             i_d =  i + self%UC%num_atoms
-            do conn = 1,3
-                j   = self%UC%atoms(i)%snd_neigh_idx_clk(conn)
-                j_d = j + self%UC%num_atoms
-                r   = self%UC%atoms(i)%snd_neigh_conn_clk(conn,:)
+            do conn = 1,size(self%UC%atoms(i)%neigh_idx)
+                if(self%UC%atoms(i)%conn_type(conn) == snd_nn_conn) then
+                    j   = self%UC%atoms(i)%neigh_idx(conn)
+                    j_d = j + self%UC%num_atoms
+                    r   = self%UC%atoms(i)%neigh_conn(conn,:)
 
-                k_dot_r = dot_product(k, r)
-                forw    = i_unit * r(k_idx) * t_full * exp(i_unit * k_dot_r)
-                back =  conjg(forw)                
+                    k_dot_r = dot_product(k, r)
+                    forw    = i_unit * r(k_idx) * t_full * exp(i_unit * k_dot_r)
+                    back =  conjg(forw)                
 
-                !Spin up
-                self%del_H(i,j)     = self%del_H(i,j) + forw 
-                self%del_H(j,i)     = self%del_H(j,i) + back
+                    !Spin up
+                    self%del_H(i,j)     = self%del_H(i,j) + forw 
+                    self%del_H(j,i)     = self%del_H(j,i) + back
 
-                !Spin down
-                self%del_H(i_d,j_d) = self%del_H(i_d,j_d) + forw
-                self%del_H(j_d,i_d) = self%del_H(j_d,i_d) + back
+                    !Spin down
+                    self%del_H(i_d,j_d) = self%del_H(i_d,j_d) + forw
+                    self%del_H(j_d,i_d) = self%del_H(j_d,i_d) + back
+                endif
             enddo
         enddo
     end subroutine set_derivative_snd_hopping
@@ -504,7 +508,7 @@ contains
         !$omp& schedule(static)
         do i = 1,self%UC%num_atoms
             i_d = i +  self%UC%num_atoms
-            do conn = 1,self%UC%atoms(i)%n_neigh
+            do conn = 1,size(self%UC%atoms(i)%neigh_idx)
                 j   =  self%UC%atoms(i)%neigh_idx(conn)
                 j_d = j + self%UC%num_atoms 
 
