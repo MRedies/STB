@@ -107,9 +107,6 @@ contains
         if(self%t_so   /= 0d0) call self%set_rashba_SO(k,h)
         if(self%lambda /= 0d0) call self%set_loc_exch(H)
 
-        call print_mtx(H)
-        write (*,*) "doing stop"
-        stop 0
     end subroutine setup_H
 
     subroutine test_herm(H)
@@ -268,7 +265,6 @@ contains
                 if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
                     j =  self%UC%atoms(i)%neigh_idx(conn)
                     k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
-                    write (*,*) "conn", self%UC%atoms(i)%neigh_conn(conn,:)
 
                     new = exp(i_unit * k_dot_r) * self%t_nn
                     H(i,j) =  H(i,j) + new
@@ -342,32 +338,33 @@ contains
         do i =  1, self%UC%num_atoms
             i_d =  i + self%UC%num_atoms
             do conn =  1,size(self%UC%atoms(i)%neigh_idx)
-                j =  self%UC%atoms(i)%neigh_idx(conn)
-                j_d = j + self%UC%num_atoms
+                if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
+                    j =  self%UC%atoms(i)%neigh_idx(conn)
+                    j_d = j + self%UC%num_atoms
 
-                k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
+                    k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
 
-                ! set and normalize d_ij pointing from j to i
-                d_ij =  - self%UC%atoms(i)%neigh_conn(conn,:)
-                d_ij =  d_ij / my_norm2(d_ij)
+                    ! set and normalize d_ij pointing from j to i
+                    d_ij =  - self%UC%atoms(i)%neigh_conn(conn,:)
+                    d_ij =  d_ij / my_norm2(d_ij)
 
-                ! hopping from i to j
-                new = exp(i_unit *  k_dot_r) * i_unit * self%t_so &
-                    * (sigma_x * d_ij(2) -  sigma_y * d_ij(1))
+                    ! hopping from i to j
+                    new = exp(i_unit *  k_dot_r) * i_unit * self%t_so &
+                        * (sigma_x * d_ij(2) -  sigma_y * d_ij(1))
 
 
-                H(i, j) = H(i, j) + new(1,       1)
-                H(j, i) = H(j, i) + conjg(new(1, 1))
+                    H(i, j) = H(i, j) + new(1,       1)
+                    H(j, i) = H(j, i) + conjg(new(1, 1))
 
-                H(i,   j_d) = H(i,   j_d) + new(1,       2)
-                H(j_d, i)   = H(j_d, i)   + conjg(new(1, 2))
+                    H(i,   j_d) = H(i,   j_d) + new(1,       2)
+                    H(j_d, i)   = H(j_d, i)   + conjg(new(1, 2))
 
-                H(i_d, j)   = H(i_d, j) + new(2,         1)
-                H(j,   i_d) = H(j, i_d) + conjg(new(2, 1))
+                    H(i_d, j)   = H(i_d, j) + new(2,         1)
+                    H(j,   i_d) = H(j, i_d) + conjg(new(2, 1))
 
-                H(i_d, j_d) = H(i_d, j_d) + new(2,       2)
-                H(j_d, i_d) = H(j_d, i_d) + conjg(new(2, 2))
-
+                    H(i_d, j_d) = H(i_d, j_d) + new(2,       2)
+                    H(j_d, i_d) = H(j_d, i_d) + conjg(new(2, 2))
+                endif
             enddo
         enddo
     end subroutine set_rashba_SO
@@ -440,23 +437,24 @@ contains
         do i = 1,self%UC%num_atoms
             i_d =  i + self%UC%num_atoms
             do conn = 1,size(self%UC%atoms(i)%neigh_idx)
+                if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
+                    j   = self%UC%atoms(i)%neigh_idx(conn)
+                    j_d = j + self%UC%num_atoms
+                    r   = self%UC%atoms(i)%neigh_conn(conn,:)
 
-                j   = self%UC%atoms(i)%neigh_idx(conn)
-                j_d = j + self%UC%num_atoms
-                r   = self%UC%atoms(i)%neigh_conn(conn,:)
+                    k_dot_r = dot_product(k, r)
+                    forw    = i_unit * r(k_idx) * self%t_nn &
+                        * exp(i_unit * k_dot_r)
+                    back =  conjg(forw)                
 
-                k_dot_r = dot_product(k, r)
-                forw    = i_unit * r(k_idx) * self%t_nn &
-                    * exp(i_unit * k_dot_r)
-                back =  conjg(forw)                
+                    !Spin up
+                    self%del_H(i,j)     = self%del_H(i,j) + forw 
+                    self%del_H(j,i)     = self%del_H(j,i) + back
 
-                !Spin up
-                self%del_H(i,j)     = self%del_H(i,j) + forw 
-                self%del_H(j,i)     = self%del_H(j,i) + back
-
-                !Spin down
-                self%del_H(i_d,j_d) = self%del_H(i_d,j_d) + forw
-                self%del_H(j_d,i_d) = self%del_H(j_d,i_d) + back
+                    !Spin down
+                    self%del_H(i_d,j_d) = self%del_H(i_d,j_d) + forw
+                    self%del_H(j_d,i_d) = self%del_H(j_d,i_d) + back
+                endif
             enddo
         enddo
     end subroutine set_derivative_hopping
@@ -514,29 +512,31 @@ contains
         do i = 1,self%UC%num_atoms
             i_d = i +  self%UC%num_atoms
             do conn = 1,size(self%UC%atoms(i)%neigh_idx)
-                j   =  self%UC%atoms(i)%neigh_idx(conn)
-                j_d = j + self%UC%num_atoms 
+                if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
+                    j   =  self%UC%atoms(i)%neigh_idx(conn)
+                    j_d = j + self%UC%num_atoms 
 
-                r    = self%UC%atoms(i)%neigh_conn(conn,:)
-                d_ij = - r / my_norm2(r)
+                    r    = self%UC%atoms(i)%neigh_conn(conn,:)
+                    d_ij = - r / my_norm2(r)
 
-                k_dot_r =  dot_product(k, r)
+                    k_dot_r =  dot_product(k, r)
 
-                e_z_sigma = sigma_x * d_ij(2) - sigma_y * d_ij(1)
-                forw =  - self%t_so * e_z_sigma * r(k_idx) * exp(i_unit * k_dot_r)
-                back =  conjg(forw)
+                    e_z_sigma = sigma_x * d_ij(2) - sigma_y * d_ij(1)
+                    forw =  - self%t_so * e_z_sigma * r(k_idx) * exp(i_unit * k_dot_r)
+                    back =  conjg(forw)
 
-                self%del_H(i,j)      = self%del_H(i,j)     + forw(1,1)
-                self%del_H(j,i)      = self%del_H(j,i)     + back(1,1)
+                    self%del_H(i,j)      = self%del_H(i,j)     + forw(1,1)
+                    self%del_H(j,i)      = self%del_H(j,i)     + back(1,1)
 
-                self%del_H(i,j_d)    = self%del_H(i,j_d)   + forw(1,2)
-                self%del_H(j_d,i)    = self%del_H(j_d,i)   + back(1,2)
+                    self%del_H(i,j_d)    = self%del_H(i,j_d)   + forw(1,2)
+                    self%del_H(j_d,i)    = self%del_H(j_d,i)   + back(1,2)
 
-                self%del_H(i_d,j)    = self%del_H(i_d,j)   + forw(2,1)
-                self%del_H(j,i_d)    = self%del_H(j,i_d)   + back(2,1)
+                    self%del_H(i_d,j)    = self%del_H(i_d,j)   + forw(2,1)
+                    self%del_H(j,i_d)    = self%del_H(j,i_d)   + back(2,1)
 
-                self%del_H(i_d, j_d) = self%del_H(i_d,j_d) + forw(2,2)
-                self%del_H(j_d, i_d) = self%del_H(j_d,i_d) + back(2,2)
+                    self%del_H(i_d, j_d) = self%del_H(i_d,j_d) + forw(2,2)
+                    self%del_H(j_d, i_d) = self%del_H(j_d,i_d) + back(2,2)
+                endif
             enddo
         enddo
     end subroutine set_derivative_rashba_so
