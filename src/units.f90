@@ -53,7 +53,7 @@ contains
             case ("mu_B")
                 factor = 2d0
             case default
-                write (*,*) "Unit unknown"
+                write (*,*) "Unit unknown: ", trim(unit_name)
                 stop
             end select
         endif
