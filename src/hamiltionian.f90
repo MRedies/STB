@@ -107,8 +107,9 @@ contains
         if(self%t_so   /= 0d0) call self%set_rashba_SO(k,h)
         if(self%lambda /= 0d0) call self%set_loc_exch(H)
 
-        call test_herm(H)
-
+        call print_mtx(H)
+        write (*,*) "doing stop"
+        stop 0
     end subroutine setup_H
 
     subroutine test_herm(H)
@@ -264,12 +265,15 @@ contains
         ! Spin up
         do i = 1,self%UC%num_atoms
             do conn = 1,size(self%UC%atoms(i)%neigh_idx)
-                j =  self%UC%atoms(i)%neigh_idx(conn)
-                k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
+                if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
+                    j =  self%UC%atoms(i)%neigh_idx(conn)
+                    k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
+                    write (*,*) "conn", self%UC%atoms(i)%neigh_conn(conn,:)
 
-                new = exp(i_unit * k_dot_r) * self%t_nn
-                H(i,j) =  H(i,j) + new
-                H(j,i) =  H(j,i) + conjg(new)
+                    new = exp(i_unit * k_dot_r) * self%t_nn
+                    H(i,j) =  H(i,j) + new
+                    H(j,i) =  H(j,i) + conjg(new)
+                endif
             enddo
         enddo
 
@@ -277,15 +281,16 @@ contains
         do i = 1,self%UC%num_atoms
             i_d =  i + self%UC%num_atoms
             do conn = 1,size(self%UC%atoms(i)%neigh_idx)
+                if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
+                    j      = self%UC%atoms(i)%neigh_idx(conn)
+                    j_d = j + self%UC%num_atoms
 
-                j      = self%UC%atoms(i)%neigh_idx(conn)
-                j_d = j + self%UC%num_atoms
+                    k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
 
-                k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
-
-                new =  exp(i_unit *  k_dot_r) * self%t_nn
-                H(i_d, j_d) = H(i_d, j_d) + new
-                H(j_d, i_d) = H(j_d, i_d) + conjg(new)
+                    new =  exp(i_unit *  k_dot_r) * self%t_nn
+                    H(i_d, j_d) = H(i_d, j_d) + new
+                    H(j_d, i_d) = H(j_d, i_d) + conjg(new)
+                endif
             enddo
         enddo
 

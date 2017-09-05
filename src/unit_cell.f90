@@ -11,7 +11,7 @@ module Class_unit_cell
     implicit none
 
     enum, bind(c)
-        enumerator :: nn_conn=1, snd_nn_conn=2, oop_conn=3
+        enumerator :: nn_conn, snd_nn_conn, oop_conn
     end enum
 
     type unit_cell
@@ -291,7 +291,7 @@ contains
         implicit none
         class(unit_cell), intent(inout)   :: self
         integer(4)                       :: apd, ierr
-        real(8)  :: base_len_uc, trans_len, a, transl_mtx(3,3), conn_mtx(3,3), out_mtx(6,3)
+        real(8)  :: base_len_uc, trans_len, a, transl_mtx(3,3), conn_mtx(9,3) 
         real(8)  :: l, h
         real(8), allocatable             :: shifts(:,:), hexagon(:,:)
         integer, allocatable             :: site_type(:)
@@ -340,22 +340,22 @@ contains
         h = self%layer_height
 
         ! inplane connections
-        conn_mtx(1, :) = self%lattice_constant * [0d0,          1d0,           0d0]
-        conn_mtx(2, :) = self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
-        conn_mtx(3, :) = self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
+        conn_mtx(1, :) = a * [0d0,          1d0,           0d0]
+        conn_mtx(2, :) = a * [cos(deg_30),  - sin(deg_30), 0d0]
+        conn_mtx(3, :) = a * [-cos(deg_30), - sin(deg_30), 0d0]
         conn_type(1:3) = nn_conn
 
-        ! out of plane connectios
-        out_mtx(1, :)  = [0d0,      a,        h]
-        out_mtx(2, :)  = [0d0,      -a,       h]
-        out_mtx(3, :)  = [0.5d0*l,  0.5d0*a,  h]
-        out_mtx(4, :)  = [0.5d0*l,  -0.5d0*a, h]
-        out_mtx(5, :)  = [-0.5d0*l, 0.5d0*a,  h]
-        out_mtx(6, :)  = [-0.5d0*l, -0.5d0*a, h]
+        !out of plane connectios
+        conn_mtx(4, :)  = [0d0,      a,        h]
+        conn_mtx(5, :)  = [0d0,      -a,       h]
+        conn_mtx(6, :)  = [0.5d0*l,  0.5d0*a,  h]
+        conn_mtx(7, :)  = [0.5d0*l,  -0.5d0*a, h]
+        conn_mtx(8, :)  = [-0.5d0*l, 0.5d0*a,  h]
+        conn_mtx(9, :)  = [-0.5d0*l, -0.5d0*a, h]
         conn_type(4:9) = oop_conn
         
         call self%setup_gen_conn(conn_mtx, conn_type, transl_mtx)
-        call self%set_honey_snd_nearest()
+        !call self%set_honey_snd_nearest()
     end subroutine init_unit_honey_film
 
     subroutine stack_layer(self, layer, shifts, site_type)
@@ -494,7 +494,7 @@ contains
             enddo
             !append 1D-arrays
             self%atoms(i)%neigh_idx = [self%atoms(i)%neigh_idx, idx]
-            self%atoms(i)%conn_type = [self%atoms(i)%conn_type, [oop_conn, oop_conn, oop_conn]]
+            self%atoms(i)%conn_type = [self%atoms(i)%conn_type, [snd_nn_conn, snd_nn_conn, snd_nn_conn]]
             curr_size = size(self%atoms(i)%neigh_conn,1)
             allocate(tmp(curr_size + 3, 3))
             tmp(1:curr_size,:)             = self%atoms(i)%neigh_conn
@@ -864,12 +864,17 @@ contains
         integer, intent(in) :: conn_type(:)
         real(8), intent(in) :: transl_mtx(:,:) !> Matrix containing
         !> real-space translation vectors. Notation as in conn_mtx
-        integer(4)              :: i, j, cnt, candidate, n_conn, n_found
+        integer(4)              :: i, j, cnt, candidate, n_conn, n_found, ierr
         integer(4), allocatable :: neigh(:)
         real(8)  :: start_pos(3), conn(3)
         logical, allocatable :: found_conn(:)
 
         n_conn =  size(conn_mtx, 1)
+        if(n_conn /= size(conn_type))then
+            if(self%me == root) write (*,*) "number of connections have to agree"
+            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+        endif
+
         allocate(found_conn(n_conn))
         allocate(neigh(n_conn))
         
