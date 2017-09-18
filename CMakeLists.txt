@@ -18,7 +18,7 @@ add_executable(stb.x ${sources})
 
 if(PLATFORM MATCHES "INTEL")
     set(CMAKE_Fortran_COMPILER_ID "Intel")
-    set(CMAKE_Fortran_COMPILER mpifort)
+    set(CMAKE_Fortran_COMPILER mpiifort)
 endif()
 if(PLATFORM MATCHES "GNU")
     set(CMAKE_Fortran_COMPILER_ID "GNU")
