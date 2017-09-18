@@ -1,28 +1,29 @@
 import itertools
 import numpy as np
 
-prefix = "./inis/"
+prefix = "/home/matthias/STB/inis/"
 
 def replace_line(line, tags, values):
     for i in range(len(tags)):
-        line = line.replace(tags[i], "{:08.4f}".format(values[i]))
+        #line = line.replace(tags[i], "{:08.4f}".format(values[i]))
+        line = line.replace(tags[i], "{}".format(values[i]))
     return line
 
     
-tags = ["%ftheta%", "%fphi%"]
+tags = ["%temp%", "%apd%"]
 
-fer_th = np.linspace(0.0, 0.5*np.pi, 25)
-fer_phi = np.linspace(-np.pi, np.pi, 25)
+temp = np.linspace(0, 600.0, 15)
+apd  = np.arange(5, 31,5)
 
 cnt = 0
-itera = itertools.product(fer_th, fer_phi)
+itera = itertools.product(temp, apd)
 print "Number of files: {}".format(sum(1 for _ in itera))
-itera = itertools.product(fer_th, fer_phi)
+itera = itertools.product(temp, apd)
 
 for i in itera:
     val = np.array([i[0], i[1]])
-    with open(prefix + "run.cfg", "rt") as fin:
-        with open(prefix + "pt1_scan_{}.cfg".format(cnt), "wt") as fout:
+    with open(prefix + "example.cfg", "rt") as fin:
+        with open(prefix + "frank_{}.cfg".format(cnt), "wt") as fout:
             for line in fin:
                 fout.write(replace_line(line, tags, val))
     cnt +=1

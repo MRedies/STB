@@ -719,9 +719,10 @@ contains
     class(k_space)          :: self
         real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
              hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:),& 
-             orbmag(:), orbmag_old(:), Q_all(:,:), Q_new(:,:)
+             orbmag(:), orbmag_old(:), Q_L_all(:,:), Q_IC_all(:,:), &
+             Q_L_new(:,:), Q_IC_new(:,:), orbmag_L(:), orbmag_IC(:)
         integer(4), allocatable :: kidx_all(:), kidx_new(:), n_kpts(:)
-        integer(4)  :: N_k, n_atm, iter, all_err(11), info, n_ferm
+        integer(4)  :: N_k, n_atm, iter, all_err(14), info, n_ferm
         character(len=300)       :: msg
         logical                  :: done_hall, done_orbmag
 
@@ -737,12 +738,15 @@ contains
         allocate(hall(size(self%E_fermi)),         stat=all_err(3))
         allocate(orbmag_old(size(self%E_fermi)),   stat=all_err(4))
         allocate(orbmag(size(self%E_fermi)),       stat=all_err(5))
-        allocate(eig_val_all(2*n_atm, 0),          stat=all_err(6))
-        allocate(omega_z_all(2*n_atm, 0),          stat=all_err(7))
-        allocate(Q_all(n_ferm, 0),                 stat=all_err(8))
-        allocate(kidx_all(0),                      stat=all_err(9))
-        allocate(self%all_k_pts(3,0),              stat=all_err(10))
-        allocate(n_kpts(0),                        stat=all_err(11))
+        allocate(orbmag_L(size(self%E_fermi)),     stat=all_err(6))
+        allocate(orbmag_IC(size(self%E_fermi)),    stat=all_err(7))
+        allocate(eig_val_all(2*n_atm, 0),          stat=all_err(8))
+        allocate(omega_z_all(2*n_atm, 0),          stat=all_err(9))
+        allocate(Q_L_all(n_ferm, 0),               stat=all_err(10))
+        allocate(Q_IC_all(n_ferm, 0),              stat=all_err(11))
+        allocate(kidx_all(0),                      stat=all_err(12))
+        allocate(self%all_k_pts(3,0),              stat=all_err(13))
+        allocate(n_kpts(0),                        stat=all_err(14))
 
         hall    =  1e35
         orbmag =  1e35 
@@ -750,7 +754,7 @@ contains
 
         iter =  1
         do iter =1,self%berry_iter
-            call self%calc_new_berry_points(eig_val_new, omega_z_new, Q_new)
+            call self%calc_new_berry_points(eig_val_new, omega_z_new, Q_L_new, Q_IC_new)
             call self%calc_new_kidx(kidx_new)
 
             ! concat to old ones
@@ -759,7 +763,10 @@ contains
             call append_eigval(eig_val_all, eig_val_new)
             n_kpts = [n_kpts, size(self%all_k_pts,2)]
             if(self%calc_hall)   call append_quantitiy(omega_z_all, omega_z_new)
-            if(self%calc_orbmag) call append_quantitiy(Q_all, Q_new)
+            if(self%calc_orbmag) then
+                call append_quantitiy(Q_L_all, Q_L_new)
+                call append_quantitiy(Q_IC_all, Q_IC_new)
+            endif
             
             if(self%calc_hall) then
                 hall_old = hall
@@ -773,7 +780,7 @@ contains
             
             if(self%calc_orbmag) then
                 orbmag_old = orbmag
-                call self%integrate_orbmag(kidx_all, Q_all, orbmag)
+                call self%integrate_orbmag(kidx_all, Q_L_all, Q_IC_all, orbmag, orbmag_L, orbmag_IC)
 
                 ! save current iteration and check if converged
                 done_orbmag = self%process_step(orbmag, orbmag_old, n_kpts, iter, "orbmag")
@@ -801,7 +808,7 @@ contains
                     endif
                 endif
 
-                call self%set_orbmag_weights(Q_all, kidx_all)
+                call self%set_orbmag_weights(Q_L_all +  Q_IC_all, kidx_all)
             else
                 if(self%me == root) then
                     write (*,*) "weights not known"
@@ -813,8 +820,12 @@ contains
         enddo
         
         if(self%calc_hall)   call self%finalize_integr(hall, "hall_cond")
-        if(self%calc_orbmag) call self%finalize_integr(orbmag/self%units%mag_dipol, "orbmag")
-        
+        if(self%calc_orbmag) then
+            call self%finalize_integr(orbmag/self%units%mag_dipol, "orbmag")
+            call self%finalize_integr(orbmag_L/self%units%mag_dipol, "orbmag_L")
+            call self%finalize_integr(orbmag_IC/self%units%mag_dipol, "orbmag_IC")
+        endif
+
         if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
         deallocate(self%ham%del_H, hall_old, eig_val_all, omega_z_all, &
                    kidx_all, self%all_k_pts, n_kpts, &
@@ -840,12 +851,12 @@ contains
         enddo
     end subroutine calc_new_kidx
 
-    subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, Q_new)
+    subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, Q_L_new, Q_IC_new)
         implicit none
         class(k_space)            :: self
         integer(4)                :: N_k, first, last, err(3), cnt, k_idx, n_atm, n_ferm
         real(8)                   :: k(3)
-        real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), Q_new(:,:)
+        real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), Q_L_new(:,:), Q_IC_new(:,:)
         complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
 
         N_k = size(self%new_k_pts, 2)
@@ -856,7 +867,8 @@ contains
         err =  0
         allocate(eig_val_new(2*n_atm, last-first+1), stat=err(1))
         if(self%calc_hall)   allocate(omega_z_new(2*n_atm, last-first+1), stat=err(2))
-        if(self%calc_orbmag) allocate(Q_new(n_ferm,        last-first+1), stat=err(3))
+        if(self%calc_orbmag) allocate(Q_L_new(n_ferm,        last-first+1), stat=err(3))
+        if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(3))
         call check_ierr(err, self%me, " new chunk alloc")
 
         ! calculate 
@@ -870,7 +882,7 @@ contains
             endif
 
             if(self%calc_orbmag) then
-                call self%calc_orbmag_z_singleK(Q_new(:,cnt), eig_val_new(:,cnt),&
+                call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), eig_val_new(:,cnt),&
                                                 del_kx, del_ky)
             endif
             
@@ -981,45 +993,70 @@ contains
         call check_ierr(ierr, self%me, "Hall conductance")
     end subroutine integrate_hall
 
-    subroutine integrate_orbmag(self, Q_kidx_all, Q_all, orb_mag)
+    subroutine integrate_orbmag(self, Q_kidx_all, Q_L_all, Q_IC_all, orb_mag, orbmag_L, orbmag_IC)
         implicit none
         class(k_space)          :: self
         integer(4), intent(in)  :: Q_kidx_all(:)
-        real(8), intent(in)     :: Q_all(:, :)
-        real(8), allocatable    :: orb_mag(:)
-        integer(4)              :: n_ferm, loc_idx, k_idx, ierr(2)
+        real(8), intent(in)     :: Q_L_all(:, :), Q_IC_all(:,:)
+        real(8), allocatable    :: orb_mag(:), orbmag_L(:), orbmag_IC(:)
+        integer(4)              :: n_ferm, loc_idx, k_idx, ierr(4)
 
         if(allocated(orb_mag))then
             if(size(orb_mag) /= size(self%E_fermi)) deallocate(orb_mag)
         endif
         if(.not. allocated(orb_mag)) allocate(orb_mag(size(self%E_fermi)))
+        if(allocated(orbmag_L))then
+            if(size(orbmag_L) /= size(self%E_fermi)) deallocate(orbmag_L)
+        endif
+        if(.not. allocated(orbmag_L)) allocate(orbmag_L(size(self%E_fermi)))
+        if(allocated(orbmag_IC))then
+            if(size(orbmag_IC) /= size(self%E_fermi)) deallocate(orbmag_IC)
+        endif
+        if(.not. allocated(orbmag_IC)) allocate(orbmag_IC(size(self%E_fermi)))
 
         !run triangulation
         call run_triang(self%all_k_pts, self%elem_nodes)
         call self%set_weights_ksp()
 
-        orb_mag = 0d0
+        orb_mag    = 0d0
+        orbmag_L  = 0d0
+        orbmag_IC = 0d0
 
         do n_ferm = 1, size(orb_mag)
             do loc_idx =  1,size(Q_kidx_all)
                 k_idx =  Q_kidx_all(loc_idx)
-                orb_mag(n_ferm) = orb_mag(n_ferm) &
-                                + self%weights(k_idx) * Q_all(n_ferm, loc_idx)
+                orbmag_L(n_ferm) = orbmag_L(n_ferm) &
+                                  + self%weights(k_idx) * Q_L_all(n_ferm, loc_idx)
+                orbmag_IC(n_ferm) = orbmag_IC(n_ferm) &
+                                   + self%weights(k_idx) * Q_IC_all(n_ferm, loc_idx)
             enddo
         enddo
 
-        orb_mag = orb_mag / (2d0 * speed_of_light * (2d0*PI)**2)
 
+        orbmag_L  = orbmag_L  / (2d0 * speed_of_light * (2d0*PI)**2)
+        orbmag_IC = orbmag_IC / (2d0 * speed_of_light * (2d0*PI)**2)
+
+        ! reduce & bcast local term
         if(self%me == root) then
-            call MPI_Reduce(MPI_IN_PLACE, orb_mag, size(orb_mag), MPI_REAL8, MPI_SUM, &
+            call MPI_Reduce(MPI_IN_PLACE, orbmag_L, size(orbmag_L), MPI_REAL8, MPI_SUM, &
                             root, MPI_COMM_WORLD, ierr(1))
         else
-            call MPI_Reduce(orb_mag, orb_mag, size(orb_mag), MPI_REAL8, MPI_SUM, &
+            call MPI_Reduce(orbmag_L, orbmag_L, size(orbmag_L), MPI_REAL8, MPI_SUM, &
                             root, MPI_COMM_WORLD, ierr(1))
         endif
-
-
-        call MPI_Bcast(orb_mag, size(orb_mag), MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
+        call MPI_Bcast(orbmag_L, size(orbmag_L), MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
+       
+        ! reduce & bcast itinerant term
+        if(self%me == root) then
+            call MPI_Reduce(MPI_IN_PLACE, orbmag_IC, size(orbmag_IC), MPI_REAL8, MPI_SUM, &
+                            root, MPI_COMM_WORLD, ierr(3))
+        else
+            call MPI_Reduce(orbmag_IC, orbmag_IC, size(orbmag_IC), MPI_REAL8, MPI_SUM, &
+                            root, MPI_COMM_WORLD, ierr(3))
+        endif
+        call MPI_Bcast(orbmag_IC, size(orbmag_IC), MPI_REAL8, root, MPI_COMM_WORLD, ierr(4))
+        
+        orb_mag    = orbmag_L + orbmag_IC
         call check_ierr(ierr, self%me, "Hall conductance")
     end subroutine integrate_orbmag
 
@@ -1120,10 +1157,10 @@ contains
 
     end subroutine set_orbmag_weights
 
-    subroutine calc_orbmag_z_singleK(self, Q, eig_val, Vx_mtx, Vy_mtx)
+    subroutine calc_orbmag_z_singleK(self, Q_L, Q_IC, eig_val, Vx_mtx, Vy_mtx)
         implicit none
         class(k_space)           :: self
-        real(8)                  :: f_nk, dE, Ef, Q(:), eig_val(:)
+        real(8)                  :: f_nk, dE, Ef, Q_L(:), Q_IC(:), eig_val(:)
         complex(8)               :: Vx_mtx(:,:), Vy_mtx(:,:)
         real(8), allocatable     :: A_mtx(:,:)
         integer(4)               :: m, n, n_ferm
@@ -1137,9 +1174,10 @@ contains
             enddo
         enddo
         
-        Q = 0
+        Q_L  = 0
+        Q_IC = 0
         !$omp parallel do private(n, m, Ef, f_nk, dE) default(shared)
-        do n_ferm = 1, size(Q)
+        do n_ferm = 1, size(Q_L)
             Ef =  self%E_fermi(n_ferm)
             n_loop: do n = 1, size(A_mtx,1)
                 f_nk =  self%fermi_distr(eig_val(n), n_ferm)
@@ -1149,10 +1187,14 @@ contains
                             dE =  eig_val(m) -  eig_val(n)
                             
                             if(abs(dE) >=  eta) then
-                                Q(n_ferm) = Q(n_ferm) &
-                                            + f_nk *  (A_mtx(n,m)/dE &
-                                                         - 2d0 * (Ef - eig_val(n)) & 
-                                                           * A_mtx(n,m) / (dE**2))
+                                Q_L(n_ferm)  = Q_L(n_ferm)  &
+                                               +       f_nk * A_mtx(n,m)/dE
+                                Q_IC(n_ferm) = Q_IC(n_ferm) &
+                                               - 2d0 * f_nk * (Ef - eig_val(n)) * A_mtx(n,m)/(dE**2)    
+                                !Q(n_ferm) = Q(n_ferm) &
+                                            !+ f_nk *  ((A_mtx(n,m)/dE)  &
+                                                         !- 2d0 * (Ef - eig_val(n)) & 
+                                                           !* A_mtx(n,m) / (dE**2))
                             endif
                         endif ! m != n
                     enddo !m
