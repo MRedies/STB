@@ -18,7 +18,7 @@ BIN = ./
 
 # CC should be set to the name of your favorite C compiler.
 
-CC = cc
+CC = icc
 
 # CSWITCHES is a list of all switches passed to the C compiler.  I strongly
 #   recommend using the best level of optimization.  I also strongly
