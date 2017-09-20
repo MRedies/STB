@@ -327,8 +327,13 @@ contains
 
         if(self%me ==  0) then 
             call CFG_get(cfg, "grid%k_shift", self%k_shift)
+            
             call CFG_get(cfg, "output%band_prefix", self%prefix)
+            if(self%prefix(len_trim(self%prefix):len_trim(self%prefix)) /=  "/") then
+                self%prefix =  trim(self%prefix) // "/"
+            endif
             call create_dir(self%prefix) 
+            
             call CFG_get(cfg, "band%filling", self%filling)
 
             call CFG_get(cfg, "dos%delta_broadening", tmp)

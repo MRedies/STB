@@ -405,7 +405,6 @@ contains
 
         apd         = self%atom_per_dim
         base_len_uc = self%lattice_constant * apd
-        if(self%me == root) write (*,*) "Hex-area =  ", base_len_uc**2 * 2.59807
         l           = 2 *  cos(deg_30) * base_len_uc
     
         transl_mtx(1, :) =  l *  [1d0,   0d0,           0d0]
