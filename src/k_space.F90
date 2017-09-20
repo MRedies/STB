@@ -916,7 +916,8 @@ contains
         endif
 
         ! check for convergence
-        rel_error = my_norm2(var - var_old) / my_norm2(var)!/ (1d0*size(var))
+        rel_error = my_norm2(var - var_old) &
+                    / (self%kpts_per_step * self%nProcs * my_norm2(var))!/ (1d0*size(var))
 
         if(self%me == root) write (*,*) iter, "var: ", var_name, &
                              " nkpts ", size(self%all_k_pts,2), " err ", rel_error

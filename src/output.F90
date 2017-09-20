@@ -167,7 +167,7 @@ contains
                 call MPI_Abort(MPI_COMM_WORLD, 0, succ)
             endif
         else
-            call run_sys("mkdir " // folder, succ)
+            call run_sys("mkdir -p " // folder, succ)
             if(succ /= 0) then
                 write (*,*) "Could not reate dir through cmd"
             endif
