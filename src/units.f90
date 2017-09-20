@@ -46,12 +46,18 @@ contains
                 factor = 1.0d0
             case ("eV")
                 factor = 0.03674932d0
+            case ("Hartree")
+                factor = 1d0
             case ("a0^-1") 
                 factor = 1.0d0
             case ("K")
                 factor = 1.0d0
             case ("mu_B")
                 factor = 2d0
+            !case ("atm_M")
+                !factor = 1d0
+            !case ("mu_0")
+                !factor = 0.1591549430d0 ! 1/(2pi)
             case default
                 write (*,*) "Unit unknown: ", trim(unit_name)
                 stop

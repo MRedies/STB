@@ -394,42 +394,43 @@ contains
 
     end subroutine stack_layer
     
-    subroutine init_unit_honey(ret)
+    subroutine init_unit_honey(self)
         implicit none
-        class(unit_cell), intent(inout)   :: ret
+        class(unit_cell), intent(inout)   :: self
         real(8)  :: transl_mtx(3,3), l, base_len_uc, conn_mtx(3,3)
         real(8), allocatable             :: hexagon(:,:)
         integer, allocatable             :: site_type(:)
         integer(4)                       :: apd
         
 
-        apd         = ret%atom_per_dim
-        base_len_uc = ret%lattice_constant * apd
+        apd         = self%atom_per_dim
+        base_len_uc = self%lattice_constant * apd
+        if(self%me == root) write (*,*) "Hex-area =  ", base_len_uc**2 * 2.59807
         l           = 2 *  cos(deg_30) * base_len_uc
     
         transl_mtx(1, :) =  l *  [1d0,   0d0,           0d0]
         transl_mtx(2, :) =  l *  [0.5d0, sin(deg_60),   0d0]
         transl_mtx(3, :) =  l *  [0.5d0, - sin(deg_60), 0d0]
 
-        ret%lattice(:,1) =  transl_mtx(1,1:2)
-        ret%lattice(:,2) =  transl_mtx(2,1:2)
+        self%lattice(:,1) =  transl_mtx(1,1:2)
+        self%lattice(:,2) =  transl_mtx(2,1:2)
 
-        ret%num_atoms = calc_num_atoms_non_red_honey(apd)
-        allocate(ret%atoms(ret%num_atoms))
+        self%num_atoms = calc_num_atoms_non_red_honey(apd)
+        allocate(self%atoms(self%num_atoms))
 
-        call ret%make_hexagon(hexagon, site_type)
-        call ret%setup_honey(hexagon, site_type)
+        call self%make_hexagon(hexagon, site_type)
+        call self%setup_honey(hexagon, site_type)
         
-        if(trim(ret%mag_type) == "ferro") then
-            call ret%set_mag_ferro()
-        else if(trim(ret%mag_type) == "lin_skyrm") then
-            call ret%set_mag_linrot_skrym_honey()
-        else if(trim(ret%mag_type) == "atan_skyrm") then
-            call ret%set_mag_atan_skyrm_honey()
-        else if(trim(ret%mag_type) ==  "dblatan_skyrm") then
-            call ret%set_mag_dblatan_skyrm_honey()
-        else if(trim(ret%mag_type) == "random") then
-            call ret%set_mag_random()
+        if(trim(self%mag_type) == "ferro") then
+            call self%set_mag_ferro()
+        else if(trim(self%mag_type) == "lin_skyrm") then
+            call self%set_mag_linrot_skrym_honey()
+        else if(trim(self%mag_type) == "atan_skyrm") then
+            call self%set_mag_atan_skyrm_honey()
+        else if(trim(self%mag_type) ==  "dblatan_skyrm") then
+            call self%set_mag_dblatan_skyrm_honey()
+        else if(trim(self%mag_type) == "random") then
+            call self%set_mag_random()
         else
             write (*,*) "Mag_type not known"
             stop
@@ -437,12 +438,12 @@ contains
 
         ! only one kind of atom from honey-comb unit cell needed
         ! the other comes through complex conjugate
-        conn_mtx(1, :) =  ret%lattice_constant * [0d0,          1d0,           0d0]
-        conn_mtx(2, :) =  ret%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
-        conn_mtx(3, :) =  ret%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
+        conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
+        conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
+        conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
         
-        call ret%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
-        call ret%set_honey_snd_nearest()
+        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
+        call self%set_honey_snd_nearest()
         deallocate(hexagon, site_type)
     end subroutine init_unit_honey
 

@@ -34,5 +34,5 @@ module Constants
     real(8), parameter               :: deg_60 =  60.0 * PI / 180.0
 
     !> physical constants in atomic units hartree
-    real(8), parameter               :: speed_of_light =  137.035999d0 !> 1/(fine structure constant)
+    real(8), parameter               :: speed_of_light =  137.035999d0 !> 1/(fine structure const)
 end module Constants 

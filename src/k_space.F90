@@ -80,7 +80,8 @@ module Class_k_space
         procedure :: set_orbmag_weights     => set_orbmag_weights
         procedure :: integrate_hall         => integrate_hall
         procedure :: integrate_orbmag       => integrate_orbmag
-        procedure :: finalize_integr        => finalize_integr
+        procedure :: finalize_hall          => finalize_hall
+        procedure :: finalize_orbmag        => finalize_orbmag
         procedure :: process_step           => process_step
         procedure :: calc_new_berry_points  => calc_new_berry_points
         procedure :: calc_new_kidx          => calc_new_kidx
@@ -195,9 +196,9 @@ contains
         percentage = 0
         do k_idx=first, last
             if(self%me == root) then
-                if(percentage /=  nint(100d0 * k_idx / (1d0 * last))) then
-                    percentage =  nint(100d0 * k_idx / (1d0 * last))
-                    write (*,"(I3,A)") percentage, "%"
+                if(percentage /=  nint(10d0 * k_idx / (1d0 * last))) then
+                    percentage =  nint(10d0 * k_idx / (1d0 * last))
+                    write (*,"(I5,A)") 10*percentage, "%"
                 endif
             endif
             call self%ham%setup_H(self%new_k_pts(:,k_idx), H)
@@ -819,12 +820,8 @@ contains
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
         enddo
         
-        if(self%calc_hall)   call self%finalize_integr(hall, "hall_cond")
-        if(self%calc_orbmag) then
-            call self%finalize_integr(orbmag/self%units%mag_dipol, "orbmag")
-            call self%finalize_integr(orbmag_L/self%units%mag_dipol, "orbmag_L")
-            call self%finalize_integr(orbmag_IC/self%units%mag_dipol, "orbmag_IC")
-        endif
+        if(self%calc_hall)   call self%finalize_hall(hall)
+        if(self%calc_orbmag) call self%finalize_orbmag(orbmag, orbmag_L, orbmag_IC)
 
         if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
         deallocate(self%ham%del_H, hall_old, eig_val_all, omega_z_all, &
@@ -914,7 +911,7 @@ contains
         endif
 
         ! check for convergence
-        rel_error = my_norm2(var - var_old) / (1d0*size(var))
+        rel_error = my_norm2(var - var_old) / my_norm2(var)!/ (1d0*size(var))
 
         if(self%me == root) write (*,*) iter, "var: ", var_name, &
                              " nkpts ", size(self%all_k_pts,2), " err ", rel_error
@@ -925,21 +922,44 @@ contains
         endif
     end function process_step
 
-    subroutine finalize_integr(self, var, var_name)
+    subroutine finalize_hall(self, var)
         implicit none        
-        class(k_space)          :: self
-        real(8), intent(in)     :: var(:)
-        character(len=*)        :: var_name 
+        class(k_space)              :: self
+        real(8), intent(in)         :: var(:)
 
         if(self%me == root) then
             write (*,*) size(self%all_k_pts,2), &
-                "saving " // var_name // " with questionable unit"
+                "saving hall_cond with questionable unit"
 
-            call save_npy(trim(self%prefix) // trim(var_name) // ".npy", var)
-            call save_npy(trim(self%prefix) // trim(var_name) // "_E.npy", &
+            call save_npy(trim(self%prefix) // "hall_cond.npy", var)
+            call save_npy(trim(self%prefix) // "hall_cond_E.npy", &
                 self%E_fermi / self%units%energy)
         endif
-    end subroutine finalize_integr 
+    end subroutine finalize_hall 
+
+    subroutine finalize_orbmag(self, orbmag, orbmag_L, orbmag_IC)
+        implicit none
+        class(k_space)          :: self
+        real(8), intent(in)     :: orbmag(:), orbmag_L(:), orbmag_IC(:)
+        real(8)                 :: area, base_len_uc
+
+        base_len_uc = self%ham%UC%lattice_constant * self%ham%UC%atom_per_dim
+        area =  1.5d0 * sqrt(3d0) * base_len_uc**2
+
+        if(self%me == root) then
+            write (*,*) "saving orbmag"
+
+            call save_npy(trim(self%prefix) // "orbmag.npy", &
+                    orbmag * area / self%units%mag_dipol)
+            call save_npy(trim(self%prefix) // "orbmag_L.npy", &
+                    orbmag_L * area / self%units%mag_dipol)
+            call save_npy(trim(self%prefix) // "orbmag_IC.npy", &
+                    orbmag_IC * area / self%units%mag_dipol)
+            
+            call save_npy(trim(self%prefix) // "orbmag_E.npy", &
+                self%E_fermi / self%units%energy)
+        endif
+    end subroutine finalize_orbmag
 
     subroutine integrate_hall(self, kidx_all, omega_z_all, eig_val_all, hall)
         implicit none
