@@ -1468,8 +1468,8 @@ contains
         real(8), parameter           :: tol = 1d-6, tar = 1d-12
         integer(4)                   :: Emax, cnt
 
-        l = - 25d0 * self%ham%t_nn
-        u = 25d0 * self%ham%t_nn
+        l = - 25d0 * self%ham%Vss_sig
+        u = 25d0 * self%ham%Vss_sig
         Emax  = size(self%E_fermi)
 
         if((self%fermi_distr(l, Emax) - tar) &

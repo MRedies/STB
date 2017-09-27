@@ -27,7 +27,7 @@ module Class_unit_cell
         integer(4) :: nProcs
         integer(4) :: me
         real(8) :: lattice_constant !> lattice constant in atomic units
-        real(8) :: t_nn !> hopping paramater passed for connection 
+        real(8) :: Vss_sig !> hopping paramater passed for connection 
         real(8) :: eps !> threshold for positional accuracy
         real(8) :: ferro_phi, ferro_theta
         real(8) :: atan_factor !> how fast do we change the border wall
@@ -112,8 +112,8 @@ contains
             call CFG_get(cfg, "grid%epsilon", tmp)
             self%eps =  tmp * self%units%length
             
-            call CFG_get(cfg, "hamil%t_nn", tmp)
-            self%t_nn =  tmp * self%units%energy
+            call CFG_get(cfg, "hamil%Vss_sig", tmp)
+            self%Vss_sig =  tmp * self%units%energy
 
             call CFG_get(cfg, "grid%mag_type", self%mag_type)
             call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
@@ -176,7 +176,7 @@ contains
         
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
                        root,                  MPI_COMM_WORLD, ierr(1))
-        call MPI_Bcast(self%t_nn,             1,              MPI_REAL8,     &
+        call MPI_Bcast(self%Vss_sig,             1,              MPI_REAL8,     &
                        root,                  MPI_COMM_WORLD, ierr(2))
         call MPI_Bcast(self%mag_type,         25,             MPI_CHARACTER, &
                        root,                  MPI_COMM_WORLD, ierr(3))

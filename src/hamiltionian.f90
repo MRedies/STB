@@ -9,7 +9,7 @@ module Class_hamiltionian
     type hamil
         real(8)         :: E_s !> onsite eigenenergy
         real(8)         :: E_A, E_B !> onsite energies for A and B sites in honeycomb
-        real(8)         :: t_nn !> nearest neighbour hopping
+        real(8)         :: Vss_sig !> nearest neighbour hopping
         real(8)         :: t_2 !> amplitude for 2nd nearest neighbour hopping
         real(8)         :: phi_2 !> polar angle of 2nd nearest neighbour hopping in rad
         real(8)         :: t_so !> Rashba spin orb
@@ -102,10 +102,10 @@ contains
 
         has_E = (self%E_s /= 0) .or. (self%E_A /= 0) .or. (self%E_B /= 0)
         if(has_E) call self%set_EigenE(H)
-        if(self%t_nn   /= 0d0) call self%set_hopping(k,H)
-        if(self%t_2    /= 0d0) call self%set_snd_hopping(k,H)
-        if(self%t_so   /= 0d0) call self%set_rashba_SO(k,h)
-        if(self%lambda /= 0d0) call self%set_loc_exch(H)
+        if(self%Vss_sig   /= 0d0) call self%set_hopping(k,H)
+        if(self%t_2       /= 0d0) call self%set_snd_hopping(k,H)
+        if(self%t_so      /= 0d0) call self%set_rashba_SO(k,h)
+        if(self%lambda    /= 0d0) call self%set_loc_exch(H)
 
     end subroutine setup_H
 
@@ -138,8 +138,8 @@ contains
         self%UC    = init_unit(cfg)
 
         if(self%me ==  0) then 
-            call CFG_get(cfg, "hamil%t_nn", tmp)
-            self%t_nn =  tmp * self%units%energy
+            call CFG_get(cfg, "hamil%Vss_sig", tmp)
+            self%Vss_sig =  tmp * self%units%energy
             
             call CFG_get(cfg, "hamil%t_2", tmp)
             self%t_2 =  tmp * self%units%energy
@@ -175,7 +175,7 @@ contains
         call MPI_Bcast(self%E_s,       1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(1))
         call MPI_Bcast(self%E_A,       1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
         call MPI_Bcast(self%E_B,       1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(3))
-        call MPI_Bcast(self%t_nn,      1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(4))
+        call MPI_Bcast(self%Vss_sig,      1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(4))
         call MPI_Bcast(self%t_2,       1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(5))
         call MPI_Bcast(self%phi_2,     1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(6))
         call MPI_Bcast(self%t_so,      1,       MPI_REAL8, root, MPI_COMM_WORLD, ierr(7))
@@ -266,7 +266,7 @@ contains
                     j =  self%UC%atoms(i)%neigh_idx(conn)
                     k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
 
-                    new = exp(i_unit * k_dot_r) * self%t_nn
+                    new = exp(i_unit * k_dot_r) * self%Vss_sig
                     H(i,j) =  H(i,j) + new
                     H(j,i) =  H(j,i) + conjg(new)
                 endif
@@ -283,7 +283,7 @@ contains
 
                     k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
 
-                    new =  exp(i_unit *  k_dot_r) * self%t_nn
+                    new =  exp(i_unit *  k_dot_r) * self%Vss_sig
                     H(i_d, j_d) = H(i_d, j_d) + new
                     H(j_d, i_d) = H(j_d, i_d) + conjg(new)
                 endif
@@ -414,7 +414,7 @@ contains
         endif
 
         self%del_H = 0d0
-        if(self%t_nn /= 0d0) call self%set_derivative_hopping(k, k_idx)
+        if(self%Vss_sig /= 0d0) call self%set_derivative_hopping(k, k_idx)
         if(self%t_so /= 0d0) call self%set_derivative_rashba_so(k, k_idx)
         if(self%t_2  /= 0d0) call self%set_derivative_snd_hopping(k, k_idx)
 
@@ -443,7 +443,7 @@ contains
                     r   = self%UC%atoms(i)%neigh_conn(conn,:)
 
                     k_dot_r = dot_product(k, r)
-                    forw    = i_unit * r(k_idx) * self%t_nn &
+                    forw    = i_unit * r(k_idx) * self%Vss_sig &
                         * exp(i_unit * k_dot_r)
                     back =  conjg(forw)                
 

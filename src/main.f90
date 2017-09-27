@@ -139,7 +139,7 @@ contains
         call CFG_add(cfg, "units%temperature", "none", "")
         call CFG_add(cfg, "units%mag_dipol", "none", "")
 
-        call CFG_add(cfg, "hamil%t_nn",      0d0, "")
+        call CFG_add(cfg, "hamil%Vss_sig",      0d0, "")
         call CFG_add(cfg, "hamil%t_2",       0d0, "")
         call CFG_add(cfg, "hamil%phi_2",     0d0, "")
         call CFG_add(cfg, "hamil%t_so",      0d0, "")
