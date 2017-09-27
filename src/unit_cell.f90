@@ -217,21 +217,22 @@ contains
     subroutine init_unit_square(ret)
         implicit none
         class(unit_cell), intent(inout) :: ret
-        real(8)                        :: conn_mtx(2,3), transl_mtx(2,3)
+        real(8)                        :: conn_mtx(3,3), transl_mtx(2,3)
         
-        ret%num_atoms = ret%atom_per_dim * ret%atom_per_dim
+        ret%num_atoms = ret%atom_per_dim **2 *  ret%num_layers
         allocate(ret%atoms(ret%num_atoms))
     
         call ret%setup_square()
 
-        conn_mtx(1,:) =  (/ ret%lattice_constant, 0d0, 0d0 /)
-        conn_mtx(2,:) =  (/ 0d0, ret%lattice_constant, 0d0 /)
+        conn_mtx(1, :) =  (/ ret%lattice_constant, 0d0, 0d0 /)
+        conn_mtx(2, :) =  (/ 0d0, ret%lattice_constant, 0d0 /)
+        conn_mtx(3, :) =  (/ 0d0, 0d0, ret%lattice_constant /)
         
         transl_mtx = 0d0
         transl_mtx(1,1:2) = ret%lattice(:,1)
         transl_mtx(2,1:2) = ret%lattice(:,2)
 
-        call ret%setup_gen_conn(conn_mtx,[nn_conn, nn_conn], transl_mtx)    
+        call ret%setup_gen_conn(conn_mtx,[nn_conn, nn_conn, nn_conn], transl_mtx)    
 
         if(trim(ret%mag_type) ==  "x_spiral") then
             call ret%set_mag_x_spiral_square()
@@ -823,15 +824,17 @@ contains
     subroutine setup_square(self)
         implicit none
         class(unit_cell), intent(inout)  :: self
-        integer(4)                       :: i, j, cnt
+        integer(4)                       :: i, j, cnt, lay
         real(8) :: pos(3)
 
         cnt =  1
-        do i = 0, self%atom_per_dim-1
-            do j = 0, self%atom_per_dim-1
-                pos             = (/i,j,0/) * self%lattice_constant 
-                self%atoms(cnt) = init_ferro_z(pos)
-                cnt             = cnt + 1
+        do lay =  0, self%num_layers-1
+            do i = 0, self%atom_per_dim-1
+                do j = 0, self%atom_per_dim-1
+                    pos             = (/i,j,lay/) * self%lattice_constant 
+                    self%atoms(cnt) = init_ferro_z(pos)
+                    cnt             = cnt + 1
+                enddo
             enddo
         enddo
 
@@ -878,7 +881,7 @@ contains
         allocate(found_conn(n_conn))
         allocate(neigh(n_conn))
         
-        !$omp parallel do default(shared) schedule(static)&
+        !$omp parallel do default(shared) schedule(dynamic)&
         !$omp& private(start_pos, n_found, found_conn, cnt, neigh, j, conn, &
         !$omp& candidate)
         do i =  1, self%num_atoms
@@ -1002,6 +1005,7 @@ contains
         real(8), intent(in) :: start(3) !> RS start position
         real(8), intent(in) :: conn(3) !> RZ connection
         real(8) :: new(3), delta_vec(3), delta
+        real(8), parameter :: repl_eps =  1d-8
         integer(4) :: idx 
         integer(4) :: i
 
@@ -1014,7 +1018,8 @@ contains
             delta     = sqrt(dot_product(delta_vec, delta_vec))
             !delta     = my_norm2(delta_vec)
 
-            if(delta < self%eps) then
+            !if(delta < self%eps) then
+            if(delta < repl_eps) then
                 idx =  i
                 exit
             endif

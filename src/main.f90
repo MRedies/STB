@@ -160,7 +160,7 @@ contains
         call CFG_add(cfg, "grid%skyrm_middle",     0.5d0, "")
         call CFG_add(cfg, "grid%dblatan_width",    0d0,   "")
         call CFG_add(cfg, "grid%mag_randomness",   0d0,   "")
-        call CFG_add(cfg, "grid%number_of_layers", 0,     "")
+        call CFG_add(cfg, "grid%number_of_layers", 1,     "")
         call CFG_add(cfg, "grid%stacking_type",    "",    "")
         call CFG_add(cfg, "grid%layer_height",     1d0,   "")
 
