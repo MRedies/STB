@@ -35,4 +35,24 @@ module Constants
 
     !> physical constants in atomic units hartree
     real(8), parameter               :: speed_of_light =  137.035999d0 !> 1/(fine structure const)
+
+
+    !> Lx
+    complex(8), parameter :: Lx(4,4) = transpose(reshape([c_0, c_0, c_0,   c_0,&
+                                                          c_0, c_0, c_0,   c_0,&
+                                                          c_0, c_0, c_0, - c_1,&
+                                                          c_0, c_0, c_1,   c_0], [4,4]))
+    
+    complex(8), parameter :: Ly(4,4) = transpose(reshape([c_0,   c_0, c_0, c_0,&
+                                                          c_0,   c_0, c_0, c_1,&
+                                                          c_0,   c_0, c_0, c_0,&
+                                                          c_0, - c_1, c_0, c_0], [4,4]))
+
+    complex(8), parameter :: Lz(4,4) = transpose(reshape([c_0, c_0,   c_0, c_0,&
+                                                          c_0, c_0, - c_1, c_0,&
+                                                          c_0, c_1,   c_0, c_0,&
+                                                          c_0, c_0,   c_0, c_0], [4,4]))
+
+    complex(8), parameter :: LxpILy(4,4) = Lx + i_unit * Ly
+    complex(8), parameter :: LxmILy(4,4) = Lx - i_unit * Ly
 end module Constants 

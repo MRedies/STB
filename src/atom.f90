@@ -1,4 +1,6 @@
 module Class_atom
+    use Class_helper
+    use Constants
     implicit none
    
     enum, bind(c)  !> A or B site in graphene
@@ -73,6 +75,16 @@ contains
         implicit none
         class(atom)           :: self
         real(8), intent(in)   :: x,y,z
+        integer(4)            :: info, me
+
+        if(abs(my_norm2([x,y,z]) -  1d0) > 1d-4) then
+            call MPI_Comm_rank(MPI_COMM_WORLD, me, info)
+            if(me == root) write (*,*) "spin not normed", abs(my_norm2([x,y,z]) -  1d0) 
+            call MPI_Abort(MPI_COMM_WORLD, 0, info)
+        endif
+
+            
+
 
         self%m_theta = acos(z / sqrt(x*x + y*y + z*z))
         self%m_phi   = atan2(y,x)

@@ -139,7 +139,11 @@ contains
         call CFG_add(cfg, "units%temperature", "none", "")
         call CFG_add(cfg, "units%mag_dipol", "none", "")
 
-        call CFG_add(cfg, "hamil%Vss_sig",      0d0, "")
+        call CFG_add(cfg, "hamil%Vss_sig",   0d0, "")
+        call CFG_add(cfg, "hamil%Vsp_sig",   0d0, "")
+        call CFG_add(cfg, "hamil%Vpp_sig",   0d0, "")
+        call CFG_add(cfg, "hamil%Vpp_pi",    0d0, "")
+
         call CFG_add(cfg, "hamil%t_2",       0d0, "")
         call CFG_add(cfg, "hamil%phi_2",     0d0, "")
         call CFG_add(cfg, "hamil%t_so",      0d0, "")
@@ -148,6 +152,7 @@ contains
         call CFG_add(cfg, "hamil%E_B",       0d0, "")
         call CFG_add(cfg, "hamil%lambda",    0d0, "")
         call CFG_add(cfg, "hamil%lambda_nl", 0d0, "")
+        call CFG_add(cfg, "hamil%n_max",     0,   "")
 
         call CFG_add(cfg, "grid%atoms_per_dim",    -1,    "")
         call CFG_add(cfg, "grid%unit_cell_type",   "",    "")
@@ -163,6 +168,7 @@ contains
         call CFG_add(cfg, "grid%number_of_layers", 1,     "")
         call CFG_add(cfg, "grid%stacking_type",    "",    "")
         call CFG_add(cfg, "grid%layer_height",     1d0,   "")
+        call CFG_add(cfg, "grid%mag_file",         "",    "")
 
         call CFG_add(cfg, "band%perform_band",  .False., "")
         call CFG_add(cfg, "band%k_label",    (/ ""/),   "",&

@@ -40,6 +40,7 @@ module Class_unit_cell
         character(len=25) :: uc_type !> indicates shape of unitcell
         character(len=25) :: mag_type !> indicates type of magnetization
         character(len=25) :: stacking_type !> indicates how we stack
+        character(len=300):: mag_file
     contains
     
         procedure :: init_unit_honey             => init_unit_honey
@@ -70,6 +71,7 @@ module Class_unit_cell
         procedure :: make_hexagon                => make_hexagon
         procedure :: stack_layer                 => stack_layer
         procedure :: free_uc                     => free_uc
+        procedure :: init_file_square            => init_file_square
     end type unit_cell
 contains
     subroutine free_uc(self)
@@ -133,6 +135,8 @@ contains
             call CFG_get(cfg, "grid%number_of_layers", self%num_layers)
             call CFG_get(cfg, "grid%stacking_type",    self%stacking_type)
             call CFG_get(cfg, "grid%layer_height",     self%layer_height)
+
+            call CFG_get(cfg, "grid%mag_file", self%mag_file)
         endif
 
         call self%Bcast_UC()
@@ -143,6 +147,8 @@ contains
             call self%init_unit_honey()
         else if(trim(self%uc_type) == "honey_3d") then
             call self%init_unit_honey_film()
+        else if(trim(self%uc_type) == "file_square") then
+            call self%init_file_square()
         else
             write (*,*) self%me, ": Cell type unknown"
             stop
@@ -214,40 +220,80 @@ contains
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
-    subroutine init_unit_square(ret)
+    subroutine init_unit_square(self)
         implicit none
-        class(unit_cell), intent(inout) :: ret
+        class(unit_cell), intent(inout) :: self
         real(8)                        :: conn_mtx(3,3), transl_mtx(2,3)
         
-        ret%num_atoms = ret%atom_per_dim **2 *  ret%num_layers
-        allocate(ret%atoms(ret%num_atoms))
+        self%num_atoms = self%atom_per_dim **2 *  self%num_layers
+        allocate(self%atoms(self%num_atoms))
     
-        call ret%setup_square()
+        call self%setup_square()
 
-        conn_mtx(1, :) =  (/ ret%lattice_constant, 0d0, 0d0 /)
-        conn_mtx(2, :) =  (/ 0d0, ret%lattice_constant, 0d0 /)
-        conn_mtx(3, :) =  (/ 0d0, 0d0, ret%lattice_constant /)
+        conn_mtx(1, :) =  (/ self%lattice_constant, 0d0, 0d0 /)
+        conn_mtx(2, :) =  (/ 0d0, self%lattice_constant, 0d0 /)
+        conn_mtx(3, :) =  (/ 0d0, 0d0, self%lattice_constant /)
         
         transl_mtx = 0d0
-        transl_mtx(1,1:2) = ret%lattice(:,1)
-        transl_mtx(2,1:2) = ret%lattice(:,2)
+        transl_mtx(1,1:2) = self%lattice(:,1)
+        transl_mtx(2,1:2) = self%lattice(:,2)
 
-        call ret%setup_gen_conn(conn_mtx,[nn_conn, nn_conn, nn_conn], transl_mtx)    
+        call self%setup_gen_conn(conn_mtx,[nn_conn, nn_conn, nn_conn], transl_mtx)    
 
-        if(trim(ret%mag_type) ==  "x_spiral") then
-            call ret%set_mag_x_spiral_square()
-        else if(trim(ret%mag_type) == "ferro") then
-            call ret%set_mag_ferro()
-        else if(trim(ret%mag_type) == "lin_skyrm") then
-            call ret%set_mag_linrot_skrym_square()
-        else if(trim(ret%mag_type) == "random") then
-            call ret%set_mag_random()
+        if(trim(self%mag_type) ==  "x_spiral") then
+            call self%set_mag_x_spiral_square()
+        else if(trim(self%mag_type) == "ferro") then
+            call self%set_mag_ferro()
+        else if(trim(self%mag_type) == "lin_skyrm") then
+            call self%set_mag_linrot_skrym_square()
+        else if(trim(self%mag_type) == "random") then
+            call self%set_mag_random()
         else
             write (*,*) "Mag_type not known"
             stop
         endif
     end subroutine init_unit_square
 
+    subroutine init_file_square(self)
+        implicit none
+        class(unit_cell), intent(inout)   :: self
+        real(8)                           :: pos(3), m_x, m_y, m_z, conn_mtx(3,3)
+        real(8), allocatable              :: transl_mtx(:,:)
+        integer(4)                        :: n_x, n_y, n_z, i, n_transl
+        character(len=300)                :: garb
+
+        open(unit=21, file=self%mag_file)
+        read(21, * ) garb, n_x, n_y, n_z
+        self%num_atoms = n_x * n_y * n_z
+        write (*,*) "ns: ", n_x, n_y, n_z
+        write (*,*) "self%num_atoms", self%num_atoms
+        allocate(self%atoms(self%num_atoms))
+
+        do i=1,self%num_atoms
+            read(21, * ) pos(1), pos(2), pos(3),  m_x,m_y,m_z
+            pos =  pos * self%lattice_constant
+            self%atoms(i) =  init_ferro_z(pos)
+            call self%atoms(i)%set_m_cart(m_x, m_y, m_z)
+        enddo
+        
+        read(21, *) garb, n_transl
+        allocate(transl_mtx(n_transl, 3))
+
+        do i=1,n_transl
+            read (21, *) transl_mtx(i,1), transl_mtx(i,2), transl_mtx(i,3) 
+        enddo
+        close(21)
+        
+        conn_mtx(1, :) =  (/ self%lattice_constant, 0d0, 0d0 /)
+        conn_mtx(2, :) =  (/ 0d0, self%lattice_constant, 0d0 /)
+        conn_mtx(3, :) =  (/ 0d0, 0d0, self%lattice_constant /)
+
+        self%lattice(:,1) = conn_mtx(1,1:2)
+        self%lattice(:,2) = conn_mtx(2,1:2)
+        
+        call self%setup_gen_conn(conn_mtx,[nn_conn, nn_conn, nn_conn], transl_mtx)    
+    end subroutine init_file_square
+        
     subroutine make_hexagon(self, hexagon, site_type)
         implicit none
         class(unit_cell), intent(inout)   :: self
