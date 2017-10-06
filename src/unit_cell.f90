@@ -257,32 +257,60 @@ contains
     subroutine init_file_square(self)
         implicit none
         class(unit_cell), intent(inout)   :: self
-        real(8)                           :: pos(3), m_x, m_y, m_z, conn_mtx(3,3)
-        real(8), allocatable              :: transl_mtx(:,:)
-        integer(4)                        :: n_x, n_y, n_z, i, n_transl
+        real(8)                           :: conn_mtx(3,3)
+        real(8), allocatable              :: transl_mtx(:,:), m(:,:), pos(:,:)
+        integer(4)                        :: n(3), i, n_transl, info
         character(len=300)                :: garb
 
-        open(unit=21, file=self%mag_file)
-        read(21, * ) garb, n_x, n_y, n_z
-        self%num_atoms = n_x * n_y * n_z
-        write (*,*) "ns: ", n_x, n_y, n_z
-        write (*,*) "self%num_atoms", self%num_atoms
+        if(self%me ==  root) then 
+            write (*,*) "file =  ", trim(self%mag_file)
+            open(unit=21, file=trim(self%mag_file))
+            read(21, * ) garb, n(1), n(2), n(3)
+        endif
+        call MPI_Bcast(n, 3, MPI_INTEGER4, root, MPI_COMM_WORLD, info)
+        self%num_atoms = n(1) * n(2) * n(3)
+
+        if(self%me == root) then
+            write (*,*) "ns: ", n(1), n(2), n(3)
+            write (*,*) "self%num_atoms", self%num_atoms
+        endif
+
         allocate(self%atoms(self%num_atoms))
+        allocate(m(self%num_atoms, 3))
+        allocate(pos(self%num_atoms, 3))
 
         do i=1,self%num_atoms
-            read(21, * ) pos(1), pos(2), pos(3),  m_x,m_y,m_z
-            pos =  pos * self%lattice_constant
-            self%atoms(i) =  init_ferro_z(pos)
-            call self%atoms(i)%set_m_cart(m_x, m_y, m_z)
+            if(self%me == root) then
+                read(21, * ) pos(i,1), pos(i,2), pos(i,3), m(i,1), m(i,2), m(i,3)
+            endif
+        enddo
+
+        call MPI_Bcast(pos, 3*self%num_atoms, MPI_REAL8, root, MPI_COMM_WORLD, info)
+        call MPI_Bcast(m,   3*self%num_atoms, MPI_REAL8, root, MPI_COMM_WORLD, info)
+
+        pos =  pos * self%lattice_constant
+        
+        do i=1,self%num_atoms
+            self%atoms(i) =  init_ferro_z(pos(i,:))
+            call self%atoms(i)%set_m_cart(m(i,1), m(i,2), m(i,3))
         enddo
         
-        read(21, *) garb, n_transl
+        if(self%me == root) write (*,*) "pre transl"
+        if(self%me == root) read(21, *) garb, n_transl
+        call MPI_Bcast(n_transl, 1, MPI_INTEGER4, root, MPI_COMM_WORLD, info)
+
         allocate(transl_mtx(n_transl, 3))
 
-        do i=1,n_transl
-            read (21, *) transl_mtx(i,1), transl_mtx(i,2), transl_mtx(i,3) 
-        enddo
-        close(21)
+        if(self%me == root) then
+            do i=1,n_transl
+                read (21, *) transl_mtx(i,1), transl_mtx(i,2), transl_mtx(i,3) 
+            enddo
+            close(21)
+        endif
+
+        call MPI_Bcast(transl_mtx, 3*n_transl, MPI_REAL8, root, MPI_COMM_WORLD, info)
+
+        if(self%me == root) write (*,*) "closed"
         
         conn_mtx(1, :) =  (/ self%lattice_constant, 0d0, 0d0 /)
         conn_mtx(2, :) =  (/ 0d0, self%lattice_constant, 0d0 /)
@@ -291,7 +319,8 @@ contains
         self%lattice(:,1) = conn_mtx(1,1:2)
         self%lattice(:,2) = conn_mtx(2,1:2)
         
-        call self%setup_gen_conn(conn_mtx,[nn_conn, nn_conn, nn_conn], transl_mtx)    
+        call self%setup_gen_conn(conn_mtx,[nn_conn, nn_conn, nn_conn], transl_mtx)   
+        deallocate(m, pos)
     end subroutine init_file_square
         
     subroutine make_hexagon(self, hexagon, site_type)
