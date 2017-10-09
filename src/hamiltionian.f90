@@ -695,10 +695,9 @@ contains
         if(info /= 0) then
             write (*,*) "ZHEEVD in berry calculation failed"
         endif
-
+        
         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
-
         deallocate(work)
         deallocate(rwork)
         deallocate(iwork)

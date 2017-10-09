@@ -255,7 +255,7 @@ contains
         if(trim(self%ham%UC%uc_type) == "square_2d") then
             call self%setup_inte_grid_square(self%DOS_num_k_pts)
         elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
-            call self%setup_inte_grid_hex(self%DOS_num_k_pts, .False.)
+            call self%setup_inte_grid_hex(self%DOS_num_k_pts)
         else
             if(self%me ==  root) write (*,*) "DOS k-grid not known"
             call MPI_Abort(MPI_COMM_WORLD, 0, info)
@@ -490,7 +490,7 @@ contains
         implicit none
     class(k_space)        :: self
         integer(4), intent(in):: n_k
-        real(8), allocatable  :: ls(:), ls_help(:)
+        real(8), allocatable  :: ls(:)
         real(8)               :: k1(3), k2(3)
         integer(4)            :: i, j, cnt
 
@@ -502,26 +502,28 @@ contains
         k1(1:2) =  self%ham%UC%rez_lattice(:,1)
         k2(1:2) =  self%ham%UC%rez_lattice(:,2)
 
-        call linspace(0d0, 1d0, n_k+1, ls_help)
-        allocate(ls(n_k))
+        call linspace(0d0, 1d0, n_k, ls)
 
-        ls         = ls_help(1:n_k)
         self%new_k_pts = 0d0
-        cnt        = 1
 
+        cnt        = 1
         do i = 1,n_k
             do j =  1,n_k
                 self%new_k_pts(:,cnt) = ls(i) *  k1 +  ls(j) *  k2
                 cnt =  cnt + 1
             enddo
         enddo
+        call run_triang(self%new_k_pts, self%elem_nodes)
+        if(self%perform_pad) call self%pad_k_points_init()
+        
+        forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
+                self%new_k_pts(:,i) + my_norm2(k1) * self%k_shift
     end subroutine setup_inte_grid_square
 
-    subroutine setup_inte_grid_hex(self, n_k, padd)
+    subroutine setup_inte_grid_hex(self, n_k)
         implicit none
     class(k_space)         :: self
         integer(4), intent(in) :: n_k
-        logical, intent(in)    :: padd
         real(8), allocatable   :: x(:), y(:)
         real(8)                :: den, l, a
         integer(4)             :: cnt_k, start, halt, my_n, i
@@ -555,7 +557,7 @@ contains
         enddo
         
         call run_triang(self%new_k_pts, self%elem_nodes)
-        if(padd) call self%pad_k_points_init()
+        if(self%perform_pad) call self%pad_k_points_init()
         
         forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
                 self%new_k_pts(:,i) + l * self%k_shift
@@ -783,7 +785,7 @@ contains
             else
                 done_hall = .True.
             endif
-            
+
             if(self%calc_orbmag) then
                 orbmag_old = orbmag
                 call self%integrate_orbmag(kidx_all, Q_L_all, Q_IC_all, orbmag, orbmag_L, orbmag_IC)
@@ -983,7 +985,6 @@ contains
 
         !run triangulation
         call run_triang(self%all_k_pts, self%elem_nodes)
-
         call self%set_weights_ksp()
         
         !perform integration with all points
@@ -1005,7 +1006,7 @@ contains
         enddo
 
         hall = hall / (2d0*PI)
-
+        
         ! Allreduce is not suitable for convergence criteria
         ierr = 0
         if(self%me == root) then
@@ -1304,8 +1305,10 @@ contains
 
         if(trim(self%ham%UC%uc_type) == "square_2d") then
             call self%setup_inte_grid_square(self%berry_num_k_pts)
+        elseif(trim(self%ham%UC%uc_type) == "file_square") then
+            call self%setup_inte_grid_square(self%berry_num_k_pts)
         elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
-            call self%setup_inte_grid_hex(self%berry_num_k_pts, self%perform_pad)
+            call self%setup_inte_grid_hex(self%berry_num_k_pts)
         else
             if(self%me ==  root) write (*,*) "berry k-grid not known"
             call MPI_Abort(MPI_COMM_WORLD, 0, ierr)

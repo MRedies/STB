@@ -271,17 +271,16 @@ contains
         self%num_atoms = n(1) * n(2) * n(3)
 
         if(self%me == root) then
-            write (*,*) "ns: ", n(1), n(2), n(3)
             write (*,*) "self%num_atoms", self%num_atoms
         endif
 
         allocate(self%atoms(self%num_atoms))
-        allocate(m(self%num_atoms, 3))
-        allocate(pos(self%num_atoms, 3))
+        allocate(m(3, self%num_atoms))
+        allocate(pos(3, self%num_atoms))
 
         do i=1,self%num_atoms
             if(self%me == root) then
-                read(21, * ) pos(i,1), pos(i,2), pos(i,3), m(i,1), m(i,2), m(i,3)
+                read(21, * ) pos(1,i), pos(2,i), pos(3,i), m(1,i), m(2,i), m(3,i)
             endif
         enddo
 
@@ -291,17 +290,16 @@ contains
         pos =  pos * self%lattice_constant
         
         do i=1,self%num_atoms
-            self%atoms(i) =  init_ferro_z(pos(i,:))
-            call self%atoms(i)%set_m_cart(m(i,1), m(i,2), m(i,3))
+            self%atoms(i) =  init_ferro_z(pos(:,i))
+            call self%atoms(i)%set_m_cart(m(1,i), m(2,i), m(3,i))
         enddo
-        
-        if(self%me == root) write (*,*) "pre transl"
-        if(self%me == root) read(21, *) garb, n_transl
+       
+        if(self%me == root) read(21,*) garb, n_transl
         call MPI_Bcast(n_transl, 1, MPI_INTEGER4, root, MPI_COMM_WORLD, info)
-
         allocate(transl_mtx(n_transl, 3))
 
         if(self%me == root) then
+            write (*,*) n_transl
             do i=1,n_transl
                 read (21, *) transl_mtx(i,1), transl_mtx(i,2), transl_mtx(i,3) 
             enddo
@@ -310,8 +308,6 @@ contains
 
         call MPI_Bcast(transl_mtx, 3*n_transl, MPI_REAL8, root, MPI_COMM_WORLD, info)
 
-        if(self%me == root) write (*,*) "closed"
-        
         conn_mtx(1, :) =  (/ self%lattice_constant, 0d0, 0d0 /)
         conn_mtx(2, :) =  (/ 0d0, self%lattice_constant, 0d0 /)
         conn_mtx(3, :) =  (/ 0d0, 0d0, self%lattice_constant /)
