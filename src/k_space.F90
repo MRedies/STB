@@ -1715,7 +1715,7 @@ contains
             new_ks(1:2, cnt) = self%centeroid_of_triang(sort(i), self%all_k_pts)
             i = i - 1
             if(i == 0) then
-                write (*,*) "Not enough elements"
+                if(self%me == root) write (*,*) "Not enough elements"
                 call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
             endif
         enddo
