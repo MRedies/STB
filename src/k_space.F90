@@ -729,6 +729,7 @@ contains
              hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:),& 
              orbmag(:), orbmag_old(:), Q_L_all(:,:), Q_IC_all(:,:), &
              Q_L_new(:,:), Q_IC_new(:,:), orbmag_L(:), orbmag_IC(:)
+        real(8) :: start
         integer(4), allocatable :: kidx_all(:), kidx_new(:), n_kpts(:)
         integer(4)  :: N_k, n_atm, iter, all_err(14), info, n_ferm
         character(len=300)       :: msg
@@ -761,7 +762,9 @@ contains
         call check_ierr(all_err, self%me, "allocate hall vars")
 
         iter =  1
+        start = MPI_Wtime() 
         do iter =1,self%berry_iter
+            if(self%me == root) write (*,*) "Time: ", MPI_Wtime() -  start
             call self%calc_new_berry_points(eig_val_new, omega_z_new, Q_L_new, Q_IC_new)
             call self%calc_new_kidx(kidx_new)
 
