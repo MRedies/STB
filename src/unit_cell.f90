@@ -270,10 +270,6 @@ contains
         call MPI_Bcast(n, 3, MPI_INTEGER4, root, MPI_COMM_WORLD, info)
         self%num_atoms = n(1) * n(2) * n(3)
 
-        if(self%me == root) then
-            write (*,*) "self%num_atoms", self%num_atoms
-        endif
-
         allocate(self%atoms(self%num_atoms))
         allocate(m(3, self%num_atoms))
         allocate(pos(3, self%num_atoms))
@@ -299,7 +295,6 @@ contains
         allocate(transl_mtx(n_transl, 3))
 
         if(self%me == root) then
-            write (*,*) n_transl
             do i=1,n_transl
                 read (21, *) transl_mtx(i,1), transl_mtx(i,2), transl_mtx(i,3) 
             enddo
