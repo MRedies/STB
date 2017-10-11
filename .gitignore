@@ -12,5 +12,6 @@ inis/*cfg
 !inis/example.cfg
 doc/*
 *.pyc
+*__genmod.*
 md_calc/.ipynb_checkpoints/
 
