@@ -11,6 +11,7 @@ output/*
 inis/*cfg
 !inis/example.cfg
 doc/*
+mag_input/*
 *.pyc
 *__genmod.*
 md_calc/.ipynb_checkpoints/

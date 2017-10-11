@@ -1581,8 +1581,8 @@ contains
             !find biggest triangles
             n_elem =  size(self%elem_nodes,1)
             if(rest >  n_elem) then
-                write (*,*) "Not enough elements for inital padding: ", n_elem
-                stop
+                call error_msg("Not enough elements for inital padding")
+                call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
             endif
 
             allocate(areas(n_elem))
