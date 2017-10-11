@@ -157,8 +157,6 @@ contains
         if(self%random_width /= 0d0) call self%add_mag_randomness(self%random_width)
         
         ! calculate reciprocal grid
-        write (*,*) "lattice: "
-        call print_mtx(self%lattice)
         self%rez_lattice =  transpose(self%lattice)
         call dgetrf(2,2, self%rez_lattice, 2, ipiv, info)
         if(info /= 0) then
@@ -172,10 +170,6 @@ contains
             stop
         endif
         self%rez_lattice =  2 *  PI * self%rez_lattice
-
-        write (*,*) "rez_lattice: "
-        call print_mtx(self%rez_lattice)
-
     end function
 
     subroutine Bcast_UC(self)
