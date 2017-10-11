@@ -155,8 +155,10 @@ contains
         endif
 
         if(self%random_width /= 0d0) call self%add_mag_randomness(self%random_width)
-
+        
         ! calculate reciprocal grid
+        write (*,*) "lattice: "
+        call print_mtx(self%lattice)
         self%rez_lattice =  transpose(self%lattice)
         call dgetrf(2,2, self%rez_lattice, 2, ipiv, info)
         if(info /= 0) then
@@ -171,6 +173,8 @@ contains
         endif
         self%rez_lattice =  2 *  PI * self%rez_lattice
 
+        write (*,*) "rez_lattice: "
+        call print_mtx(self%rez_lattice)
 
     end function
 
@@ -307,8 +311,8 @@ contains
         conn_mtx(2, :) =  (/ 0d0, self%lattice_constant, 0d0 /)
         conn_mtx(3, :) =  (/ 0d0, 0d0, self%lattice_constant /)
 
-        self%lattice(:,1) = conn_mtx(1,1:2)
-        self%lattice(:,2) = conn_mtx(2,1:2)
+        self%lattice(:,1) = self%lattice_constant * transl_mtx(:,1)
+        self%lattice(:,2) = self%lattice_constant * transl_mtx(:,2)
         
         call self%setup_gen_conn(conn_mtx,[nn_conn, nn_conn, nn_conn], transl_mtx)   
         deallocate(m, pos)
