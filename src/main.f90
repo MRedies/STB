@@ -64,7 +64,6 @@ contains
         Ksp =  init_k_space(cfg)
         if(me == root) call save_cfg(cfg)
         
-        !call Ksp%plot_omega()
         if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
 
         halt =  MPI_Wtime()

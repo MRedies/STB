@@ -16,22 +16,22 @@ def replace_line(line, tags, values):
     return line
 
     
-tags = ["%atan%"]
+tags = ["%middle%"]
 
-#middle = np.arange(0.1, 1.1, 0.1)
-atan = np.logspace(-2, 1, 25)
-#apd  = [5,10,15,20]
+middle = np.linspace(0.5, 1.0, 10)
+#atan = np.logspace(-1, 2, 10)
+#middle = np.linspace(0.0, 1.0, 15)
 #print apd
 #temp = np.linspace(1,600, 5)
 
 cnt = 0
-itera = itertools.product(atan)
+itera = itertools.product(middle)
 print "Number of files: {}".format(sum(1 for _ in itera))
-itera = itertools.product(atan)
+itera = itertools.product(middle)
 
 for i in itera:
-    with open(prefix + "example.cfg", "rt") as fin:
-        with open(prefix + "atan_small_{}.cfg".format(cnt), "wt") as fout:
+    with open(prefix + "skyrm.cfg", "rt") as fin:
+        with open(prefix + "middle_dos_{}.cfg".format(cnt), "wt") as fout:
             for line in fin:
                 fout.write(replace_line(line, tags, i))
     cnt +=1
