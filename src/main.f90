@@ -9,13 +9,9 @@ program STB
 
     implicit none
     type(k_space)                   :: Ksp
-    type(CFG_t)                     :: cfg
-    character(len=25)               :: fermi_type
     character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
     integer(4)                      :: ierr, me, n_inp, n_files, seed_sz, start_idx, end_idx, cnt
     integer(4), allocatable         :: seed(:)
-    real(8)                         :: start, halt
-    logical                         :: perform_band, perform_dos, calc_hall, calc_orbmag
     character(len=300), allocatable :: inp_files(:)
 
     call MPI_Init(ierr)
@@ -30,17 +26,32 @@ program STB
 
     call MPI_Bcast(n_files, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     do n_inp = 1, n_files
+        call process_file(inp_files(n_inp))
+    enddo
+
+    call MPI_Finalize(ierr)
+contains
+    subroutine process_file(inp_file)
+        implicit none
+        character(len=300), intent(in) :: inp_file
+        real(8)                        :: start, halt
+        integer(4)                     :: me
+        logical                        :: perform_band, perform_dos, calc_hall, calc_orbmag
+        type(CFG_t)                     :: cfg
+        character(len=25)               :: fermi_type
+        
+        call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
         start =  MPI_Wtime()
 
         if(me ==  root)then
-            write (*,*) "running: ", trim(inp_files(n_inp))
-            call CFG_read_file(cfg, trim(inp_files(n_inp)))
+            write (*,*) "running: ", trim(inp_file)
+            call CFG_read_file(cfg, trim(inp_file))
             call add_full_cfg(cfg)
 
             call CFG_get(cfg, "band%perform_band", perform_band)
             call CFG_get(cfg, "dos%perform_dos",   perform_dos)
-            call CFG_get(cfg, "berry%fermi_type", fermi_type) 
-            call CFG_get(cfg, "berry%calc_hall", calc_hall)
+            call CFG_get(cfg, "berry%fermi_type",  fermi_type)
+            call CFG_get(cfg, "berry%calc_hall",   calc_hall)
             call CFG_get(cfg, "berry%calc_orbmag", calc_orbmag)
         endif
 
@@ -92,10 +103,10 @@ program STB
         endif
         call Ksp%free_ksp()
         if(me == root) call CFG_clear(cfg)
-    enddo
 
-    call MPI_Finalize(ierr)
-contains
+
+    end subroutine process_file
+
     subroutine get_inp_files(n_files, inp_files)
         implicit none
         integer(4), intent(out)  :: n_files 
