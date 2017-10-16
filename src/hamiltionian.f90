@@ -120,6 +120,7 @@ contains
         if(self%t_2       /= 0d0) call self%set_snd_hopping(k,H)
         if(self%t_so      /= 0d0) call self%set_rashba_SO(k,h)
         if(self%lambda    /= 0d0) call self%set_loc_exch(H)
+        
     end subroutine setup_H
 
     subroutine test_herm(H, tag)

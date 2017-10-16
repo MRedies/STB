@@ -137,7 +137,7 @@ contains
                 endif
 
                 if(j < size(mtx,2)) then 
-                    write (p_unit, "(SP,a,ES15.8,a,ES15.8,a)", advance="no") &
+                    write (p_unit, "(SP,a,ES10.3,a,ES10.3,a)", advance="no") &
                         "(",real(mtx(i,j)), " ", aimag(mtx(i,j)), deli
                 endif
             enddo

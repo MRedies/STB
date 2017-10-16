@@ -160,7 +160,7 @@ contains
         self%rez_lattice =  transpose(self%lattice)
         call dgetrf(2,2, self%rez_lattice, 2, ipiv, info)
         if(info /= 0) then
-            write (*,*) self%me, ": LU-decomp of lattice vectors failed"
+            write (*,*) self%me, ": LU-decomp of lattice vectors failed", info
             stop
         endif
 
@@ -264,6 +264,7 @@ contains
             write (*,*) "file =  ", trim(self%mag_file)
             open(unit=21, file=trim(self%mag_file))
             read(21, * ) garb, n(1), n(2), n(3)
+            write (*,*) n
         endif
         call MPI_Bcast(n, 3, MPI_INTEGER4, root, MPI_COMM_WORLD, info)
         self%num_atoms = n(1) * n(2) * n(3)
