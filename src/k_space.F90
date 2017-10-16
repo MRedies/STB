@@ -889,8 +889,8 @@ contains
             endif
 
             if(self%calc_orbmag) then
-                call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), eig_val_new(:,cnt),&
-                                                del_kx, del_ky)
+                call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), &
+                                            eig_val_new(:,cnt), del_kx, del_ky)
             endif
             
             cnt = cnt + 1
