@@ -329,7 +329,7 @@ contains
             character(len=*), intent(in) :: msg
             character(len=*), optional   :: p_color
             character(len=2)             :: code
-            integer(4)                   :: me, holder
+            integer(4)                   :: me, holder, info
 
             if(present(p_color)) then
                 code = p_color
@@ -342,6 +342,7 @@ contains
             if(me == root) then
                 write (*,*) c_start // code // c_end // msg // c_clear
             endif
+            call MPI_Barrier(MPI_COMM_WOLRD, info)
         end subroutine error_msg
 
     end module Class_helper

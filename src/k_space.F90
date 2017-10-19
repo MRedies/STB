@@ -1599,7 +1599,7 @@ contains
                 do while(self%in_points(cand, new_ks(1:2,1:cnt-1)))
                     i = i - 1
                     if(i < 1) then 
-                        write (*,*) "not enough elems for refinement"
+                        call error_msg("Not enough elemes for refinement")
                         call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
                     endif
                     cand = self%new_pt(sort(i), self%new_k_pts)
