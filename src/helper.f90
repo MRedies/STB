@@ -342,7 +342,7 @@ contains
             if(me == root) then
                 write (*,*) c_start // code // c_end // msg // c_clear
             endif
-            call MPI_Barrier(MPI_COMM_WOLRD, info)
+            call MPI_Barrier(MPI_COMM_WORLD, info)
         end subroutine error_msg
 
     end module Class_helper
