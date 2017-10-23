@@ -174,7 +174,7 @@ contains
         call CFG_add(cfg, "hamil%E_B",       0d0,     "")
         call CFG_add(cfg, "hamil%lambda",    0d0,     "")
         call CFG_add(cfg, "hamil%lambda_nl", 0d0,     "")
-        call CFG_add(cfg, "hamil%n_max",     0,       "")
+        call CFG_add(cfg, "hamil%n",         0,       "")
         call CFG_add(cfg, "hamil%molecule",  .False., "")
 
         call CFG_add(cfg, "grid%atoms_per_dim",    -1,    "")

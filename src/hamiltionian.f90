@@ -147,7 +147,7 @@ contains
         type(CFG_t)    :: cfg
         type(hamil)    :: self
         real(8)        :: tmp
-        integer(4)     :: ierr, n_max
+        integer(4)     :: ierr, n
 
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
@@ -190,8 +190,8 @@ contains
             call CFG_get(cfg, "hamil%E_B", tmp)
             self%E_B =  tmp * self%units%energy
 
-            call CFG_get(cfg, "hamil%n_max", n_max)
-            self%num_orb =  (n_max + 1)**2
+            call CFG_get(cfg, "hamil%n", n)
+            self%num_orb =  2 * n +  1
             self%num_up  =  self%num_orb *  self%UC%num_atoms
         endif
         call self%Bcast_hamil()
