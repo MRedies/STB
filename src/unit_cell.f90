@@ -26,6 +26,7 @@ module Class_unit_cell
         integer(4) :: atom_per_dim !> atoms along the radius of the unit_cell
         integer(4) :: nProcs
         integer(4) :: me
+        integer(4) :: n_wind !> winding number for lin_rot
         real(8) :: lattice_constant !> lattice constant in atomic units
         real(8) :: Vss_sig !> hopping paramater passed for connection 
         real(8) :: eps !> threshold for positional accuracy
@@ -118,6 +119,7 @@ contains
             self%Vss_sig =  tmp * self%units%energy
 
             call CFG_get(cfg, "grid%mag_type", self%mag_type)
+            call CFG_get(cfg, "grid%winding_number", self%n_wind)
             call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
 
             call CFG_get(cfg, "grid%lattice_constant", tmp)
@@ -674,19 +676,20 @@ contains
 
     subroutine set_mag_linrot_skyrm(self, center, radius)
         implicit none
-        class(unit_cell)    :: self
-        real(8), intent(in) :: center(3), radius 
-        real(8), parameter  :: e_z(3) =  [0,0,1]
-        real(8)             :: R(3,3), conn(3), n(3), m(3), alpha 
-        integer(4)          :: i
-        
+
+        class(unit_cell)                      :: self
+        real(8),         intent(in)           :: center(3), radius
+        real(8),         parameter            :: e_z(3) =  [0,0,1]
+        real(8)                               :: R(3,3), conn(3), n(3), m(3), alpha
+        integer(4)                            :: i
+
         alpha =  0d0 
         do i =  1,self%num_atoms
             conn  = center - self%atoms(i)%pos
             if(my_norm2(conn) > pos_eps * self%lattice_constant &
                     .and. my_norm2(conn) <= radius + pos_eps) then 
                 n     = cross_prod(conn, e_z)
-                alpha =  PI * (1d0 -  my_norm2(conn) / radius)
+                alpha =  PI * (1d0 -  my_norm2(conn) / radius) * self%n_wind
                 R     = R_mtx(alpha, n)
                 ! center of skyrmion point down
                 m     = matmul(R,  e_z)

@@ -181,6 +181,7 @@ contains
         call CFG_add(cfg, "grid%lattice_constant", 0d0,   "")
         call CFG_add(cfg, "grid%epsilon",          1d-6,  "")
         call CFG_add(cfg, "grid%mag_type",         "",    "")
+        call CFG_add(cfg, "grid%winding_number",   1,     "")
         call CFG_add(cfg, "grid%ferro_phi",        0d0,   "")
         call CFG_add(cfg, "grid%ferro_theta",      0d0,   "")
         call CFG_add(cfg, "grid%atan_fac",         0d0,   "")
