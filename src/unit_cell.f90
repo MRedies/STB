@@ -688,16 +688,18 @@ contains
         class(unit_cell)                      :: self
         real(8),         intent(in)           :: center(3), radius
         real(8),         parameter            :: e_z(3) =  [0,0,1]
-        real(8)                               :: R(3,3), conn(3), n(3), m(3), alpha
-        integer(4)                            :: i
+        real(8)                               :: R(3,3), conn(3), n(3), m(3), k(3), alpha
+        integer(4)                            :: i, ierr
 
         alpha =  0d0 
         do i =  1,self%num_atoms
             conn  = center - self%atoms(i)%pos
             if(my_norm2(conn) > pos_eps * self%lattice_constant &
                     .and. my_norm2(conn) <= radius + pos_eps) then 
-                n     = cross_prod(conn, e_z)
-                alpha =  PI * (1d0 -  my_norm2(conn) / radius) * (2*self%n_wind - 1)
+                k =  n_times_phi(conn, self%n_wind)
+                n     = cross_prod(k, e_z)
+                
+                alpha =  PI * (1d0 -  my_norm2(conn) / radius) * self%n_wind 
                 R     = R_mtx(alpha, n)
                 ! center of skyrmion point down
                 m     = matmul(R,  e_z)
@@ -1264,5 +1266,24 @@ contains
           + (1-cos(theta)) * u_x_u
 
     end function R_mtx
+
+    function n_times_phi(x, n) result(y)
+        implicit none
+        real(8), intent(in) :: x(3)
+        integer(4),intent(in) :: n
+        real(8)             :: y(3), r, phi, theta
+
+        r =  sqrt(dot_product(x,x))
+        theta =  acos(x(3)/r)
+        phi =  atan2(x(2), x(1))
+
+        phi = n * phi
+
+        y(1) = r * sin(theta) * cos(phi)
+        y(2) = r * sin(theta) * sin(phi)
+        y(3) = r * cos(theta)
+    end function n_times_phi
+
+
 end module
 
