@@ -446,9 +446,8 @@ contains
         
         if(self%num_orb ==  1) then
             hopp_mtx(1,1) =  self%Vss_sig
-        elseif(self%num_orb == 4) then
-            if(self%me == root) write (*,*) &
-                "P orbitals not implemented yet. See comments for necessary adaptations"
+        elseif(self%num_orb == 3) then
+            if(self%me == root) call error_msg("P orbitals not implemented yet. See comments for necessary adaptations")
             call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
 
             ! 1. rotations away from R =  R * e_z (See
@@ -458,6 +457,9 @@ contains
                 !0d0,            self%Vpp_pi, 0d0,         0d0,          &
                 !0d0,            0d0,         self%Vpp_pi, 0d0,          &
                 !- self%Vsp_sig, 0d0,         0d0,         self%Vpp_sig], [4,4]))
+        else
+            call error_msg("I have no idea what you are doing")
+            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
         endif
     end subroutine
 
@@ -781,7 +783,6 @@ contains
 
         N = 2 * self%num_up
 
-        !allocate(eig_val(N))
         allocate(H(N,N))
         call calc_zheevd_size('N', H, eig_val, lwork, lrwork, liwork)
         allocate(work(lwork))

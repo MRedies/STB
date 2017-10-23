@@ -697,7 +697,7 @@ contains
             if(my_norm2(conn) > pos_eps * self%lattice_constant &
                     .and. my_norm2(conn) <= radius + pos_eps) then 
                 n     = cross_prod(conn, e_z)
-                alpha =  PI * (1d0 -  my_norm2(conn) / radius) * self%n_wind
+                alpha =  PI * (1d0 -  my_norm2(conn) / radius) * (2*self%n_wind - 1)
                 R     = R_mtx(alpha, n)
                 ! center of skyrmion point down
                 m     = matmul(R,  e_z)
