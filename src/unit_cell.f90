@@ -42,6 +42,7 @@ module Class_unit_cell
         character(len=25) :: mag_type !> indicates type of magnetization
         character(len=25) :: stacking_type !> indicates how we stack
         character(len=300):: mag_file
+        logical :: molecule !> should we have a k-space or not?
     contains
     
         procedure :: init_unit_honey             => init_unit_honey
@@ -117,6 +118,7 @@ contains
             
             call CFG_get(cfg, "hamil%Vss_sig", tmp)
             self%Vss_sig =  tmp * self%units%energy
+            call CFG_get(cfg, "hamil%molecule", self%molecule)
 
             call CFG_get(cfg, "grid%mag_type", self%mag_type)
             call CFG_get(cfg, "grid%winding_number", self%n_wind)
@@ -301,6 +303,9 @@ contains
             enddo
             close(21)
         endif
+        
+        !if we want a molecule, ensure that no wrap-around is found
+        if(self%molecule) transl_mtx = transl_mtx * 10d0
 
         call MPI_Bcast(transl_mtx, 3*n_transl, MPI_REAL8, root, MPI_COMM_WORLD, info)
 
@@ -478,6 +483,9 @@ contains
         transl_mtx(1, :) =  l *  [1d0,   0d0,           0d0]
         transl_mtx(2, :) =  l *  [0.5d0, sin(deg_60),   0d0]
         transl_mtx(3, :) =  l *  [0.5d0, - sin(deg_60), 0d0]
+        
+        !if we want a molecule, ensure that no wrap-around is found
+        if(self%molecule) transl_mtx = transl_mtx * 10d0
 
         self%lattice(:,1) =  transl_mtx(1,1:2)
         self%lattice(:,2) =  transl_mtx(2,1:2)
@@ -910,6 +918,9 @@ contains
                                             *  self%lattice_constant
         self%lattice(:,2) =  (/ 0d0, 1d0 /) * self%atom_per_dim &
                                             *  self%lattice_constant
+
+        !if we want a molecule, ensure that no wrap-around is found
+        if(self%molecule) self%lattice = self%lattice * 10d0
     end subroutine setup_square
 
     subroutine setup_honey(self, hexagon, site_type)
