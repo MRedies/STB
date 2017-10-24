@@ -699,7 +699,7 @@ contains
                 k =  n_times_phi(conn, self%n_wind)
                 n     = cross_prod(k, e_z)
                 
-                alpha =  PI * (1d0 -  my_norm2(conn) / radius) * self%n_wind 
+                alpha =  PI * (1d0 -  my_norm2(conn) / radius) 
                 R     = R_mtx(alpha, n)
                 ! center of skyrmion point down
                 m     = matmul(R,  e_z)
@@ -1269,13 +1269,13 @@ contains
 
     function n_times_phi(x, n) result(y)
         implicit none
-        real(8), intent(in) :: x(3)
+        real(8), intent(in)   :: x(3)
         integer(4),intent(in) :: n
-        real(8)             :: y(3), r, phi, theta
+        real(8)               :: y(3), r, phi, theta
 
-        r =  sqrt(dot_product(x,x))
-        theta =  acos(x(3)/r)
-        phi =  atan2(x(2), x(1))
+        r     = my_norm2(x)
+        theta = acos(x(3)/r)
+        phi   = atan2(x(2), x(1))
 
         phi = n * phi
 
