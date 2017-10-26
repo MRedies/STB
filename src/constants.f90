@@ -38,21 +38,18 @@ module Constants
 
 
     !> Lx
-    complex(8), parameter :: Lx(4,4) = transpose(reshape([c_0, c_0, c_0,   c_0,&
-                                                          c_0, c_0, c_0,   c_0,&
-                                                          c_0, c_0, c_0, - c_1,&
-                                                          c_0, c_0, c_1,   c_0], [4,4]))
+    complex(8), parameter :: Lx(3,3) = transpose(reshape([c_0, c_0,   c_0,&
+                                                          c_0, c_0, - c_1,&
+                                                          c_0, c_1,   c_0], [3,3]))
     
-    complex(8), parameter :: Ly(4,4) = transpose(reshape([c_0,   c_0, c_0, c_0,&
-                                                          c_0,   c_0, c_0, c_1,&
-                                                          c_0,   c_0, c_0, c_0,&
-                                                          c_0, - c_1, c_0, c_0], [4,4]))
+    complex(8), parameter :: Ly(3,3) = transpose(reshape([  c_0, c_0, c_1,&
+                                                            c_0, c_0, c_0,&
+                                                          - c_1, c_0, c_0], [3,3]))
 
-    complex(8), parameter :: Lz(4,4) = transpose(reshape([c_0, c_0,   c_0, c_0,&
-                                                          c_0, c_0, - c_1, c_0,&
-                                                          c_0, c_1,   c_0, c_0,&
-                                                          c_0, c_0,   c_0, c_0], [4,4]))
+    complex(8), parameter :: Lz(3,3) = transpose(reshape([c_0, - c_1, c_0,&
+                                                          c_1,   c_0, c_0,&
+                                                          c_0,   c_0, c_0], [3,3]))
 
-    complex(8), parameter :: LxpILy(4,4) = Lx + i_unit * Ly
-    complex(8), parameter :: LxmILy(4,4) = Lx - i_unit * Ly
+    complex(8), parameter :: LxpILy(3,3) = Lx + i_unit * Ly
+    complex(8), parameter :: LxmILy(3,3) = Lx - i_unit * Ly
 end module Constants 

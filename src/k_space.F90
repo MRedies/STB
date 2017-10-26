@@ -731,31 +731,31 @@ contains
              Q_L_new(:,:), Q_IC_new(:,:), orbmag_L(:), orbmag_IC(:)
         real(8) :: start
         integer(4), allocatable :: kidx_all(:), kidx_new(:), n_kpts(:)
-        integer(4)  :: N_k, n_atm, iter, all_err(14), info, n_ferm
+        integer(4)  :: N_k, num_up, iter, all_err(14), info, n_ferm
         character(len=300)       :: msg
         logical                  :: done_hall, done_orbmag
 
 
         call self%setup_berry_inte_grid()
         N_k = size(self%new_k_pts, 2)
-        n_atm =  self%ham%UC%num_atoms
+        num_up =  self%ham%num_up
         n_ferm = size(self%E_fermi)
         all_err = 0
         
-        allocate(self%ham%del_H(2*n_atm, 2*n_atm), stat=all_err(1))
-        allocate(hall_old(size(self%E_fermi)),     stat=all_err(2))
-        allocate(hall(size(self%E_fermi)),         stat=all_err(3))
-        allocate(orbmag_old(size(self%E_fermi)),   stat=all_err(4))
-        allocate(orbmag(size(self%E_fermi)),       stat=all_err(5))
-        allocate(orbmag_L(size(self%E_fermi)),     stat=all_err(6))
-        allocate(orbmag_IC(size(self%E_fermi)),    stat=all_err(7))
-        allocate(eig_val_all(2*n_atm, 0),          stat=all_err(8))
-        allocate(omega_z_all(2*n_atm, 0),          stat=all_err(9))
-        allocate(Q_L_all(n_ferm, 0),               stat=all_err(10))
-        allocate(Q_IC_all(n_ferm, 0),              stat=all_err(11))
-        allocate(kidx_all(0),                      stat=all_err(12))
-        allocate(self%all_k_pts(3,0),              stat=all_err(13))
-        allocate(n_kpts(0),                        stat=all_err(14))
+        allocate(self%ham%del_H(2*num_up, 2*num_up), stat=all_err(1))
+        allocate(hall_old(size(self%E_fermi)),       stat=all_err(2))
+        allocate(hall(size(self%E_fermi)),           stat=all_err(3))
+        allocate(orbmag_old(size(self%E_fermi)),     stat=all_err(4))
+        allocate(orbmag(size(self%E_fermi)),         stat=all_err(5))
+        allocate(orbmag_L(size(self%E_fermi)),       stat=all_err(6))
+        allocate(orbmag_IC(size(self%E_fermi)),      stat=all_err(7))
+        allocate(eig_val_all(2*num_up, 0),           stat=all_err(8))
+        allocate(omega_z_all(2*num_up, 0),           stat=all_err(9))
+        allocate(Q_L_all(n_ferm, 0),                 stat=all_err(10))
+        allocate(Q_IC_all(n_ferm, 0),                stat=all_err(11))
+        allocate(kidx_all(0),                        stat=all_err(12))
+        allocate(self%all_k_pts(3,0),                stat=all_err(13))
+        allocate(n_kpts(0),                          stat=all_err(14))
 
         hall    =  1e35
         orbmag =  1e35 
@@ -766,6 +766,7 @@ contains
         do iter =1,self%berry_iter
             if(self%me == root) write (*,*) "Time: ", MPI_Wtime() -  start
             call self%calc_new_berry_points(eig_val_new, omega_z_new, Q_L_new, Q_IC_new)
+
             call self%calc_new_kidx(kidx_new)
 
             ! concat to old ones
@@ -861,19 +862,19 @@ contains
     subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, Q_L_new, Q_IC_new)
         implicit none
         class(k_space)            :: self
-        integer(4)                :: N_k, first, last, err(3), cnt, k_idx, n_atm, n_ferm
+        integer(4)                :: N_k, first, last, err(3), cnt, k_idx, num_up, n_ferm
         real(8)                   :: k(3)
         real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), Q_L_new(:,:), Q_IC_new(:,:)
         complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
 
         N_k = size(self%new_k_pts, 2)
         n_ferm =  size(self%E_fermi)
-        n_atm =  self%ham%UC%num_atoms
+        num_up =  self%ham%num_up
 
         call my_section(self%me, self%nProcs, N_k, first, last)
         err =  0
-        allocate(eig_val_new(2*n_atm, last-first+1), stat=err(1))
-        if(self%calc_hall)   allocate(omega_z_new(2*n_atm, last-first+1), stat=err(2))
+        allocate(eig_val_new(2*num_up, last-first+1), stat=err(1))
+        if(self%calc_hall)   allocate(omega_z_new(2*num_up, last-first+1), stat=err(2))
         if(self%calc_orbmag) allocate(Q_L_new(n_ferm,        last-first+1), stat=err(3))
         if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(3))
         call check_ierr(err, self%me, " new chunk alloc")

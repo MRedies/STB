@@ -119,6 +119,9 @@ contains
             call CFG_get(cfg, "hamil%Vss_sig", tmp)
             self%Vss_sig =  tmp * self%units%energy
             call CFG_get(cfg, "hamil%molecule", self%molecule)
+            if(self%molecule) then
+                call error_msg("Using Molecule mode!", p_color=c_green)
+            endif
 
             call CFG_get(cfg, "grid%mag_type", self%mag_type)
             call CFG_get(cfg, "grid%winding_number", self%n_wind)

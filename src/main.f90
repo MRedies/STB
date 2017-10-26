@@ -162,13 +162,13 @@ contains
         call CFG_add(cfg, "units%mag_dipol", "none", "")
 
         call CFG_add(cfg, "hamil%Vss_sig",   0d0, "")
-        call CFG_add(cfg, "hamil%Vsp_sig",   0d0, "")
         call CFG_add(cfg, "hamil%Vpp_sig",   0d0, "")
         call CFG_add(cfg, "hamil%Vpp_pi",    0d0, "")
 
         call CFG_add(cfg, "hamil%t_2",       0d0,     "")
         call CFG_add(cfg, "hamil%phi_2",     0d0,     "")
         call CFG_add(cfg, "hamil%t_so",      0d0,     "")
+        call CFG_add(cfg, "hamil%eta_soc",   0d0,     "")
         call CFG_add(cfg, "hamil%E_s",       0d0,     "")
         call CFG_add(cfg, "hamil%E_A",       0d0,     "")
         call CFG_add(cfg, "hamil%E_B",       0d0,     "")

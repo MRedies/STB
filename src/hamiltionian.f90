@@ -9,9 +9,9 @@ module Class_hamiltionian
     type hamil
         real(8)         :: E_s !> onsite eigenenergy
         real(8)         :: E_A, E_B !> onsite energies for A and B sites in honeycomb
-        real(8)         :: Vss_sig !> nearest neighbour hopping
-        real(8)         :: Vsp_sig, Vpp_pi, Vpp_sig
-        real(8)         :: E_soc
+        real(8)         :: Vss_sig !> nearest neighbour hopping for s-orbital
+        real(8)         :: Vpp_pi, Vpp_sig !> nearest neigh hopping for p-orbitals
+        real(8)         :: eta_soc
         real(8)         :: t_2 !> amplitude for 2nd nearest neighbour hopping
         real(8)         :: phi_2 !> polar angle of 2nd nearest neighbour hopping in rad
         real(8)         :: t_so !> Rashba spin orb
@@ -45,6 +45,9 @@ module Class_hamiltionian
         procedure :: set_derivative_snd_hopping => set_derivative_snd_hopping
         procedure :: set_derivative_rashba_so   => set_derivative_rashba_so
         procedure :: set_hopp_mtx               => set_hopp_mtx
+        procedure :: set_p_hopp_mtx             => set_p_hopp_mtx
+        procedure :: set_small_SOC              => set_small_SOC
+        procedure :: set_SOC                    => set_SOC
         procedure :: free_ham                   => free_ham
     end type hamil
 
@@ -65,6 +68,7 @@ contains
         integer(4)                  :: N, k_idx, info
 
         N = 2 * self%num_up
+        write (*,*) N
         allocate(fd_H(N,N))
         if(.not. allocated(self%del_H)) then
             allocate(self%del_H(N,N))
@@ -78,7 +82,7 @@ contains
             call test_herm(fd_H, tag="FD H")
 
             if(cnorm2(reshape(fd_H - self%del_H, [N*N])) >= 1d-8) then
-                write (*,*) "FD comp failed"
+                call error_msg("FD comp failed")
                 write (*,*) "FD"
                 call save_npy("output/dbg/fd_H.npy",fd_H) 
                 !call print_mtx(fd_H)
@@ -89,7 +93,7 @@ contains
                 !call print_mtx(self%del_H -  fd_H)
                 call MPI_Abort(MPI_COMM_WORLD, 0, info)
             else
-                write (*,*) "great"
+                call error_msg("All hermitian", c_green)
             endif
             
         enddo
@@ -113,12 +117,13 @@ contains
         has_E = (self%E_s /= 0) .or. (self%E_A /= 0) .or. (self%E_B /= 0)
         if(has_E) call self%set_EigenE(H)
 
-        has_hopp =   (self%Vss_sig /= 0d0) .or. (self%Vsp_sig /= 0d0) &
+        has_hopp =   (self%Vss_sig /= 0d0) &
                 .or. (self%Vpp_sig /= 0d0) .or. (self%Vpp_pi /= 0d0)
         if(has_hopp) call self%set_hopping(k,H)
         
         if(self%t_2       /= 0d0) call self%set_snd_hopping(k,H)
-        if(self%t_so      /= 0d0) call self%set_rashba_SO(k,h)
+        if(self%t_so      /= 0d0) call self%set_rashba_SO(k,H)
+        if(self%eta_soc   /= 0d0) call self%set_SOC(H)
         if(self%lambda    /= 0d0) call self%set_loc_exch(H)
         
     end subroutine setup_H
@@ -159,9 +164,6 @@ contains
             call CFG_get(cfg, "hamil%Vss_sig", tmp)
             self%Vss_sig =  tmp * self%units%energy
             
-            call CFG_get(cfg, "hamil%Vsp_sig", tmp)
-            self%Vsp_sig =  tmp * self%units%energy
-            
             call CFG_get(cfg, "hamil%Vpp_pi", tmp)
             self%Vpp_pi =  tmp * self%units%energy
             
@@ -175,6 +177,9 @@ contains
 
             call CFG_get(cfg, "hamil%t_so", tmp)
             self%t_so =  tmp * self%units%energy
+            
+            call CFG_get(cfg, "hamil%eta_soc", tmp)
+            self%eta_soc =  tmp * self%units%energy
 
             call CFG_get(cfg, "hamil%lambda", tmp)
             self%lambda =  tmp * self%units%energy
@@ -235,8 +240,8 @@ contains
             call self%setup_Stoner_mtx(atm,S)
 
             do j = 0,self%num_orb-1
-                j_up = j + i_up
-                j_dw = j + i_dw
+                j_up = i_up + j
+                j_dw = i_dw + j
                 H(j_up,j_up) = H(j_up, j_up) + S(1,1)
                 H(j_up,j_dw) = H(j_up, j_dw) + S(1,2)
                 H(j_dw,j_up) = H(j_dw, j_up) + S(2,1)
@@ -294,10 +299,9 @@ contains
         complex(8), intent(inout)         :: H(:,:)
         integer(4)                        :: i, i_d, j,&
             j_d, conn, m, cnt
-        real(8)                           :: k_dot_r, hopp_mtx(self%num_orb, self%num_orb)
+        real(8)                           :: k_dot_r, hopp_mtx(self%num_orb, self%num_orb), R(3)
         complex(8)                        :: new(self%num_orb, self%num_orb)
 
-        call self%set_hopp_mtx(hopp_mtx)
         m = self%num_orb - 1
 
         ! Spin up
@@ -306,7 +310,10 @@ contains
             do conn = 1,size(self%UC%atoms(cnt)%neigh_idx)
                 if(self%UC%atoms(cnt)%conn_type(conn) == nn_conn) then
                     j =  self%UC%atoms(cnt)%neigh_idx(conn)
-                    k_dot_r =  dot_product(k, self%UC%atoms(cnt)%neigh_conn(conn,:))
+
+                    R =  self%UC%atoms(cnt)%neigh_conn(conn,:)
+                    call self%set_hopp_mtx(R, hopp_mtx)
+                    k_dot_r =  dot_product(k, R)
 
                     new = exp(i_unit * k_dot_r) * hopp_mtx
                     H(i:i+m, j:j+m) =  H(i:i+m,j:j+m) + new
@@ -325,7 +332,9 @@ contains
                     j      = self%UC%atoms(cnt)%neigh_idx(conn)
                     j_d = j + self%num_up
 
-                    k_dot_r =  dot_product(k, self%UC%atoms(cnt)%neigh_conn(conn,:))
+                    R =  self%UC%atoms(cnt)%neigh_conn(conn,:)
+                    call self%set_hopp_mtx(R, hopp_mtx)
+                    k_dot_r =  dot_product(k, R)
 
                     new =  exp(i_unit *  k_dot_r) * hopp_mtx
                     H(i_d:i_d+m, j_d:j_d+m) = H(i_d:i_d+m, j_d:j_d+m) + new
@@ -336,30 +345,99 @@ contains
         enddo
     end subroutine set_hopping
 
+    subroutine set_p_hopp_mtx(self, R, hopp_mtx)
+        implicit none
+    class(hamil), intent(in)     :: self
+        real(8), intent(in)      :: R(3) !> real-space connection between atoms
+        real(8), intent(out) :: hopp_mtx(3,3) !> hopping matrix 
+        real(8)                  :: l, m, n !> directional cosines
+
+        l = R(1)/my_norm2(R)
+        m = R(2)/my_norm2(R)
+        n = R(3)/my_norm2(R)
+
+        !cyclic permutations of H_x^x = l^2 Vpp_sig + (1-l^2) Vpp_pi
+        hopp_mtx(1,1) = l*l * self%Vpp_sig + (1d0 - l*l) * self%Vpp_pi
+        hopp_mtx(2,2) = m*m * self%Vpp_sig + (1d0 - m*m) * self%Vpp_pi
+        hopp_mtx(3,3) = n*n * self%Vpp_sig + (1d0 - n*n) * self%Vpp_pi
+
+        !cyclic permutations of H_x^y = l*m Vpp_sig - l*m Vpp_pi
+        hopp_mtx(1,2) = l * m * (self%Vpp_sig - self%Vpp_pi)
+        hopp_mtx(2,3) = m * n * (self%Vpp_sig - self%Vpp_pi)
+        hopp_mtx(3,1) = n * l * (self%Vpp_sig - self%Vpp_pi)
+
+        !cyclic permutations of H_x^z =  l*n (Vpp_sig -  Vpp_pi)
+        hopp_mtx(1,3) = l * n * (self%Vpp_sig - self%Vpp_pi)
+        hopp_mtx(2,1) = m * l * (self%Vpp_sig - self%Vpp_pi)
+        hopp_mtx(3,2) = n * m * (self%Vpp_sig - self%Vpp_pi)
+    end subroutine set_p_hopp_mtx
+        
     subroutine set_SOC(self, H)
         implicit none
     class(hamil), intent(in)              :: self
         complex(8), intent(inout)         :: H(:,:)
-        integer(4)                        :: ierr, i, i_d, m
+        complex(8)                        :: loc_H(2,2), U(2,2), tmp(2,2), rot_H(2,2)
+        integer(4)                        :: ierr, i_u, i_d, mu, nu, ms, ns, i_atm
 
-        if(self%num_orb /= 4) then
-            if(self%me == root) write (*,*) "SOC only implemented for p-orbitals"
+        if(self%num_orb /= 3) then
+            call error_msg("SOC only implemented for p-orbitals")
             call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
         endif
-        
-        m = self%num_orb - 1
+       
+        if(self%num_orb == 3) then
+            i_atm = 1
+            do i_u = 1,self%num_up,self%num_orb
+                i_d =  i_u + self%num_up
+                do mu = 1,self%num_orb
+                    do nu = 1,self%num_orb
+                        call self%set_small_SOC(mu,nu, loc_H)
+                        call set_rot_SO(self%UC%atoms(i_atm), U)
+    
+                        ! calculate tmp = U * H
+                        call zgemm('N', 'N', 2,2,2, 1d0, U,   2, H, 2, 0d0, tmp,   2)
+                        ! calculate res = tmp * U^dag
+                        call zgemm('N', 'C', 2,2,2, 1d0, tmp, 2, U, 2, 0d0, rot_H, 2)
 
-        if(self%num_orb == 4) then
-            do i=1,self%num_up,self%num_orb
-                i_d = i + self%num_up
+                        ms = mu - 1 ! mu-shift
+                        ns = nu - 1 ! nu-shift
 
-                H(i:  i+m,   i:  i+m)   = H(i:  i+m,   i:  i+m)   + self%E_soc * Lz
-                H(i_d:i_d+m, i_d:i_d+m) = H(i_d:i_d+m, i_d:i_d+m) - self%E_soc * Lz
-                H(i:  i+m,   i_d:i_d+m) = H(i:  i+m,   i_d:i_d+m) + self%E_soc * LxpILy 
-                H(i_d:i_d+m, i:  i+m)   = H(i_d:i_d+m, i:  i+m)   + self%E_soc * LxmILy
+                        H(i_u+ms, i_u+ns) = H(i_u+ms, i_u+ns) + rot_H(1, 1)
+                        H(i_d+ms, i_u+ns) = H(i_d+ms, i_u+ns) + rot_H(2, 1)
+                        H(i_u+ms, i_d+ns) = H(i_u+ms, i_d+ns) + rot_H(1, 2)
+                        H(i_d+ms, i_d+ns) = H(i_d+ms, i_d+ns) + rot_H(2, 2)
+                    enddo
+                enddo
+                i_atm = i_atm + 1
             enddo
         endif
     end subroutine set_SOC
+    
+    subroutine set_rot_SO(atm, U)
+        implicit none
+        type(atom), intent(in)   :: atm
+        complex(8), intent(out)  :: U(2,2)
+        real(8)                  :: t_half, p_half
+
+        t_half =  0.5d0 * atm%m_theta
+        p_half =  0.5d0 * atm%m_phi
+
+        U(1,1) =  exp(-i_unit * p_half) * cos(t_half)
+        U(2,1) =  exp( i_unit * p_half) * sin(t_half)
+        U(1,2) = -exp(-i_unit * p_half) * sin(t_half)
+        U(2,2) =  exp( i_unit * p_half) * cos(t_half)
+    end subroutine set_rot_SO
+    
+    subroutine set_small_SOC(self, mu, nu, H)
+        implicit none
+        class(hamil), intent(in)    :: self
+        integer(4), intent(in)      :: mu, nu
+        complex(8), intent(out)    :: H(2,2)
+
+        H(1,1) =   self%eta_soc *  Lz(mu,nu)
+        H(2,1) =   self%eta_soc * (Lx(mu,nu) + i_unit * Ly(mu,nu))
+        H(1,2) =   self%eta_soc * (Lx(mu,nu) - i_unit * Ly(mu,nu))
+        H(2,2) = - self%eta_soc *  Lz(mu,nu)
+    end subroutine set_small_SOC
 
     subroutine set_snd_hopping(self,k, H)
         implicit none
@@ -438,28 +516,16 @@ contains
         enddo
     end subroutine set_rashba_SO
 
-    subroutine set_hopp_mtx(self, hopp_mtx)
+    subroutine set_hopp_mtx(self, R, hopp_mtx)
         implicit none
     class(hamil), intent(in)     :: self
+        real(8), intent(in)      :: R(3)
         real(8)                  :: hopp_mtx(self%num_orb, self%num_orb)
-        integer(4)               :: ierr
         
         if(self%num_orb ==  1) then
             hopp_mtx(1,1) =  self%Vss_sig
         elseif(self%num_orb == 3) then
-            if(self%me == root) call error_msg("P orbitals not implemented yet. See comments for necessary adaptations")
-            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
-
-            ! 1. rotations away from R =  R * e_z (See
-            ! 2. figure out why this matrix isn't hermitian (why is Vsp_sig complex)
-            !hopp_mtx =  transpose(reshape(&
-                ![self%Vss_sig,  0d0,         0d0,         self%Vsp_sig, &
-                !0d0,            self%Vpp_pi, 0d0,         0d0,          &
-                !0d0,            0d0,         self%Vpp_pi, 0d0,          &
-                !- self%Vsp_sig, 0d0,         0d0,         self%Vpp_sig], [4,4]))
-        else
-            call error_msg("I have no idea what you are doing")
-            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+            call self%set_p_hopp_mtx(R, hopp_mtx)
         endif
     end subroutine
 
@@ -509,7 +575,7 @@ contains
         endif
 
         self%del_H = 0d0
-        has_hopp =   (self%Vss_sig /= 0d0) .or. (self%Vsp_sig /= 0d0) &
+        has_hopp =   (self%Vss_sig /= 0d0)  &
                 .or. (self%Vpp_sig /= 0d0) .or. (self%Vpp_pi /= 0d0)
         if(has_hopp) call self%set_derivative_hopping(k, k_idx)
 
@@ -527,7 +593,6 @@ contains
         complex(8)                :: forw(self%num_orb, self%num_orb), back(self%num_orb, self%num_orb)
         integer(4)                :: i, j, conn, i_d, j_d, m, cnt
 
-        call self%set_hopp_mtx(hopp_mtx)
         m =  self%num_orb - 1
 
         !$omp parallel do default(shared) &
@@ -540,9 +605,11 @@ contains
                 if(self%UC%atoms(cnt)%conn_type(conn) == nn_conn) then
                     j   = self%UC%atoms(cnt)%neigh_idx(conn)
                     j_d = j + self%num_up
+                    
                     r   = self%UC%atoms(cnt)%neigh_conn(conn,:)
-
+                    call self%set_hopp_mtx(r, hopp_mtx)
                     k_dot_r = dot_product(k, r)
+
                     forw    = i_unit * r(k_idx) * hopp_mtx * exp(i_unit * k_dot_r)
                     back    =  transpose(conjg(forw))             
 
@@ -800,5 +867,4 @@ contains
         deallocate(iwork)
         deallocate(rwork)
     end subroutine calc_single_eigenvalue
-
 end module
