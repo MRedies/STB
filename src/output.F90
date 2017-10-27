@@ -163,8 +163,7 @@ contains
         if(already) then
             call run_sys("rm " // trim(folder) // "*.npy", succ)
             if(succ /= 0) then
-                write (*,*) "Could not clear dir"
-                call MPI_Abort(MPI_COMM_WORLD, 0, succ)
+                call error_msg("Could not clear dir", abort=.True.)
             endif
         else
             call run_sys("mkdir -p " // folder, succ)

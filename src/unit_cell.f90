@@ -398,8 +398,7 @@ contains
             shifts(2, :) = [0d0,     -a]
             shifts(3, :) = [0d0, -2d0*a]
         else
-            if(self%me == root) write (*,*) "Stacking type not known"
-            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+            call error_msg("Stacking type not known", abort=.True.)
         endif
         
         call self%stack_layer(hexagon, shifts, site_type)
@@ -407,8 +406,7 @@ contains
         if(trim(self%mag_type) == "ferro") then
             call self%set_mag_ferro()
         else
-            if(self%me == root) write (*,*) "only ferro implemented"
-            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+            call error_msg("only ferro implemented", abort=.True.)
         endif
         
         deallocate(hexagon, site_type)
@@ -557,10 +555,7 @@ contains
                 elseif(self%atoms(i)%site_type == B_site) then
                     conn = conn_mtx_B(j,:)
                 else
-                    if(self%me == root)then
-                        write (*,*) "2nd nearest only in honey"
-                        call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
-                    endif
+                    call error_msg("2nd nearest only in honey", abort=.True.)
                 endif
 
                 cand = self%gen_find_neigh(start_pos, conn, transl_mtx)
@@ -958,8 +953,7 @@ contains
 
         n_conn =  size(conn_mtx, 1)
         if(n_conn /= size(conn_type))then
-            if(self%me == root) write (*,*) "number of connections have to agree"
-            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+            call error_msg("number of connections have to agree", abort=.True.)
         endif
 
         allocate(found_conn(n_conn))

@@ -197,8 +197,7 @@ contains
                 if(present(msg)) then
                     write (*,"(I5, A)") me, msg
                 endif
-                call MPI_Barrier(MPI_COMM_WORLD, error)
-                call MPI_Abort(MPI_COMM_WORLD, 0, error)
+                call error_msg("encountered error. Aborting!", abort=.True.)
             endif
         enddo
         ierr =  0
@@ -348,6 +347,14 @@ contains
                     if(abort) then
                         call MPI_Abort(MPI_COMM_WORLD, 0, info)
                     endif
+                endif
+            endif
+
+            ! if a non-root process is called also abort (a little later)
+            if(present(abort)) then
+                if(abort) then
+                    call sleep(5)
+                    call MPI_Abort(MPI_COMM_WORLD, 0, info)
                 endif
             endif
         end subroutine error_msg
