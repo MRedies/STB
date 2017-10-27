@@ -324,12 +324,13 @@ contains
             res(20:23) =  date(1:4)
         end function date_time
 
-        subroutine error_msg(msg, p_color)
+        subroutine error_msg(msg, p_color, abort)
             implicit none
             character(len=*), intent(in) :: msg
             character(len=*), optional   :: p_color
             character(len=2)             :: code
             integer(4)                   :: me, holder, info
+            logical, optional            :: abort
 
             if(present(p_color)) then
                 code = p_color
@@ -341,6 +342,13 @@ contains
 
             if(me == root) then
                 write (*,*) c_start // code // c_end // msg // c_clear
+
+                ! abort if necessary
+                if(present(abort)) then
+                    if(abort) then
+                        call MPI_Abort(MPI_COMM_WORLD, 0, info)
+                    endif
+                endif
             endif
         end subroutine error_msg
 

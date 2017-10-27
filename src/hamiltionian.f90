@@ -91,7 +91,7 @@ contains
                 call save_npy("output/dbg/del_H.npy", self%del_H) 
                 !write (*,*) "diff"
                 !call print_mtx(self%del_H -  fd_H)
-                call MPI_Abort(MPI_COMM_WORLD, 0, info)
+                call error_msg("Not hermitian", abort=.True.)
             else
                 call error_msg("All hermitian", c_green)
             endif
@@ -139,11 +139,10 @@ contains
         if((my_norm2(reshape( real(H - transpose(conjg(H))),[n*n]))/(n**2) > 1d-10) .or.&
             (my_norm2(reshape(aimag(H - transpose(conjg(H))),[n*n]))/(n**2) > 1d-10)) then
             if(present(tag)) then
-                write (*,*) "nope - > ", tag
-            else
-                write (*,*) "nope"
+                write (*,*) "Tag = ", tag
             endif
-            call MPI_Abort(MPI_COMM_WORLD, 0, info)
+            
+            call error_msg("not hermitian", abort=.True.)
         endif
     end subroutine test_herm
 
@@ -286,7 +285,7 @@ contains
                 H(id, id) = H(id, id) + self%E_s
             case default
                 write (*,*) i, "unknown site type: ", self%UC%atoms(i)%site_type
-                call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+                call error_msg("Aborting due to unknown type site", abort=.True.)
             end select
 
         enddo
@@ -380,8 +379,7 @@ contains
         integer(4)                        :: ierr, i_u, i_d, mu, nu, ms, ns, i_atm
 
         if(self%num_orb /= 3) then
-            call error_msg("SOC only implemented for p-orbitals")
-            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+            call error_msg("SOC only implemented for p-orbitals", abort=.True.)
         endif
        
         if(self%num_orb == 3) then

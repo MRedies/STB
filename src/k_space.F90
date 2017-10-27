@@ -257,8 +257,7 @@ contains
         elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
             call self%setup_inte_grid_hex(self%DOS_num_k_pts)
         else
-            if(self%me ==  root) write (*,*) "DOS k-grid not known"
-            call MPI_Abort(MPI_COMM_WORLD, 0, info)
+            call error_msg("DOS k-grid not known", abort=.True.)
         endif
 
         num_atoms =  self%ham%UC%num_atoms
@@ -805,27 +804,18 @@ contains
 
             if(trim(self%chosen_weights) == "hall")then 
                 if(.not.self%calc_hall) then
-                    if(self%me == root) then
-                        write (*,*) "Must calculate hall to use it as weights"
-                        call MPI_Abort(MPI_COMM_WORLD, 0, info)
-                    endif
+                    call error_msg("Must calculate hall to use it as weights", abort=.True.)
                 endif
 
                 call self%set_hall_weights(omega_z_all, kidx_all)
             elseif(trim(self%chosen_weights) == "orbmag")then
                 if(.not.self%calc_orbmag) then
-                    if(self%me == root) then
-                        write (*,*) "Must calculate orbmag to use it as weights"
-                        call MPI_Abort(MPI_COMM_WORLD, 0, info)
-                    endif
+                    call error_msg("Must calculate orbmag to use it as weights", abort=.True.)
                 endif
 
                 call self%set_orbmag_weights(Q_L_all +  Q_IC_all, kidx_all)
             else
-                if(self%me == root) then
-                    write (*,*) "weights not known"
-                    call MPI_Abort(MPI_COMM_WORLD, 0, info)
-                endif
+                call error_msg("weights unknown", abort=.True.)
             endif
 
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
@@ -1314,8 +1304,7 @@ contains
         elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
             call self%setup_inte_grid_hex(self%berry_num_k_pts)
         else
-            if(self%me ==  root) write (*,*) "berry k-grid not known"
-            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+            call error_msg("berry k-grid not known", abort=.True.)
         endif
 
     end subroutine setup_berry_inte_grid
@@ -1582,8 +1571,7 @@ contains
             !find biggest triangles
             n_elem =  size(self%elem_nodes,1)
             if(rest >  n_elem) then
-                call error_msg("Not enough elements for inital padding")
-                call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+                call error_msg("Not enough elements for inital padding", abort=.True.)
             endif
 
             allocate(areas(n_elem))
@@ -1600,8 +1588,7 @@ contains
                 do while(self%in_points(cand, new_ks(1:2,1:cnt-1)))
                     i = i - 1
                     if(i < 1) then 
-                        call error_msg("Not enough elemes for refinement")
-                        call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+                        call error_msg("Not enough elemes for refinement", abort=.True.)
                     endif
                     cand = self%new_pt(sort(i), self%new_k_pts)
                 enddo
@@ -1719,8 +1706,7 @@ contains
             new_ks(1:2, cnt) = self%centeroid_of_triang(sort(i), self%all_k_pts)
             i = i - 1
             if(i == 0) then
-                if(self%me == root) write (*,*) "Not enough elements"
-                call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+                call error_msg("Not enough elements", abort=.True.)
             endif
         enddo
     end subroutine add_kpts_iter
