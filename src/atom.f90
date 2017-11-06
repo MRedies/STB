@@ -75,14 +75,10 @@ contains
         implicit none
         class(atom)           :: self
         real(8), intent(in)   :: x,y,z
-        integer(4)            :: info, me
 
         if(abs(my_norm2([x,y,z]) -  1d0) > 1d-4) then
             call error_msg("Spin not normed", abort=.True.)
         endif
-
-            
-
 
         self%m_theta = acos(z / sqrt(x*x + y*y + z*z))
         self%m_phi   = atan2(y,x)

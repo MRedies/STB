@@ -249,7 +249,7 @@ contains
     class(k_space)       :: self
         real(8), allocatable :: DOS(:), PDOS(:,:), up(:), down(:)
         real(8)              :: dE
-        integer(4)           :: i, num_atoms, info
+        integer(4)           :: i, num_atoms
 
 
         if(trim(self%ham%UC%uc_type) == "square_2d") then
@@ -1291,7 +1291,6 @@ contains
     subroutine setup_berry_inte_grid(self)
         implicit none
     class(k_space)           :: self
-        integer(4)           :: ierr 
 
         if(allocated(self%new_k_pts) )then
             deallocate(self%new_k_pts)
@@ -1551,7 +1550,7 @@ contains
     subroutine pad_k_points_init(self)
         implicit none
     class(k_space)                :: self
-        integer(4)  :: rest, i,j, cnt, n_kpts, n_elem, ierr, per_proc
+        integer(4)  :: rest, i,j, cnt, n_kpts, n_elem, per_proc
         integer(4), allocatable :: sort(:)
         real(8), allocatable    :: areas(:), new_ks(:,:), tmp(:,:)
         real(8)                 :: cand(2)
@@ -1686,7 +1685,7 @@ contains
     class(k_space)          :: self
         integer(4), intent(in)  :: n_new
         real(8), allocatable    :: new_ks(:,:)
-        integer(4)              :: n_elem, i, cnt, ierr
+        integer(4)              :: n_elem, i, cnt
         integer(4), allocatable :: sort(:)
 
         if(allocated(new_ks)) then

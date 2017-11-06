@@ -65,7 +65,7 @@ contains
     class(hamil)                :: self
         real(8), intent(in)         :: k(3)
         complex(8), allocatable     :: fd_H(:,:)
-        integer(4)                  :: N, k_idx, info
+        integer(4)                  :: N, k_idx
 
         N = 2 * self%num_up
         write (*,*) N
@@ -131,7 +131,7 @@ contains
     subroutine test_herm(H, tag)
         implicit none
         complex(8), intent(in)      :: H(:,:)
-        integer(4)                  :: n, info
+        integer(4)                  :: n
         character(len=*), optional  :: tag
 
         n = size(H, dim=1)
@@ -269,7 +269,7 @@ contains
         implicit none
     class(hamil), intent(in) :: self
         complex(8), intent(inout):: H(:,:)
-        integer(4) :: i,id, ierr
+        integer(4) :: i,id
 
         do i =  1,self%num_up
             id = i +  self%num_up
@@ -376,7 +376,7 @@ contains
     class(hamil), intent(in)              :: self
         complex(8), intent(inout)         :: H(:,:)
         complex(8)                        :: loc_H(2,2), U(2,2), tmp(2,2), rot_H(2,2)
-        integer(4)                        :: ierr, i_u, i_d, mu, nu, ms, ns, i_atm
+        integer(4)                        :: i_u, i_d, mu, nu, ms, ns, i_atm
 
         if(self%num_orb /= 3) then
             call error_msg("SOC only implemented for p-orbitals", abort=.True.)
@@ -804,7 +804,7 @@ contains
         real(8), allocatable,intent(out)  :: eig_val(:,:)
         real(8)                           :: k(3), start
         complex(8), allocatable           :: H(:,:)
-        integer(4) :: i, N, lwork, lrwork, liwork, info, percentage
+        integer(4) :: i, N, lwork, lrwork, liwork, info
         real(8), allocatable              :: RWORK(:)
         complex(8), allocatable           :: WORK(:)
         integer(4), allocatable           :: IWORK(:)
