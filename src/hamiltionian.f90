@@ -801,7 +801,7 @@ contains
     class(hamil)                      :: self
         real(8), intent(in)               :: k_list(:,:)
         real(8), allocatable,intent(out)  :: eig_val(:,:)
-        real(8)                           :: k(3)
+        real(8)                           :: k(3), start
         complex(8), allocatable           :: H(:,:)
         integer(4) :: i, N, lwork, lrwork, liwork, info, percentage
         real(8), allocatable              :: RWORK(:)
@@ -817,8 +817,10 @@ contains
         allocate(IWORK(liwork))
         allocate(WORK(lwork))
 
-        percentage = 0
+        start = MPI_Wtime()
         do i = 1,size(k_list,2)
+            call error_msg("next->", c_green)
+            if(self%me == root) write (*,*) "Time: ", MPI_Wtime() -start
             k =  k_list(:,i)
             call self%setup_H(k, H)
 
