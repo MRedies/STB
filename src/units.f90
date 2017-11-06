@@ -65,7 +65,7 @@ contains
         endif
 
         if(bcast_loc) then
-            call MPI_Bcast(factor, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
+            call MPI_Bcast(factor, 1_4, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
             if(ierr /= 0) then
                 write(*,*) me, "Unit Bcast failed"
                 stop

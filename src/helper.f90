@@ -39,7 +39,7 @@ contains
         implicit none
         complex(8), intent(in)    :: A(:,:), x(:)
         complex(8)                :: b(size(x))
-        integer(4)                :: i, j
+        integer                   :: i, j
 
         !$omp parallel do private(j) shared(A,x,b)
         do i = 1,size(x)
@@ -54,7 +54,7 @@ contains
         implicit none
         complex(8), intent(in)    :: A(:,:), x(:)
         complex(8)                :: b(size(x))
-        integer(4)                :: i, j
+        integer                   :: i, j
 
         do i = 1,size(x)
             b(i) = 0d0
@@ -76,10 +76,10 @@ contains
         character(len=1)          :: vn_flag
         complex(8), intent(in)    :: H(:,:)
         real(8), intent(in)       :: eig_val(:)
-        integer(4), intent(out)   :: lwork, lrwork, liwork
+        integer   , intent(out)   :: lwork, lrwork, liwork
         complex(8)                :: lwork_tmp
         real(8)                   :: lrwork_tmp
-        integer(4)                :: N, info
+        integer                   :: N, info
 
         N =  size(H, dim=1)
         call zheevd(vn_flag, 'U', N, H, N, eig_val, &
@@ -90,12 +90,13 @@ contains
 
     subroutine my_section(me, nProcs, length, first, last)
         implicit none
-        integer(4), intent(in)     :: me, nProcs, length
+        integer(4), intent(in)     :: me, nProcs
+        integer, intent(in)        :: length
         integer(4), intent(out)    :: first, last
-        integer(4)                 :: small_chunk, nLarge, i, chunk_sz
+        integer                    :: small_chunk, nLarge, i, chunk_sz
 
         small_chunk =  length / nProcs
-        nLarge =  mod(length, nProcs)
+        nLarge =  mod(int(length,4), nProcs)
         first =  1
 
         ! MPI Procs start at 0
@@ -116,12 +117,13 @@ contains
 
     subroutine sections(nProcs, length, num_elem, offset)
         implicit none
-        integer(4), intent(in)    :: nProcs, length
+        integer(4), intent(in)    :: nProcs
+        integer   , intent(in)    :: length
         integer(4), intent(out)   :: num_elem(nProcs), offset(nProcs)
-        integer(4)                :: small_chunk, nLarge, i
+        integer                   :: small_chunk, nLarge, i
 
         small_chunk =  length / nProcs
-        nLarge =  mod(length, nProcs)
+        nLarge =  mod(int(length,4), nProcs)
 
         ! MPI Procs start at 0
         do i =  1, nProcs 
@@ -142,10 +144,10 @@ contains
     subroutine linspace(start, halt, n, x)
         implicit none
         real(8), intent(in)    :: start, halt
-        integer(4), intent(in) :: n
+        integer   , intent(in) :: n
         real(8), allocatable   :: x(:)
         real(8)                :: step, curr 
-        integer(4)             :: i
+        integer                :: i
 
         step =  (halt - start) /  (n-1)
         curr =  start
@@ -178,7 +180,8 @@ contains
         implicit none
         integer(4), intent(inout)  :: ierr(:)
         integer(4), optional       :: me_in
-        integer(4)                 :: i, me, holder
+        integer(4)                 :: me, holder
+        integer                    :: i
         character(len=*), optional :: info, msg(:)
 
         if(present(me_in)) then
@@ -206,9 +209,9 @@ contains
     recursive subroutine qargsort(data, idx, first_in, last_in)
         implicit none
         real(8)                 :: data(:)
-        integer(4), allocatable :: idx(:)
-        integer(4), optional    :: first_in, last_in
-        integer(4)              :: first, last, i, p
+        integer   , allocatable :: idx(:)
+        integer   , optional    :: first_in, last_in
+        integer                 :: first, last, i, p
 
         !setting up a nice interface
         if(.not. present(first_in)) then
@@ -239,8 +242,8 @@ contains
         function partition(data, idx, first, last) result(p)
             implicit none
             real(8)                 :: data(:), pivot
-            integer(4), allocatable :: idx(:)
-            integer(4)              :: first, last, p, i, j, tmp
+            integer   , allocatable :: idx(:)
+            integer                 :: first, last, p, i, j, tmp
 
             pivot = data(idx(last))
             i = first - 1
@@ -263,8 +266,8 @@ contains
 
         function find_list_idx(list, elem) result(idx)
             implicit none
-            integer(4), intent(in)   :: list(:), elem
-            integer(4)               :: idx
+            integer   , intent(in)   :: list(:), elem
+            integer                  :: idx
 
             idx = 1
             do while(list(idx) /= elem)
@@ -281,7 +284,7 @@ contains
             real(8), intent(out)  :: out_arr(:)
             real(8), intent(in)   :: sigma, mu
             real(8)               :: u(size(out_arr)), fac, u_odd(2)
-            integer(4)            :: even_end, i
+            integer               :: even_end, i
 
             call random_number(u)
             even_end = size(out_arr) - mod(size(out_arr),2)
@@ -345,7 +348,7 @@ contains
                 ! abort if necessary
                 if(present(abort)) then
                     if(abort) then
-                        call MPI_Abort(MPI_COMM_WORLD, 0, info)
+                        call MPI_Abort(MPI_COMM_WORLD, 0_4, info)
                     endif
                 endif
             endif
@@ -354,7 +357,7 @@ contains
             if(present(abort)) then
                 if(abort) then
                     call sleep(5)
-                    call MPI_Abort(MPI_COMM_WORLD, 0, info)
+                    call MPI_Abort(MPI_COMM_WORLD, 0_4, info)
                 endif
             endif
         end subroutine error_msg

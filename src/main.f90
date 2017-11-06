@@ -24,7 +24,7 @@ program STB
     
     call get_inp_files(n_files, inp_files)
 
-    call MPI_Bcast(n_files, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_Bcast(n_files, 1_4, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     do n_inp = 1, n_files
         call process_file(inp_files(n_inp))
     enddo
@@ -55,11 +55,11 @@ contains
             call CFG_get(cfg, "berry%calc_orbmag", calc_orbmag)
         endif
 
-        call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-        call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-        call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
-        call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-        call MPI_Bcast(calc_orbmag,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(perform_band, 1_4,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(perform_dos,  1_4,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(fermi_type,   25_4, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(calc_hall,    1_4,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(calc_orbmag,  1_4,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
 
         Ksp =  init_k_space(cfg)
         if(me == root) call save_cfg(cfg)

@@ -21,12 +21,12 @@ module Class_unit_cell
         real(8), public :: rez_lattice(2,2) !> translation vectors
         !> of the reciprocal lattice. Indexs same as lattice
         ! number of non-redundant atoms pre unit cell
-        integer(4) :: num_atoms  !> number of non-redundant atoms in a unit cell
-        integer(4) :: num_layers !> number of layers
-        integer(4) :: atom_per_dim !> atoms along the radius of the unit_cell
+        integer    :: num_atoms  !> number of non-redundant atoms in a unit cell
+        integer    :: num_layers !> number of layers
+        integer    :: atom_per_dim !> atoms along the radius of the unit_cell
         integer(4) :: nProcs
         integer(4) :: me
-        integer(4) :: n_wind !> winding number for lin_rot
+        integer    :: n_wind !> winding number for lin_rot
         real(8) :: lattice_constant !> lattice constant in atomic units
         real(8) :: Vss_sig !> hopping paramater passed for connection 
         real(8) :: eps !> threshold for positional accuracy
@@ -79,7 +79,7 @@ contains
     subroutine free_uc(self)
         implicit none
         class(unit_cell)  :: self
-        integer(4)        :: i
+        integer           :: i
 
         if(allocated(self%atoms))then
             do i =  1,self%num_atoms
@@ -101,9 +101,9 @@ contains
         implicit none
         type(CFG_t)       :: cfg !> config file as read by m_config
         type(unit_cell)   :: self
-        integer(4), parameter           :: lwork =  20
+        integer   , parameter           :: lwork =  20
         real(8)                         :: work(lwork), tmp 
-        integer(4), dimension(2)        :: ipiv
+        integer   , dimension(2)        :: ipiv
         integer(4)                      :: info, ierr
         
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
@@ -182,43 +182,43 @@ contains
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer(4), parameter         :: num_cast = 15
+        integer   , parameter         :: num_cast = 15
         integer(4)                    :: ierr(num_cast)
         
-        call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
+        call MPI_Bcast(self%eps,              1_4,            MPI_REAL8,     &
                        root,                  MPI_COMM_WORLD, ierr(1))
-        call MPI_Bcast(self%Vss_sig,             1,              MPI_REAL8,     &
+        call MPI_Bcast(self%Vss_sig,          1_4,            MPI_REAL8,     &
                        root,                  MPI_COMM_WORLD, ierr(2))
-        call MPI_Bcast(self%mag_type,         25,             MPI_CHARACTER, &
+        call MPI_Bcast(self%mag_type,         25_4,           MPI_CHARACTER, &
                        root,                  MPI_COMM_WORLD, ierr(3))
-        call MPI_Bcast(self%uc_type,          25,             MPI_CHARACTER, &
+        call MPI_Bcast(self%uc_type,          25_4,           MPI_CHARACTER, &
                        root,                  MPI_COMM_WORLD, ierr(4))
-        call MPI_Bcast(self%lattice_constant, 1,              MPI_REAL8, &
+        call MPI_Bcast(self%lattice_constant, 1_4,            MPI_REAL8,     &
                        root,                  MPI_COMM_WORLD, ierr(5))
-        call MPI_Bcast(self%atom_per_dim,     1,              MPI_INTEGER4, &
+        call MPI_Bcast(self%atom_per_dim,     1_4,            MPI_INTEGER4,  &
                        root,                  MPI_COMM_WORLD, ierr(6))
         
-        call MPI_Bcast(self%ferro_phi,    1,              MPI_REAL8, &
+        call MPI_Bcast(self%ferro_phi,    1_4,            MPI_REAL8, &
                        root,              MPI_COMM_WORLD, ierr(7))
-        call MPI_Bcast(self%ferro_theta,  1,              MPI_REAL8, &
+        call MPI_Bcast(self%ferro_theta,  1_4,            MPI_REAL8, &
                        root,              MPI_COMM_WORLD, ierr(8))
-        call MPI_Bcast(self%atan_factor,  1,              MPI_REAL8, &
+        call MPI_Bcast(self%atan_factor,  1_4,            MPI_REAL8, &
                        root,              MPI_COMM_WORLD, ierr(9))
-        call MPI_Bcast(self%dblatan_dist, 1,              MPI_REAL8, &
+        call MPI_Bcast(self%dblatan_dist, 1_4,            MPI_REAL8, &
                        root,              MPI_COMM_WORLD, ierr(10))
 
-        call MPI_Bcast(self%random_width, 1,              MPI_REAL8, &
+        call MPI_Bcast(self%random_width, 1_4,              MPI_REAL8, &
                        root,             MPI_COMM_WORLD, ierr(11))
 
-        call MPI_Bcast(self%skyrm_middle, 1,              MPI_REAL8, &
-                       root,             MPI_COMM_WORLD, ierr(12))
+        call MPI_Bcast(self%skyrm_middle, 1_4,            MPI_REAL8, &
+                       root,              MPI_COMM_WORLD, ierr(12))
 
         !layering vars
-        call MPI_Bcast(self%num_layers,    1,              MPI_INTEGER4,  &
+        call MPI_Bcast(self%num_layers,    1_4,            MPI_INTEGER4,  &
                        root,               MPI_COMM_WORLD, ierr(13))
-        call MPI_Bcast(self%stacking_type, 25,             MPI_CHARACTER, &
+        call MPI_Bcast(self%stacking_type, 25_4,           MPI_CHARACTER, &
                        root,               MPI_COMM_WORLD, ierr(14))
-        call MPI_Bcast(self%layer_height,  1,              MPI_REAL8,     &
+        call MPI_Bcast(self%layer_height,  1_4,            MPI_REAL8,     &
                        root,               MPI_COMM_WORLD, ierr(15))
 
         
@@ -228,7 +228,7 @@ contains
     subroutine init_unit_square(self)
         implicit none
         class(unit_cell), intent(inout) :: self
-        real(8)                        :: conn_mtx(3,3), transl_mtx(2,3)
+        real(8)                         :: conn_mtx(3,3), transl_mtx(2,3)
         
         self%num_atoms = self%atom_per_dim **2 *  self%num_layers
         allocate(self%atoms(self%num_atoms))
@@ -264,7 +264,8 @@ contains
         class(unit_cell), intent(inout)   :: self
         real(8)                           :: conn_mtx(3,3)
         real(8), allocatable              :: transl_mtx(:,:), m(:,:), pos(:,:)
-        integer(4)                        :: n(3), i, n_transl, info
+        integer                           :: n(3), i, n_transl
+        integer(4)                        :: info
         character(len=300)                :: garb
 
         if(self%me ==  root) then 
@@ -273,7 +274,7 @@ contains
             read(21, * ) garb, n(1), n(2), n(3)
             write (*,*) n
         endif
-        call MPI_Bcast(n, 3, MPI_INTEGER4, root, MPI_COMM_WORLD, info)
+        call MPI_Bcast(n, 3_4, MPI_INTEGER4, root, MPI_COMM_WORLD, info)
         self%num_atoms = n(1) * n(2) * n(3)
 
         allocate(self%atoms(self%num_atoms))
@@ -286,8 +287,10 @@ contains
             endif
         enddo
 
-        call MPI_Bcast(pos, 3*self%num_atoms, MPI_REAL8, root, MPI_COMM_WORLD, info)
-        call MPI_Bcast(m,   3*self%num_atoms, MPI_REAL8, root, MPI_COMM_WORLD, info)
+        call MPI_Bcast(pos, int(3*self%num_atoms,4), MPI_REAL8, &
+                       root, MPI_COMM_WORLD, info)
+        call MPI_Bcast(m,   int(3*self%num_atoms,4), MPI_REAL8, &
+                       root, MPI_COMM_WORLD, info)
 
         pos =  pos * self%lattice_constant
         
@@ -297,7 +300,7 @@ contains
         enddo
        
         if(self%me == root) read(21,*) garb, n_transl
-        call MPI_Bcast(n_transl, 1, MPI_INTEGER4, root, MPI_COMM_WORLD, info)
+        call MPI_Bcast(n_transl, 1_4, MPI_INTEGER4, root, MPI_COMM_WORLD, info)
         allocate(transl_mtx(n_transl, 3))
 
         if(self%me == root) then
@@ -310,7 +313,7 @@ contains
         !if we want a molecule, ensure that no wrap-around is found
         if(self%molecule) transl_mtx = transl_mtx * 10d0
 
-        call MPI_Bcast(transl_mtx, 3*n_transl, MPI_REAL8, root, MPI_COMM_WORLD, info)
+        call MPI_Bcast(transl_mtx, int(3*n_transl,4), MPI_REAL8, root, MPI_COMM_WORLD, info)
 
         conn_mtx(1, :) =  (/ self%lattice_constant, 0d0, 0d0 /)
         conn_mtx(2, :) =  (/ 0d0, self%lattice_constant, 0d0 /)
@@ -328,7 +331,7 @@ contains
         class(unit_cell), intent(inout)   :: self
         real(8)                          :: transl_mtx(3,3), base_len_uc, l, pos(3)
         real(8), allocatable             :: hexagon(:,:), grid(:,:)
-        integer(4)                       :: num_atoms, cnt, apd, i 
+        integer                          :: num_atoms, cnt, apd, i 
         integer, allocatable             :: site_type(:)
         
         apd         = self%atom_per_dim
@@ -366,12 +369,12 @@ contains
     subroutine init_unit_honey_film(self)
         implicit none
         class(unit_cell), intent(inout)   :: self
-        integer(4)                        :: apd
+        integer                           :: apd
         real(8)  :: base_len_uc, trans_len, a, transl_mtx(3,3), conn_mtx(9,3) 
         real(8)  :: l, h
         real(8), allocatable             :: shifts(:,:), hexagon(:,:)
         integer, allocatable             :: site_type(:)
-        integer                          :: conn_type(9)
+        integer(4)                       :: conn_type(9)
 
         apd         = self%atom_per_dim
         base_len_uc = self%lattice_constant * apd
@@ -436,7 +439,7 @@ contains
         implicit none
         class(unit_cell), intent(inout) :: self
         real(8) :: layer(:,:), shifts(:,:), curr_shift(3), pos(3)
-        integer(4) :: atoms_in_layer, cnt, shift_idx, num_shifts, lay, atm
+        integer    :: atoms_in_layer, cnt, shift_idx, num_shifts, lay, atm
         integer, optional :: site_type(:)
 
         atoms_in_layer = size(layer, 1) 
@@ -474,7 +477,7 @@ contains
         real(8)  :: transl_mtx(3,3), l, base_len_uc, conn_mtx(3,3)
         real(8), allocatable             :: hexagon(:,:)
         integer, allocatable             :: site_type(:)
-        integer(4)                       :: apd
+        integer                          :: apd
         
 
         apd         = self%atom_per_dim
@@ -526,11 +529,11 @@ contains
     subroutine set_honey_snd_nearest(self)
         implicit none
         class(unit_cell)        :: self
-        integer(4)              :: i, j, cand, apd
+        integer                 :: i, j, cand, apd
         real(8)                 :: l, conn_mtx_A(3,3), conn_mtx_B(3,3), start_pos(3),&
                                    conn(3), transl_mtx(3,3), conn_storage(3,3)
         real(8), allocatable    :: tmp(:,:)
-        integer(4)              :: idx(3), curr_size
+        integer                 :: idx(3), curr_size
         apd = self%atom_per_dim
         l   =  2d0 * cos(deg_30) * self%lattice_constant
         transl_mtx(1, :) = apd * l *  [1d0,   0d0,           0d0]
@@ -594,7 +597,7 @@ contains
     subroutine set_mag_ferro(self)
         implicit none
         class(unit_cell)    :: self
-        integer(4)          :: i
+        integer             :: i
 
         do i = 1,self%num_atoms
             call self%atoms(i)%set_sphere(self%ferro_phi, self%ferro_theta)
@@ -606,7 +609,7 @@ contains
         implicit none
         class(unit_cell)                 :: self 
         real(8)        :: alpha, rel_xpos
-        integer(4)     :: i
+        integer        :: i
 
         do i =  1,self%num_atoms
             rel_xpos =  self%atoms(i)%pos(1) / self%lattice_constant
@@ -625,7 +628,7 @@ contains
     subroutine set_mag_random(self)
         implicit none
         class(unit_cell)       :: self
-        integer(4)             :: i
+        integer                :: i
         real(8)                :: phi, theta, r(2)
 
         do i =  1,self%num_atoms
@@ -687,7 +690,7 @@ contains
         real(8),         intent(in)           :: center(3), radius
         real(8),         parameter            :: e_z(3) =  [0,0,1]
         real(8)                               :: R(3,3), conn(3), n(3), m(3), k(3), alpha
-        integer(4)                            :: i
+        integer                               :: i
 
         alpha =  0d0 
         do i =  1,self%num_atoms
@@ -716,7 +719,7 @@ contains
         class(unit_cell)    :: self
         real(8), intent(in) :: sigma
         real(8)             :: rand_arr(2), new_ang
-        integer(4)          :: i
+        integer             :: i
 
         do i = 1,self%num_atoms
             call gaussian_noise(rand_arr, sigma, 0d0)
@@ -753,7 +756,7 @@ contains
         real(8), intent(in)   :: center(3), radius
         real(8), parameter    :: e_z(3) =  [0,0,1]
         real(8)  :: R(3,3), conn(3), n(3), m(3), alpha, y_min, y_max, x0, x, a, scaling
-        integer(4)            :: i
+        integer               :: i
 
         a       = self%atan_factor
         x0      = self%skyrm_middle * radius
@@ -790,7 +793,7 @@ contains
         real(8), intent(in)   :: center(3), radius
         real(8), parameter    :: e_z(3) =  [0,0,1]
         real(8)  :: R(3,3), conn(3), n(3), m(3), alpha, alp_min, alp_max, a, d, x
-        integer(4)            :: i
+        integer               :: i
         
         a       = self%atan_factor
         d       = self%dblatan_dist
@@ -834,8 +837,8 @@ contains
         class(unit_cell)        :: self
         character(len=*)        :: folder
         real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
-        integer(4)              :: i, n_neigh
-        integer(4), allocatable :: neigh(:,:)
+        integer                 :: i, n_neigh
+        integer   , allocatable :: neigh(:,:)
         integer, allocatable    :: site_type(:), conn_type(:,:)
         
         allocate(x(self%num_atoms))
@@ -900,7 +903,7 @@ contains
     subroutine setup_square(self)
         implicit none
         class(unit_cell), intent(inout)  :: self
-        integer(4)                       :: i, j, cnt, lay
+        integer                          :: i, j, cnt, lay
         real(8) :: pos(3)
 
         cnt =  1
@@ -929,7 +932,7 @@ contains
         real(8), intent(in)              :: hexagon(:,:)
         integer, intent(in)              :: site_type(:)
         real(8)                          :: pos(3)
-        integer(4)                       :: i
+        integer                          :: i
 
         do i =  1, size(hexagon, dim=1)
             pos           =  hexagon(i,:)
@@ -943,11 +946,11 @@ contains
         real(8), intent(in) :: conn_mtx(:,:) !> Matrix containing
         !> real-space connections. The first index inidcates
         !> the connection vector, the second the vector element
-        integer, intent(in) :: conn_type(:)
+        integer(4), intent(in) :: conn_type(:)
         real(8), intent(in) :: transl_mtx(:,:) !> Matrix containing
         !> real-space translation vectors. Notation as in conn_mtx
-        integer(4)              :: i, j, cnt, candidate, n_conn, n_found
-        integer(4), allocatable :: neigh(:)
+        integer                 :: i, j, cnt, candidate, n_conn, n_found
+        integer   , allocatable :: neigh(:)
         real(8)  :: start_pos(3), conn(3)
         logical, allocatable :: found_conn(:)
 
@@ -1009,7 +1012,7 @@ contains
         !> The vectors are save as columns in the matrix:
         !> The first index indicates the vector
         !> The second index indicates the element of the vector
-        integer(4)  :: neigh, idx, n_transl, i
+        integer     :: neigh, idx, n_transl, i
         real(8) :: new(3)
         
         n_transl =  size(transl_mtx, dim=1)
@@ -1041,10 +1044,10 @@ contains
     function already_in_red(pos, hex, till, transl_mtx) result(inside)
         implicit none
         real(8), intent(in)    :: pos(3), hex(:,:), transl_mtx(:,:)
-        integer(4), intent(in) :: till
+        integer   , intent(in) :: till
         logical                :: inside
         real(8)                :: new(3), delta_vec(3), delta
-        integer(4)             :: n_transl, i, trl
+        integer                :: n_transl, i, trl
 
         n_transl = size(transl_mtx, dim = 1)
         inside   = .False.
@@ -1084,8 +1087,8 @@ contains
         real(8), intent(in) :: conn(3) !> RZ connection
         real(8) :: new(3), delta_vec(3), delta
         real(8), parameter :: repl_eps =  1d-8
-        integer(4) :: idx 
-        integer(4) :: i
+        integer    :: idx 
+        integer    :: i
 
         new =  start +  conn
 
@@ -1106,9 +1109,9 @@ contains
     
     subroutine calc_num_atoms_full_honey(n, n_atm, side)
         implicit none
-        integer(4), intent(in)  :: n
-        integer(4), intent(out) :: n_atm, side
-        integer(4)              :: i
+        integer   , intent(in)  :: n
+        integer   , intent(out) :: n_atm, side
+        integer                 :: i
 
         side =  2
         n_atm =  0
@@ -1126,8 +1129,8 @@ contains
 
     function calc_num_atoms_non_red_honey(n) result(n_atm)
         implicit none
-        integer(4), intent(in)   :: n
-        integer(4)               :: inner, next_side, n_atm
+        integer   , intent(in)   :: n
+        integer                  :: inner, next_side, n_atm
 
         call calc_num_atoms_full_honey(n-1, inner, next_side)
 
@@ -1160,10 +1163,10 @@ contains
     subroutine gen_hexa_grid(l, origin, max_ind, grid)
         implicit none
         real(8), intent(in)     :: l, origin(3)
-        integer(4), intent(in)  :: max_ind
+        integer   , intent(in)  :: max_ind
         real(8), allocatable    :: grid(:,:)
         real(8)                 :: v1(3), v2(3)
-        integer(4)              :: cnt, i, j
+        integer                 :: cnt, i, j
 
         if(.not. allocated(grid)) then
             allocate(grid((2*max_ind + 1)**2,3))
@@ -1184,10 +1187,10 @@ contains
     subroutine gen_honey_grid(a, max_ind, grid)
         implicit none
         real(8), intent(in)        :: a
-        integer(4), intent(in)     :: max_ind
+        integer   , intent(in)     :: max_ind
         real(8), allocatable       :: grid(:,:), tmp(:,:)
         real(8)                    :: l, origin(3)
-        integer(4)                 :: n
+        integer                    :: n
 
         n = 2 * max_ind + 1
         l =  2d0 * cos(deg_30) * a
@@ -1208,7 +1211,7 @@ contains
     function get_num_atoms(self) result(num)
         implicit none
         class(unit_cell), intent(in) :: self
-        integer(4) :: num
+        integer    :: num
         num = self%num_atoms 
     end function get_num_atoms
 
@@ -1267,7 +1270,7 @@ contains
     function n_times_phi(x, n) result(y)
         implicit none
         real(8), intent(in)   :: x(3)
-        integer(4),intent(in) :: n
+        integer   ,intent(in) :: n
         real(8)               :: y(3), r, phi, theta
 
         r     = my_norm2(x)

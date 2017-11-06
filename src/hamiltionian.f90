@@ -20,7 +20,7 @@ module Class_hamiltionian
         complex(8), allocatable    :: del_H(:,:)
         integer(4)      :: nProcs
         integer(4)      :: me
-        integer(4)      :: num_orb, num_up
+        integer         :: num_orb, num_up
         type(unit_cell) :: UC !> unit cell
         type(units)     :: units
     contains
@@ -65,7 +65,7 @@ contains
     class(hamil)                :: self
         real(8), intent(in)         :: k(3)
         complex(8), allocatable     :: fd_H(:,:)
-        integer(4)                  :: N, k_idx
+        integer                     :: N, k_idx
 
         N = 2 * self%num_up
         write (*,*) N
@@ -131,7 +131,7 @@ contains
     subroutine test_herm(H, tag)
         implicit none
         complex(8), intent(in)      :: H(:,:)
-        integer(4)                  :: n
+        integer                     :: n
         character(len=*), optional  :: tag
 
         n = size(H, dim=1)
@@ -151,7 +151,8 @@ contains
         type(CFG_t)    :: cfg
         type(hamil)    :: self
         real(8)        :: tmp
-        integer(4)     :: ierr, n
+        integer(4)     :: ierr
+        integer        :: n
 
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
@@ -204,20 +205,31 @@ contains
     subroutine Bcast_hamil(self)
         implicit none
     class(hamil)          :: self
-        integer(4), parameter :: num_cast =  11
+        integer   , parameter :: num_cast =  11
         integer(4)            :: ierr(num_cast)
 
-        call MPI_Bcast(self%E_s,       1, MPI_REAL8,    root, MPI_COMM_WORLD, ierr(1))
-        call MPI_Bcast(self%E_A,       1, MPI_REAL8,    root, MPI_COMM_WORLD, ierr(2))
-        call MPI_Bcast(self%E_B,       1, MPI_REAL8,    root, MPI_COMM_WORLD, ierr(3))
-        call MPI_Bcast(self%Vss_sig,   1, MPI_REAL8,    root, MPI_COMM_WORLD, ierr(4))
-        call MPI_Bcast(self%t_2,       1, MPI_REAL8,    root, MPI_COMM_WORLD, ierr(5))
-        call MPI_Bcast(self%phi_2,     1, MPI_REAL8,    root, MPI_COMM_WORLD, ierr(6))
-        call MPI_Bcast(self%t_so,      1, MPI_REAL8,    root, MPI_COMM_WORLD, ierr(7))
-        call MPI_Bcast(self%lambda,    1, MPI_REAL8,    root, MPI_COMM_WORLD, ierr(8))
-        call MPI_Bcast(self%lambda_nl, 1, MPI_REAL8,    root, MPI_COMM_WORLD, ierr(9))
-        call MPI_Bcast(self%num_orb,   1, MPI_INTEGER4, root, MPI_COMM_WORLD, ierr(10))
-        call MPI_Bcast(self%num_up,    1, MPI_INTEGER4, root, MPI_COMM_WORLD, ierr(11))
+        call MPI_Bcast(self%E_s,       1_4, MPI_REAL8,    &
+                       root, MPI_COMM_WORLD, ierr(1))
+        call MPI_Bcast(self%E_A,       1_4, MPI_REAL8,    &
+                       root, MPI_COMM_WORLD, ierr(2))
+        call MPI_Bcast(self%E_B,       1_4, MPI_REAL8,    &
+                       root, MPI_COMM_WORLD, ierr(3))
+        call MPI_Bcast(self%Vss_sig,   1_4, MPI_REAL8,    &
+                       root, MPI_COMM_WORLD, ierr(4))
+        call MPI_Bcast(self%t_2,       1_4, MPI_REAL8,    &
+                       root, MPI_COMM_WORLD, ierr(5))
+        call MPI_Bcast(self%phi_2,     1_4, MPI_REAL8,    &
+                       root, MPI_COMM_WORLD, ierr(6))
+        call MPI_Bcast(self%t_so,      1_4, MPI_REAL8,    &
+                       root, MPI_COMM_WORLD, ierr(7))
+        call MPI_Bcast(self%lambda,    1_4, MPI_REAL8,    &
+                       root, MPI_COMM_WORLD, ierr(8))
+        call MPI_Bcast(self%lambda_nl, 1_4, MPI_REAL8,    &
+                       root, MPI_COMM_WORLD, ierr(9))
+        call MPI_Bcast(self%num_orb,   1_4, MPI_INTEGER4, &
+                       root, MPI_COMM_WORLD, ierr(10))
+        call MPI_Bcast(self%num_up,    1_4, MPI_INTEGER4, &
+                       root, MPI_COMM_WORLD, ierr(11))
 
         call check_ierr(ierr, self%me, "Hamiltionian check err")
     end subroutine
@@ -227,7 +239,7 @@ contains
     class(hamil), intent(in)   :: self
         complex(8), intent(inout)  :: H(:,:)
         complex(8)                 :: S(2,2) !> Stonermatrix
-        integer(4)                 :: i, i_up, i_dw, atm, m, j, j_up, j_dw
+        integer                    :: i, i_up, i_dw, atm, m, j, j_up, j_dw
 
         m = self%num_orb - 1
         atm = 1
@@ -253,7 +265,7 @@ contains
     subroutine setup_Stoner_mtx(self,i,S)
         implicit none
     class(hamil), intent(in) :: self
-        integer(4), intent(in)   :: i
+        integer   , intent(in)   :: i
         complex(8), intent(inout):: S(2,2)
         real(8)                  :: m(3), fac
 
@@ -269,7 +281,7 @@ contains
         implicit none
     class(hamil), intent(in) :: self
         complex(8), intent(inout):: H(:,:)
-        integer(4) :: i,id
+        integer    :: i,id
 
         do i =  1,self%num_up
             id = i +  self%num_up
@@ -296,7 +308,7 @@ contains
     class(hamil), intent(in)          :: self 
         real(8), intent(in)               :: k(3)
         complex(8), intent(inout)         :: H(:,:)
-        integer(4)                        :: i, i_d, j,&
+        integer                           :: i, i_d, j,&
             j_d, conn, m, cnt
         real(8)                           :: k_dot_r, hopp_mtx(self%num_orb, self%num_orb), R(3)
         complex(8)                        :: new(self%num_orb, self%num_orb)
@@ -376,7 +388,7 @@ contains
     class(hamil), intent(in)              :: self
         complex(8), intent(inout)         :: H(:,:)
         complex(8)                        :: loc_H(2,2), U(2,2), tmp(2,2), rot_H(2,2)
-        integer(4)                        :: i_u, i_d, mu, nu, ms, ns, i_atm
+        integer                           :: i_u, i_d, mu, nu, ms, ns, i_atm
 
         if(self%num_orb /= 3) then
             call error_msg("SOC only implemented for p-orbitals", abort=.True.)
@@ -428,7 +440,7 @@ contains
     subroutine set_small_SOC(self, mu, nu, H)
         implicit none
         class(hamil), intent(in)    :: self
-        integer(4), intent(in)      :: mu, nu
+        integer   , intent(in)      :: mu, nu
         complex(8), intent(out)    :: H(2,2)
 
         H(1,1) =   self%eta_soc *  Lz(mu,nu)
@@ -442,7 +454,7 @@ contains
     class(hamil), intent(in)              :: self 
         real(8), intent(in)               :: k(3)
         complex(8), intent(inout)         :: H(:,:)
-        integer(4)                        :: i, i_d, j, j_d, conn
+        integer                           :: i, i_d, j, j_d, conn
         real(8)                           :: k_dot_r
         complex(8)                        :: forw, back, t_full
 
@@ -476,7 +488,7 @@ contains
     class(hamil), intent(in)    :: self
         real(8), intent(in)         :: k(3)
         complex(8), intent(inout)   :: H(:,:)
-        integer(4)                  :: i, conn, j, i_d, j_d
+        integer                     :: i, conn, j, i_d, j_d
         real(8)                     :: k_dot_r, d_ij(3)
         complex(8)                  :: new(2,2)
 
@@ -531,11 +543,11 @@ contains
         implicit none
     class(hamil), intent(in) :: self
         real(8), intent(in)      :: k(3)
-        integer(4), intent(in)   :: k_idx
+        integer   , intent(in)   :: k_idx
         complex(8), allocatable     :: H_forw(:,:), H_back(:,:), del_H(:,:)
         real(8) :: k_forw(3), k_back(3)
         real(8), parameter :: delta_k =  1d-6
-        integer(4)         :: N
+        integer            :: N
 
         N = 2 * self%num_up
         allocate(H_back(N,N))
@@ -563,7 +575,7 @@ contains
     subroutine set_derivative_k(self, k, k_idx)
         implicit none
     class(hamil)                  :: self
-        integer(4), intent(in)    :: k_idx
+        integer   , intent(in)    :: k_idx
         real(8), intent(in)       :: k(3)
         logical                   :: has_hopp
 
@@ -586,10 +598,10 @@ contains
         implicit none
     class(hamil)             :: self
         real(8), intent(in)      :: k(3)
-        integer(4), intent(in)   :: k_idx
+        integer   , intent(in)   :: k_idx
         real(8)                   :: r(3), k_dot_r, hopp_mtx(self%num_orb, self%num_orb)
         complex(8)                :: forw(self%num_orb, self%num_orb), back(self%num_orb, self%num_orb)
-        integer(4)                :: i, j, conn, i_d, j_d, m, cnt
+        integer                   :: i, j, conn, i_d, j_d, m, cnt
 
         m =  self%num_orb - 1
 
@@ -627,10 +639,10 @@ contains
         implicit none
         class(hamil)              :: self
         real(8), intent(in)       :: k(3)
-        integer(4), intent(in)    :: k_idx
+        integer   , intent(in)    :: k_idx
         real(8)                   :: r(3), k_dot_r
         complex(8)                :: forw, back, t_full
-        integer(4)                :: i, j, conn, i_d, j_d
+        integer                   :: i, j, conn, i_d, j_d
         
         t_full =  self%t_2 * exp(i_unit * self%phi_2)
 
@@ -665,9 +677,9 @@ contains
         implicit none
     class(hamil)            :: self
         real(8), intent(in)     :: k(3)
-        integer(4), intent(in)  :: k_idx
+        integer   , intent(in)  :: k_idx
         real(8)                 :: r(3), d_ij(3), k_dot_r
-        integer(4)              :: i, j, i_d, j_d, conn
+        integer                 :: i, j, i_d, j_d, conn
         complex(8)              :: e_z_sigma(2,2), forw(2,2), back(2,2)
 
         !$omp  parallel do default(shared) & 
@@ -709,15 +721,23 @@ contains
         implicit none
     class(hamil)                    :: self
         real(8), intent(in)             :: k(3)
-        integer(4), intent(in)          :: derive_idx
+        integer   , intent(in)          :: derive_idx
         complex(8), intent(in)          :: eig_vec_mtx(:,:)
         complex(8), allocatable         :: ret(:,:), tmp(:,:)
-        integer(4)   :: n_dim
+        integer      :: n_dim
 
         n_dim = 2 * self%num_up
         allocate(tmp(n_dim, n_dim))
-
+        
+        if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
         call self%set_derivative_k(k, derive_idx)
+
+        call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+            c_1, self%del_H, n_dim,&
+            eig_vec_mtx, n_dim,&
+            c_0, tmp, n_dim)
+       deallocate(self%del_H)
+
         if(allocated(ret))then
             if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
                 deallocate(ret)
@@ -725,10 +745,6 @@ contains
         endif
         if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
 
-        call zgemm('N', 'N', n_dim, n_dim, n_dim, &
-            c_1, self%del_H, n_dim,&
-            eig_vec_mtx, n_dim,&
-            c_0, tmp, n_dim)
         call zgemm('C', 'N', n_dim, n_dim, n_dim, &
             c_1, eig_vec_mtx, n_dim, &
             tmp, n_dim, &
@@ -740,11 +756,12 @@ contains
         implicit none
     class(hamil)             :: self
         real(8), intent(in)      :: k(3)
-        real(8)                  :: eig_val(:)
+        real(8)                  :: eig_val(:), start, finish
         complex(8), allocatable  :: eig_vec(:,:), del_kx(:,:), del_ky(:,:), work(:)
         real(8), allocatable     :: rwork(:)
-        integer(4), allocatable  :: iwork(:)
-        integer(4)   :: n_dim, lwork, lrwork, liwork, info, ierr(3)
+        integer   , allocatable  :: iwork(:)
+        integer      :: n_dim, lwork, lrwork, liwork, info
+        integer(4)   :: ierr(3)
 
         n_dim = 2 * self%num_up
         if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
@@ -757,19 +774,34 @@ contains
         allocate(rwork(lrwork), stat=ierr(2))
         allocate(iwork(liwork), stat=ierr(3))
         call check_ierr(ierr, me_in=self%me, msg=["tried to allocate in zheevd"])
-
-
+        
+        if(self%me == root) then
+            write (*,*) "lwork = ", lwork
+            write (*,*) "lrwork = ", lrwork
+            write (*,*) "liwork = ", liwork
+        endif
+        start =  MPI_Wtime() 
         call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
             work, lwork, rwork, lrwork, iwork, liwork, info)
         if(info /= 0) then
             write (*,*) "ZHEEVD in berry calculation failed"
         endif
-        
+
+        finish = MPI_Wtime()
+        if(self%me == root) write (*,*) "diagonalization done", finish - start
+        deallocate(work, rwork, iwork)
+       
+        start = MPI_Wtime()
         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
+        finish = MPI_Wtime()
+        if(self%me == root) write (*,*) "first zgemm", finish - start
+
+        start = MPI_Wtime()
         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
-        deallocate(work)
-        deallocate(rwork)
-        deallocate(iwork)
+        finish = MPI_Wtime()
+        if(self%me == root) write (*,*) "snd zgemm", finish - start
+
+        deallocate(eig_vec)
     end subroutine calc_eig_and_velo
 
     subroutine calc_berry_z(self, z_comp, eig_val, x_mtx, y_mtx)
@@ -779,7 +811,7 @@ contains
         real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
         complex(8)               :: x_mtx(:,:), y_mtx(:,:)
         complex(8) :: fac
-        integer(4)   :: n_dim, n, m
+        integer    :: n_dim, n, m
 
         n_dim = 2 * self%num_up
         z_comp =  0d0
@@ -804,10 +836,10 @@ contains
         real(8), allocatable,intent(out)  :: eig_val(:,:)
         real(8)                           :: k(3), start
         complex(8), allocatable           :: H(:,:)
-        integer(4) :: i, N, lwork, lrwork, liwork, info
+        integer    :: i, N, lwork, lrwork, liwork, info
         real(8), allocatable              :: RWORK(:)
         complex(8), allocatable           :: WORK(:)
-        integer(4), allocatable           :: IWORK(:)
+        integer   , allocatable           :: IWORK(:)
 
         N =  2 * self%num_up
         allocate(eig_val(N, size(k_list, 2)))
@@ -846,8 +878,8 @@ contains
         real(8)             , intent(out) :: eig_val(:)
         complex(8), allocatable           :: H(:,:), work(:)
         real(8), allocatable              :: rwork(:)
-        integer(4), allocatable           :: iwork(:)
-        integer(4)                        :: N, lwork, lrwork, liwork, info
+        integer   , allocatable           :: iwork(:)
+        integer                           :: N, lwork, lrwork, liwork, info
 
         N = 2 * self%num_up
 

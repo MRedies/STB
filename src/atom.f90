@@ -14,11 +14,11 @@ module Class_atom
                                             !> see german wikipedia, not english                 
         real(8), dimension(3)    :: pos     !> Position in RS in atomic units
         integer                  :: site_type !> A or B site
-        integer(4)               :: layer !> layer 
+        integer                  :: layer !> layer 
         
-        integer(4), allocatable  :: neigh_idx(:)  !> index of neighbour atom
+        integer   , allocatable  :: neigh_idx(:)  !> index of neighbour atom
         real(8), allocatable     :: neigh_conn(:,:) !> real space connection to neighbour. 
-        integer, allocatable     :: conn_type(:) !> type of connection 
+        integer(4), allocatable  :: conn_type(:) !> type of connection 
         !> First index connection, second element of connection.
 
     contains
@@ -52,7 +52,7 @@ contains
         type(atom)                 :: ret
         real(8), intent(in)        :: p_pos(3)
         integer, optional          :: site
-        integer(4), optional       :: layer
+        integer   , optional       :: layer
 
         if(present(site)) then
             ret%site_type = site

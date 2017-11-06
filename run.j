@@ -1,11 +1,11 @@
 #!/usr/bin/env zsh
  
 ### Job name
-#BSUB -J cluster_files/mpi-s-test
+#BSUB -J cluster_files/clx-test
    
 ### File / path where STDOUT & STDERR will be written
 ###    %J is the job ID, %I is the array ID
-#BSUB -o cluster_files/mpi-s-test.%J.%I
+#BSUB -o cluster_files/clx-test.%J.%I
       
 ### Request the time you need for execution in minutes
 ### The format for the parameter is: [hour:]minute,
@@ -13,32 +13,34 @@
 #BSUB -W 5:00
           
 ### Request memory you need for your job per PROCESS in MB
-#BSUB -M 21000 
+#BSUB -M 126000 
                
 ### Hybrid Job with <N> MPI Processes in groups to <M> processes per node
 # #BSUB -n <N>
 # #BSUB -R "span[ptile=<M>]"
-#BSUB -n 5
+#BSUB -n 1
 ##BSUB -R "span[ptile=1]"
                      
 ### Request a certaion node type
-#BSUB -m mpi-s
+#BSUB -m c24m128
+#BSUB -P jara0062
                             
 ### Use nodes exclusive
 #BSUB -x
                                     
 ### Each MPI process with T Threads
-                                    export OMP_NUM_THREADS=12
+export OMP_NUM_THREADS=24
                                              
 #BSUB -a intelmpi
                                                         
 ### Change to the work directory
-                                                        cd /home/mr071525/STB
+cd /home/pb321611/STB
 
 #BSUB -u m.redies@fz-juelich.de
 #BSUB -N
 #BSUB -B
 
 ### Execute your application
-$MPIEXEC $FLAGS_MPI_BATCH /home/mr071525/STB/stb.x /home/mr071525/STB/inis/example.cfg
-
+echo "MPI FLAG"
+echo $MPIEXEC $FLAGS_MPI_BATCH
+$MPIEXEC $FLAGS_MPI_BATCH ./stb.x inis/example.cfg
