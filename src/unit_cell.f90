@@ -366,7 +366,7 @@ contains
     subroutine init_unit_honey_film(self)
         implicit none
         class(unit_cell), intent(inout)   :: self
-        integer(4)                       :: apd, ierr
+        integer(4)                        :: apd
         real(8)  :: base_len_uc, trans_len, a, transl_mtx(3,3), conn_mtx(9,3) 
         real(8)  :: l, h
         real(8), allocatable             :: shifts(:,:), hexagon(:,:)
@@ -526,7 +526,7 @@ contains
     subroutine set_honey_snd_nearest(self)
         implicit none
         class(unit_cell)        :: self
-        integer(4)              :: i, j, cand, ierr, apd
+        integer(4)              :: i, j, cand, apd
         real(8)                 :: l, conn_mtx_A(3,3), conn_mtx_B(3,3), start_pos(3),&
                                    conn(3), transl_mtx(3,3), conn_storage(3,3)
         real(8), allocatable    :: tmp(:,:)
@@ -687,7 +687,7 @@ contains
         real(8),         intent(in)           :: center(3), radius
         real(8),         parameter            :: e_z(3) =  [0,0,1]
         real(8)                               :: R(3,3), conn(3), n(3), m(3), k(3), alpha
-        integer(4)                            :: i, ierr
+        integer(4)                            :: i
 
         alpha =  0d0 
         do i =  1,self%num_atoms
@@ -946,7 +946,7 @@ contains
         integer, intent(in) :: conn_type(:)
         real(8), intent(in) :: transl_mtx(:,:) !> Matrix containing
         !> real-space translation vectors. Notation as in conn_mtx
-        integer(4)              :: i, j, cnt, candidate, n_conn, n_found, ierr
+        integer(4)              :: i, j, cnt, candidate, n_conn, n_found
         integer(4), allocatable :: neigh(:)
         real(8)  :: start_pos(3), conn(3)
         logical, allocatable :: found_conn(:)

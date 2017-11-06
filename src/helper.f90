@@ -178,7 +178,7 @@ contains
         implicit none
         integer(4), intent(inout)  :: ierr(:)
         integer(4), optional       :: me_in
-        integer(4)                 :: error, i, me, holder
+        integer(4)                 :: i, me, holder
         character(len=*), optional :: info, msg(:)
 
         if(present(me_in)) then
