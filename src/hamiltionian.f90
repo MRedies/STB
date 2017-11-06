@@ -744,7 +744,7 @@ contains
         complex(8), allocatable  :: eig_vec(:,:), del_kx(:,:), del_ky(:,:), work(:)
         real(8), allocatable     :: rwork(:)
         integer(4), allocatable  :: iwork(:)
-        integer(4)   :: n_dim, lwork, lrwork, liwork, info
+        integer(4)   :: n_dim, lwork, lrwork, liwork, info, ierr(3)
 
         n_dim = 2 * self%num_up
         if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
@@ -753,9 +753,10 @@ contains
         call self%setup_H(k, eig_vec)
 
         call calc_zheevd_size('V', eig_vec, eig_val, lwork, lrwork, liwork)
-        allocate(work(lwork), stat=info)
-        allocate(rwork(lrwork))
-        allocate(iwork(liwork))
+        allocate(work(lwork), stat=ierr(1))
+        allocate(rwork(lrwork), stat=ierr(2))
+        allocate(iwork(liwork), stat=ierr(3))
+        call check_ierr(ierr, me_in=self%me, msg=["tried to allocate in zheevd"])
 
 
         call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
