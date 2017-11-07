@@ -116,7 +116,7 @@ contains
 
         has_E = (self%E_s /= 0) .or. (self%E_A /= 0) .or. (self%E_B /= 0)
         if(has_E) call self%set_EigenE(H)
-
+        
         has_hopp =   (self%Vss_sig /= 0d0) &
                 .or. (self%Vpp_sig /= 0d0) .or. (self%Vpp_pi /= 0d0)
         if(has_hopp) call self%set_hopping(k,H)
@@ -125,7 +125,6 @@ contains
         if(self%t_so      /= 0d0) call self%set_rashba_SO(k,H)
         if(self%eta_soc   /= 0d0) call self%set_SOC(H)
         if(self%lambda    /= 0d0) call self%set_loc_exch(H)
-        
     end subroutine setup_H
 
     subroutine test_herm(H, tag)
@@ -205,31 +204,33 @@ contains
     subroutine Bcast_hamil(self)
         implicit none
     class(hamil)          :: self
-        integer   , parameter :: num_cast =  11
+        integer   , parameter :: num_cast =  12
         integer(4)            :: ierr(num_cast)
 
-        call MPI_Bcast(self%E_s,       1_4, MPI_REAL8,    &
-                       root, MPI_COMM_WORLD, ierr(1))
-        call MPI_Bcast(self%E_A,       1_4, MPI_REAL8,    &
-                       root, MPI_COMM_WORLD, ierr(2))
-        call MPI_Bcast(self%E_B,       1_4, MPI_REAL8,    &
-                       root, MPI_COMM_WORLD, ierr(3))
-        call MPI_Bcast(self%Vss_sig,   1_4, MPI_REAL8,    &
-                       root, MPI_COMM_WORLD, ierr(4))
-        call MPI_Bcast(self%t_2,       1_4, MPI_REAL8,    &
-                       root, MPI_COMM_WORLD, ierr(5))
-        call MPI_Bcast(self%phi_2,     1_4, MPI_REAL8,    &
-                       root, MPI_COMM_WORLD, ierr(6))
-        call MPI_Bcast(self%t_so,      1_4, MPI_REAL8,    &
-                       root, MPI_COMM_WORLD, ierr(7))
-        call MPI_Bcast(self%lambda,    1_4, MPI_REAL8,    &
-                       root, MPI_COMM_WORLD, ierr(8))
-        call MPI_Bcast(self%lambda_nl, 1_4, MPI_REAL8,    &
-                       root, MPI_COMM_WORLD, ierr(9))
-        call MPI_Bcast(self%num_orb,   1_4, MPI_INTEGER4, &
-                       root, MPI_COMM_WORLD, ierr(10))
-        call MPI_Bcast(self%num_up,    1_4, MPI_INTEGER4, &
-                       root, MPI_COMM_WORLD, ierr(11))
+        call MPI_Bcast(self%E_s,       1_4,            MPI_REAL8,    &
+                       root,           MPI_COMM_WORLD, ierr(1))
+        call MPI_Bcast(self%E_A,       1_4,            MPI_REAL8,    &
+                       root,           MPI_COMM_WORLD, ierr(2))
+        call MPI_Bcast(self%E_B,       1_4,            MPI_REAL8,    &
+                       root,           MPI_COMM_WORLD, ierr(3))
+        call MPI_Bcast(self%Vss_sig,   1_4,            MPI_REAL8,    &
+                       root,           MPI_COMM_WORLD, ierr(4))
+        call MPI_Bcast(self%t_2,       1_4,            MPI_REAL8,    &
+                       root,           MPI_COMM_WORLD, ierr(5))
+        call MPI_Bcast(self%phi_2,     1_4,            MPI_REAL8,    &
+                       root,           MPI_COMM_WORLD, ierr(6))
+        call MPI_Bcast(self%t_so,      1_4,            MPI_REAL8,    &
+                       root,           MPI_COMM_WORLD, ierr(7))
+        call MPI_Bcast(self%lambda,    1_4,            MPI_REAL8,    &
+                       root,           MPI_COMM_WORLD, ierr(8))
+        call MPI_Bcast(self%lambda_nl, 1_4,            MPI_REAL8,    &
+                       root,           MPI_COMM_WORLD, ierr(9))
+        call MPI_Bcast(self%eta_soc,   1_4,            MPI_REAL8,    &
+                       root,           MPI_COMM_WORLD, ierr(10))
+        call MPI_Bcast(self%num_orb,   1_4,            MPI_INTEGER4, &
+                       root,           MPI_COMM_WORLD, ierr(11))
+        call MPI_Bcast(self%num_up,    1_4,            MPI_INTEGER4, &
+                       root,           MPI_COMM_WORLD, ierr(12))
 
         call check_ierr(ierr, self%me, "Hamiltionian check err")
     end subroutine
@@ -845,7 +846,6 @@ contains
                 stop
             endif
         enddo
-
 
         deallocate(H)
         deallocate(RWORK)

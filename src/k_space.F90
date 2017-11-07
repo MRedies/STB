@@ -112,7 +112,7 @@ contains
     Subroutine  calc_and_print_band(self)
         Implicit None
     class(k_space)                :: self 
-        integer(4)                    :: first, last, N 
+        integer(4)                    :: first, last, N
         integer(4)                    :: send_count, ierr
         integer(4), allocatable       :: num_elems(:), offsets(:)
         real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
@@ -142,14 +142,12 @@ contains
         call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
         num_elems =  num_elems * N
         offsets   =  offsets   * N
-        write (*,*) self%me, "Flag J", first, last, num_elems, offsets
 
         send_count =  N *  size(k_pts_sec, 2)
 
         call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
             eig_val,     num_elems,  offsets,   MPI_REAL8,&
             root,        MPI_COMM_WORLD, ierr)
-        write (*,*) self%me, "Flag K"
 
         if(self%me == root) then 
             call save_npy(trim(self%prefix) //  "band_k.npy", self%new_k_pts / self%units%inv_length)
