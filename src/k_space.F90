@@ -135,7 +135,6 @@ contains
 
         call self%ham%calc_eigenvalues(k_pts_sec, sec_eig_val)
 
-
         N = 2 *  self%ham%UC%num_atoms 
         allocate(eig_val(N, size(self%new_k_pts,2)))
         allocate(num_elems(self%nProcs))
@@ -143,12 +142,14 @@ contains
         call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
         num_elems =  num_elems * N
         offsets   =  offsets   * N
+        write (*,*) self%me, "Flag J", first, last, num_elems, offsets
 
         send_count =  N *  size(k_pts_sec, 2)
 
         call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
             eig_val,     num_elems,  offsets,   MPI_REAL8,&
             root,        MPI_COMM_WORLD, ierr)
+        write (*,*) self%me, "Flag K"
 
         if(self%me == root) then 
             call save_npy(trim(self%prefix) //  "band_k.npy", self%new_k_pts / self%units%inv_length)

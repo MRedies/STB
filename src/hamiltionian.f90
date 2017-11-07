@@ -775,32 +775,16 @@ contains
         allocate(iwork(liwork), stat=ierr(3))
         call check_ierr(ierr, me_in=self%me, msg=["tried to allocate in zheevd"])
         
-        if(self%me == root) then
-            write (*,*) "lwork = ", lwork
-            write (*,*) "lrwork = ", lrwork
-            write (*,*) "liwork = ", liwork
-        endif
-        start =  MPI_Wtime() 
         call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
             work, lwork, rwork, lrwork, iwork, liwork, info)
         if(info /= 0) then
             write (*,*) "ZHEEVD in berry calculation failed"
         endif
 
-        finish = MPI_Wtime()
-        if(self%me == root) write (*,*) "diagonalization done", finish - start
         deallocate(work, rwork, iwork)
        
-        start = MPI_Wtime()
         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
-        finish = MPI_Wtime()
-        if(self%me == root) write (*,*) "first zgemm", finish - start
-
-        start = MPI_Wtime()
         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
-        finish = MPI_Wtime()
-        if(self%me == root) write (*,*) "snd zgemm", finish - start
-
         deallocate(eig_vec)
     end subroutine calc_eig_and_velo
 
@@ -850,10 +834,7 @@ contains
         allocate(IWORK(liwork))
         allocate(WORK(lwork))
 
-        start = MPI_Wtime()
         do i = 1,size(k_list,2)
-            call error_msg("next->", c_green)
-            if(self%me == root) write (*,*) "Time: ", MPI_Wtime() -start
             k =  k_list(:,i)
             call self%setup_H(k, H)
 
