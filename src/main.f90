@@ -110,17 +110,19 @@ contains
         implicit none
         integer(4), intent(out)  :: n_files 
         character(len=300), allocatable :: inp_files(:)
-        integer(4)               :: me, ierr
+        integer(4)               :: me, ierr, i
         character(len=300)       :: base_str, tmp_str, start_str, end_str, n_files_str
         
         call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
     
         if(me == root) then
-            if(command_argument_count() == 1) then
+            if(command_argument_count() == 0) then
+                call error_msg("need some input", abort=.True.)
+            elseif(command_argument_count() == 1) then
                 n_files = 1
                 allocate(inp_files(1))
                 call get_command_argument(1, inp_files(1))
-            else if(command_argument_count() == 2) then
+            elseif(command_argument_count() == 2) then
                 call get_command_argument(2, n_files_str)
                 read(n_files_str,*) n_files
                 allocate(inp_files(n_files))
@@ -130,7 +132,7 @@ contains
                     write(tmp_str, "(I6)") n_inp
                     inp_files(n_inp+1) = trim(base_str) // trim(adjustl(tmp_str)) // ".cfg"
                 enddo
-            else if(command_argument_count() == 3) then
+            elseif(command_argument_count() == 3) then
                 call get_command_argument(2, start_str)
                 call get_command_argument(3, end_str)
                 read(start_str, *) start_idx
@@ -147,6 +149,13 @@ contains
                 enddo
             endif
         endif
+        call MPI_Bcast(n_files, 1_4, MPI_INTEGER4, root, MPI_COMM_WORLD, ierr)
+        if(me /= root) allocate(inp_files(n_files))
+
+        do i=1,n_files
+            call MPI_Bcast(inp_files(i), 300_4, MPI_INTEGER4,&
+                            root, MPI_COMM_WORLD, ierr)
+        enddo
 
     end subroutine get_inp_files
         
