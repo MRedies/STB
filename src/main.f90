@@ -10,8 +10,9 @@ program STB
     implicit none
     type(k_space)                   :: Ksp
     character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
-    integer(4)                      :: ierr, me, n_inp, n_files, seed_sz, start_idx, end_idx, cnt
+    integer(4)                      :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt
     integer(4), allocatable         :: seed(:)
+    integer                         :: ierr, me
     character(len=300), allocatable :: inp_files(:)
 
     call MPI_Init(ierr)
@@ -35,7 +36,7 @@ contains
         implicit none
         character(len=300), intent(in) :: inp_file
         real(8)                        :: start, halt
-        integer(4)                     :: me
+        integer                        :: me, ierr
         logical                        :: perform_band, perform_dos, calc_hall, calc_orbmag
         type(CFG_t)                     :: cfg
         character(len=25)               :: fermi_type
@@ -110,7 +111,7 @@ contains
         implicit none
         integer(4), intent(out)  :: n_files 
         character(len=300), allocatable :: inp_files(:)
-        integer(4)               :: me, ierr, i
+        integer                  :: me, ierr, i
         character(len=300)       :: base_str, tmp_str, start_str, end_str, n_files_str
         
         call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
