@@ -32,6 +32,7 @@
 export OMP_NUM_THREADS=24
                                              
 #BSUB -a intelmpi
+module switch openmpi intelmpi
                                                         
 ### Change to the work directory
 cd /home/pb321611/STB
