@@ -18,7 +18,7 @@
 ### Hybrid Job with <N> MPI Processes in groups to <M> processes per node
 # #BSUB -n <N>
 # #BSUB -R "span[ptile=<M>]"
-#BSUB -n 1
+#BSUB -n 2
 ##BSUB -R "span[ptile=1]"
                      
 ### Request a certaion node type
@@ -44,4 +44,4 @@ cd /home/pb321611/STB
 ### Execute your application
 echo "MPI FLAG"
 echo $MPIEXEC $FLAGS_MPI_BATCH
-$MPIEXEC $FLAGS_MPI_BATCH ./stb.x inis/example.cfg
+$MPIEXEC $FLAGS_MPI_BATCH ./stb.x inis/bla.cfg

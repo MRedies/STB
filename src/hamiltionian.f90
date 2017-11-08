@@ -4,6 +4,7 @@ module Class_hamiltionian
     use Class_unit_cell
     use m_npy
     use mpi
+    use MYPI
     implicit none
 
     type hamil
@@ -18,8 +19,8 @@ module Class_hamiltionian
         real(8)         :: lambda !> local exchange
         real(8)         :: lambda_nl !> non-local exchange (not implemented yet)
         complex(8), allocatable    :: del_H(:,:)
-        integer(4)      :: nProcs
-        integer(4)      :: me
+        integer         :: nProcs
+        integer         :: me
         integer         :: num_orb, num_up
         type(unit_cell) :: UC !> unit cell
         type(units)     :: units
@@ -150,7 +151,7 @@ contains
         type(CFG_t)    :: cfg
         type(hamil)    :: self
         real(8)        :: tmp
-        integer(4)     :: ierr
+        integer        :: ierr
         integer        :: n
 
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
@@ -205,31 +206,31 @@ contains
         implicit none
     class(hamil)          :: self
         integer   , parameter :: num_cast =  12
-        integer(4)            :: ierr(num_cast)
+        integer               :: ierr(num_cast)
 
-        call MPI_Bcast(self%E_s,       1_4,            MPI_REAL8,    &
+        call MPI_Bcast(self%E_s,       1,            MPI_REAL8,    &
                        root,           MPI_COMM_WORLD, ierr(1))
-        call MPI_Bcast(self%E_A,       1_4,            MPI_REAL8,    &
+        call MPI_Bcast(self%E_A,       1,            MPI_REAL8,    &
                        root,           MPI_COMM_WORLD, ierr(2))
-        call MPI_Bcast(self%E_B,       1_4,            MPI_REAL8,    &
+        call MPI_Bcast(self%E_B,       1,            MPI_REAL8,    &
                        root,           MPI_COMM_WORLD, ierr(3))
-        call MPI_Bcast(self%Vss_sig,   1_4,            MPI_REAL8,    &
+        call MPI_Bcast(self%Vss_sig,   1,            MPI_REAL8,    &
                        root,           MPI_COMM_WORLD, ierr(4))
-        call MPI_Bcast(self%t_2,       1_4,            MPI_REAL8,    &
+        call MPI_Bcast(self%t_2,       1,            MPI_REAL8,    &
                        root,           MPI_COMM_WORLD, ierr(5))
-        call MPI_Bcast(self%phi_2,     1_4,            MPI_REAL8,    &
+        call MPI_Bcast(self%phi_2,     1,            MPI_REAL8,    &
                        root,           MPI_COMM_WORLD, ierr(6))
-        call MPI_Bcast(self%t_so,      1_4,            MPI_REAL8,    &
+        call MPI_Bcast(self%t_so,      1,            MPI_REAL8,    &
                        root,           MPI_COMM_WORLD, ierr(7))
-        call MPI_Bcast(self%lambda,    1_4,            MPI_REAL8,    &
+        call MPI_Bcast(self%lambda,    1,            MPI_REAL8,    &
                        root,           MPI_COMM_WORLD, ierr(8))
-        call MPI_Bcast(self%lambda_nl, 1_4,            MPI_REAL8,    &
+        call MPI_Bcast(self%lambda_nl, 1,            MPI_REAL8,    &
                        root,           MPI_COMM_WORLD, ierr(9))
-        call MPI_Bcast(self%eta_soc,   1_4,            MPI_REAL8,    &
+        call MPI_Bcast(self%eta_soc,   1,            MPI_REAL8,    &
                        root,           MPI_COMM_WORLD, ierr(10))
-        call MPI_Bcast(self%num_orb,   1_4,            MPI_INTEGER4, &
+        call MPI_Bcast(self%num_orb,   1,            MYPI_INT, &
                        root,           MPI_COMM_WORLD, ierr(11))
-        call MPI_Bcast(self%num_up,    1_4,            MPI_INTEGER4, &
+        call MPI_Bcast(self%num_up,    1,            MYPI_INT, &
                        root,           MPI_COMM_WORLD, ierr(12))
 
         call check_ierr(ierr, self%me, "Hamiltionian check err")
@@ -757,12 +758,12 @@ contains
         implicit none
     class(hamil)             :: self
         real(8), intent(in)      :: k(3)
-        real(8)                  :: eig_val(:), start, finish
+        real(8)                  :: eig_val(:)
         complex(8), allocatable  :: eig_vec(:,:), del_kx(:,:), del_ky(:,:), work(:)
         real(8), allocatable     :: rwork(:)
         integer   , allocatable  :: iwork(:)
         integer      :: n_dim, lwork, lrwork, liwork, info
-        integer(4)   :: ierr(3)
+        integer      :: ierr(3)
 
         n_dim = 2 * self%num_up
         if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
@@ -819,7 +820,7 @@ contains
     class(hamil)                      :: self
         real(8), intent(in)               :: k_list(:,:)
         real(8), allocatable,intent(out)  :: eig_val(:,:)
-        real(8)                           :: k(3), start
+        real(8)                           :: k(3)
         complex(8), allocatable           :: H(:,:)
         integer    :: i, N, lwork, lrwork, liwork, info
         real(8), allocatable              :: RWORK(:)

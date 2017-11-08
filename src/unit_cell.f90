@@ -5,6 +5,7 @@ module Class_unit_cell
     use output
     use m_npy
     use mpi
+    use mypi
     use Constants
     use class_Units
 
@@ -24,8 +25,8 @@ module Class_unit_cell
         integer    :: num_atoms  !> number of non-redundant atoms in a unit cell
         integer    :: num_layers !> number of layers
         integer    :: atom_per_dim !> atoms along the radius of the unit_cell
-        integer(4) :: nProcs
-        integer(4) :: me
+        integer    :: nProcs
+        integer    :: me
         integer    :: n_wind !> winding number for lin_rot
         real(8) :: lattice_constant !> lattice constant in atomic units
         real(8) :: Vss_sig !> hopping paramater passed for connection 
@@ -104,7 +105,8 @@ contains
         integer   , parameter           :: lwork =  20
         real(8)                         :: work(lwork), tmp 
         integer   , dimension(2)        :: ipiv
-        integer(4)                      :: info, ierr
+        integer                         :: info
+        integer                         :: ierr
         
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
@@ -183,42 +185,42 @@ contains
         implicit none
         class(unit_cell)              :: self
         integer   , parameter         :: num_cast = 15
-        integer(4)                    :: ierr(num_cast)
+        integer                       :: ierr(num_cast)
         
-        call MPI_Bcast(self%eps,              1_4,            MPI_REAL8,     &
+        call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
                        root,                  MPI_COMM_WORLD, ierr(1))
-        call MPI_Bcast(self%Vss_sig,          1_4,            MPI_REAL8,     &
+        call MPI_Bcast(self%Vss_sig,          1,              MPI_REAL8,     &
                        root,                  MPI_COMM_WORLD, ierr(2))
-        call MPI_Bcast(self%mag_type,         25_4,           MPI_CHARACTER, &
+        call MPI_Bcast(self%mag_type,         25,             MPI_CHARACTER, &
                        root,                  MPI_COMM_WORLD, ierr(3))
-        call MPI_Bcast(self%uc_type,          25_4,           MPI_CHARACTER, &
+        call MPI_Bcast(self%uc_type,          25,             MPI_CHARACTER, &
                        root,                  MPI_COMM_WORLD, ierr(4))
-        call MPI_Bcast(self%lattice_constant, 1_4,            MPI_REAL8,     &
+        call MPI_Bcast(self%lattice_constant, 1,              MPI_REAL8,     &
                        root,                  MPI_COMM_WORLD, ierr(5))
-        call MPI_Bcast(self%atom_per_dim,     1_4,            MPI_INTEGER4,  &
+        call MPI_Bcast(self%atom_per_dim,     1,              MYPI_INT,      &
                        root,                  MPI_COMM_WORLD, ierr(6))
         
-        call MPI_Bcast(self%ferro_phi,    1_4,            MPI_REAL8, &
+        call MPI_Bcast(self%ferro_phi,    1,            MPI_REAL8, &
                        root,              MPI_COMM_WORLD, ierr(7))
-        call MPI_Bcast(self%ferro_theta,  1_4,            MPI_REAL8, &
+        call MPI_Bcast(self%ferro_theta,  1,            MPI_REAL8, &
                        root,              MPI_COMM_WORLD, ierr(8))
-        call MPI_Bcast(self%atan_factor,  1_4,            MPI_REAL8, &
+        call MPI_Bcast(self%atan_factor,  1,            MPI_REAL8, &
                        root,              MPI_COMM_WORLD, ierr(9))
-        call MPI_Bcast(self%dblatan_dist, 1_4,            MPI_REAL8, &
+        call MPI_Bcast(self%dblatan_dist, 1,            MPI_REAL8, &
                        root,              MPI_COMM_WORLD, ierr(10))
 
-        call MPI_Bcast(self%random_width, 1_4,              MPI_REAL8, &
+        call MPI_Bcast(self%random_width, 1,              MPI_REAL8, &
                        root,             MPI_COMM_WORLD, ierr(11))
 
-        call MPI_Bcast(self%skyrm_middle, 1_4,            MPI_REAL8, &
+        call MPI_Bcast(self%skyrm_middle, 1,            MPI_REAL8, &
                        root,              MPI_COMM_WORLD, ierr(12))
 
         !layering vars
-        call MPI_Bcast(self%num_layers,    1_4,            MPI_INTEGER4,  &
+        call MPI_Bcast(self%num_layers,    1,            MYPI_INT,  &
                        root,               MPI_COMM_WORLD, ierr(13))
-        call MPI_Bcast(self%stacking_type, 25_4,           MPI_CHARACTER, &
+        call MPI_Bcast(self%stacking_type, 25,           MPI_CHARACTER, &
                        root,               MPI_COMM_WORLD, ierr(14))
-        call MPI_Bcast(self%layer_height,  1_4,            MPI_REAL8,     &
+        call MPI_Bcast(self%layer_height,  1,            MPI_REAL8,     &
                        root,               MPI_COMM_WORLD, ierr(15))
 
         
@@ -265,7 +267,7 @@ contains
         real(8)                           :: conn_mtx(3,3)
         real(8), allocatable              :: transl_mtx(:,:), m(:,:), pos(:,:)
         integer                           :: n(3), i, n_transl
-        integer(4)                        :: info
+        integer                           :: info
         character(len=300)                :: garb
 
         if(self%me ==  root) then 
@@ -274,7 +276,7 @@ contains
             read(21, * ) garb, n(1), n(2), n(3)
             write (*,*) n
         endif
-        call MPI_Bcast(n, 3_4, MPI_INTEGER4, root, MPI_COMM_WORLD, info)
+        call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
         self%num_atoms = n(1) * n(2) * n(3)
 
         allocate(self%atoms(self%num_atoms))
@@ -300,7 +302,7 @@ contains
         enddo
        
         if(self%me == root) read(21,*) garb, n_transl
-        call MPI_Bcast(n_transl, 1_4, MPI_INTEGER4, root, MPI_COMM_WORLD, info)
+        call MPI_Bcast(n_transl, 1, MYPI_INT, root, MPI_COMM_WORLD, info)
         allocate(transl_mtx(n_transl, 3))
 
         if(self%me == root) then

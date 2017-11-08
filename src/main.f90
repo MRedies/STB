@@ -6,12 +6,13 @@ program STB
     use mpi
     use Constants
     use Class_unit_cell
+    use mypi
 
     implicit none
     type(k_space)                   :: Ksp
     character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
-    integer(4)                      :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt
-    integer(4), allocatable         :: seed(:)
+    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt
+    integer   , allocatable         :: seed(:)
     integer                         :: ierr, me
     character(len=300), allocatable :: inp_files(:)
 
@@ -25,7 +26,7 @@ program STB
     
     call get_inp_files(n_files, inp_files)
 
-    call MPI_Bcast(n_files, 1_4, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
     do n_inp = 1, n_files
         call process_file(inp_files(n_inp))
     enddo
@@ -56,11 +57,11 @@ contains
             call CFG_get(cfg, "berry%calc_orbmag", calc_orbmag)
         endif
 
-        call MPI_Bcast(perform_band, 1_4,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-        call MPI_Bcast(perform_dos,  1_4,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-        call MPI_Bcast(fermi_type,   25_4, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
-        call MPI_Bcast(calc_hall,    1_4,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-        call MPI_Bcast(calc_orbmag,  1_4,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(calc_orbmag,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
 
         Ksp =  init_k_space(cfg)
         if(me == root) call save_cfg(cfg)
@@ -109,7 +110,7 @@ contains
 
     subroutine get_inp_files(n_files, inp_files)
         implicit none
-        integer(4), intent(out)  :: n_files 
+        integer, intent(out)     :: n_files 
         character(len=300), allocatable :: inp_files(:)
         integer                  :: me, ierr, i
         character(len=300)       :: base_str, tmp_str, start_str, end_str, n_files_str
@@ -150,11 +151,11 @@ contains
                 enddo
             endif
         endif
-        call MPI_Bcast(n_files, 1_4, MPI_INTEGER4, root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
         if(me /= root) allocate(inp_files(n_files))
 
         do i=1,n_files
-            call MPI_Bcast(inp_files(i), 300_4, MPI_INTEGER4,&
+            call MPI_Bcast(inp_files(i), 300, MPI_CHARACTER,&
                             root, MPI_COMM_WORLD, ierr)
         enddo
 

@@ -3,7 +3,7 @@ subroutine run_triang(k_pts, ret_elem)
     use iso_c_binding, only : C_INT, C_DOUBLE
     implicit none
     real(8), intent(in)              :: k_pts(:,:)
-    integer(4), allocatable          :: ret_elem(:,:)
+    integer, allocatable             :: ret_elem(:,:)
     integer(kind=C_INT)              :: n_nodes
     real(kind=C_DOUBLE), allocatable :: x(:), y(:)
     integer(kind=C_INT), allocatable :: elem(:)

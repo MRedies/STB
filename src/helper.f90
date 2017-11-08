@@ -3,7 +3,7 @@ module Class_helper
     use Constants
     use mpi
     implicit none
-
+    
     character(len=1), parameter :: c_esc = achar(27)
     character(len=2), parameter :: c_start = c_esc // '['
     character(len=1), parameter :: c_end = 'm'
@@ -39,7 +39,7 @@ contains
         implicit none
         complex(8), intent(in)    :: A(:,:), x(:)
         complex(8)                :: b(size(x))
-        integer                   :: i, j
+        integer                :: i, j
 
         !$omp parallel do private(j) shared(A,x,b)
         do i = 1,size(x)
@@ -54,7 +54,7 @@ contains
         implicit none
         complex(8), intent(in)    :: A(:,:), x(:)
         complex(8)                :: b(size(x))
-        integer                   :: i, j
+        integer                :: i, j
 
         do i = 1,size(x)
             b(i) = 0d0
@@ -76,10 +76,10 @@ contains
         character(len=1)          :: vn_flag
         complex(8), intent(in)    :: H(:,:)
         real(8), intent(in)       :: eig_val(:)
-        integer   , intent(out)   :: lwork, lrwork, liwork
+        integer, intent(out)      :: lwork, lrwork, liwork
         complex(8)                :: lwork_tmp
         real(8)                   :: lrwork_tmp
-        integer                   :: N, info
+        integer                :: N, info
 
         N =  size(H, dim=1)
         call zheevd(vn_flag, 'U', N, H, N, eig_val, &
@@ -90,13 +90,12 @@ contains
 
     subroutine my_section(me, nProcs, length, first, last)
         implicit none
-        integer(4), intent(in)     :: me, nProcs
-        integer, intent(in)        :: length
-        integer(4), intent(out)    :: first, last
-        integer                    :: small_chunk, nLarge, i, chunk_sz
+        integer, intent(in)     :: me, nProcs, length
+        integer, intent(out)    :: first, last
+        integer                 :: small_chunk, nLarge, i, chunk_sz
 
         small_chunk =  length / nProcs
-        nLarge =  mod(int(length,4), nProcs)
+        nLarge =  mod(length, nProcs)
         first =  1
 
         ! MPI Procs start at 0
@@ -117,13 +116,13 @@ contains
 
     subroutine sections(nProcs, length, num_elem, offset)
         implicit none
-        integer(4), intent(in)    :: nProcs
-        integer   , intent(in)    :: length
-        integer(4), intent(out)   :: num_elem(nProcs), offset(nProcs)
-        integer                   :: small_chunk, nLarge, i
+        integer, intent(in)    :: nProcs
+        integer, intent(in)    :: length
+        integer, intent(out)   :: num_elem(nProcs), offset(nProcs)
+        integer                :: small_chunk, nLarge, i
 
         small_chunk =  length / nProcs
-        nLarge =  mod(int(length,4), nProcs)
+        nLarge =  mod(length, nProcs)
 
         ! MPI Procs start at 0
         do i =  1, nProcs 
@@ -141,13 +140,14 @@ contains
         enddo
     end subroutine
 
+
     subroutine linspace(start, halt, n, x)
         implicit none
         real(8), intent(in)    :: start, halt
-        integer   , intent(in) :: n
+        integer, intent(in) :: n
         real(8), allocatable   :: x(:)
         real(8)                :: step, curr 
-        integer                :: i
+        integer             :: i
 
         step =  (halt - start) /  (n-1)
         curr =  start
@@ -164,7 +164,7 @@ contains
             curr =  curr +  step
         enddo
     end subroutine linspace
-
+    
     pure function cross_prod(a,b) result(c)
         implicit none
         real(8), intent(in)   :: a(3), b(3)
@@ -178,10 +178,10 @@ contains
 
     subroutine check_ierr(ierr, me_in, info, msg)
         implicit none
-        integer(4), intent(inout)  :: ierr(:)
-        integer(4), optional       :: me_in
-        integer(4)                 :: me, holder
-        integer                    :: i
+        integer, intent(inout)  :: ierr(:)
+        integer, optional       :: me_in
+        integer                 :: me, holder
+        integer                 :: i
         character(len=*), optional :: info, msg(:)
 
         if(present(me_in)) then
@@ -209,9 +209,9 @@ contains
     recursive subroutine qargsort(data, idx, first_in, last_in)
         implicit none
         real(8)                 :: data(:)
-        integer   , allocatable :: idx(:)
-        integer   , optional    :: first_in, last_in
-        integer                 :: first, last, i, p
+        integer, allocatable :: idx(:)
+        integer, optional    :: first_in, last_in
+        integer              :: first, last, i, p
 
         !setting up a nice interface
         if(.not. present(first_in)) then
@@ -242,8 +242,8 @@ contains
         function partition(data, idx, first, last) result(p)
             implicit none
             real(8)                 :: data(:), pivot
-            integer   , allocatable :: idx(:)
-            integer                 :: first, last, p, i, j, tmp
+            integer, allocatable :: idx(:)
+            integer              :: first, last, p, i, j, tmp
 
             pivot = data(idx(last))
             i = first - 1
@@ -266,16 +266,18 @@ contains
 
         function find_list_idx(list, elem) result(idx)
             implicit none
-            integer   , intent(in)   :: list(:), elem
-            integer                  :: idx
+            integer, intent(in)   :: list(:), elem
+            integer               :: idx
 
             idx = 1
+            write (*,*) "idx, size(list)  =  ", idx, size(list) 
             do while(list(idx) /= elem)
                 idx = idx + 1
                 if(idx > size(list)) then
                     idx =  -1
                     return
                 endif
+                write (*,*) "idx, size(list)  =  ", idx, size(list) 
             enddo
         end function find_list_idx
 
@@ -284,7 +286,7 @@ contains
             real(8), intent(out)  :: out_arr(:)
             real(8), intent(in)   :: sigma, mu
             real(8)               :: u(size(out_arr)), fac, u_odd(2)
-            integer               :: even_end, i
+            integer            :: even_end, i
 
             call random_number(u)
             even_end = size(out_arr) - mod(size(out_arr),2)
@@ -331,7 +333,7 @@ contains
             character(len=*), intent(in) :: msg
             character(len=*), optional   :: p_color
             character(len=2)             :: code
-            integer(4)                   :: me, holder, info
+            integer                   :: me, holder, info
             logical, optional            :: abort
 
             if(present(p_color)) then
@@ -348,7 +350,7 @@ contains
                 ! abort if necessary
                 if(present(abort)) then
                     if(abort) then
-                        call MPI_Abort(MPI_COMM_WORLD, 0_4, info)
+                        call MPI_Abort(MPI_COMM_WORLD, 0, info)
                     endif
                 endif
             endif
@@ -357,7 +359,7 @@ contains
             if(present(abort)) then
                 if(abort) then
                     call sleep(5)
-                    call MPI_Abort(MPI_COMM_WORLD, 0_4, info)
+                    call MPI_Abort(MPI_COMM_WORLD, 0, info)
                 endif
             endif
         end subroutine error_msg

@@ -4,6 +4,7 @@ module Class_k_space
     use mpi
     use Class_hamiltionian
     use Class_helper
+    use MYPI
     implicit none
 
     type k_space
@@ -16,20 +17,20 @@ module Class_k_space
         real(8) :: DOS_lower !> lower energy bound for DOS calc
         real(8) :: DOS_upper !> upper energy bound for DOS calc
         real(8) :: temp !> temperature used in fermi-dirac
-        integer    :: DOS_num_k_pts !> number of kpts per dim 
         !> used in DOS calculations
+        integer    :: DOS_num_k_pts !> number of kpts per dim 
         integer    :: berry_num_k_pts !> number of ks per dim in berry calc
         integer    :: num_DOS_pts!> number of points on E grid
         integer    :: num_k_pts !> number of k_pts per segment
-        integer(4) :: nProcs !> number of MPI Processes
-        integer(4) :: me !> MPI rank
+        integer    :: nProcs !> number of MPI Processes
+        integer    :: me !> MPI rank
         integer    :: laplace_iter !> number of laplace iterations
         integer    :: berry_iter !> number of grid refinements
         integer    :: kpts_per_step !> new kpts per step and Proc
         real(8)    :: k_shift(3) !> shift of brillouine-zone
         real(8)    :: berry_conv_crit !> convergance criterion for berry integration
         real(8), allocatable :: weights(:) !> weights for integration
-        integer(4), allocatable :: elem_nodes(:,:) !> elements in triangulation
+        integer   , allocatable :: elem_nodes(:,:) !> elements in triangulation
         real(8), allocatable :: refine_weights(:)
         real(8), allocatable :: k1_param(:) !> 1st k_space param
         real(8), allocatable :: k2_param(:) !> 2nd k_space param
@@ -91,7 +92,7 @@ module Class_k_space
     interface
         subroutine run_triang(k_pts, ret_elem)
             real(8), intent(in)              :: k_pts(:,:)
-            integer(4), allocatable          :: ret_elem(:,:)
+            integer, allocatable             :: ret_elem(:,:)
         end subroutine run_triang
     end interface
 
@@ -112,9 +113,9 @@ contains
     Subroutine  calc_and_print_band(self)
         Implicit None
     class(k_space)                :: self 
-        integer(4)                    :: first, last, N
-        integer(4)                    :: send_count, ierr
-        integer(4), allocatable       :: num_elems(:), offsets(:)
+        integer                       :: first, last, N
+        integer                       :: send_count, ierr
+        integer   , allocatable       :: num_elems(:), offsets(:)
         real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
 
 
@@ -174,7 +175,7 @@ contains
         real(8)                 :: lor
         complex(8), allocatable :: H(:,:), WORK(:)
         integer   , allocatable :: IWORK(:)
-        integer(4)  :: first, last, ierr
+        integer     :: first, last, ierr
         integer     :: k_idx, E_idx, j, m, N, info, num_atoms
         integer     :: lwork, liwork, lrwork, percentage
 
@@ -234,7 +235,7 @@ contains
             enddo
         enddo
         loc_PDOS =  loc_PDOS / real(size(self%new_k_pts, 2))
-        call MPI_Reduce(loc_PDOS,  PDOS,    size(loc_PDOS, kind=4), &
+        call MPI_Reduce(loc_PDOS,  PDOS,    size(loc_PDOS), &
             MPI_REAL8, MPI_SUM, root, &
             MPI_COMM_WORLD, ierr)
 
@@ -318,7 +319,7 @@ contains
         type(CFG_t)           :: cfg
         real(8)               :: tmp
         integer               :: sz
-        integer(4)            :: ierr
+        integer               :: ierr
 
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
@@ -379,8 +380,9 @@ contains
 
     subroutine Bcast_k_space(self)
     class(k_space)         :: self
-        integer(4), parameter  :: num_cast =  21
-        integer(4)             :: ierr(num_cast), sz(2)
+        integer   , parameter  :: num_cast =  21
+        integer                :: ierr(num_cast)
+        integer                :: sz(2)
         ierr =  0
 
         if(self%me ==  root) then
@@ -388,17 +390,17 @@ contains
             sz(2) = size(self%k2_param)
         endif
 
-        call MPI_Bcast(self%prefix,  300_4,          MPI_CHARACTER, &
+        call MPI_Bcast(self%prefix,  300,          MPI_CHARACTER, &
             root,                    MPI_COMM_WORLD, ierr(1))
-        call MPI_Bcast(self%filling, 300_4,          MPI_CHARACTER, &
+        call MPI_Bcast(self%filling, 300,          MPI_CHARACTER, &
             root,                    MPI_COMM_WORLD, ierr(2))
 
-        call MPI_Bcast(self%DOS_gamma,   1_4,            MPI_REAL8,   &
+        call MPI_Bcast(self%DOS_gamma,   1,            MPI_REAL8,   &
             root,                        MPI_COMM_WORLD, ierr(3))
-        call MPI_Bcast(self%num_DOS_pts, 1_4,            MPI_INTEGER, &
+        call MPI_Bcast(self%num_DOS_pts, 1,            MYPI_INT, &
             root,                        MPI_COMM_WORLD, ierr(4))
 
-        call MPI_Bcast(sz, 2_4,            MPI_INTEGER4, &
+        call MPI_Bcast(sz, 2,            MYPI_INT, &
             root,          MPI_COMM_WORLD, ierr(5))
 
         if(self%me /= root) then
@@ -409,37 +411,37 @@ contains
             root,               MPI_COMM_WORLD, ierr(5))
         call MPI_Bcast(self%k2_param,      sz(2),          MPI_REAL8,    &
             root,               MPI_COMM_WORLD, ierr(6))
-        call MPI_Bcast(self%num_k_pts,     1_4,              MPI_INTEGER, &
+        call MPI_Bcast(self%num_k_pts,     1,              MYPI_INT, &
             root,               MPI_COMM_WORLD, ierr(7))
-        call MPI_Bcast(self%DOS_num_k_pts, 1_4,              MPI_INTEGER, &
+        call MPI_Bcast(self%DOS_num_k_pts, 1,              MYPI_INT, &
             root,               MPI_COMM_WORLD, ierr(8))
-        call MPI_Bcast(self%DOS_lower,     1_4,              MPI_REAL8, &
+        call MPI_Bcast(self%DOS_lower,     1,              MPI_REAL8, &
             root,               MPI_COMM_WORLD, ierr(9))
-        call MPI_Bcast(self%DOS_upper,     1_4,              MPI_REAL8, &
+        call MPI_Bcast(self%DOS_upper,     1,              MPI_REAL8, &
             root,               MPI_COMM_WORLD, ierr(10))
 
         ! Berry parameter
-        call MPI_Bcast(self%berry_num_k_pts, 1_4,            MPI_INTEGER,   &
+        call MPI_Bcast(self%berry_num_k_pts, 1,            MYPI_INT,   &
             root,                            MPI_COMM_WORLD, ierr(11))
-        call MPI_Bcast(self%temp,            1_4,            MPI_REAL8,     &
+        call MPI_Bcast(self%temp,            1,            MPI_REAL8,     &
             root,                            MPI_COMM_WORLD, ierr(12))
-        call MPI_Bcast(self%laplace_iter,    1_4,            MPI_INTEGER,   &
+        call MPI_Bcast(self%laplace_iter,    1,            MYPI_INT,   &
             root,                            MPI_COMM_WORLD, ierr(13))
-        call MPI_Bcast(self%berry_iter,      1_4,            MPI_INTEGER,   &
+        call MPI_Bcast(self%berry_iter,      1,            MYPI_INT,   &
             root,                            MPI_COMM_WORLD, ierr(14))
-        call MPI_Bcast(self%kpts_per_step,   1_4,            MPI_INTEGER,   &
+        call MPI_Bcast(self%kpts_per_step,   1,            MYPI_INT,   &
             root,                            MPI_COMM_WORLD, ierr(15))
-        call MPI_Bcast(self%k_shift,         3_4,            MPI_REAL8,     &
+        call MPI_Bcast(self%k_shift,         3,            MPI_REAL8,     &
             root,                            MPI_COMM_WORLD, ierr(16))
-        call MPI_Bcast(self%berry_conv_crit, 1_4,            MPI_REAL8,     &
+        call MPI_Bcast(self%berry_conv_crit, 1,            MPI_REAL8,     &
             root,                            MPI_COMM_WORLD, ierr(17))
-        call MPI_Bcast(self%perform_pad,     1_4,            MPI_LOGICAL,   &
+        call MPI_Bcast(self%perform_pad,     1,            MPI_LOGICAL,   &
             root,                            MPI_COMM_WORLD, ierr(18))
-        call MPI_Bcast(self%calc_hall,       1_4,            MPI_LOGICAL,   &
+        call MPI_Bcast(self%calc_hall,       1,            MPI_LOGICAL,   &
             root,                            MPI_COMM_WORLD, ierr(19))
-        call MPI_Bcast(self%calc_orbmag,     1_4,            MPI_LOGICAL,   &
+        call MPI_Bcast(self%calc_orbmag,     1,            MPI_LOGICAL,   &
             root,                            MPI_COMM_WORLD, ierr(20))
-        call MPI_Bcast(self%chosen_weights,  300_4,          MPI_CHARACTER, &
+        call MPI_Bcast(self%chosen_weights,  300,          MPI_CHARACTER, &
             root,                            MPI_COMM_WORLD, ierr(21))
 
         call check_ierr(ierr, self%me, "Ksp Bcast")
@@ -490,7 +492,7 @@ contains
     subroutine setup_inte_grid_square(self, n_k)
         implicit none
     class(k_space)        :: self
-        integer   , intent(in):: n_k
+        integer, intent(in):: n_k
         real(8), allocatable  :: ls(:)
         real(8)               :: k1(3), k2(3)
         integer               :: i, j, cnt
@@ -524,7 +526,7 @@ contains
     subroutine setup_inte_grid_hex(self, n_k)
         implicit none
     class(k_space)         :: self
-        integer   , intent(in) :: n_k
+        integer, intent(in) :: n_k
         real(8), allocatable   :: x(:), y(:)
         real(8)                :: den, l, a
         integer                :: cnt_k, start, halt, my_n, i
@@ -642,7 +644,7 @@ contains
         self%k2_param =  self%k2_param * self%units%inv_length
 
         n_pts =  self%num_k_pts
-        n_sec =  size(self%k1_param)-1
+        n_sec =  size(self%k1_param) - 1
 
 
         allocate(self%new_k_pts(3, n_sec * (self%num_k_pts-1) + 1))
@@ -733,7 +735,7 @@ contains
         real(8) :: start
         integer   , allocatable :: kidx_all(:), kidx_new(:), n_kpts(:)
         integer     :: N_k, num_up, iter, n_ferm
-        integer(4)  :: all_err(14), info
+        integer     :: all_err(14), info
         character(len=300)       :: msg
         logical                  :: done_hall, done_orbmag
 
@@ -772,6 +774,7 @@ contains
             call self%calc_new_kidx(kidx_new)
 
             ! concat to old ones
+            write (*,*) "new ks", kidx_new
             call append_kidx(kidx_all, kidx_new)
             call self%append_kpts()
             call append_eigval(eig_val_all, eig_val_new)
@@ -839,8 +842,8 @@ contains
         class(k_space)               :: self
         integer   , allocatable      :: kidx_new(:)
         integer                      :: cnt, N_k, k_idx 
-        integer(4)                   :: first, last
-        integer(4)                   :: err(1)
+        integer                      :: first, last
+        integer                      :: err(1)
 
         N_k = size(self%new_k_pts, 2)
         call my_section(self%me, self%nProcs, N_k, first, last)
@@ -858,7 +861,7 @@ contains
         implicit none
         class(k_space)            :: self
         integer                   :: N_k, cnt, k_idx, num_up, n_ferm
-        integer(4)                :: first, last, err(3)
+        integer                   :: first, last, err(3)
         real(8)                   :: k(3)
         real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), Q_L_new(:,:), Q_IC_new(:,:)
         complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
@@ -977,7 +980,7 @@ contains
         real(8), allocatable    :: hall(:)
         real(8)                 :: ferm
         integer                 :: loc_idx, n, n_hall, k_idx
-        integer(4)              :: ierr(2), all_err(1)
+        integer                 :: ierr(2), all_err(1)
 
         all_err = 0
         if(allocated(hall)) deallocate(hall)
@@ -1011,13 +1014,13 @@ contains
         ! Allreduce is not suitable for convergence criteria
         ierr = 0
         if(self%me == root) then
-            call MPI_Reduce(MPI_IN_PLACE, hall, size(hall, kind=4), MPI_REAL8, &
+            call MPI_Reduce(MPI_IN_PLACE, hall, size(hall), MPI_REAL8, &
                 MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
         else
-            call MPI_Reduce(hall, hall, size(hall, kind=4), MPI_REAL8, &
+            call MPI_Reduce(hall, hall, size(hall), MPI_REAL8, &
                 MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
         endif
-        call MPI_Bcast(hall, size(hall, kind=4), MPI_REAL8, root, &
+        call MPI_Bcast(hall, size(hall), MPI_REAL8, root, &
             MPI_COMM_WORLD, ierr(2))
         call check_ierr(ierr, self%me, "Hall conductance")
     end subroutine integrate_hall
@@ -1025,11 +1028,11 @@ contains
     subroutine integrate_orbmag(self, Q_kidx_all, Q_L_all, Q_IC_all, orb_mag, orbmag_L, orbmag_IC)
         implicit none
         class(k_space)          :: self
-        integer, intent(in)  :: Q_kidx_all(:)
+        integer   , intent(in)  :: Q_kidx_all(:)
         real(8), intent(in)     :: Q_L_all(:, :), Q_IC_all(:,:)
         real(8), allocatable    :: orb_mag(:), orbmag_L(:), orbmag_IC(:)
-        integer              :: n_ferm, loc_idx, k_idx
-        integer(4)           :: ierr(4)
+        integer                 :: n_ferm, loc_idx, k_idx
+        integer                 :: ierr(4)   
 
         if(allocated(orb_mag))then
             if(size(orb_mag) /= size(self%E_fermi)) deallocate(orb_mag)
@@ -1068,28 +1071,28 @@ contains
 
         ! reduce & bcast local term
         if(self%me == root) then
-            call MPI_Reduce(MPI_IN_PLACE, orbmag_L, size(orbmag_L, kind=4),& 
+            call MPI_Reduce(MPI_IN_PLACE, orbmag_L, size(orbmag_L),& 
                             MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
         else
-            call MPI_Reduce(orbmag_L, orbmag_L, size(orbmag_L, kind=4), MPI_REAL8,&
+            call MPI_Reduce(orbmag_L, orbmag_L, size(orbmag_L), MPI_REAL8,&
                             MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
         endif
-        call MPI_Bcast(orbmag_L, size(orbmag_L, kind=4), MPI_REAL8, root, &
+        call MPI_Bcast(orbmag_L, size(orbmag_L), MPI_REAL8, root, &
                        MPI_COMM_WORLD, ierr(2))
        
         ! reduce & bcast itinerant term
         if(self%me == root) then
-            call MPI_Reduce(MPI_IN_PLACE, orbmag_IC, size(orbmag_IC, kind=4), &
+            call MPI_Reduce(MPI_IN_PLACE, orbmag_IC, size(orbmag_IC), &
                             MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(3))
         else
-            call MPI_Reduce(orbmag_IC, orbmag_IC, size(orbmag_IC, kind=4), &
+            call MPI_Reduce(orbmag_IC, orbmag_IC, size(orbmag_IC), &
                             MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(3))
         endif
-        call MPI_Bcast(orbmag_IC, size(orbmag_IC, kind=4), MPI_REAL8, root, &
-                       MPI_COMM_WORLD, ierr(4))
+        call MPI_Bcast(orbmag_IC, size(orbmag_IC), MPI_REAL8, root, &
+                       MPI_COMM_WORLD, ierr   )
         
         orb_mag    = orbmag_L + orbmag_IC
-        call check_ierr(ierr, self%me, "Hall conductance")
+        call check_ierr(ierr, me_in=self%me, info="Hall conductance")
     end subroutine integrate_orbmag
 
     subroutine set_hall_weights(self, omega_z_all, kidx_all)
@@ -1098,8 +1101,8 @@ contains
         integer   , intent(in) :: kidx_all(:)
         real(8)                :: omega_z_all(:,:)
         integer                :: i, node, k_idx, loc_idx
-        integer(4)             :: n_elem
-        integer(4)             :: ierr(2), error(2) = [0,0]
+        integer                :: n_elem
+        integer                :: ierr(2), error(2) = [0,0]
         character(len=300)     :: msg = ""
         
         n_elem = size(self%elem_nodes,1)
@@ -1119,6 +1122,7 @@ contains
         do i=1,n_elem
             do node=1,3
                 k_idx = self%elem_nodes(i,node)
+                write (*,*) "size kidx_all", size(kidx_all)
                 loc_idx =  find_list_idx(kidx_all, k_idx)
 
                 if(loc_idx > 0) then
@@ -1149,7 +1153,7 @@ contains
         real(8), intent(in)       :: Q_all(:,:)
         integer   , intent(in)    :: Q_kidx_all(:)
         integer                   :: i, node, k_idx, loc_idx
-        integer(4)                :: ierr(2), error(2), n_elem
+        integer                   :: ierr(2), error(2), n_elem
         character(len=300)        :: msg
 
         n_elem = size(self%elem_nodes,1)
@@ -1246,7 +1250,7 @@ contains
         implicit none
         real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:), tmp(:,:)
         integer    :: vec_sz, num_k_all, num_k_new, i,j
-        integer(4) ::ierr(6)
+        integer    ::ierr(6)
 
         ierr = 0
 
@@ -1271,7 +1275,7 @@ contains
 
     subroutine append_kidx(kidx_all, kidx_new)
         implicit none
-        integer , allocatable   :: kidx_all(:),kidx_new(:) 
+        integer   , allocatable   :: kidx_all(:),kidx_new(:) 
         
         if(allocated(kidx_all)) then
             kidx_all =  [kidx_all, kidx_new]
@@ -1285,7 +1289,7 @@ contains
         implicit none
         real(8), allocatable      :: quantity_new(:,:), quantity_all(:,:), tmp_z(:,:)
         integer                 :: vec_sz, num_k_old, num_k_new
-        integer(4)              :: ierr(2)
+        integer                 :: ierr(2)
 
         num_k_old = size(quantity_all, 2)
         num_k_new = size(quantity_new, 2)
@@ -1384,13 +1388,13 @@ contains
     class(k_space)         :: self
     class(CFG_t)           :: cfg
         real(8)                :: tmp(3)
-        integer(4)             :: ierr
+        integer                :: ierr
         integer                :: n_steps
 
         if(root == self%me) then
             call CFG_get(cfg, "berry%E_fermi", tmp)
         endif
-        call MPI_Bcast(tmp, 3_4, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(tmp, 3, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
         n_steps = nint(tmp(3))
         tmp =  tmp *  self%units%energy
 
@@ -1404,12 +1408,12 @@ contains
     class(CFG_t)           :: cfg
         real(8)            :: target, delta_old, delta_new
         integer            :: i
-        integer(4)         :: ierr
+        integer            :: ierr
 
         if(self%me ==  root)then
             call CFG_get(cfg, "dos%fermi_fill", target)
         endif
-        call MPI_Bcast(self%E_fermi, 1_4, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(self%E_fermi, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
 
         target = target * self%int_DOS(size(self%int_DOS))
         i =  1
@@ -1648,7 +1652,7 @@ contains
     function on_hex_border(self, idx) result(on_border)
         implicit none
     class(k_space), intent(in)   :: self
-        integer(4)                   :: idx
+        integer                      :: idx
         real(8)                      :: pt(2)
         logical                      :: on_border
         real(8)                      :: l
@@ -1700,8 +1704,8 @@ contains
 
     subroutine add_kpts_iter(self, n_new, new_ks)
         implicit none
-    class(k_space)          :: self
-        integer   , intent(in)  :: n_new
+    class(k_space)              :: self
+        integer, intent(in)     :: n_new
         real(8), allocatable    :: new_ks(:,:)
         integer                 :: n_elem, i, cnt
         integer   , allocatable :: sort(:)
@@ -1733,7 +1737,7 @@ contains
     class(k_space)         :: self
         real(8), allocatable   :: tmp(:,:)
         integer                :: old_sz, new_sz, i,j
-        integer(4)             :: ierr(2)
+        integer                :: ierr(2)
 
         if(.not. allocated(self%all_k_pts)) allocate(self%all_k_pts(3,0))
         old_sz = size(self%all_k_pts, 2)

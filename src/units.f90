@@ -12,7 +12,7 @@ contains
         implicit none
         type(units)            :: ret
         type(CFG_t), intent(in):: cfg
-        integer(4), intent(in) :: me
+        integer   , intent(in) :: me
 
         ret%length      = get_unit_conv("length",      cfg, me, .True.)
         ret%energy      = get_unit_conv("energy",      cfg, me, .True.)
@@ -24,12 +24,12 @@ contains
     function get_unit_conv(field_name, cfg, me, bcast) result(factor)
         implicit none
         character(len=*), intent(in)        :: field_name 
-        integer(4), intent(in)              :: me
+        integer   , intent(in)              :: me
         logical, optional                   :: bcast
         logical                             :: bcast_loc
         type(CFG_t)                         :: cfg
         real(8)                             :: factor
-        integer(4)                          :: ierr
+        integer                             :: ierr
         character(len=300)                  :: unit_name
 
         if(present(bcast)) then
@@ -65,7 +65,7 @@ contains
         endif
 
         if(bcast_loc) then
-            call MPI_Bcast(factor, 1_4, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
+            call MPI_Bcast(factor, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
             if(ierr /= 0) then
                 write(*,*) me, "Unit Bcast failed"
                 stop
