@@ -21,10 +21,9 @@ def replace_line(line, tags, values):
     return line
 
     
-tags = ["%w%"]
+tags = ["%soc%"]
+soc = np.linspace(0.0, 0.5, 10)
 
-w = np.arange(1,5, dtype=np.int)
-print("windings = {}".format(w))
 #middle = np.linspace(0.5, 1.0, 10)
 #atan = np.logspace(-1, 2, 10)
 #middle = np.linspace(0.0, 1.0, 15)
@@ -32,13 +31,13 @@ print("windings = {}".format(w))
 #temp = np.linspace(1,600, 5)
 
 cnt = 0
-itera = itertools.product(w)
-print "Number of files: {}".format(sum(1 for _ in itera))
-itera = itertools.product(w)
+itera = itertools.product(soc)
+print("Number of files: {}".format(sum(1 for _ in itera)))
+itera = itertools.product(soc)
 
 for i in itera:
     with open(prefix + "example.cfg", "rt") as fin:
-        with open(prefix + "winding_mole_{}.cfg".format(cnt), "wt") as fout:
+        with open(prefix + "soc_{}.cfg".format(cnt), "wt") as fout:
             for line in fin:
                 fout.write(replace_line(line, tags, i))
     cnt +=1
