@@ -34,6 +34,9 @@
 /*    customer, and you are instead telling them how they can obtain it for  */
 /*    free, then you are not required to make any arrangement with me.)      */
 /*                                                                           */
+/* Note by M. Redies: A wrapper routine "my_tri" was added in this file      */
+/*                                                                           */ 
+/*                                                                           */
 /*  Hypertext instructions for Triangle are available on the Web at          */
 /*                                                                           */
 /*      http://www.cs.cmu.edu/~quake/triangle.html                           */
