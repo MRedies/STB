@@ -22,7 +22,7 @@ def replace_line(line, tags, values):
 
     
 tags = ["%soc%"]
-soc = np.linspace(0.0, 0.5, 10)
+soc = np.linspace(0.0, 0.5, 11)
 
 #middle = np.linspace(0.5, 1.0, 10)
 #atan = np.logspace(-1, 2, 10)

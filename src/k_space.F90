@@ -136,7 +136,7 @@ contains
 
         call self%ham%calc_eigenvalues(k_pts_sec, sec_eig_val)
 
-        N = 2 *  self%ham%UC%num_atoms 
+        N = 2 *  self%ham%num_up
         allocate(eig_val(N, size(self%new_k_pts,2)))
         allocate(num_elems(self%nProcs))
         allocate(offsets(self%nProcs))
@@ -176,10 +176,10 @@ contains
         complex(8), allocatable :: H(:,:), WORK(:)
         integer   , allocatable :: IWORK(:)
         integer     :: first, last, ierr
-        integer     :: k_idx, E_idx, j, m, N, info, num_atoms
+        integer     :: k_idx, E_idx, j, m, N, info
         integer     :: lwork, liwork, lrwork, percentage
 
-        N =  2 * self%ham%UC%num_atoms
+        N =  2 * self%ham%num_up
         allocate(H(N,N))
         allocate(eig_val(N))
 
@@ -188,8 +188,7 @@ contains
         allocate(RWORK(lrwork))
         allocate(IWORK(liwork))
 
-        num_atoms =  self%ham%UC%num_atoms
-        allocate(loc_PDOS(2*num_atoms, self%num_DOS_pts))
+        allocate(loc_PDOS(N, self%num_DOS_pts))
 
         loc_PDOS =  0d0
         PDOS = 0d0
@@ -251,8 +250,7 @@ contains
     class(k_space)       :: self
         real(8), allocatable :: DOS(:), PDOS(:,:), up(:), down(:)
         real(8)              :: dE
-        integer              :: i, num_atoms
-
+        integer              :: i, num_up
 
         if(trim(self%ham%UC%uc_type) == "square_2d") then
             call self%setup_inte_grid_square(self%DOS_num_k_pts)
@@ -262,8 +260,8 @@ contains
             call error_msg("DOS k-grid not known", abort=.True.)
         endif
 
-        num_atoms =  self%ham%UC%num_atoms
-        allocate(PDOS(2*num_atoms, self%num_DOS_pts))
+        num_up = self%ham%num_up
+        allocate(PDOS(2*num_up, self%num_DOS_pts))
 
         call linspace(self%DOS_lower, self%DOS_upper, self%num_DOS_pts, self%E_DOS)
 
@@ -277,8 +275,8 @@ contains
 
         if(self%me == root) then
             DOS  = sum(PDOS,1)
-            up   = sum(PDOS(1:num_atoms, :),1)
-            down = sum(PDOS(num_atoms+1:2*num_atoms, :),1)
+            up   = sum(PDOS(1:num_up, :),1)
+            down = sum(PDOS(num_up+1:2*num_up, :),1)
 
             call save_npy(trim(self%prefix) //  "DOS_E.npy", self%E_DOS / self%units%energy)
             ! unit of DOS is per energy
