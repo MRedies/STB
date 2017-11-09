@@ -394,9 +394,7 @@ contains
 
         if(self%num_orb /= 3) then
             call error_msg("SOC only implemented for p-orbitals", abort=.True.)
-        endif
-       
-        if(self%num_orb == 3) then
+        else
             i_atm = 1
             do i_u = 1,self%num_up,self%num_orb
                 i_d =  i_u + self%num_up
@@ -405,10 +403,11 @@ contains
                         call self%set_small_SOC(mu,nu, loc_H)
                         call set_rot_SO(self%UC%atoms(i_atm), U)
     
-                        ! calculate tmp = U * H
-                        call zgemm('N', 'N', 2,2,2, 1d0, U,   2, H, 2, 0d0, tmp,   2)
-                        ! calculate res = tmp * U^dag
-                        call zgemm('N', 'C', 2,2,2, 1d0, tmp, 2, U, 2, 0d0, rot_H, 2)
+                        ! calculate tmp = U * H * U^dag
+                        call zgemm('N',   'N', 2,   2,     2, c_1, U,   2, &
+                                   loc_H, 2,   c_0, tmp,   2)
+                        call zgemm('N',   'C', 2,   2,     2, c_1, tmp, 2, &
+                                    U,    2,   c_0, rot_H, 2)
 
                         ms = mu - 1 ! mu-shift
                         ns = nu - 1 ! nu-shift
@@ -843,8 +842,8 @@ contains
             call zheevd('N', 'U', N, H, N, eig_val(:,i), WORK, lwork, &
                 RWORK, lrwork, IWORK, liwork, info)
             if( info /= 0) then
-                write (*,*) "ZHEEV failed: ", info
-                stop
+                write (*,*) "ZHEEVD failed: ", info
+                call error_msg("Aborting now", abort=.True.)
             endif
         enddo
 

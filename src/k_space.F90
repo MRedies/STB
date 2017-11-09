@@ -798,7 +798,7 @@ contains
                 call self%integrate_orbmag(kidx_all, Q_L_all, Q_IC_all, orbmag, orbmag_L, orbmag_IC)
 
                 ! save current iteration and check if converged
-                done_orbmag = self%process_step(orbmag, orbmag_old, iter, "orbmag")
+                done_orbmag = self%process_step(orbmag, orbmag_old, iter, "orbmag   ")
             else
                 done_orbmag = .True.
             endif
@@ -921,8 +921,11 @@ contains
         rel_error = my_norm2(var - var_old) &
                     / (self%kpts_per_step * self%nProcs * my_norm2(var))!/ (1d0*size(var))
 
-        if(self%me == root) write (*,*) iter, "var: ", var_name, &
-                             " nkpts ", size(self%all_k_pts,2), " err ", rel_error
+        if(self%me == root) then
+            write (*,"(I5,A,A,A,I7,A,ES10.3)") iter, " var: ", var_name, &
+                             " nkpts ", size(self%all_k_pts,2),&
+                             " err ", rel_error
+        endif
         
         if(rel_error < self%berry_conv_crit) then
             if(self%me == root) write (*,*) "Converged " // trim(var_name) //   " interation"

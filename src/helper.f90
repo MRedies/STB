@@ -3,7 +3,7 @@ module Class_helper
     use Constants
     use mpi
     implicit none
-    
+
     character(len=1), parameter :: c_esc = achar(27)
     character(len=2), parameter :: c_start = c_esc // '['
     character(len=1), parameter :: c_end = 'm'
@@ -164,7 +164,7 @@ contains
             curr =  curr +  step
         enddo
     end subroutine linspace
-    
+
     pure function cross_prod(a,b) result(c)
         implicit none
         real(8), intent(in)   :: a(3), b(3)
@@ -224,134 +224,134 @@ contains
             if(.not. allocated(idx)) allocate(idx(size(data)))
 
             forall(i=1:size(idx)) idx(i) = i
-                first = 1
-                last  = size(data)
-            else
-                first = first_in
-                last  = last_in
+            first = 1
+            last  = size(data)
+        else
+            first = first_in
+            last  = last_in
+        endif
+
+        !actual algo
+        if(first < last) then
+            p = partition(data, idx, first, last)
+            call qargsort(data, idx, first, p - 1)
+            call qargsort(data, idx, p + 1, last)
+        endif
+    end subroutine qargsort
+
+    function partition(data, idx, first, last) result(p)
+        implicit none
+        real(8)                 :: data(:), pivot
+        integer, allocatable :: idx(:)
+        integer              :: first, last, p, i, j, tmp
+
+        pivot = data(idx(last))
+        i = first - 1
+        do j = first, last-1
+            if(data(idx(j)) <= pivot) then
+                i = i + 1
+
+                !swap
+                tmp = idx(i)
+                idx(i) = idx(j)
+                idx(j) = tmp
             endif
+        enddo
+        tmp = idx(i+1)
+        idx(i+1) = idx(last)
+        idx(last) = tmp
 
-            !actual algo
-            if(first < last) then
-                p = partition(data, idx, first, last)
-                call qargsort(data, idx, first, p - 1)
-                call qargsort(data, idx, p + 1, last)
+        p = i + 1
+    end function partition
+
+    function find_list_idx(list, elem) result(idx)
+        implicit none
+        integer, intent(in)   :: list(:), elem
+        integer               :: idx
+
+        idx = 1
+        do while(list(idx) /= elem)
+            idx = idx + 1
+            if(idx > size(list)) then
+                idx =  -1
+                return
             endif
-        end subroutine qargsort
+        enddo
+    end function find_list_idx
 
-        function partition(data, idx, first, last) result(p)
-            implicit none
-            real(8)                 :: data(:), pivot
-            integer, allocatable :: idx(:)
-            integer              :: first, last, p, i, j, tmp
+    subroutine gaussian_noise(out_arr, sigma, mu)
+        implicit none
+        real(8), intent(out)  :: out_arr(:)
+        real(8), intent(in)   :: sigma, mu
+        real(8)               :: u(size(out_arr)), fac, u_odd(2)
+        integer            :: even_end, i
 
-            pivot = data(idx(last))
-            i = first - 1
-            do j = first, last-1
-                if(data(idx(j)) <= pivot) then
-                    i = i + 1
+        call random_number(u)
+        even_end = size(out_arr) - mod(size(out_arr),2)
 
-                    !swap
-                    tmp = idx(i)
-                    idx(i) = idx(j)
-                    idx(j) = tmp
+        do i = 1,even_end,2
+            fac = sqrt(-2d0 *  log(u(i)))
+            out_arr(i)   = fac * cos(2d0 * PI * u(i+1))
+            out_arr(i+1) = fac * sin(2d0 * PI * u(i+1))
+        enddo
+
+        if(mod(size(out_arr),2) ==  1)then
+            call random_number(u_odd)
+            fac  = sqrt(-2d0 *  log(u_odd(1)))
+            out_arr(size(out_arr))   = fac * cos(2d0 * PI * u(2))
+        endif
+
+        out_arr =  sigma * out_arr + mu
+    end subroutine gaussian_noise
+
+    function date_time() result(res)
+        implicit none
+        character(10)  :: time
+        character(8)   :: date
+        character(23)  :: res
+
+        call date_and_time(time=time, date=date)
+
+        res(1:2) = time(1:2)
+        res(3:3) = ":"
+        res(4:5) = time(3:4)
+        res(6:6) = ":"
+        res(7:12) = time(5:10)
+        res(13:13) = " "
+
+        res(14:15) =  date(7:8)
+        res(16:16) =  "."
+        res(17:18) =  date(5:6)
+        res(19:19) =  "."
+        res(20:23) =  date(1:4)
+    end function date_time
+
+    subroutine error_msg(msg, p_color, abort)
+        implicit none
+        character(len=*), intent(in) :: msg
+        character(len=*), optional   :: p_color
+        character(len=2)             :: code
+        integer                   :: me, holder, info
+        logical, optional            :: abort
+
+        if(present(p_color)) then
+            code = p_color
+        else
+            code =  c_red
+        endif
+
+        call MPI_Comm_rank(MPI_COMM_WORLD, me, holder)
+
+        if(me == root) then
+            write (*,*) c_start // code // c_end // msg // c_clear
+
+            ! abort if necessary
+            if(present(abort)) then
+                if(abort) then
+                    call MPI_Abort(MPI_COMM_WORLD, 0, info)
                 endif
-            enddo
-            tmp = idx(i+1)
-            idx(i+1) = idx(last)
-            idx(last) = tmp
-
-            p = i + 1
-        end function partition
-
-        function find_list_idx(list, elem) result(idx)
-            implicit none
-            integer, intent(in)   :: list(:), elem
-            integer               :: idx
-
-            idx = 1
-            do while(list(idx) /= elem)
-                idx = idx + 1
-                if(idx > size(list)) then
-                    idx =  -1
-                    return
-                endif
-            enddo
-        end function find_list_idx
-
-        subroutine gaussian_noise(out_arr, sigma, mu)
-            implicit none
-            real(8), intent(out)  :: out_arr(:)
-            real(8), intent(in)   :: sigma, mu
-            real(8)               :: u(size(out_arr)), fac, u_odd(2)
-            integer            :: even_end, i
-
-            call random_number(u)
-            even_end = size(out_arr) - mod(size(out_arr),2)
-
-            do i = 1,even_end,2
-                fac = sqrt(-2d0 *  log(u(i)))
-                out_arr(i)   = fac * cos(2d0 * PI * u(i+1))
-                out_arr(i+1) = fac * sin(2d0 * PI * u(i+1))
-            enddo
-
-            if(mod(size(out_arr),2) ==  1)then
-                call random_number(u_odd)
-                fac  = sqrt(-2d0 *  log(u_odd(1)))
-                out_arr(size(out_arr))   = fac * cos(2d0 * PI * u(2))
             endif
-
-            out_arr =  sigma * out_arr + mu
-        end subroutine gaussian_noise
-
-        function date_time() result(res)
-            implicit none
-            character(10)  :: time
-            character(8)   :: date
-            character(23)  :: res
-
-            call date_and_time(time=time, date=date)
-
-            res(1:2) = time(1:2)
-            res(3:3) = ":"
-            res(4:5) = time(3:4)
-            res(6:6) = ":"
-            res(7:12) = time(5:10)
-            res(13:13) = " "
-
-            res(14:15) =  date(7:8)
-            res(16:16) =  "."
-            res(17:18) =  date(5:6)
-            res(19:19) =  "."
-            res(20:23) =  date(1:4)
-        end function date_time
-
-        subroutine error_msg(msg, p_color, abort)
-            implicit none
-            character(len=*), intent(in) :: msg
-            character(len=*), optional   :: p_color
-            character(len=2)             :: code
-            integer                   :: me, holder, info
-            logical, optional            :: abort
-
-            if(present(p_color)) then
-                code = p_color
-            else
-                code =  c_red
-            endif
-
-            call MPI_Comm_rank(MPI_COMM_WORLD, me, holder)
-
-            if(me == root) then
-                write (*,*) c_start // code // c_end // msg // c_clear
-
-                ! abort if necessary
-                if(present(abort)) then
-                    if(abort) then
-                        call MPI_Abort(MPI_COMM_WORLD, 0, info)
-                    endif
-                endif
-            endif
+        else
 
             ! if a non-root process is called also abort (a little later)
             if(present(abort)) then
@@ -360,6 +360,7 @@ contains
                     call MPI_Abort(MPI_COMM_WORLD, 0, info)
                 endif
             endif
-        end subroutine error_msg
+        endif
+    end subroutine error_msg
 
-    end module Class_helper
+end module Class_helper
