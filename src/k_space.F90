@@ -1121,7 +1121,6 @@ contains
         do i=1,n_elem
             do node=1,3
                 k_idx = self%elem_nodes(i,node)
-                write (*,*) "size kidx_all", size(kidx_all)
                 loc_idx =  find_list_idx(kidx_all, k_idx)
 
                 if(loc_idx > 0) then
