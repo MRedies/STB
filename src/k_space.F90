@@ -733,9 +733,9 @@ contains
              orbmag(:), orbmag_old(:), Q_L_all(:,:), Q_IC_all(:,:), &
              Q_L_new(:,:), Q_IC_new(:,:), orbmag_L(:), orbmag_IC(:)
         real(8) :: start
-        integer   , allocatable :: kidx_all(:), kidx_new(:), n_kpts(:)
+        integer   , allocatable :: kidx_all(:), kidx_new(:)
         integer     :: N_k, num_up, iter, n_ferm
-        integer     :: all_err(14), info
+        integer     :: all_err(13), info
         character(len=300)       :: msg
         logical                  :: done_hall, done_orbmag
 
@@ -759,7 +759,6 @@ contains
         allocate(Q_IC_all(n_ferm, 0),                stat=all_err(11))
         allocate(kidx_all(0),                        stat=all_err(12))
         allocate(self%all_k_pts(3,0),                stat=all_err(13))
-        allocate(n_kpts(0),                          stat=all_err(14))
 
         hall    =  1e35
         orbmag =  1e35 
@@ -777,7 +776,7 @@ contains
             call append_kidx(kidx_all, kidx_new)
             call self%append_kpts()
             call append_eigval(eig_val_all, eig_val_new)
-            n_kpts = [n_kpts, size(self%all_k_pts,2)]
+            
             if(self%calc_hall)   call append_quantitiy(omega_z_all, omega_z_new)
             if(self%calc_orbmag) then
                 call append_quantitiy(Q_L_all, Q_L_new)
@@ -789,7 +788,7 @@ contains
                 call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
 
                 ! save current iteration and check if converged
-                done_hall =  self%process_step(hall, hall_old, n_kpts, iter, "hall_cond")
+                done_hall =  self%process_step(hall, hall_old, iter, "hall_cond")
             else
                 done_hall = .True.
             endif
@@ -799,7 +798,7 @@ contains
                 call self%integrate_orbmag(kidx_all, Q_L_all, Q_IC_all, orbmag, orbmag_L, orbmag_IC)
 
                 ! save current iteration and check if converged
-                done_orbmag = self%process_step(orbmag, orbmag_old, n_kpts, iter, "orbmag")
+                done_orbmag = self%process_step(orbmag, orbmag_old, iter, "orbmag")
             else
                 done_orbmag = .True.
             endif
@@ -831,7 +830,7 @@ contains
 
         if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
         deallocate(self%ham%del_H, hall_old, eig_val_all, omega_z_all, &
-                   kidx_all, self%all_k_pts, n_kpts, &
+                   kidx_all, self%all_k_pts, &
                    hall, stat=info, errmsg=msg)
        
     end subroutine calc_berry_quantities
@@ -897,11 +896,11 @@ contains
         deallocate(del_kx, del_ky)
     end subroutine calc_new_berry_points
     
-    function process_step(self, var, var_old, n_kpts, iter, var_name) result(cancel)
+    function process_step(self, var, var_old, iter, var_name) result(cancel)
         implicit none
         class(k_space)                 :: self
         real(8), intent(in)            :: var(:), var_old(:)
-        integer   , intent(in)         :: n_kpts(:), iter
+        integer   , intent(in)         :: iter
         character(len=*), intent(in)   :: var_name
         character(len=300)             :: filename
         logical                        :: cancel
@@ -916,7 +915,6 @@ contains
 
             call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                 self%E_fermi / self%units%energy)
-            call save_npy(trim(self%prefix) // "nkpts.npy", n_kpts)
         endif
 
         ! check for convergence
