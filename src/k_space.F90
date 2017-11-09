@@ -774,7 +774,6 @@ contains
             call self%calc_new_kidx(kidx_new)
 
             ! concat to old ones
-            write (*,*) "new ks", kidx_new
             call append_kidx(kidx_all, kidx_new)
             call self%append_kpts()
             call append_eigval(eig_val_all, eig_val_new)
@@ -1275,14 +1274,27 @@ contains
 
     subroutine append_kidx(kidx_all, kidx_new)
         implicit none
-        integer   , allocatable   :: kidx_all(:),kidx_new(:) 
+        integer, allocatable   :: kidx_all(:), kidx_new(:), tmp(:) 
+        integer                :: i
         
         if(allocated(kidx_all)) then
-            kidx_all =  [kidx_all, kidx_new]
+            !copy to tmp
+            allocate(tmp(size(kidx_all)))
+            forall(i=1:size(kidx_all)) tmp(i) = kidx_all(i)
+
+            !reallocate kidx_all
+            deallocate(kidx_all)
+            allocate(kidx_all(size(tmp) + size(kidx_new)))
+
+            !copy and deallocate
+            kidx_all(1:size(tmp)) = tmp
+            kidx_all(size(tmp)+1:size(kidx_all)) =  kidx_new
+            deallocate(tmp, kidx_new)
         else
+            allocate(kidx_all(size(kidx_new)))
             kidx_all =  kidx_new
+            deallocate(kidx_new)
         endif
-        deallocate(kidx_new)
     end subroutine append_kidx 
 
     subroutine append_quantitiy(quantity_all, quantity_new)

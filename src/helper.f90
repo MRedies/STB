@@ -270,14 +270,12 @@ contains
             integer               :: idx
 
             idx = 1
-            write (*,*) "idx, size(list)  =  ", idx, size(list) 
             do while(list(idx) /= elem)
                 idx = idx + 1
                 if(idx > size(list)) then
                     idx =  -1
                     return
                 endif
-                write (*,*) "idx, size(list)  =  ", idx, size(list) 
             enddo
         end function find_list_idx
 
