@@ -184,7 +184,6 @@ contains
         call CFG_add(cfg, "hamil%E_A",       0d0,     "")
         call CFG_add(cfg, "hamil%E_B",       0d0,     "")
         call CFG_add(cfg, "hamil%lambda",    0d0,     "")
-        call CFG_add(cfg, "hamil%lambda_nl", 0d0,     "")
         call CFG_add(cfg, "hamil%n",         0,       "")
         call CFG_add(cfg, "hamil%molecule",  .False., "")
 

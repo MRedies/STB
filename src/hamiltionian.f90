@@ -17,7 +17,6 @@ module Class_hamiltionian
         real(8)         :: phi_2 !> polar angle of 2nd nearest neighbour hopping in rad
         real(8)         :: t_so !> Rashba spin orb
         real(8)         :: lambda !> local exchange
-        real(8)         :: lambda_nl !> non-local exchange (not implemented yet)
         complex(8), allocatable    :: del_H(:,:)
         integer         :: nProcs
         integer         :: me
@@ -184,9 +183,6 @@ contains
             call CFG_get(cfg, "hamil%lambda", tmp)
             self%lambda =  tmp * self%units%energy
 
-            call CFG_get(cfg, "hamil%lambda_nl", tmp)
-            self%lambda_nl =  tmp * self%units%energy
-            
             call CFG_get(cfg, "hamil%E_s", tmp)
             self%E_s =  tmp * self%units%energy
             
@@ -205,33 +201,35 @@ contains
     subroutine Bcast_hamil(self)
         implicit none
     class(hamil)          :: self
-        integer   , parameter :: num_cast =  12
+        integer   , parameter :: num_cast =  13
         integer               :: ierr(num_cast)
 
-        call MPI_Bcast(self%E_s,       1,            MPI_REAL8,    &
-                       root,           MPI_COMM_WORLD, ierr(1))
-        call MPI_Bcast(self%E_A,       1,            MPI_REAL8,    &
-                       root,           MPI_COMM_WORLD, ierr(2))
-        call MPI_Bcast(self%E_B,       1,            MPI_REAL8,    &
-                       root,           MPI_COMM_WORLD, ierr(3))
-        call MPI_Bcast(self%Vss_sig,   1,            MPI_REAL8,    &
-                       root,           MPI_COMM_WORLD, ierr(4))
-        call MPI_Bcast(self%t_2,       1,            MPI_REAL8,    &
-                       root,           MPI_COMM_WORLD, ierr(5))
-        call MPI_Bcast(self%phi_2,     1,            MPI_REAL8,    &
-                       root,           MPI_COMM_WORLD, ierr(6))
-        call MPI_Bcast(self%t_so,      1,            MPI_REAL8,    &
-                       root,           MPI_COMM_WORLD, ierr(7))
-        call MPI_Bcast(self%lambda,    1,            MPI_REAL8,    &
-                       root,           MPI_COMM_WORLD, ierr(8))
-        call MPI_Bcast(self%lambda_nl, 1,            MPI_REAL8,    &
-                       root,           MPI_COMM_WORLD, ierr(9))
-        call MPI_Bcast(self%eta_soc,   1,            MPI_REAL8,    &
-                       root,           MPI_COMM_WORLD, ierr(10))
-        call MPI_Bcast(self%num_orb,   1,            MYPI_INT, &
-                       root,           MPI_COMM_WORLD, ierr(11))
-        call MPI_Bcast(self%num_up,    1,            MYPI_INT, &
-                       root,           MPI_COMM_WORLD, ierr(12))
+        call MPI_Bcast(self%E_s,     1,              MPI_REAL8, &
+                       root,         MPI_COMM_WORLD, ierr(1))
+        call MPI_Bcast(self%E_A,     1,              MPI_REAL8, &
+                       root,         MPI_COMM_WORLD, ierr(2))
+        call MPI_Bcast(self%E_B,     1,              MPI_REAL8, &
+                       root,         MPI_COMM_WORLD, ierr(3))
+        call MPI_Bcast(self%Vss_sig, 1,              MPI_REAL8, &
+                       root,         MPI_COMM_WORLD, ierr(4))
+        call MPI_Bcast(self%Vpp_pi,  1,              MPI_REAL8, &
+                       root,         MPI_COMM_WORLD, ierr(5))
+        call MPI_Bcast(self%Vpp_sig, 1,              MPI_REAL8, &
+                       root,         MPI_COMM_WORLD, ierr(6))
+        call MPI_Bcast(self%t_2,     1,              MPI_REAL8, &
+                       root,         MPI_COMM_WORLD, ierr(7))
+        call MPI_Bcast(self%phi_2,   1,              MPI_REAL8, &
+                       root,         MPI_COMM_WORLD, ierr(8))
+        call MPI_Bcast(self%t_so,    1,              MPI_REAL8, &
+                       root,         MPI_COMM_WORLD, ierr(9))
+        call MPI_Bcast(self%lambda,  1,              MPI_REAL8, &
+                       root,         MPI_COMM_WORLD, ierr(10))
+        call MPI_Bcast(self%eta_soc, 1,              MPI_REAL8, &
+                       root,         MPI_COMM_WORLD, ierr(11))
+        call MPI_Bcast(self%num_orb, 1,              MYPI_INT,  &
+                       root,         MPI_COMM_WORLD, ierr(12))
+        call MPI_Bcast(self%num_up,  1,              MYPI_INT,  &
+                       root,         MPI_COMM_WORLD, ierr(13))
 
         call check_ierr(ierr, self%me, "Hamiltionian check err")
     end subroutine
