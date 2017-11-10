@@ -314,7 +314,7 @@ contains
         complex(8)                        :: new(self%num_orb, self%num_orb)
 
         m = self%num_orb - 1
-
+        
         ! Spin up
         cnt = 1
         do i = 1,self%num_up,self%num_orb

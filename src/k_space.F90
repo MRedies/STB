@@ -113,7 +113,7 @@ contains
     Subroutine  calc_and_print_band(self)
         Implicit None
     class(k_space)                :: self 
-        integer                       :: first, last, N
+        integer                       :: first, last, N, i, j
         integer                       :: send_count, ierr
         integer   , allocatable       :: num_elems(:), offsets(:)
         real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
@@ -130,10 +130,11 @@ contains
             stop
         endif
 
+
         call my_section(self%me, self%nProcs, size(self%new_k_pts, 2), first, last)
         allocate(k_pts_sec(3, last - first + 1))
         k_pts_sec = self%new_k_pts(:,first:last)
-
+        
         call self%ham%calc_eigenvalues(k_pts_sec, sec_eig_val)
 
         N = 2 *  self%ham%num_up
