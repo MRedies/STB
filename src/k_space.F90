@@ -1087,10 +1087,10 @@ contains
                             MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(3))
         endif
         call MPI_Bcast(orbmag_IC, size(orbmag_IC), MPI_REAL8, root, &
-                       MPI_COMM_WORLD, ierr   )
+                       MPI_COMM_WORLD, ierr(4))
         
         orb_mag    = orbmag_L + orbmag_IC
-        call check_ierr(ierr, me_in=self%me, info="Hall conductance")
+        call check_ierr(ierr, me_in=self%me, info="orbmag")
     end subroutine integrate_orbmag
 
     subroutine set_hall_weights(self, omega_z_all, kidx_all)
