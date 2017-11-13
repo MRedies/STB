@@ -411,7 +411,7 @@ contains
         call MPI_Bcast(self%DOS_num_k_pts, 1,              MYPI_INT, &
             root,               MPI_COMM_WORLD, ierr(9))
         call MPI_Bcast(self%DOS_lower,     1,              MPI_REAL8, &
-            root,               MPI_COMM_WORLD, ierr(10)
+            root,               MPI_COMM_WORLD, ierr(10))
         call MPI_Bcast(self%DOS_upper,     1,              MPI_REAL8, &
             root,               MPI_COMM_WORLD, ierr(11))
 
