@@ -113,7 +113,7 @@ contains
 
         if(self%me == root) tmp = self%m_theta
         call MPI_Bcast(tmp, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
-        if(abs(tmp - self%m_phi) > 1d-12) then
+        if(abs(tmp - self%m_theta) > 1d-12) then
             call error_msg("m_theta doesn't match", abort=.True.)
         endif
 
