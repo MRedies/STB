@@ -98,7 +98,7 @@ contains
         implicit none
         class(atom)             :: self
         real(8)                 :: tmp, tmp_p(3)
-        integer                 :: ierr(132), tmp_i
+        integer                 :: ierr(8), tmp_i
         integer, allocatable    :: tmp_ivec(:)
         integer(4)              :: tmp_i4
         integer(4), allocatable :: tmp_i4vec(:)
