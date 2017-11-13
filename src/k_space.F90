@@ -24,7 +24,6 @@ module Class_k_space
         integer    :: num_k_pts !> number of k_pts per segment
         integer    :: nProcs !> number of MPI Processes
         integer    :: me !> MPI rank
-        integer    :: laplace_iter !> number of laplace iterations
         integer    :: berry_iter !> number of grid refinements
         integer    :: kpts_per_step !> new kpts per step and Proc
         real(8)    :: k_shift(3) !> shift of brillouine-zone
@@ -35,7 +34,6 @@ module Class_k_space
         real(8), allocatable :: k1_param(:) !> 1st k_space param
         real(8), allocatable :: k2_param(:) !> 2nd k_space param
         character(len=300)    :: filling, prefix, chosen_weights
-        logical      :: perform_dos_integration !> param to toggle dos integr.
         logical      :: perform_pad !> should the k-grid be padded, to match cores
         logical      :: calc_hall !> should hall conductivity be calculated
         logical      :: calc_orbmag !> should orbital magnetism be calculated
@@ -72,7 +70,6 @@ module Class_k_space
         procedure :: pad_k_points_init      => pad_k_points_init
         procedure :: new_pt                 => new_pt
         procedure :: on_hex_border          => on_hex_border
-        procedure :: hex_laplace_smoother   => hex_laplace_smoother
         procedure :: in_points              => in_points
         procedure :: append_kpts            => append_kpts
         procedure :: add_kpts_iter          => add_kpts_iter
@@ -365,7 +362,6 @@ contains
             call CFG_get(cfg, "berry%temperature", tmp)
             self%temp = tmp * self%units%temperature
 
-            call CFG_get(cfg, "berry%laplace_iter", self%laplace_iter)
             call CFG_get(cfg, "berry%refinement_iter", self%berry_iter)
             call CFG_get(cfg, "berry%kpts_per_step", self%kpts_per_step)
             call CFG_get(cfg, "berry%conv_criterion", self%berry_conv_crit)
@@ -407,24 +403,22 @@ contains
             allocate(self%k2_param(sz(2)))
         endif
         call MPI_Bcast(self%k1_param,      sz(1),          MPI_REAL8,    &
-            root,               MPI_COMM_WORLD, ierr(5))
-        call MPI_Bcast(self%k2_param,      sz(2),          MPI_REAL8,    &
             root,               MPI_COMM_WORLD, ierr(6))
-        call MPI_Bcast(self%num_k_pts,     1,              MYPI_INT, &
+        call MPI_Bcast(self%k2_param,      sz(2),          MPI_REAL8,    &
             root,               MPI_COMM_WORLD, ierr(7))
-        call MPI_Bcast(self%DOS_num_k_pts, 1,              MYPI_INT, &
+        call MPI_Bcast(self%num_k_pts,     1,              MYPI_INT, &
             root,               MPI_COMM_WORLD, ierr(8))
-        call MPI_Bcast(self%DOS_lower,     1,              MPI_REAL8, &
+        call MPI_Bcast(self%DOS_num_k_pts, 1,              MYPI_INT, &
             root,               MPI_COMM_WORLD, ierr(9))
+        call MPI_Bcast(self%DOS_lower,     1,              MPI_REAL8, &
+            root,               MPI_COMM_WORLD, ierr(10)
         call MPI_Bcast(self%DOS_upper,     1,              MPI_REAL8, &
-            root,               MPI_COMM_WORLD, ierr(10))
+            root,               MPI_COMM_WORLD, ierr(11))
 
         ! Berry parameter
         call MPI_Bcast(self%berry_num_k_pts, 1,            MYPI_INT,   &
-            root,                            MPI_COMM_WORLD, ierr(11))
-        call MPI_Bcast(self%temp,            1,            MPI_REAL8,     &
             root,                            MPI_COMM_WORLD, ierr(12))
-        call MPI_Bcast(self%laplace_iter,    1,            MYPI_INT,   &
+        call MPI_Bcast(self%temp,            1,            MPI_REAL8,     &
             root,                            MPI_COMM_WORLD, ierr(13))
         call MPI_Bcast(self%berry_iter,      1,            MYPI_INT,   &
             root,                            MPI_COMM_WORLD, ierr(14))
@@ -1677,41 +1671,6 @@ contains
             on_border = abs(abs(pt(1)) - self%hex_border_x(pt(2))) < pos_eps * l
         endif
     end function on_hex_border
-
-    subroutine hex_laplace_smoother(self)
-        implicit none
-    class(k_space)              :: self
-        real(8), allocatable        :: shift(:,:), n_neigh(:)
-        integer                     :: i, j, point, neigh
-        integer   , parameter       :: N = 4
-
-        allocate(shift(2, size(self%new_k_pts,2)))
-        allocate(n_neigh(size(self%new_k_pts,2)))
-
-
-        do i =  1,self%laplace_iter
-            shift = 0d0
-            neigh = 0d0
-            do j = 1,size(self%elem_nodes,1)
-                do point = 1,3
-                    do neigh = 1,3
-                        if(.not. self%on_hex_border(self%elem_nodes(j,point)))then
-                            shift(:,self%elem_nodes(j,point)) = shift(:,self%elem_nodes(j,point)) + &
-                                (self%new_k_pts(1:2,self%elem_nodes(j,neigh)) - self%new_k_pts(1:2,self%elem_nodes(j,point)))
-                            n_neigh(self%elem_nodes(j,point)) =  n_neigh(self%elem_nodes(j,point)) + 1d0
-                        endif
-                    enddo
-                enddo
-            enddo
-            do j = 1,size(shift,2)
-                if(n_neigh(j) >  1d-6) then
-                    self%new_k_pts(1:2,j) =  self%new_k_pts(1:2,j) + shift(:,j) / n_neigh(j)
-                endif
-
-            enddo
-        enddo
-
-    end subroutine hex_laplace_smoother
 
     subroutine add_kpts_iter(self, n_new, new_ks)
         implicit none
