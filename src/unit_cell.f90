@@ -184,7 +184,7 @@ contains
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer   , parameter         :: num_cast = 15
+        integer   , parameter         :: num_cast = 16
         integer                       :: ierr(num_cast)
         
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
@@ -216,12 +216,14 @@ contains
                        root,              MPI_COMM_WORLD, ierr(12))
 
         !layering vars
-        call MPI_Bcast(self%num_layers,    1,            MYPI_INT,  &
+        call MPI_Bcast(self%num_layers,    1,              MYPI_INT,      &
                        root,               MPI_COMM_WORLD, ierr(13))
-        call MPI_Bcast(self%stacking_type, 25,           MPI_CHARACTER, &
+        call MPI_Bcast(self%stacking_type, 25,             MPI_CHARACTER, &
                        root,               MPI_COMM_WORLD, ierr(14))
-        call MPI_Bcast(self%layer_height,  1,            MPI_REAL8,     &
+        call MPI_Bcast(self%layer_height,  1,              MPI_REAL8,     &
                        root,               MPI_COMM_WORLD, ierr(15))
+        call MPI_Bcast(self%molecule,      1,              MPI_LOGICAL,   &
+                       root,               MPI_COMM_WORLD, ierr(16))
 
         
         call check_ierr(ierr, self%me, "Unit cell check err")
@@ -956,6 +958,7 @@ contains
         real(8)  :: start_pos(3), conn(3)
         logical, allocatable :: found_conn(:)
 
+
         n_conn =  size(conn_mtx, 1)
         if(n_conn /= size(conn_type))then
             call error_msg("number of connections have to agree", abort=.True.)
@@ -1016,7 +1019,7 @@ contains
         !> The second index indicates the element of the vector
         integer     :: neigh, idx, n_transl, i
         real(8) :: new(3)
-        
+
         n_transl =  size(transl_mtx, dim=1)
 
         neigh =  - 1
@@ -1032,9 +1035,9 @@ contains
                     neigh =  idx
                     return
                 endif
-                
                 new =  conn -  transl_mtx(i,:)
                 idx =  self%in_cell(start, new)
+
                 if (idx /=  - 1) then
                     neigh =  idx
                     return

@@ -85,12 +85,9 @@ contains
                 call error_msg("FD comp failed")
                 write (*,*) "FD"
                 call save_npy("output/dbg/fd_H.npy",fd_H) 
-                !call print_mtx(fd_H)
                 write (*,*) "analytic"
-                !call print_mtx(self%del_H)
                 call save_npy("output/dbg/del_H.npy", self%del_H) 
                 !write (*,*) "diff"
-                !call print_mtx(self%del_H -  fd_H)
                 call error_msg("Not hermitian", abort=.True.)
             else
                 call error_msg("All hermitian", c_green)
@@ -382,7 +379,7 @@ contains
         hopp_mtx(2,1) = m * l * (self%Vpp_sig - self%Vpp_pi)
         hopp_mtx(3,2) = n * m * (self%Vpp_sig - self%Vpp_pi)
     end subroutine set_p_hopp_mtx
-        
+
     subroutine set_SOC(self, H)
         implicit none
     class(hamil), intent(in)              :: self
@@ -400,12 +397,12 @@ contains
                     do nu = 1,self%num_orb
                         call self%set_small_SOC(mu,nu, loc_H)
                         call set_rot_SO(self%UC%atoms(i_atm), U)
-    
+
                         ! calculate tmp = U * H * U^dag
                         call zgemm('N',   'N', 2,   2,     2, c_1, U,   2, &
-                                   loc_H, 2,   c_0, tmp,   2)
+                            loc_H, 2,   c_0, tmp,   2)
                         call zgemm('N',   'C', 2,   2,     2, c_1, tmp, 2, &
-                                    U,    2,   c_0, rot_H, 2)
+                            U,    2,   c_0, rot_H, 2)
 
                         ms = mu - 1 ! mu-shift
                         ns = nu - 1 ! nu-shift
@@ -420,7 +417,7 @@ contains
             enddo
         endif
     end subroutine set_SOC
-    
+
     subroutine set_rot_SO(atm, U)
         implicit none
         type(atom), intent(in)   :: atm
@@ -435,10 +432,10 @@ contains
         U(1,2) = -exp(-i_unit * p_half) * sin(t_half)
         U(2,2) =  exp( i_unit * p_half) * cos(t_half)
     end subroutine set_rot_SO
-    
+
     subroutine set_small_SOC(self, mu, nu, H)
         implicit none
-        class(hamil), intent(in)    :: self
+    class(hamil), intent(in)    :: self
         integer   , intent(in)      :: mu, nu
         complex(8), intent(out)    :: H(2,2)
 
@@ -458,7 +455,7 @@ contains
         complex(8)                        :: forw, back, t_full
 
         t_full =  self%t_2 * exp(i_unit * self%phi_2)
-        
+
         ! Spin up
         do i = 1,self%num_up
             i_d =  i + self%num_up
@@ -466,7 +463,7 @@ contains
                 if(self%UC%atoms(i)%conn_type(conn) == snd_nn_conn) then
                     j =  self%UC%atoms(i)%neigh_idx(conn)
                     j_d = j + self%num_up
-                    
+
                     k_dot_r =  dot_product(k, self%UC%atoms(i)%neigh_conn(conn,:))
                     forw =  exp(i_unit * k_dot_r) * t_full
                     back =  conjg(forw)
@@ -530,7 +527,7 @@ contains
     class(hamil), intent(in)     :: self
         real(8), intent(in)      :: R(3)
         real(8)                  :: hopp_mtx(self%num_orb, self%num_orb)
-        
+
         if(self%num_orb ==  1) then
             hopp_mtx(1,1) =  self%Vss_sig
         elseif(self%num_orb == 3) then
@@ -585,7 +582,7 @@ contains
 
         self%del_H = 0d0
         has_hopp =   (self%Vss_sig /= 0d0)  &
-                .or. (self%Vpp_sig /= 0d0) .or. (self%Vpp_pi /= 0d0)
+            .or. (self%Vpp_sig /= 0d0) .or. (self%Vpp_pi /= 0d0)
         if(has_hopp) call self%set_derivative_hopping(k, k_idx)
 
         if(self%t_so /= 0d0) call self%set_derivative_rashba_so(k, k_idx)
@@ -614,7 +611,7 @@ contains
                 if(self%UC%atoms(cnt)%conn_type(conn) == nn_conn) then
                     j   = self%UC%atoms(cnt)%neigh_idx(conn)
                     j_d = j + self%num_up
-                    
+
                     r   = self%UC%atoms(cnt)%neigh_conn(conn,:)
                     call self%set_hopp_mtx(r, hopp_mtx)
                     k_dot_r = dot_product(k, r)
@@ -633,16 +630,16 @@ contains
             enddo
         enddo
     end subroutine set_derivative_hopping
-    
+
     subroutine set_derivative_snd_hopping(self, k, k_idx)
         implicit none
-        class(hamil)              :: self
+    class(hamil)              :: self
         real(8), intent(in)       :: k(3)
         integer   , intent(in)    :: k_idx
         real(8)                   :: r(3), k_dot_r
         complex(8)                :: forw, back, t_full
         integer                   :: i, j, conn, i_d, j_d
-        
+
         t_full =  self%t_2 * exp(i_unit * self%phi_2)
 
         !$omp parallel do default(shared) &
@@ -727,7 +724,7 @@ contains
 
         n_dim = 2 * self%num_up
         allocate(tmp(n_dim, n_dim))
-        
+
         if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
         call self%set_derivative_k(k, derive_idx)
 
@@ -735,7 +732,7 @@ contains
             c_1, self%del_H, n_dim,&
             eig_vec_mtx, n_dim,&
             c_0, tmp, n_dim)
-       deallocate(self%del_H)
+        deallocate(self%del_H)
 
         if(allocated(ret))then
             if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
@@ -773,7 +770,7 @@ contains
         allocate(rwork(lrwork), stat=ierr(2))
         allocate(iwork(liwork), stat=ierr(3))
         call check_ierr(ierr, me_in=self%me, msg=["tried to allocate in zheevd"])
-        
+
         call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
             work, lwork, rwork, lrwork, iwork, liwork, info)
         if(info /= 0) then
@@ -781,7 +778,7 @@ contains
         endif
 
         deallocate(work, rwork, iwork)
-       
+
         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
         deallocate(eig_vec)
@@ -833,6 +830,7 @@ contains
         allocate(IWORK(liwork))
         allocate(WORK(lwork))
 
+        call MPI_Barrier(MPI_COMM_WORLD, info)
         do i = 1,size(k_list,2)
             k =  k_list(:,i)
             call self%setup_H(k, H)
