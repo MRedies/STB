@@ -34,7 +34,6 @@ module Class_unit_cell
         real(8) :: ferro_phi, ferro_theta
         real(8) :: atan_factor !> how fast do we change the border wall
         real(8) :: dblatan_dist !> width of the atan plateau
-        real(8) :: random_width !> how much do we distort the magnetization randomly
         real(8) :: skyrm_middle !> position of inplane
         real(8) :: layer_height !> distance between the layers
         type(atom), dimension(:), allocatable :: atoms !> array containing all atoms
@@ -68,7 +67,6 @@ module Class_unit_cell
         procedure :: set_mag_linrot_skrym_square => set_mag_linrot_skrym_square
         procedure :: set_mag_linrot_skrym_honey  => set_mag_linrot_skrym_honey
         procedure :: set_honey_snd_nearest       => set_honey_snd_nearest
-        procedure :: add_mag_randomness          => add_mag_randomness
         procedure :: Bcast_UC                    => Bcast_UC
         procedure :: setup_honey                 => setup_honey
         procedure :: make_hexagon                => make_hexagon
@@ -139,7 +137,6 @@ contains
             call CFG_get(cfg, "grid%atan_fac",       self%atan_factor)
             call CFG_get(cfg, "grid%skyrm_middle",   self%skyrm_middle)
             call CFG_get(cfg, "grid%dblatan_width",  self%dblatan_dist)
-            call CFG_get(cfg, "grid%mag_randomness", self%random_width)
 
             call CFG_get(cfg, "grid%number_of_layers", self%num_layers)
             call CFG_get(cfg, "grid%stacking_type",    self%stacking_type)
@@ -163,8 +160,6 @@ contains
             stop
         endif
 
-        if(self%random_width /= 0d0) call self%add_mag_randomness(self%random_width)
-        
         ! calculate reciprocal grid
         self%rez_lattice =  transpose(self%lattice)
         call dgetrf(2,2, self%rez_lattice, 2, ipiv, info)
@@ -184,7 +179,7 @@ contains
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer   , parameter         :: num_cast = 16
+        integer   , parameter         :: num_cast = 15
         integer                       :: ierr(num_cast)
         
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
@@ -208,22 +203,18 @@ contains
                        root,              MPI_COMM_WORLD, ierr(9))
         call MPI_Bcast(self%dblatan_dist, 1,            MPI_REAL8, &
                        root,              MPI_COMM_WORLD, ierr(10))
-
-        call MPI_Bcast(self%random_width, 1,              MPI_REAL8, &
-                       root,             MPI_COMM_WORLD, ierr(11))
-
         call MPI_Bcast(self%skyrm_middle, 1,            MPI_REAL8, &
-                       root,              MPI_COMM_WORLD, ierr(12))
+                       root,              MPI_COMM_WORLD, ierr(11))
 
         !layering vars
         call MPI_Bcast(self%num_layers,    1,              MYPI_INT,      &
-                       root,               MPI_COMM_WORLD, ierr(13))
+                       root,               MPI_COMM_WORLD, ierr(12))
         call MPI_Bcast(self%stacking_type, 25,             MPI_CHARACTER, &
-                       root,               MPI_COMM_WORLD, ierr(14))
+                       root,               MPI_COMM_WORLD, ierr(13))
         call MPI_Bcast(self%layer_height,  1,              MPI_REAL8,     &
-                       root,               MPI_COMM_WORLD, ierr(15))
+                       root,               MPI_COMM_WORLD, ierr(14))
         call MPI_Bcast(self%molecule,      1,              MPI_LOGICAL,   &
-                       root,               MPI_COMM_WORLD, ierr(16))
+                       root,               MPI_COMM_WORLD, ierr(15))
 
         
         call check_ierr(ierr, self%me, "Unit cell check err")
@@ -717,42 +708,6 @@ contains
             call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
         enddo
     end subroutine set_mag_linrot_skyrm
-
-    subroutine add_mag_randomness(self, sigma)
-        implicit none
-        class(unit_cell)    :: self
-        real(8), intent(in) :: sigma
-        real(8)             :: rand_arr(2), new_ang
-        integer             :: i
-
-        do i = 1,self%num_atoms
-            call gaussian_noise(rand_arr, sigma, 0d0)
-            
-            if(self%atoms(i)%m_theta + rand_arr(1) < PI) then
-                self%atoms(i)%m_theta =  &
-                    self%atoms(i)%m_theta + rand_arr(1)
-            else
-                new_ang =  2*PI - (self%atoms(i)%m_theta + rand_arr(1))
-                self%atoms(i)%m_theta = new_ang
-                
-                self%atoms(i)%m_phi =  self%atoms(i)%m_phi + PI
-                if(self%atoms(i)%m_phi >  PI)then
-                    self%atoms(i)%m_phi =  self%atoms(i)%m_phi - 2d0 * PI
-                endif
-                if(self%atoms(i)%m_phi < - PI)then
-                    self%atoms(i)%m_phi =  self%atoms(i)%m_phi + 2d0 * PI
-                endif
-            endif
-
-            self%atoms(i)%m_phi =  self%atoms(i)%m_phi + rand_arr(2)
-            if(self%atoms(i)%m_phi >  PI)then
-                self%atoms(i)%m_phi = self%atoms(i)%m_phi - 2d0 * PI
-            endif
-            if(self%atoms(i)%m_phi < - PI)then
-                self%atoms(i)%m_phi = self%atoms(i)%m_phi + 2d0 *  PI
-            endif
-        enddo
-    end subroutine add_mag_randomness
 
     subroutine set_mag_atan_skyrm(self, center, radius)
         implicit none
