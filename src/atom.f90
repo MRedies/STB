@@ -1,6 +1,7 @@
 module Class_atom
     use Class_helper
     use Constants
+    use mpi
     implicit none
    
     enum, bind(c)  !> A or B site in graphene
@@ -13,18 +14,21 @@ module Class_atom
         real(8)                  :: m_theta !> polar spin angle \f$\theta\f$
                                             !> see german wikipedia, not english                 
         real(8), dimension(3)    :: pos     !> Position in RS in atomic units
-        integer                  :: site_type !> A or B site
+        integer(4)               :: site_type !> A or B site
         
         integer   , allocatable  :: neigh_idx(:)  !> index of neighbour atom
         real(8), allocatable     :: neigh_conn(:,:) !> real space connection to neighbour. 
         integer(4), allocatable  :: conn_type(:) !> type of connection 
         !> First index connection, second element of connection.
+        
+        integer                  :: me, nProcs
 
     contains
-        procedure :: get_m_cart => get_m_cart 
-        procedure :: set_sphere => set_sphere
-        procedure :: set_m_cart => set_m_cart
-        procedure :: free_atm   => free_atm
+        procedure :: get_m_cart      => get_m_cart
+        procedure :: set_sphere      => set_sphere
+        procedure :: set_m_cart      => set_m_cart
+        procedure :: free_atm        => free_atm
+        procedure :: compare_to_root => compare_to_root
     end type atom
 contains
     subroutine free_atm(self)
@@ -46,21 +50,26 @@ contains
         coord(3) = cos(self%m_theta)
     end function get_m_cart
     
-    function init_ferro_z(p_pos, site) result(ret)
+    function init_ferro_z(p_pos, site) result(self)
         implicit none
-        type(atom)                 :: ret
+        type(atom)                 :: self
         real(8), intent(in)        :: p_pos(3)
         integer, optional          :: site
+        integer                    :: ierr(2)
+        
+        call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr(1))
+        call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr(2))
+        call check_ierr(ierr, self%me, "init_ferro_z call")
 
         if(present(site)) then
-            ret%site_type = site
+            self%site_type = site
         else
-            ret%site_type =  no_site
+            self%site_type =  no_site
         endif
 
-        ret%m_phi      = 0d0 
-        ret%m_theta    = 0d0
-        ret%pos        = p_pos
+        self%m_phi      = 0d0 
+        self%m_theta    = 0d0
+        self%pos        = p_pos
     end function init_ferro_z
 
     subroutine set_m_cart(self,x,y,z)
@@ -83,5 +92,95 @@ contains
 
         self%m_phi   = phi
         self%m_theta = theta
-    end subroutine set_sphere 
+    end subroutine set_sphere
+
+    subroutine compare_to_root(self)
+        implicit none
+        class(atom)             :: self
+        real(8)                 :: tmp, tmp_p(3)
+        integer                 :: ierr(132), tmp_i
+        integer, allocatable    :: tmp_ivec(:)
+        integer(4)              :: tmp_i4
+        integer(4), allocatable :: tmp_i4vec(:)
+        real(8), allocatable    :: tmp_rmtx(:,:), tmp_rvec(:)
+
+        ! compare angles
+        if(self%me == root) tmp = self%m_phi
+        call MPI_Bcast(tmp, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(1))
+        if(abs(tmp - self%m_phi) > 1d-12) then
+            call error_msg("m_phi doesn't match", abort=.True.)
+        endif
+
+        if(self%me == root) tmp = self%m_theta
+        call MPI_Bcast(tmp, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
+        if(abs(tmp - self%m_phi) > 1d-12) then
+            call error_msg("m_theta doesn't match", abort=.True.)
+        endif
+
+        ! compare positions
+        if(self%me == root) tmp_p = self%pos
+        call MPI_Bcast(tmp_p, 3, MPI_REAL8, root, MPI_COMM_WORLD, ierr(3))
+        if(my_norm2(tmp_p - self%pos) > 1d-11) then
+            call error_msg("pos doesn't match", abort=.True.)
+        endif
+
+        ! compare site_types        
+        if(self%me == root) tmp_i4 = self%site_type
+        call MPI_Bcast(tmp_i4, 1, MPI_INTEGER4, root, MPI_COMM_WORLD, ierr(4))
+        if(tmp_i4 /= self%site_type) then
+            call error_msg("site_type doesn't match", abort=.True.)
+        endif
+
+        ! compare neighbours
+        if(self%me == root) tmp_i = size(self%neigh_idx)
+        call MPI_Bcast(tmp_i, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr(5))
+        if(tmp_i /= size(self%neigh_idx)) then
+            call error_msg("size(neigh_idx) doesn't match", abort=.True.)
+        endif
+
+        allocate(tmp_ivec(size(self%neigh_idx)))
+        if(self%me == root) tmp_ivec = self%neigh_idx
+        call MPI_Bcast(tmp_ivec, size(self%neigh_idx), MPI_INTEGER, &
+                       root, MPI_COMM_WORLD, ierr(6))
+        if(any(tmp_ivec /= self%neigh_idx)) then
+            write (*,*) self%me, "neigh_idx", self%neigh_idx
+            write (*,*) self%me, "tmp_ivec", tmp_ivec
+            call error_msg("neigh_idx doesn't match", abort=.True.)
+        endif
+        deallocate(tmp_ivec)
+
+        if(self%me == root) tmp_i = size(self%neigh_conn)
+        call MPI_Bcast(tmp_i, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr(7))
+        if(tmp_i /= size(self%neigh_conn)) then
+            call error_msg("size(neigh_conn) doesn't match", abort=.True.)
+        endif
+        
+        allocate(tmp_rmtx(size(self%neigh_conn, dim=1), &
+                          size(self%neigh_conn, dim=2)))
+        if(self%me == root) tmp_rmtx = self%neigh_conn
+        call MPI_Bcast(tmp_rmtx, size(tmp_rmtx), MPI_REAL8, &
+                                      root, MPI_COMM_WORLD, ierr(8))
+        if(mtx_norm(tmp_rmtx - self%neigh_conn) >  1d-11) then
+            call error_msg("neigh_conn doesn't match", abort=.True.)
+        endif
+        deallocate(tmp_rmtx)
+
+        ! compare conn types
+        if(self%me == root) tmp_i = size(self%conn_type)
+        call MPI_Bcast(tmp_i, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr(9))
+        if(tmp_i /= size(self%conn_type)) then
+            call error_msg("size(conn_type) doesn't match", abort=.True.)
+        endif
+        
+        allocate(tmp_i4vec(size(self%conn_type)))
+        if(self%me == root) tmp_i4vec = self%conn_type
+        call MPI_Bcast(tmp_i4vec, size(tmp_i4vec), MPI_INTEGER4, &
+                       root, MPI_COMM_WORLD, ierr(9))
+        if(any(tmp_i4vec /= self%conn_type)) then
+            call error_msg("conn_type doesn't match", abort=.True.)
+        endif
+        deallocate(tmp_i4vec)
+
+        call check_ierr(ierr, self%me, "compare atoms")
+    end subroutine compare_to_root
 end module 

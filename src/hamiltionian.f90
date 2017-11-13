@@ -21,6 +21,7 @@ module Class_hamiltionian
         integer         :: nProcs
         integer         :: me
         integer         :: num_orb, num_up
+        logical      :: test_run !> should unit tests be performed
         type(unit_cell) :: UC !> unit cell
         type(units)     :: units
     contains
@@ -191,6 +192,8 @@ contains
             call CFG_get(cfg, "hamil%n", n)
             self%num_orb =  2 * n +  1
             self%num_up  =  self%num_orb *  self%UC%num_atoms
+            
+            call CFG_get(cfg, "general%test_run", self%test_run)
         endif
         call self%Bcast_hamil()
     end function init_hamil
@@ -198,7 +201,7 @@ contains
     subroutine Bcast_hamil(self)
         implicit none
     class(hamil)          :: self
-        integer   , parameter :: num_cast =  13
+        integer   , parameter :: num_cast =  14
         integer               :: ierr(num_cast)
 
         call MPI_Bcast(self%E_s,     1,              MPI_REAL8, &
@@ -227,6 +230,9 @@ contains
                        root,         MPI_COMM_WORLD, ierr(12))
         call MPI_Bcast(self%num_up,  1,              MYPI_INT,  &
                        root,         MPI_COMM_WORLD, ierr(13))
+        
+        call MPI_Bcast(self%test_run, 1,              MPI_LOGICAL, &
+                        root,         MPI_COMM_WORLD, ierr(14))
 
         call check_ierr(ierr, self%me, "Hamiltionian check err")
     end subroutine

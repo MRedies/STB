@@ -39,6 +39,7 @@ module Class_unit_cell
         character(len=25) :: mag_type !> indicates type of magnetization
         character(len=300):: mag_file
         logical :: molecule !> should we have a k-space or not?
+        logical      :: test_run !> should unit tests be performed
     contains
     
         procedure :: init_unit_honey             => init_unit_honey
@@ -67,6 +68,7 @@ module Class_unit_cell
         procedure :: make_hexagon                => make_hexagon
         procedure :: free_uc                     => free_uc
         procedure :: init_file_square            => init_file_square
+        procedure :: run_tests                   => run_tests
     end type unit_cell
 contains
     subroutine free_uc(self)
@@ -131,6 +133,7 @@ contains
             call CFG_get(cfg, "grid%dblatan_width",  self%dblatan_dist)
 
             call CFG_get(cfg, "grid%mag_file", self%mag_file)
+            call CFG_get(cfg, "general%test_run", self%test_run)
         endif
 
         call self%Bcast_UC()
@@ -160,12 +163,14 @@ contains
             stop
         endif
         self%rez_lattice =  2 *  PI * self%rez_lattice
+
+        if(self%test_run) call self%run_tests()
     end function
 
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer   , parameter         :: num_cast = 12
+        integer   , parameter         :: num_cast = 13
         integer                       :: ierr(num_cast)
         
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
@@ -196,6 +201,9 @@ contains
 
         call MPI_Bcast(self%molecule,      1,              MPI_LOGICAL,   &
                        root,               MPI_COMM_WORLD, ierr(12))
+        
+        call MPI_Bcast(self%test_run, 1,              MPI_LOGICAL, &
+                        root,         MPI_COMM_WORLD, ierr(13))
 
         
         call check_ierr(ierr, self%me, "Unit cell check err")
@@ -738,13 +746,13 @@ contains
     subroutine setup_square(self)
         implicit none
         class(unit_cell), intent(inout)  :: self
-        integer                          :: i, j, cnt, lay
+        integer                          :: i, j, cnt
         real(8) :: pos(3)
 
         cnt =  1
         do i = 0, self%atom_per_dim-1
             do j = 0, self%atom_per_dim-1
-                pos             = (/i,j,lay/) * self%lattice_constant 
+                pos             = [i,j,0] * self%lattice_constant 
                 self%atoms(cnt) = init_ferro_z(pos)
                 cnt             = cnt + 1
             enddo
@@ -1118,6 +1126,15 @@ contains
         y(3) = r * cos(theta)
     end function n_times_phi
 
+    subroutine run_tests(self)
+        implicit none
+        class(unit_cell), intent(in)   :: self
+        integer                        :: i
+
+        do i = 1,self%num_atoms
+            call self%atoms(i)%compare_to_root()
+        enddo
+    end subroutine run_tests
 
 end module
 

@@ -37,6 +37,7 @@ module Class_k_space
         logical      :: perform_pad !> should the k-grid be padded, to match cores
         logical      :: calc_hall !> should hall conductivity be calculated
         logical      :: calc_orbmag !> should orbital magnetism be calculated
+        logical      :: test_run !> should unit tests be performed
         type(hamil)  :: ham
         type(units)  :: units
     contains
@@ -369,13 +370,15 @@ contains
             call CFG_get(cfg, "berry%calc_hall", self%calc_hall)
             call CFG_get(cfg, "berry%calc_orbmag", self%calc_orbmag)
             call CFG_get(cfg, "berry%weights", self%chosen_weights)
+
+            call CFG_get(cfg, "general%test_run", self%test_run)
         endif
         call self%Bcast_k_space()
     end function init_k_space
 
     subroutine Bcast_k_space(self)
     class(k_space)         :: self
-        integer   , parameter  :: num_cast =  21
+        integer   , parameter  :: num_cast =  22
         integer                :: ierr(num_cast)
         integer                :: sz(2)
         ierr =  0
@@ -436,6 +439,9 @@ contains
             root,                            MPI_COMM_WORLD, ierr(20))
         call MPI_Bcast(self%chosen_weights,  300,          MPI_CHARACTER, &
             root,                            MPI_COMM_WORLD, ierr(21))
+
+        call MPI_Bcast(self%test_run, 1,              MPI_LOGICAL, &
+                        root,         MPI_COMM_WORLD, ierr(22))
 
         call check_ierr(ierr, self%me, "Ksp Bcast")
     end subroutine Bcast_k_space

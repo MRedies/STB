@@ -234,6 +234,8 @@ contains
         call CFG_add(cfg, "berry%weights", "", "")
 
         call CFG_add(cfg, "output%band_prefix", "bar/foo","")
+
+        call CFG_add(cfg, "general%test_run", .False., "performed tests")
     End Subroutine add_full_cfg
 
     subroutine save_cfg(cfg)

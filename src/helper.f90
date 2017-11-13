@@ -363,4 +363,11 @@ contains
         endif
     end subroutine error_msg
 
+    function mtx_norm(M) result(norm)
+        implicit none
+        real(8), intent(in)     :: M(:,:)
+        real(8)                 :: norm
+
+        norm =  my_norm2(reshape(M, [size(M)]))
+    end function
 end module Class_helper
