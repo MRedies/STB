@@ -28,7 +28,6 @@ module Class_unit_cell
         integer    :: me
         integer    :: n_wind !> winding number for lin_rot
         real(8) :: lattice_constant !> lattice constant in atomic units
-        real(8) :: Vss_sig !> hopping paramater passed for connection 
         real(8) :: eps !> threshold for positional accuracy
         real(8) :: ferro_phi, ferro_theta
         real(8) :: atan_factor !> how fast do we change the border wall
@@ -111,8 +110,6 @@ contains
             call CFG_get(cfg, "grid%epsilon", tmp)
             self%eps =  tmp * self%units%length
             
-            call CFG_get(cfg, "hamil%Vss_sig", tmp)
-            self%Vss_sig =  tmp * self%units%energy
             call CFG_get(cfg, "hamil%molecule", self%molecule)
             if(self%molecule) then
                 call error_msg("Using Molecule mode!", p_color=c_green)
@@ -173,27 +170,29 @@ contains
         
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
                        root,                  MPI_COMM_WORLD, ierr(1))
-        call MPI_Bcast(self%Vss_sig,          1,              MPI_REAL8,     &
-                       root,                  MPI_COMM_WORLD, ierr(2))
         call MPI_Bcast(self%mag_type,         25,             MPI_CHARACTER, &
-                       root,                  MPI_COMM_WORLD, ierr(3))
+                       root,                  MPI_COMM_WORLD, ierr(2))
         call MPI_Bcast(self%uc_type,          25,             MPI_CHARACTER, &
-                       root,                  MPI_COMM_WORLD, ierr(4))
+                       root,                  MPI_COMM_WORLD, ierr(3))
         call MPI_Bcast(self%lattice_constant, 1,              MPI_REAL8,     &
-                       root,                  MPI_COMM_WORLD, ierr(5))
+                       root,                  MPI_COMM_WORLD, ierr(4))
         call MPI_Bcast(self%atom_per_dim,     1,              MYPI_INT,      &
-                       root,                  MPI_COMM_WORLD, ierr(6))
+                       root,                  MPI_COMM_WORLD, ierr(5))
         
         call MPI_Bcast(self%ferro_phi,    1,            MPI_REAL8, &
-                       root,              MPI_COMM_WORLD, ierr(7))
+                       root,              MPI_COMM_WORLD, ierr(6))
         call MPI_Bcast(self%ferro_theta,  1,            MPI_REAL8, &
-                       root,              MPI_COMM_WORLD, ierr(8))
+                       root,              MPI_COMM_WORLD, ierr(7))
         call MPI_Bcast(self%atan_factor,  1,            MPI_REAL8, &
-                       root,              MPI_COMM_WORLD, ierr(9))
+                       root,              MPI_COMM_WORLD, ierr(8))
         call MPI_Bcast(self%dblatan_dist, 1,            MPI_REAL8, &
-                       root,              MPI_COMM_WORLD, ierr(10))
+                       root,              MPI_COMM_WORLD, ierr(9))
         call MPI_Bcast(self%skyrm_middle, 1,            MPI_REAL8, &
-                       root,              MPI_COMM_WORLD, ierr(11))
+                       root,              MPI_COMM_WORLD, ierr(10))
+
+
+        call MPI_Bcast(self%n_wind, 1,              MYPI_INT, &
+                       root,        MPI_COMM_WORLD, ierr(11))
 
         call MPI_Bcast(self%molecule,      1,              MPI_LOGICAL,   &
                        root,               MPI_COMM_WORLD, ierr(12))
