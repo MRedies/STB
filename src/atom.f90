@@ -14,7 +14,6 @@ module Class_atom
                                             !> see german wikipedia, not english                 
         real(8), dimension(3)    :: pos     !> Position in RS in atomic units
         integer                  :: site_type !> A or B site
-        integer                  :: layer !> layer 
         
         integer   , allocatable  :: neigh_idx(:)  !> index of neighbour atom
         real(8), allocatable     :: neigh_conn(:,:) !> real space connection to neighbour. 
@@ -47,23 +46,16 @@ contains
         coord(3) = cos(self%m_theta)
     end function get_m_cart
     
-    function init_ferro_z(p_pos, site, layer) result(ret)
+    function init_ferro_z(p_pos, site) result(ret)
         implicit none
         type(atom)                 :: ret
         real(8), intent(in)        :: p_pos(3)
         integer, optional          :: site
-        integer   , optional       :: layer
 
         if(present(site)) then
             ret%site_type = site
         else
             ret%site_type =  no_site
-        endif
-
-        if(present(layer)) then
-            ret%layer = layer
-        else
-            ret%layer = 1
         endif
 
         ret%m_phi      = 0d0 

@@ -23,7 +23,6 @@ module Class_unit_cell
         !> of the reciprocal lattice. Indexs same as lattice
         ! number of non-redundant atoms pre unit cell
         integer    :: num_atoms  !> number of non-redundant atoms in a unit cell
-        integer    :: num_layers !> number of layers
         integer    :: atom_per_dim !> atoms along the radius of the unit_cell
         integer    :: nProcs
         integer    :: me
@@ -35,19 +34,16 @@ module Class_unit_cell
         real(8) :: atan_factor !> how fast do we change the border wall
         real(8) :: dblatan_dist !> width of the atan plateau
         real(8) :: skyrm_middle !> position of inplane
-        real(8) :: layer_height !> distance between the layers
         type(atom), dimension(:), allocatable :: atoms !> array containing all atoms
         type(units)       :: units
         character(len=25) :: uc_type !> indicates shape of unitcell
         character(len=25) :: mag_type !> indicates type of magnetization
-        character(len=25) :: stacking_type !> indicates how we stack
         character(len=300):: mag_file
         logical :: molecule !> should we have a k-space or not?
     contains
     
         procedure :: init_unit_honey             => init_unit_honey
         procedure :: init_unit_square            => init_unit_square
-        procedure :: init_unit_honey_film        => init_unit_honey_film
         procedure :: get_num_atoms               => get_num_atoms
         procedure :: setup_square                => setup_square
         procedure :: setup_single_hex            => setup_single_hex
@@ -70,7 +66,6 @@ module Class_unit_cell
         procedure :: Bcast_UC                    => Bcast_UC
         procedure :: setup_honey                 => setup_honey
         procedure :: make_hexagon                => make_hexagon
-        procedure :: stack_layer                 => stack_layer
         procedure :: free_uc                     => free_uc
         procedure :: init_file_square            => init_file_square
     end type unit_cell
@@ -138,10 +133,6 @@ contains
             call CFG_get(cfg, "grid%skyrm_middle",   self%skyrm_middle)
             call CFG_get(cfg, "grid%dblatan_width",  self%dblatan_dist)
 
-            call CFG_get(cfg, "grid%number_of_layers", self%num_layers)
-            call CFG_get(cfg, "grid%stacking_type",    self%stacking_type)
-            call CFG_get(cfg, "grid%layer_height",     self%layer_height)
-
             call CFG_get(cfg, "grid%mag_file", self%mag_file)
         endif
 
@@ -151,8 +142,6 @@ contains
             call self%init_unit_square()
         else if(trim(self%uc_type) == "honey_2d") then
             call self%init_unit_honey()
-        else if(trim(self%uc_type) == "honey_3d") then
-            call self%init_unit_honey_film()
         else if(trim(self%uc_type) == "file_square") then
             call self%init_file_square()
         else
@@ -179,7 +168,7 @@ contains
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer   , parameter         :: num_cast = 15
+        integer   , parameter         :: num_cast = 12
         integer                       :: ierr(num_cast)
         
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
@@ -206,15 +195,8 @@ contains
         call MPI_Bcast(self%skyrm_middle, 1,            MPI_REAL8, &
                        root,              MPI_COMM_WORLD, ierr(11))
 
-        !layering vars
-        call MPI_Bcast(self%num_layers,    1,              MYPI_INT,      &
-                       root,               MPI_COMM_WORLD, ierr(12))
-        call MPI_Bcast(self%stacking_type, 25,             MPI_CHARACTER, &
-                       root,               MPI_COMM_WORLD, ierr(13))
-        call MPI_Bcast(self%layer_height,  1,              MPI_REAL8,     &
-                       root,               MPI_COMM_WORLD, ierr(14))
         call MPI_Bcast(self%molecule,      1,              MPI_LOGICAL,   &
-                       root,               MPI_COMM_WORLD, ierr(15))
+                       root,               MPI_COMM_WORLD, ierr(12))
 
         
         call check_ierr(ierr, self%me, "Unit cell check err")
@@ -225,7 +207,7 @@ contains
         class(unit_cell), intent(inout) :: self
         real(8)                         :: conn_mtx(3,3), transl_mtx(2,3)
         
-        self%num_atoms = self%atom_per_dim **2 *  self%num_layers
+        self%num_atoms = self%atom_per_dim **2
         allocate(self%atoms(self%num_atoms))
     
         call self%setup_square()
@@ -361,111 +343,6 @@ contains
         deallocate(grid)
     end subroutine make_hexagon
 
-    subroutine init_unit_honey_film(self)
-        implicit none
-        class(unit_cell), intent(inout)   :: self
-        integer                           :: apd
-        real(8)  :: base_len_uc, trans_len, a, transl_mtx(3,3), conn_mtx(9,3) 
-        real(8)  :: l, h
-        real(8), allocatable             :: shifts(:,:), hexagon(:,:)
-        integer, allocatable             :: site_type(:)
-        integer(4)                       :: conn_type(9)
-
-        apd         = self%atom_per_dim
-        base_len_uc = self%lattice_constant * apd
-        trans_len   = 2 * cos(deg_30) * base_len_uc
-        a           = self%lattice_constant
-        l           = 2 * cos(deg_30) *  a
-
-        transl_mtx(1, :) =  trans_len *  [1d0,   0d0,           0d0]
-        transl_mtx(2, :) =  trans_len *  [0.5d0, sin(deg_60),   0d0]
-        transl_mtx(3, :) =  trans_len *  [0.5d0, - sin(deg_60), 0d0]
-
-        self%lattice(:,1) =  transl_mtx(1,1:2)
-        self%lattice(:,2) =  transl_mtx(2,1:2)
-        
-        call self%make_hexagon(hexagon, site_type)
-
-        if(self%stacking_type == "AB") then
-            allocate(shifts(2,2))
-            shifts(1, :) = [0d0, 0d0]
-            shifts(2, :) = [0d0,  -a]
-        elseif(self%stacking_type == "ABC") then
-            allocate(shifts(3,2))
-            shifts(1, :) = [0d0,    0d0]
-            shifts(2, :) = [0d0,     -a]
-            shifts(3, :) = [0d0, -2d0*a]
-        else
-            call error_msg("Stacking type not known", abort=.True.)
-        endif
-        
-        call self%stack_layer(hexagon, shifts, site_type)
-
-        if(trim(self%mag_type) == "ferro") then
-            call self%set_mag_ferro()
-        else
-            call error_msg("only ferro implemented", abort=.True.)
-        endif
-        
-        deallocate(hexagon, site_type)
-
-        h = self%layer_height
-
-        ! inplane connections
-        conn_mtx(1, :) = a * [0d0,          1d0,           0d0]
-        conn_mtx(2, :) = a * [cos(deg_30),  - sin(deg_30), 0d0]
-        conn_mtx(3, :) = a * [-cos(deg_30), - sin(deg_30), 0d0]
-        conn_type(1:3) = nn_conn
-
-        !out of plane connectios
-        conn_mtx(4, :)  = [0d0,      a,        h]
-        conn_mtx(5, :)  = [0d0,      -a,       h]
-        conn_mtx(6, :)  = [0.5d0*l,  0.5d0*a,  h]
-        conn_mtx(7, :)  = [0.5d0*l,  -0.5d0*a, h]
-        conn_mtx(8, :)  = [-0.5d0*l, 0.5d0*a,  h]
-        conn_mtx(9, :)  = [-0.5d0*l, -0.5d0*a, h]
-        conn_type(4:9) = oop_conn
-        
-        call self%setup_gen_conn(conn_mtx, conn_type, transl_mtx)
-        !call self%set_honey_snd_nearest()
-    end subroutine init_unit_honey_film
-
-    subroutine stack_layer(self, layer, shifts, site_type)
-        implicit none
-        class(unit_cell), intent(inout) :: self
-        real(8) :: layer(:,:), shifts(:,:), curr_shift(3), pos(3)
-        integer    :: atoms_in_layer, cnt, shift_idx, num_shifts, lay, atm
-        integer, optional :: site_type(:)
-
-        atoms_in_layer = size(layer, 1) 
-        num_shifts     = size(shifts,1)
-
-        self%num_atoms  = self%num_layers * atoms_in_layer
-        allocate(self%atoms(self%num_atoms))
-
-        cnt = 1
-        do lay=1,self%num_layers
-            shift_idx = mod(lay-1, num_shifts) + 1
-            
-            curr_shift =  0d0
-            curr_shift(1:2) =  shifts(shift_idx,:)
-            curr_shift(3) =  (lay-1) * self%layer_height
-            write (*,*) "layer =  ", lay, " shift_idx: ", shift_idx
-            call print_mtx(curr_shift)
-
-            do atm = 1,atoms_in_layer
-                pos = layer(atm,:) +  curr_shift
-                if(present(site_type)) then
-                    self%atoms(cnt) = init_ferro_z(pos, site=site_type(atm), layer=lay)
-                else
-                    self%atoms(cnt) = init_ferro_z(pos, layer=lay)
-                endif
-                cnt = cnt + 1
-            enddo
-        enddo
-
-    end subroutine stack_layer
-    
     subroutine init_unit_honey(self)
         implicit none
         class(unit_cell), intent(inout)   :: self
@@ -866,13 +743,11 @@ contains
         real(8) :: pos(3)
 
         cnt =  1
-        do lay =  0, self%num_layers-1
-            do i = 0, self%atom_per_dim-1
-                do j = 0, self%atom_per_dim-1
-                    pos             = (/i,j,lay/) * self%lattice_constant 
-                    self%atoms(cnt) = init_ferro_z(pos)
-                    cnt             = cnt + 1
-                enddo
+        do i = 0, self%atom_per_dim-1
+            do j = 0, self%atom_per_dim-1
+                pos             = (/i,j,lay/) * self%lattice_constant 
+                self%atoms(cnt) = init_ferro_z(pos)
+                cnt             = cnt + 1
             enddo
         enddo
 
