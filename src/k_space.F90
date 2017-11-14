@@ -804,6 +804,17 @@ contains
 
             ! Stop if both converged
             if(done_hall .and. done_orbmag) exit
+            
+            if(done_hall) then
+                call error_msg("Switched to orbmag-weights", &
+                               p_color=p_green, abort=.False.)
+                self%chosen_weights = "orbmag"
+            endif
+            if(done_orbmag) then
+                call error_msg("Switched to hall-weights", &
+                               p_color=p_green, abort=.False.)
+                self%chosen_weights = "hall"
+            endif
 
             if(trim(self%chosen_weights) == "hall")then 
                 if(.not.self%calc_hall) then
