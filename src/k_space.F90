@@ -731,8 +731,8 @@ contains
              hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:),& 
              orbmag(:), orbmag_old(:), Q_L_all(:,:), Q_IC_all(:,:), &
              Q_L_new(:,:), Q_IC_new(:,:), orbmag_L(:), orbmag_IC(:)
-        real(8) :: start
-        integer   , allocatable :: kidx_all(:), kidx_new(:)
+        real(8)                  :: start, factor
+        integer   , allocatable  :: kidx_all(:), kidx_new(:)
         integer     :: N_k, num_up, iter, n_ferm
         integer     :: all_err(13), info
         character(len=300)       :: msg
@@ -790,6 +790,9 @@ contains
                 done_hall =  self%process_step(hall, hall_old, iter, "hall_cond")
             else
                 done_hall = .True.
+                call error_msg("Switched to orbmag-weights", &
+                               p_color=c_green, abort=.False.)
+                self%chosen_weights = "orbmag"
             endif
 
             if(self%calc_orbmag) then
@@ -797,9 +800,13 @@ contains
                 call self%integrate_orbmag(kidx_all, Q_L_all, Q_IC_all, orbmag, orbmag_L, orbmag_IC)
 
                 ! save current iteration and check if converged
-                done_orbmag = self%process_step(orbmag, orbmag_old, iter, "orbmag   ")
+                factor = self%ham%UC%calc_area() / self%units%mag_dipol
+                done_orbmag = self%process_step(orbmag*factor, orbmag_old*factor, iter, "orbmag   ")
             else
                 done_orbmag = .True.
+                call error_msg("Switched to hall-weights", &
+                               p_color=c_green, abort=.False.)
+                self%chosen_weights = "hall"
             endif
 
             ! Stop if both converged
@@ -951,10 +958,9 @@ contains
         implicit none
         class(k_space)          :: self
         real(8), intent(in)     :: orbmag(:), orbmag_L(:), orbmag_IC(:)
-        real(8)                 :: area, base_len_uc
+        real(8)                 :: area
 
-        base_len_uc = self%ham%UC%lattice_constant * self%ham%UC%atom_per_dim
-        area =  1.5d0 * sqrt(3d0) * base_len_uc**2
+        area =  self%ham%UC%calc_area()
 
         if(self%me == root) then
             write (*,*) "saving orbmag"
@@ -1065,7 +1071,7 @@ contains
         enddo
 
 
-        orbmag_L  = orbmag_L  / (2d0 * speed_of_light * (2d0*PI)**2)
+        orbmag_L  = orbmag_L  / (2d0 * speed_of_light * (2d0*PI)**2) 
         orbmag_IC = orbmag_IC / (2d0 * speed_of_light * (2d0*PI)**2)
 
         ! reduce & bcast local term

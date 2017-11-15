@@ -69,6 +69,7 @@ module Class_unit_cell
         procedure :: free_uc                     => free_uc
         procedure :: init_file_square            => init_file_square
         procedure :: run_tests                   => run_tests
+        procedure :: calc_area                   => calc_area
     end type unit_cell
 contains
     subroutine free_uc(self)
@@ -1064,6 +1065,19 @@ contains
 
         ret =  self%atoms        
     end function get_atoms 
+
+    function calc_area(self) result(area)
+        implicit none
+        class(unit_cell), intent(in)            :: self
+        real(8)                                 :: area, base_len_uc
+        
+        base_len_uc = self%lattice_constant * self%atom_per_dim
+        if(trim(self%uc_type) == "honey_2d") then
+            area =  1.5d0 * sqrt(3d0) * base_len_uc**2
+        else
+            area =  base_len_uc**2
+        endif
+    end function calc_area
 
     function rot_z_deg(deg) result(rot)
         implicit none 
