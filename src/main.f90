@@ -28,6 +28,7 @@ program STB
 
     call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
     do n_inp = 1, n_files
+        if(me == root) write (*,*) "started at ", date_time()
         call process_file(inp_files(n_inp))
     enddo
 
