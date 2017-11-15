@@ -166,8 +166,8 @@ contains
         type(CFG_t)            :: cfg 
 
         call CFG_add(cfg, "units%length",     "none", "unit of length")
-        call CFG_add(cfg, "units%energy",     "none", "unit of energy")
-        call CFG_add(cfg, "units%inv_energy", "none", "unit of inverse energy")
+        call CFG_add(cfg, "units%energy",     "none", "unit of Ener")
+        call CFG_add(cfg, "units%inv_energy", "none", "unit of inverse Ener")
         call CFG_add(cfg, "units%inv_length", "none", "unit of inverse length")
         call CFG_add(cfg, "units%temperature", "none", "unit of temperature")
         call CFG_add(cfg, "units%mag_dipol", "none", "unit of magnetic dipol")
@@ -180,9 +180,9 @@ contains
         call CFG_add(cfg, "hamil%phi_2",     0d0,     "2nd nearest neighbourh hopping phase")
         call CFG_add(cfg, "hamil%t_so",      0d0,     "rashba spin-orbit")
         call CFG_add(cfg, "hamil%eta_soc",   0d0,     "p-state SOC")
-        call CFG_add(cfg, "hamil%E_s",       0d0,     "Eigen energy")
-        call CFG_add(cfg, "hamil%E_A",       0d0,     "A-site eigen energy")
-        call CFG_add(cfg, "hamil%E_B",       0d0,     "B-site eigen energgy")
+        call CFG_add(cfg, "hamil%E_s",       0d0,     "EigenE")
+        call CFG_add(cfg, "hamil%E_A",       0d0,     "A-site eigenE")
+        call CFG_add(cfg, "hamil%E_B",       0d0,     "B-site eigenE")
         call CFG_add(cfg, "hamil%lambda",    0d0,     "xc-splitting")
         call CFG_add(cfg, "hamil%n",         0,       "n=0 -> s-states; n=1 -> p-states")
         call CFG_add(cfg, "hamil%molecule",  .False., "should this be calculated as an isolated molecule")
