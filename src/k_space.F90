@@ -85,6 +85,7 @@ module Class_k_space
         procedure :: calc_new_berry_points  => calc_new_berry_points
         procedure :: calc_new_kidx          => calc_new_kidx
         procedure :: calc_orbmag_z_singleK  => calc_orbmag_z_singleK
+        procedure :: save_grid              => save_grid
     end type k_space
 
     interface
@@ -808,6 +809,7 @@ contains
                                p_color=c_green, abort=.False.)
                 self%chosen_weights = "hall"
             endif
+            call self%save_grid(iter)
 
             ! Stop if both converged
             if(done_hall .and. done_orbmag) exit
@@ -1766,5 +1768,20 @@ contains
         enddo
     end function random_pt_hex
 
+    subroutine save_grid(self, iter)
+        implicit none
+    class(k_space), intent(in)  :: self
+        integer, intent(in)     :: iter
+        character(len=300)      :: k_file, elem_file
+        
+        if(self%me == root) then
+            write (k_file,    "(A,I0.5,A)") trim(self%prefix) // "kpts_iter=", iter, ".npy"
+            write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "elem_iter=", iter, ".npy"
+                
+            call save_npy(trim(k_file),    self%all_k_pts)
+            call save_npy(trim(elem_file), self%elem_nodes)
+        endif
+
+    end subroutine save_grid
 end module
 
