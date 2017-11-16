@@ -102,19 +102,24 @@ contains
         integer, allocatable    :: tmp_ivec(:)
         integer(4)              :: tmp_i4
         integer(4), allocatable :: tmp_i4vec(:)
-        real(8), allocatable    :: tmp_rmtx(:,:), tmp_rvec(:)
+        real(8), allocatable    :: tmp_rmtx(:,:)
+        logical                 :: success
+
+        success = .True.
 
         ! compare angles
         if(self%me == root) tmp = self%m_phi
         call MPI_Bcast(tmp, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(1))
         if(abs(tmp - self%m_phi) > 1d-12) then
             call error_msg("m_phi doesn't match", abort=.True.)
+            success = .False.
         endif
 
         if(self%me == root) tmp = self%m_theta
         call MPI_Bcast(tmp, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
         if(abs(tmp - self%m_theta) > 1d-12) then
             call error_msg("m_theta doesn't match", abort=.True.)
+            success = .False.
         endif
 
         ! compare positions
@@ -122,6 +127,7 @@ contains
         call MPI_Bcast(tmp_p, 3, MPI_REAL8, root, MPI_COMM_WORLD, ierr(3))
         if(my_norm2(tmp_p - self%pos) > 1d-11) then
             call error_msg("pos doesn't match", abort=.True.)
+            success = .False.
         endif
 
         ! compare site_types        
@@ -129,6 +135,7 @@ contains
         call MPI_Bcast(tmp_i4, 1, MPI_INTEGER4, root, MPI_COMM_WORLD, ierr(4))
         if(tmp_i4 /= self%site_type) then
             call error_msg("site_type doesn't match", abort=.True.)
+            success = .False.
         endif
 
         ! compare neighbours
@@ -136,6 +143,7 @@ contains
         call MPI_Bcast(tmp_i, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr(5))
         if(tmp_i /= size(self%neigh_idx)) then
             call error_msg("size(neigh_idx) doesn't match", abort=.True.)
+            success = .False.
         endif
 
         allocate(tmp_ivec(size(self%neigh_idx)))
@@ -146,6 +154,7 @@ contains
             write (*,*) self%me, "neigh_idx", self%neigh_idx
             write (*,*) self%me, "tmp_ivec", tmp_ivec
             call error_msg("neigh_idx doesn't match", abort=.True.)
+            success = .False.
         endif
         deallocate(tmp_ivec)
 
@@ -153,6 +162,7 @@ contains
         call MPI_Bcast(tmp_i, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr(7))
         if(tmp_i /= size(self%neigh_conn)) then
             call error_msg("size(neigh_conn) doesn't match", abort=.True.)
+            success = .False.
         endif
         
         allocate(tmp_rmtx(size(self%neigh_conn, dim=1), &
@@ -162,6 +172,7 @@ contains
                                       root, MPI_COMM_WORLD, ierr(8))
         if(mtx_norm(tmp_rmtx - self%neigh_conn) >  1d-11) then
             call error_msg("neigh_conn doesn't match", abort=.True.)
+            success = .False.
         endif
         deallocate(tmp_rmtx)
 
@@ -170,6 +181,7 @@ contains
         call MPI_Bcast(tmp_i, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr(9))
         if(tmp_i /= size(self%conn_type)) then
             call error_msg("size(conn_type) doesn't match", abort=.True.)
+            success = .False.
         endif
         
         allocate(tmp_i4vec(size(self%conn_type)))
@@ -178,8 +190,15 @@ contains
                        root, MPI_COMM_WORLD, ierr(10))
         if(any(tmp_i4vec /= self%conn_type)) then
             call error_msg("conn_type doesn't match", abort=.True.)
+            success = .False.
         endif
         deallocate(tmp_i4vec)
+
+        if(success) then
+            call error_msg("Atom test passed", p_color=c_green, abort=.False.)
+        else
+            call error_msg("Atom test failed", abort=.True.)
+        endif
 
         call check_ierr(ierr, self%me, "compare atoms")
     end subroutine compare_to_root

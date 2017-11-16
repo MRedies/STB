@@ -112,7 +112,7 @@ contains
     Subroutine  calc_and_print_band(self)
         Implicit None
     class(k_space)                :: self 
-        integer                       :: first, last, N, i, j
+        integer                       :: first, last, N
         integer                       :: send_count, ierr
         integer   , allocatable       :: num_elems(:), offsets(:)
         real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
