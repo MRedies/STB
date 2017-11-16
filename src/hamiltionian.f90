@@ -493,6 +493,8 @@ contains
         integer                     :: i, conn, j, i_d, j_d
         real(8)                     :: k_dot_r, d_ij(3)
         complex(8)                  :: new(2,2)
+    
+        if(self%num_orb /= 1) call error_msg("Rashba only for s-oritals", abort=.True.)
 
         do i =  1, self%num_up
             i_d =  i + self%num_up
