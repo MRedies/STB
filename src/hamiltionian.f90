@@ -5,6 +5,7 @@ module Class_hamiltionian
     use m_npy
     use mpi
     use MYPI
+    use Constants
     implicit none
 
     type hamil
@@ -765,7 +766,7 @@ contains
         real(8), allocatable     :: rwork(:)
         integer   , allocatable  :: iwork(:)
         integer      :: n_dim, lwork, lrwork, liwork, info
-        integer      :: ierr(3)
+        integer      :: ierr(3),i 
 
         n_dim = 2 * self%num_up
         if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))

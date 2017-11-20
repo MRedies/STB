@@ -20,6 +20,7 @@ module Class_k_space
         !> used in DOS calculations
         integer    :: DOS_num_k_pts !> number of kpts per dim 
         integer    :: berry_num_k_pts !> number of ks per dim in berry calc
+        integer    :: ACA_num_k_pts
         integer    :: num_DOS_pts!> number of points on E grid
         integer    :: num_k_pts !> number of k_pts per segment
         integer    :: nProcs !> number of MPI Processes
@@ -86,6 +87,8 @@ module Class_k_space
         procedure :: calc_new_kidx          => calc_new_kidx
         procedure :: calc_orbmag_z_singleK  => calc_orbmag_z_singleK
         procedure :: save_grid              => save_grid
+        procedure :: calc_ACA               => calc_ACA
+        procedure :: calc_ACA_singleK       => calc_ACA_singleK
     end type k_space
 
     interface
@@ -372,6 +375,8 @@ contains
             call CFG_get(cfg, "berry%calc_orbmag", self%calc_orbmag)
             call CFG_get(cfg, "berry%weights", self%chosen_weights)
 
+            call CFG_get(cfg, "ACA%num_kpts", self%ACA_num_k_pts)
+    
             call CFG_get(cfg, "general%test_run", self%test_run)
         endif
         call self%Bcast_k_space()
@@ -379,7 +384,7 @@ contains
 
     subroutine Bcast_k_space(self)
     class(k_space)         :: self
-        integer   , parameter  :: num_cast =  22
+        integer   , parameter  :: num_cast =  23
         integer                :: ierr(num_cast)
         integer                :: sz(2)
         ierr =  0
@@ -441,8 +446,10 @@ contains
         call MPI_Bcast(self%chosen_weights,  300,          MPI_CHARACTER, &
             root,                            MPI_COMM_WORLD, ierr(21))
 
-        call MPI_Bcast(self%test_run, 1,              MPI_LOGICAL, &
-                        root,         MPI_COMM_WORLD, ierr(22))
+        call MPI_Bcast(self%test_run,      1,              MPI_LOGICAL, &
+                        root,              MPI_COMM_WORLD, ierr(22))
+        call MPI_Bcast(self%ACA_num_k_pts, 1,              MYPI_INT,    &
+                        root,              MPI_COMM_WORLD, ierr(23))
 
         call check_ierr(ierr, self%me, "Ksp Bcast")
     end subroutine Bcast_k_space
@@ -489,13 +496,14 @@ contains
 
     end subroutine setup_k_grid
 
-    subroutine setup_inte_grid_square(self, n_k)
+    subroutine setup_inte_grid_square(self, n_k, padding)
         implicit none
     class(k_space)        :: self
         integer, intent(in):: n_k
         real(8), allocatable  :: ls(:)
         real(8)               :: k1(3), k2(3)
         integer               :: i, j, cnt
+        logical, optional     :: padding
 
         if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
         allocate(self%new_k_pts(3,n_k**2))
@@ -517,7 +525,11 @@ contains
             enddo
         enddo
         call run_triang(self%new_k_pts, self%elem_nodes)
-        if(self%perform_pad) call self%pad_k_points_init()
+        if(.not. present(padding) .and. self%perform_pad) then
+            call self%pad_k_points_init()
+        elseif(present(padding)) then
+            if(padding) call self%pad_k_points_init()
+        endif
         
         forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
                 self%new_k_pts(:,i) + my_norm2(k1) * self%k_shift
@@ -1743,6 +1755,95 @@ contains
         deallocate(self%new_k_pts)
     end subroutine append_kpts
 
+    subroutine calc_ACA(self)
+        implicit none
+    class(k_space)              :: self
+        real(8), allocatable    :: m(:), l_space(:), eig_val(:), RWORK(:)
+        real(8)                 :: k_area, l(2*self%ham%num_up)
+        complex(8), allocatable :: H(:,:), WORK(:)
+        integer                 :: N_k, lwork, lrwork, liwork, i, N, &
+                                   first, last, k_idx, info, ierr
+        integer, allocatable    :: IWORK(:)
+
+        if(self%ham%num_orb /= 3) then
+            call error_msg("ACA only for p-orbitals", abort=.True.)
+        endif
+        
+        N       = 2 * self%ham%num_up
+        forall(i=1:N) l(i) = mod(i,3) - 1d0 
+        allocate(H(N,N))
+        allocate(m(size(self%E_fermi)))
+        allocate(eig_val(N))
+        call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
+        allocate(WORK(lwork))
+        allocate(RWORK(lrwork))
+        allocate(IWORK(liwork))
+
+        call linspace(0d0, 1d0, self%ACA_num_k_pts, l_space)
+
+        if(trim(self%ham%UC%uc_type) == "square_2d") then
+            call self%setup_inte_grid_square(self%ACA_num_k_pts, padding=.False.)
+            N_k = size(self%new_k_pts, 2)
+            call my_section(self%me, self%nProcs, N_k, first, last)
+            
+            do k_idx = first, last
+                call self%ham%setup_H(self%new_k_pts(:,k_idx), H)
+                call zheevd('V', 'U', N, H, N, eig_val, WORK, lwork, &
+                    RWORK, lrwork, IWORK, liwork, info)
+
+                m = m + self%calc_ACA_singleK(H, eig_val)
+            enddo
+
+            k_area = my_norm2(self%ham%UC%rez_lattice(:,1)) &
+                   * my_norm2(self%ham%UC%rez_lattice(:,2))
+
+            m =  m / (N_k * k_area)
+        
+            if(self%me == root) then
+                call MPI_Reduce(MPI_IN_PLACE, m, size(m), MPI_REAL8, &
+                    MPI_SUM, root, MPI_COMM_WORLD, ierr)
+            else
+                call MPI_Reduce(m, m, size(m), MPI_REAL8, &
+                    MPI_SUM, root, MPI_COMM_WORLD, ierr)
+            endif
+            
+            if(self%me ==  root) then
+                call error_msg("Wrote ACA orbmag with questionable unit", &
+                               p_color=c_green)
+                call save_npy(trim(self%prefix) // "orbmag_ACA.npy", m)
+            endif
+        else
+            call error_msg("ACA implemented for square only.", abort=.True.)
+        endif
+        deallocate(H, WORK, RWORK, IWORK, m)
+    end subroutine calc_ACA
+
+    function calc_ACA_singleK(self, eig_vec, eig_val) result(m)
+        implicit none
+    class(k_space), intent(in)     :: self
+        complex(8), intent(in)     :: eig_vec(:,:)
+        real(8), intent(in)        :: eig_val(:)
+        complex(8)                 :: cmplx_EV(size(eig_val))
+        real(8)                    :: m(size(self%E_fermi)),&
+                                      l(size(eig_val)), f_n, a_sq(size(eig_val))
+        integer                    :: n_ferm, n
+
+        forall(n = 1:size(eig_val)) l(n) = mod(n,3) - 1d0 
+        m = 0d0
+
+        do n = 1,size(eig_val)
+            call p_real_to_cmplx(eig_vec(:,n), cmplx_EV)
+            a_sq = abs(cmplx_EV)**2
+
+            do n_ferm = 1,size(self%E_fermi)
+                f_n = self%fermi_distr(eig_val(n), n_ferm)
+                m(n_ferm) = m(n_ferm) + f_n * dot_product(a_sq, l)
+            enddo
+        enddo
+
+        m = - 0.5d0 * m
+    end function calc_ACA_singleK
+
     function test_func(kpt) result(ret)
         implicit none
         real(8)                :: kpt(2), ret, d 
@@ -1773,15 +1874,46 @@ contains
     class(k_space), intent(in)  :: self
         integer, intent(in)     :: iter
         character(len=300)      :: k_file, elem_file
-        
+
         if(self%me == root) then
             write (k_file,    "(A,I0.5,A)") trim(self%prefix) // "kpts_iter=", iter, ".npy"
             write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "elem_iter=", iter, ".npy"
-                
+
             call save_npy(trim(k_file),    self%all_k_pts)
             call save_npy(trim(elem_file), self%elem_nodes)
         endif
 
     end subroutine save_grid
+
+    subroutine basis_trafo(in_EV, trafo_mtx, out_EV)
+        implicit none
+        complex(8), intent(in)   :: in_EV(:)
+        complex(8), intent(in)   :: trafo_mtx(3,3)
+        complex(8)               :: out_EV(:)
+        integer                  :: i
+
+        out_EV = 0d0
+        do i = 1,size(in_EV),3
+            call zgemv('N',      3,        3,    c_1, trafo_mtx, 3, &
+                in_EV(i: i+2),     1,    &
+                c_0,     out_EV(i: i+2), 1)
+        enddo
+    end subroutine basis_trafo
+
+    subroutine p_real_to_cmplx(real_EV, cmplx_EV)
+        implicit none
+        complex(8), intent(in)   :: real_EV(:)
+        complex(8)               :: cmplx_EV(:)
+
+        call basis_trafo(real_EV, BT_real_to_cmplx, cmplx_EV)
+    end subroutine p_real_to_cmplx
+
+    subroutine p_cmplx_to_real(cmplx_EV, real_EV)
+        implicit none
+        complex(8), intent(in)   :: cmplx_EV(:)
+        complex(8)               :: real_EV(:)
+
+        call basis_trafo(cmplx_EV, BT_cmplx_to_real, real_EV)
+    end subroutine p_cmplx_to_real
 end module
 

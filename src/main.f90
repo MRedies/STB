@@ -39,7 +39,7 @@ contains
         character(len=300), intent(in) :: inp_file
         real(8)                        :: start, halt
         integer                        :: me, ierr
-        logical                        :: perform_band, perform_dos, calc_hall, calc_orbmag
+        logical                        :: perform_band, perform_dos, calc_hall, calc_orbmag, perform_ACA
         type(CFG_t)                     :: cfg
         character(len=25)               :: fermi_type
         
@@ -56,6 +56,7 @@ contains
             call CFG_get(cfg, "berry%fermi_type",  fermi_type)
             call CFG_get(cfg, "berry%calc_hall",   calc_hall)
             call CFG_get(cfg, "berry%calc_orbmag", calc_orbmag)
+            call CFG_get(cfg, "ACA%perform_ACA",   perform_ACA)
         endif
 
         call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
@@ -63,6 +64,7 @@ contains
         call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
         call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
         call MPI_Bcast(calc_orbmag,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(perform_ACA,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
 
         Ksp =  init_k_space(cfg)
         if(me == root) call save_cfg(cfg)
@@ -97,6 +99,11 @@ contains
         if(calc_hall .or. calc_orbmag) then
             if(root == me) write (*,*) "started Berry"
             call Ksp%calc_berry_quantities()
+        endif
+
+        if(perform_ACA) then
+            if(root == me) write (*,*) "Started ACA"
+            call Ksp%calc_ACA()
         endif
 
         halt = MPI_Wtime()
@@ -235,6 +242,9 @@ contains
         call CFG_add(cfg, "output%band_prefix", "bar/foo","folder")
 
         call CFG_add(cfg, "general%test_run", .False., "performed tests")
+
+        call CFG_add(cfg, "ACA%perform_ACA", .False., "perform ACA calculation")
+        call CFG_add(cfg, "ACA%num_kpts", 0, "number of ACA k-points")
     End Subroutine add_full_cfg
 
     subroutine save_cfg(cfg)

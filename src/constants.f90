@@ -52,4 +52,17 @@ module Constants
 
     complex(8), parameter :: LxpILy(3,3) = Lx + i_unit * Ly
     complex(8), parameter :: LxmILy(3,3) = Lx - i_unit * Ly
+
+    complex(8), parameter :: sqrt_2   = (0.70710678118d0, 0d0)
+    complex(8), parameter :: i_sqrt_2 = (0d0,             0.70710678118d0)
+
+    complex(8), parameter :: BT_cmplx_to_real(3,3) &
+                           = transpose(reshape([sqrt_2,   c_0, -sqrt_2,  &
+                                                i_sqrt_2, c_0, i_sqrt_2, &
+                                                c_0,      c_1, c_0],     [3, 3]))
+
+    complex(8), parameter :: BT_real_to_cmplx(3,3) &
+                           = transpose(reshape([sqrt_2,  - i_sqrt_2, c_0,  &
+                                                c_0,     c_0,        c_1,  &
+                                                -sqrt_2, - i_sqrt_2, c_0], [3, 3]))
 end module Constants 

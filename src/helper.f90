@@ -62,13 +62,6 @@ contains
                 b(i) =  b(i) +  A(i,j) * x(j)
             enddo
         enddo
-
-        !b = 0d0
-        !do j = 1,size(x)
-        !do i = 1,size(x)
-        !b(i) =  b(i) +  A(i,j) * x(j)
-        !enddo
-        !enddo
     end function matvec
 
     subroutine calc_zheevd_size(vn_flag, H, eig_val, lwork, lrwork, liwork)
