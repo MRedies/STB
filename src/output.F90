@@ -86,7 +86,8 @@ contains
         integer(4)                             :: i
 
         do i =  1, size(vec)
-            write(p_unit, "(ES10.3)") vec(i)
+            write(p_unit, "(A, ES10.3, A, ES10.3, A)")&
+                 "(", real(vec(i)), "+ i*", aimag(vec(i)), ")"
         enddo
     end subroutine print_vec_cmplx
 

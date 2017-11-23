@@ -12,35 +12,36 @@ module Class_k_space
         real(8), allocatable :: int_DOS(:) !> integrated Density of states  
         real(8), allocatable :: E_DOS(:)
         real(8), allocatable :: E_fermi(:) !> Fermi lvl
-        real(8) :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
+        real(8)              :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
         !> DOS calculations
-        real(8) :: DOS_lower !> lower energy bound for DOS calc
-        real(8) :: DOS_upper !> upper energy bound for DOS calc
-        real(8) :: temp !> temperature used in fermi-dirac
+        real(8)              :: DOS_lower !> lower energy bound for DOS calc
+        real(8)              :: DOS_upper !> upper energy bound for DOS calc
+        real(8)              :: temp !> temperature used in fermi-dirac
         !> used in DOS calculations
-        integer    :: DOS_num_k_pts !> number of kpts per dim 
-        integer    :: berry_num_k_pts !> number of ks per dim in berry calc
-        integer    :: ACA_num_k_pts
-        integer    :: num_DOS_pts!> number of points on E grid
-        integer    :: num_k_pts !> number of k_pts per segment
-        integer    :: nProcs !> number of MPI Processes
-        integer    :: me !> MPI rank
-        integer    :: berry_iter !> number of grid refinements
-        integer    :: kpts_per_step !> new kpts per step and Proc
-        real(8)    :: k_shift(3) !> shift of brillouine-zone
-        real(8)    :: berry_conv_crit !> convergance criterion for berry integration
+        integer              :: DOS_num_k_pts !> number of kpts per dim 
+        integer              :: berry_num_k_pts !> number of ks per dim in berry calc
+        integer              :: ACA_num_k_pts
+        integer              :: num_DOS_pts!> number of points on E grid
+        integer              :: num_k_pts !> number of k_pts per segment
+        integer              :: num_plots_pts !> points per dimension
+        integer              :: nProcs !> number of MPI Processes
+        integer              :: me !> MPI rank
+        integer              :: berry_iter !> number of grid refinements
+        integer              :: kpts_per_step !> new kpts per step and Proc
+        real(8)              :: k_shift(3) !> shift of brillouine-zone
+        real(8)              :: berry_conv_crit !> convergance criterion for berry integration
         real(8), allocatable :: weights(:) !> weights for integration
-        integer   , allocatable :: elem_nodes(:,:) !> elements in triangulation
+        integer, allocatable :: elem_nodes(:,:) !> elements in triangulation
         real(8), allocatable :: refine_weights(:)
         real(8), allocatable :: k1_param(:) !> 1st k_space param
         real(8), allocatable :: k2_param(:) !> 2nd k_space param
-        character(len=300)    :: filling, prefix, chosen_weights
-        logical      :: perform_pad !> should the k-grid be padded, to match cores
-        logical      :: calc_hall !> should hall conductivity be calculated
-        logical      :: calc_orbmag !> should orbital magnetism be calculated
-        logical      :: test_run !> should unit tests be performed
-        type(hamil)  :: ham
-        type(units)  :: units
+        character(len=300)   :: filling, prefix, chosen_weights
+        logical              :: perform_pad !> should the k-grid be padded, to match cores
+        logical              :: calc_hall !> should hall conductivity be calculated
+        logical              :: calc_orbmag !> should orbital magnetism be calculated
+        logical              :: test_run !> should unit tests be performed
+        type(hamil)          :: ham
+        type(units)          :: units
     contains
 
         procedure :: vol_k_space_parallelo  => vol_k_space_parallelo
@@ -64,7 +65,6 @@ module Class_k_space
         procedure :: Bcast_k_space          => Bcast_k_space
         procedure :: hex_border_x           => hex_border_x
         procedure :: vol_k_hex              => vol_k_hex
-        !procedure :: plot_omega             => plot_omega
         procedure :: free_ksp               => free_ksp
         procedure :: find_E_max             => find_E_max
         procedure :: area_of_elem           => area_of_elem
@@ -128,8 +128,7 @@ contains
         else if(trim(self%filling) == "grid") then
             call self%setup_k_grid()
         else
-            write (*,*) "Filling not known"
-            stop
+            call error_msg("Filling not known", abort=.True.)
         endif
 
 
@@ -209,8 +208,7 @@ contains
             call zheevd('V', 'U', N, H, N, eig_val, WORK, lwork, &
                 RWORK, lrwork, IWORK, liwork, info)
             if( info /= 0) then
-                write (*,*) self%me, ": ZHEEVD (with vectors) failed: ", info
-                stop
+                call error_msg("ZHEEVD (with vectors) failed: ", abort=.True.)
             endif
 
             !$omp parallel do private(j) default(shared)
@@ -292,9 +290,9 @@ contains
 
             if(size(self%E_DOS) >=  2) then 
                 dE =  self%E_DOS(2) - self%E_DOS(1)
-            else 
-                write (*,*) "Can't perform integration. Only one point"
-                stop
+            else
+                call error_msg("Can't perform integration. Only one point", &
+                               abort=.True.)
             endif
             self%int_DOS(1) =  0d0
             do i =  2,size(self%E_DOS)
@@ -524,11 +522,14 @@ contains
                 cnt =  cnt + 1
             enddo
         enddo
-        call run_triang(self%new_k_pts, self%elem_nodes)
         if(.not. present(padding) .and. self%perform_pad) then
+            call run_triang(self%new_k_pts, self%elem_nodes)
             call self%pad_k_points_init()
         elseif(present(padding)) then
-            if(padding) call self%pad_k_points_init()
+            if(padding) then
+                call self%pad_k_points_init()
+                call run_triang(self%new_k_pts, self%elem_nodes)
+            endif
         endif
         
         forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
@@ -821,7 +822,6 @@ contains
                                p_color=c_green, abort=.False.)
                 self%chosen_weights = "hall"
             endif
-            call self%save_grid(iter)
 
             ! Stop if both converged
             if(done_hall .and. done_orbmag) exit
@@ -1359,61 +1359,6 @@ contains
 
     end subroutine setup_berry_inte_grid
 
-    !subroutine plot_omega(self)
-        !implicit none
-    !class(k_space)         :: self
-        !real(8), allocatable   :: omega_z(:,:), tmp_vec(:), sec_omega_z(:,:),&
-            !eig_val(:)
-        !real(8)                :: k(3)
-        !integer(4)  :: N, k_idx, send_count, first, last, ierr, cnt, n_atm
-        !integer(4), allocatable:: num_elems(:), offsets(:)
-        !integer(4)  :: dim_sz
-
-        !dim_sz =  self%berry_num_k_pts
-        !n_atm =  self%ham%UC%num_atoms
-        !allocate(self%ham%del_H(2*n_atm,2*n_atm))
-        !allocate(num_elems(self%nProcs))
-        !allocate(offsets(self%nProcs))
-        !N = 2* self%ham%UC%num_atoms
-        !call self%setup_inte_grid_hex(dim_sz, .False.)
-
-        !if(self%me ==  root) write (*,*) "nkpts =  ", size(self%new_k_pts, 2)
-
-        !allocate(eig_val(N))
-        !allocate(omega_z(N, size(self%new_k_pts, 2)))
-        !allocate(tmp_vec(N))
-
-        !call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
-        !call my_section(self%me, self%nProcs, size(self%new_k_pts, 2), first, last)
-        !num_elems =  num_elems * N
-        !offsets   =  offsets   * N
-        !send_count =  N *  (last - first + 1)
-        !allocate(sec_omega_z(N, send_count))
-
-        !cnt =  1
-        !do k_idx = first,last
-            !write (*,*) "k_ind" , k_idx
-            !k = self%new_k_pts(:,k_idx)
-
-            !call self%ham%calc_berry_z(k, tmp_vec, eig_val)
-
-            !sec_omega_z(:,cnt) =  tmp_vec 
-            !cnt = cnt + 1
-        !enddo
-
-        !call MPI_Gatherv(sec_omega_z, send_count, MPI_REAL8, &
-            !omega_z,    num_elems, offsets, MPI_REAL8, &
-            !root, MPI_COMM_WORLD, ierr)
-
-        !if(self%me ==  root) then
-            !call save_npy(trim(self%prefix) //  "omega_xy_z.npy", omega_z)
-            !call save_npy(trim(self%prefix) //  "omega_xy_k.npy", self%new_k_pts)
-            !write (*,*) "Berry curvature saved unitless"
-        !endif
-        !deallocate(self%ham%del_H)
-        !deallocate(eig_val)
-    !end subroutine plot_omega 
-
     subroutine set_fermi(self, cfg)
         implicit none
     class(k_space)         :: self
@@ -1759,7 +1704,7 @@ contains
         implicit none
     class(k_space)              :: self
         real(8), allocatable    :: m(:), l_space(:), eig_val(:), RWORK(:)
-        real(8)                 :: k_area, l(2*self%ham%num_up)
+        real(8)                 :: k_area
         complex(8), allocatable :: H(:,:), WORK(:)
         integer                 :: N_k, lwork, lrwork, liwork, i, N, &
                                    first, last, k_idx, info, ierr
@@ -1769,8 +1714,7 @@ contains
             call error_msg("ACA only for p-orbitals", abort=.True.)
         endif
         
-        N       = 2 * self%ham%num_up
-        forall(i=1:N) l(i) = mod(i,3) - 1d0 
+        N = 2 * self%ham%num_up
         allocate(H(N,N))
         allocate(m(size(self%E_fermi)))
         allocate(eig_val(N))
@@ -1778,6 +1722,8 @@ contains
         allocate(WORK(lwork))
         allocate(RWORK(lrwork))
         allocate(IWORK(liwork))
+
+        m = 0d0
 
         call linspace(0d0, 1d0, self%ACA_num_k_pts, l_space)
 
@@ -1788,8 +1734,10 @@ contains
             
             do k_idx = first, last
                 call self%ham%setup_H(self%new_k_pts(:,k_idx), H)
+
                 call zheevd('V', 'U', N, H, N, eig_val, WORK, lwork, &
                     RWORK, lrwork, IWORK, liwork, info)
+                if(info /= 0) call error_msg("zheevd fail", abort=.True.)
 
                 m = m + self%calc_ACA_singleK(H, eig_val)
             enddo
@@ -1811,6 +1759,8 @@ contains
                 call error_msg("Wrote ACA orbmag with questionable unit", &
                                p_color=c_green)
                 call save_npy(trim(self%prefix) // "orbmag_ACA.npy", m)
+                call save_npy(trim(self%prefix) // "orbmag_E.npy", &
+                    self%E_fermi / self%units%energy)
             endif
         else
             call error_msg("ACA implemented for square only.", abort=.True.)
@@ -1823,25 +1773,28 @@ contains
     class(k_space), intent(in)     :: self
         complex(8), intent(in)     :: eig_vec(:,:)
         real(8), intent(in)        :: eig_val(:)
-        complex(8)                 :: cmplx_EV(size(eig_val))
         real(8)                    :: m(size(self%E_fermi)),&
-                                      l(size(eig_val)), f_n, a_sq(size(eig_val))
-        integer                    :: n_ferm, n
+                                      l, f_n
+        integer                    :: n_ferm, n, i, n_states 
 
-        forall(n = 1:size(eig_val)) l(n) = mod(n,3) - 1d0 
-        m = 0d0
+        m        = 0d0
+        n_states = 2* self%ham%num_up
 
         do n = 1,size(eig_val)
-            call p_real_to_cmplx(eig_vec(:,n), cmplx_EV)
-            a_sq = abs(cmplx_EV)**2
+            l = 0d0 
+            do i = 1,n_states,3
+                l = l + calc_l(eig_vec(i:i+2,n))
+            enddo
 
             do n_ferm = 1,size(self%E_fermi)
                 f_n = self%fermi_distr(eig_val(n), n_ferm)
-                m(n_ferm) = m(n_ferm) + f_n * dot_product(a_sq, l)
+                m(n_ferm) = m(n_ferm) + f_n * l
             enddo
         enddo
 
-        m = - 0.5d0 * m
+        ! we drop the - 0.5 so we are directly in mu_b
+        ! m = - 0.5d0 * m
+        m = - m 
     end function calc_ACA_singleK
 
     function test_func(kpt) result(ret)
@@ -1885,6 +1838,16 @@ contains
 
     end subroutine save_grid
 
+    subroutine plot_omega_square(self)
+        implicit none
+    class(k_space), intent(in)   :: self
+        integer                  :: i, j
+
+        do i 
+
+
+    end subroutine plot_omega_square
+
     subroutine basis_trafo(in_EV, trafo_mtx, out_EV)
         implicit none
         complex(8), intent(in)   :: in_EV(:)
@@ -1915,5 +1878,22 @@ contains
 
         call basis_trafo(cmplx_EV, BT_cmplx_to_real, real_EV)
     end subroutine p_cmplx_to_real
-end module
 
+    function calc_l(p) result(l)
+        implicit none
+        complex(8), intent(in)  :: p(3)
+        complex(8)              :: a, b, l_prime
+        real(8)                 :: l
+
+        a = p(1)
+        b = p(2)
+
+        l_prime =  - i_unit * conjg(a) * b &
+                   + i_unit * conjg(b) * a
+
+        if(abs(aimag(l_prime)) > 1d-11) then
+            call error_msg("l is imaginary", abort=.True.)
+        endif
+        l = real(l_prime)
+    end function calc_l
+end module

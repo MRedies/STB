@@ -11,6 +11,7 @@ module Class_hamiltionian
     type hamil
         real(8)         :: E_s !> onsite eigenenergy
         real(8)         :: E_A, E_B !> onsite energies for A and B sites in honeycomb
+        real(8)         :: E_p(3)
         real(8)         :: Vss_sig !> nearest neighbour hopping for s-orbital
         real(8)         :: Vpp_pi, Vpp_sig !> nearest neigh hopping for p-orbitals
         real(8)         :: eta_soc
@@ -32,6 +33,7 @@ module Class_hamiltionian
         procedure :: calc_eigenvalues           => calc_eigenvalues
         procedure :: calc_single_eigenvalue     => calc_single_eigenvalue
         procedure :: set_EigenE                 => set_EigenE
+        procedure :: set_p_energy               => set_p_energy
         procedure :: set_hopping                => set_hopping
         procedure :: set_snd_hopping            => set_snd_hopping
         procedure :: set_loc_exch               => set_loc_exch
@@ -113,9 +115,13 @@ contains
 
         H =  0d0
 
+        ! on-site eigenenergy
         has_E = (self%E_s /= 0) .or. (self%E_A /= 0) .or. (self%E_B /= 0)
         if(has_E) call self%set_EigenE(H)
+
+        if(any(self%E_p /= 0)) call self%set_p_energy(H)
         
+        !hopping
         has_hopp =   (self%Vss_sig /= 0d0) &
                 .or. (self%Vpp_sig /= 0d0) .or. (self%Vpp_pi /= 0d0)
         if(has_hopp) call self%set_hopping(k,H)
@@ -189,6 +195,9 @@ contains
             self%E_A =  tmp * self%units%energy
             call CFG_get(cfg, "hamil%E_B", tmp)
             self%E_B =  tmp * self%units%energy
+           
+            call CFG_get(cfg, "hamil%E_p", self%E_p)
+            self%E_p =  self%E_p* self%units%energy
 
             call CFG_get(cfg, "hamil%n", n)
             self%num_orb =  2 * n +  1
@@ -202,38 +211,39 @@ contains
     subroutine Bcast_hamil(self)
         implicit none
     class(hamil)          :: self
-        integer   , parameter :: num_cast =  14
+        integer   , parameter :: num_cast =  15
         integer               :: ierr(num_cast)
 
-        call MPI_Bcast(self%E_s,     1,              MPI_REAL8, &
-                       root,         MPI_COMM_WORLD, ierr(1))
-        call MPI_Bcast(self%E_A,     1,              MPI_REAL8, &
-                       root,         MPI_COMM_WORLD, ierr(2))
-        call MPI_Bcast(self%E_B,     1,              MPI_REAL8, &
-                       root,         MPI_COMM_WORLD, ierr(3))
-        call MPI_Bcast(self%Vss_sig, 1,              MPI_REAL8, &
-                       root,         MPI_COMM_WORLD, ierr(4))
-        call MPI_Bcast(self%Vpp_pi,  1,              MPI_REAL8, &
-                       root,         MPI_COMM_WORLD, ierr(5))
-        call MPI_Bcast(self%Vpp_sig, 1,              MPI_REAL8, &
-                       root,         MPI_COMM_WORLD, ierr(6))
-        call MPI_Bcast(self%t_2,     1,              MPI_REAL8, &
-                       root,         MPI_COMM_WORLD, ierr(7))
-        call MPI_Bcast(self%phi_2,   1,              MPI_REAL8, &
-                       root,         MPI_COMM_WORLD, ierr(8))
-        call MPI_Bcast(self%t_so,    1,              MPI_REAL8, &
-                       root,         MPI_COMM_WORLD, ierr(9))
-        call MPI_Bcast(self%lambda,  1,              MPI_REAL8, &
-                       root,         MPI_COMM_WORLD, ierr(10))
-        call MPI_Bcast(self%eta_soc, 1,              MPI_REAL8, &
-                       root,         MPI_COMM_WORLD, ierr(11))
-        call MPI_Bcast(self%num_orb, 1,              MYPI_INT,  &
-                       root,         MPI_COMM_WORLD, ierr(12))
-        call MPI_Bcast(self%num_up,  1,              MYPI_INT,  &
-                       root,         MPI_COMM_WORLD, ierr(13))
-        
+        call MPI_Bcast(self%E_s,      1,              MPI_REAL8,   &
+                       root,          MPI_COMM_WORLD, ierr(1))
+        call MPI_Bcast(self%E_A,      1,              MPI_REAL8,   &
+                       root,          MPI_COMM_WORLD, ierr(2))
+        call MPI_Bcast(self%E_B,      1,              MPI_REAL8,   &
+                       root,          MPI_COMM_WORLD, ierr(3))
+        call MPI_Bcast(self%E_p,      3,              MPI_REAL8,   &
+                       root,          MPI_COMM_WORLD, ierr(4))
+        call MPI_Bcast(self%Vss_sig,  1,              MPI_REAL8,   &
+                       root,          MPI_COMM_WORLD, ierr(5))
+        call MPI_Bcast(self%Vpp_pi,   1,              MPI_REAL8,   &
+                       root,          MPI_COMM_WORLD, ierr(6))
+        call MPI_Bcast(self%Vpp_sig,  1,              MPI_REAL8,   &
+                       root,          MPI_COMM_WORLD, ierr(7))
+        call MPI_Bcast(self%t_2,      1,              MPI_REAL8,   &
+                       root,          MPI_COMM_WORLD, ierr(8))
+        call MPI_Bcast(self%phi_2,    1,              MPI_REAL8,   &
+                       root,          MPI_COMM_WORLD, ierr(9))
+        call MPI_Bcast(self%t_so,     1,              MPI_REAL8,   &
+                       root,          MPI_COMM_WORLD, ierr(10))
+        call MPI_Bcast(self%lambda,   1,              MPI_REAL8,   &
+                       root,          MPI_COMM_WORLD, ierr(11))
+        call MPI_Bcast(self%eta_soc,  1,              MPI_REAL8,   &
+                       root,          MPI_COMM_WORLD, ierr(12))
+        call MPI_Bcast(self%num_orb,  1,              MYPI_INT,    &
+                       root,          MPI_COMM_WORLD, ierr(13))
+        call MPI_Bcast(self%num_up,   1,              MYPI_INT,    &
+                       root,          MPI_COMM_WORLD, ierr(14))
         call MPI_Bcast(self%test_run, 1,              MPI_LOGICAL, &
-                        root,         MPI_COMM_WORLD, ierr(14))
+                        root,         MPI_COMM_WORLD, ierr(15))
 
         call check_ierr(ierr, self%me, "Hamiltionian check err")
     end subroutine
@@ -306,6 +316,20 @@ contains
 
         enddo
     end subroutine set_EigenE 
+
+    subroutine set_p_energy(self, H)
+        implicit none
+    class(hamil), intent(in)      :: self
+        complex(8), intent(inout) :: H(:,:)
+        integer                   :: i, N, p_idx
+
+        N = 2 * self%num_up
+
+        do i=1,N
+            p_idx = mod((i-1),3) + 1
+            H(i,i) =  H(i,i) + self%E_p(p_idx)
+        enddo
+    end subroutine set_p_energy
 
     subroutine set_hopping(self,k, H)
         implicit none
@@ -442,8 +466,8 @@ contains
 
     subroutine set_small_SOC(self, mu, nu, H)
         implicit none
-    class(hamil), intent(in)    :: self
-        integer   , intent(in)      :: mu, nu
+    class(hamil), intent(in)       :: self
+        integer   , intent(in)     :: mu, nu 
         complex(8), intent(out)    :: H(2,2)
 
         H(1,1) =   self%eta_soc *  Lz(mu,nu)
@@ -736,6 +760,15 @@ contains
 
         if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
         call self%set_derivative_k(k, derive_idx)
+        
+        write (*,*) "##################################"
+        write (*,*) "k", k
+        write (*,*) "del_idx", derive_idx
+        write (*,*) "Eigen vectors: "
+        call print_mtx(eig_vec_mtx)
+        write (*,*) "----------------------------------"
+        write (*,*) "del H: "
+        call print_mtx(self%del_H)
 
         call zgemm('N', 'N', n_dim, n_dim, n_dim, &
             c_1, self%del_H, n_dim,&
@@ -755,6 +788,9 @@ contains
             tmp, n_dim, &
             c_0, ret, n_dim)
         deallocate(tmp)
+        write (*,*) "----------------------------------"
+        write (*,*) "velo_mtx: "
+        call print_mtx(ret)
     end subroutine calc_velo_mtx
 
     subroutine calc_eig_and_velo(self, k, eig_val, del_kx, del_ky)
@@ -766,7 +802,7 @@ contains
         real(8), allocatable     :: rwork(:)
         integer   , allocatable  :: iwork(:)
         integer      :: n_dim, lwork, lrwork, liwork, info
-        integer      :: ierr(3),i 
+        integer      :: ierr(3)
 
         n_dim = 2 * self%num_up
         if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
@@ -775,6 +811,7 @@ contains
         call self%setup_H(k, eig_vec)
 
         call calc_zheevd_size('V', eig_vec, eig_val, lwork, lrwork, liwork)
+
         allocate(work(lwork), stat=ierr(1))
         allocate(rwork(lrwork), stat=ierr(2))
         allocate(iwork(liwork), stat=ierr(3))

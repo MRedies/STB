@@ -6,6 +6,7 @@ module Constants
     complex(8), parameter :: i_unit = (0d0, 1d0)
     complex(8), parameter :: c_0    = (0d0, 0d0)
     complex(8), parameter :: c_1    = (1d0, 0d0)
+    complex(8), parameter :: c_i    = (0d0, 1d0)
     
     !< pauli matricies
     complex(8), parameter :: sigma_x(2,2) &
@@ -39,15 +40,15 @@ module Constants
 
     !> Lx
     complex(8), parameter :: Lx(3,3) = transpose(reshape([c_0, c_0,   c_0,&
-                                                          c_0, c_0, - c_1,&
-                                                          c_0, c_1,   c_0], [3,3]))
+                                                          c_0, c_0, - c_i,&
+                                                          c_0, c_i,   c_0], [3,3]))
     
-    complex(8), parameter :: Ly(3,3) = transpose(reshape([  c_0, c_0, c_1,&
+    complex(8), parameter :: Ly(3,3) = transpose(reshape([  c_0, c_0, c_i,&
                                                             c_0, c_0, c_0,&
-                                                          - c_1, c_0, c_0], [3,3]))
+                                                          - c_i, c_0, c_0], [3,3]))
 
-    complex(8), parameter :: Lz(3,3) = transpose(reshape([c_0, - c_1, c_0,&
-                                                          c_1,   c_0, c_0,&
+    complex(8), parameter :: Lz(3,3) = transpose(reshape([c_0, - c_i, c_0,&
+                                                          c_i,   c_0, c_0,&
                                                           c_0,   c_0, c_0], [3,3]))
 
     complex(8), parameter :: LxpILy(3,3) = Lx + i_unit * Ly
@@ -57,12 +58,12 @@ module Constants
     complex(8), parameter :: i_sqrt_2 = (0d0,             0.70710678118d0)
 
     complex(8), parameter :: BT_cmplx_to_real(3,3) &
-                           = transpose(reshape([sqrt_2,   c_0, -sqrt_2,  &
-                                                i_sqrt_2, c_0, i_sqrt_2, &
-                                                c_0,      c_1, c_0],     [3, 3]))
+                           = transpose(reshape([sqrt_2,     c_0, - sqrt_2,   &
+                                                - i_sqrt_2, c_0, - i_sqrt_2, &
+                                                c_0,        c_1, c_0],       [3, 3]))
 
     complex(8), parameter :: BT_real_to_cmplx(3,3) &
-                           = transpose(reshape([sqrt_2,  - i_sqrt_2, c_0,  &
-                                                c_0,     c_0,        c_1,  &
-                                                -sqrt_2, - i_sqrt_2, c_0], [3, 3]))
+                           = transpose(reshape([sqrt_2,   i_sqrt_2, c_0,  &
+                                                c_0,      c_0,      c_1,  &
+                                                - sqrt_2, i_sqrt_2, c_0], [3, 3]))
 end module Constants 
