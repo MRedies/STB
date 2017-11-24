@@ -780,7 +780,6 @@ contains
             tmp, n_dim, &
             c_0, ret, n_dim)
         deallocate(tmp)
-        write (*,*) "matrix_norm(velo_mtx)", mtx_norm(aimag(ret)) 
     end subroutine calc_velo_mtx
 
     subroutine calc_eig_and_velo(self, k, eig_val, del_kx, del_ky)
