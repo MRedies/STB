@@ -39,7 +39,8 @@ contains
         character(len=300), intent(in) :: inp_file
         real(8)                        :: start, halt
         integer                        :: me, ierr
-        logical                        :: perform_band, perform_dos, calc_hall, calc_orbmag, perform_ACA
+        logical                        :: perform_band, perform_dos, calc_hall,&
+                                          calc_orbmag, perform_ACA, plot_omega
         type(CFG_t)                     :: cfg
         character(len=25)               :: fermi_type
         
@@ -57,6 +58,7 @@ contains
             call CFG_get(cfg, "berry%calc_hall",   calc_hall)
             call CFG_get(cfg, "berry%calc_orbmag", calc_orbmag)
             call CFG_get(cfg, "ACA%perform_ACA",   perform_ACA)
+            call CFG_get(cfg, "plot%plot_omega",   plot_omega)
         endif
 
         call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
@@ -65,6 +67,7 @@ contains
         call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
         call MPI_Bcast(calc_orbmag,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
         call MPI_Bcast(perform_ACA,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+        call MPI_Bcast(plot_omega,   1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
 
         Ksp =  init_k_space(cfg)
         if(me == root) call save_cfg(cfg)
@@ -104,6 +107,11 @@ contains
         if(perform_ACA) then
             if(root == me) write (*,*) "Started ACA"
             call Ksp%calc_ACA()
+        endif
+        
+        if(plot_omega) then
+            call error_msg("plotting Berry curvature...", p_color=c_green)
+            call Ksp%plot_omega_square()
         endif
 
         halt = MPI_Wtime()
@@ -246,6 +254,9 @@ contains
 
         call CFG_add(cfg, "ACA%perform_ACA", .False., "perform ACA calculation")
         call CFG_add(cfg, "ACA%num_kpts", 0, "number of ACA k-points")
+        
+        call CFG_add(cfg, "plot%num_plot_points", 0, "number of points used for plot")
+        call CFG_add(cfg, "plot%plot_omega", .False., "perform berry curvature plot")
     End Subroutine add_full_cfg
 
     subroutine save_cfg(cfg)

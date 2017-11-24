@@ -355,6 +355,7 @@ contains
                     k_dot_r =  dot_product(k, R)
 
                     new = exp(i_unit * k_dot_r) * hopp_mtx
+                    
                     H(i:i+m, j:j+m) =  H(i:i+m,j:j+m) + new
                     H(j:j+m, i:i+m) =  H(j:j+m,i:i+m) + conjg(new)
                 endif
@@ -761,15 +762,6 @@ contains
         if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
         call self%set_derivative_k(k, derive_idx)
         
-        write (*,*) "##################################"
-        write (*,*) "k", k
-        write (*,*) "del_idx", derive_idx
-        write (*,*) "Eigen vectors: "
-        call print_mtx(eig_vec_mtx)
-        write (*,*) "----------------------------------"
-        write (*,*) "del H: "
-        call print_mtx(self%del_H)
-
         call zgemm('N', 'N', n_dim, n_dim, n_dim, &
             c_1, self%del_H, n_dim,&
             eig_vec_mtx, n_dim,&
@@ -788,9 +780,7 @@ contains
             tmp, n_dim, &
             c_0, ret, n_dim)
         deallocate(tmp)
-        write (*,*) "----------------------------------"
-        write (*,*) "velo_mtx: "
-        call print_mtx(ret)
+        write (*,*) "matrix_norm(velo_mtx)", mtx_norm(aimag(ret)) 
     end subroutine calc_velo_mtx
 
     subroutine calc_eig_and_velo(self, k, eig_val, del_kx, del_ky)

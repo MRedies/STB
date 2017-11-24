@@ -23,7 +23,7 @@ module Class_k_space
         integer              :: ACA_num_k_pts
         integer              :: num_DOS_pts!> number of points on E grid
         integer              :: num_k_pts !> number of k_pts per segment
-        integer              :: num_plots_pts !> points per dimension
+        integer              :: num_plot_pts !> points per dimension
         integer              :: nProcs !> number of MPI Processes
         integer              :: me !> MPI rank
         integer              :: berry_iter !> number of grid refinements
@@ -89,6 +89,7 @@ module Class_k_space
         procedure :: save_grid              => save_grid
         procedure :: calc_ACA               => calc_ACA
         procedure :: calc_ACA_singleK       => calc_ACA_singleK
+        procedure :: plot_omega_square      => plot_omega_square
     end type k_space
 
     interface
@@ -374,6 +375,7 @@ contains
             call CFG_get(cfg, "berry%weights", self%chosen_weights)
 
             call CFG_get(cfg, "ACA%num_kpts", self%ACA_num_k_pts)
+            call CFG_get(cfg, "plot%num_plot_points", self%num_plot_pts)
     
             call CFG_get(cfg, "general%test_run", self%test_run)
         endif
@@ -381,8 +383,8 @@ contains
     end function init_k_space
 
     subroutine Bcast_k_space(self)
-    class(k_space)         :: self
-        integer   , parameter  :: num_cast =  23
+    class(k_space)             :: self
+        integer, parameter     :: num_cast =  24
         integer                :: ierr(num_cast)
         integer                :: sz(2)
         ierr =  0
@@ -448,6 +450,8 @@ contains
                         root,              MPI_COMM_WORLD, ierr(22))
         call MPI_Bcast(self%ACA_num_k_pts, 1,              MYPI_INT,    &
                         root,              MPI_COMM_WORLD, ierr(23))
+        call MPI_Bcast(self%num_plot_pts,  1,              MYPI_INT,    &
+                        root,              MPI_COMM_WORLD, ierr(24))
 
         call check_ierr(ierr, self%me, "Ksp Bcast")
     end subroutine Bcast_k_space
@@ -1840,12 +1844,26 @@ contains
 
     subroutine plot_omega_square(self)
         implicit none
-    class(k_space), intent(in)   :: self
-        integer                  :: i, j
+    class(k_space)               :: self
+        real(8), allocatable     :: eig_val(:,:), omega_z(:,:), Q_L(:,:), Q_IC(:,:)
+        logical                  :: tmp_ch, tmp_co
+        
+        if(self%nProcs /= 1) call error_msg("Plot only for 1 process", abort=.True.)
 
-        do i 
+        tmp_ch           = self%calc_hall
+        tmp_co           = self%calc_orbmag
+        self%calc_hall   = .True.
+        self%calc_orbmag = .False.
 
+        call self%setup_inte_grid_square(self%num_plot_pts, padding=.False.)
+        call self%calc_new_berry_points(eig_val, omega_z, Q_L, Q_IC)
+        
+        call save_npy(trim(self%prefix) // "k_grid.npy", self%new_k_pts)
+        call save_npy(trim(self%prefix) // "omega_z.npy", omega_z)
 
+        deallocate(self%new_k_pts)
+        self%calc_hall   = tmp_ch
+        self%calc_orbmag = tmp_co
     end subroutine plot_omega_square
 
     subroutine basis_trafo(in_EV, trafo_mtx, out_EV)
