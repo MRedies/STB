@@ -1144,10 +1144,17 @@ contains
         implicit none
         class(unit_cell), intent(in)   :: self
         integer                        :: i
+        logical                        :: passed
+
+        passed = .True.
 
         do i = 1,self%num_atoms
-            call self%atoms(i)%compare_to_root()
+            passed = passed .and. self%atoms(i)%compare_to_root()
         enddo
+
+        if(passed) then
+            call error_msg("Atom test passed", p_color=c_green, abort=.False.)
+        endif
     end subroutine run_tests
 
 end module

@@ -94,7 +94,7 @@ contains
         self%m_theta = theta
     end subroutine set_sphere
 
-    subroutine compare_to_root(self)
+    function compare_to_root(self) result(success)
         implicit none
         class(atom)             :: self
         real(8)                 :: tmp, tmp_p(3)
@@ -194,12 +194,10 @@ contains
         endif
         deallocate(tmp_i4vec)
 
-        if(success) then
-            call error_msg("Atom test passed", p_color=c_green, abort=.False.)
-        else
+        if(.not. success) then
             call error_msg("Atom test failed", abort=.True.)
         endif
 
         call check_ierr(ierr, self%me, "compare atoms")
-    end subroutine compare_to_root
+    end function compare_to_root
 end module 
