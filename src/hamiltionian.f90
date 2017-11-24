@@ -397,9 +397,9 @@ contains
         n = R(3)/my_norm2(R)
 
         !cyclic permutations of H_x^x = l^2 Vpp_sig + (1-l^2) Vpp_pi
-        hopp_mtx(1,1) = l*l * self%Vpp_sig + (1d0 - l*l) * self%Vpp_pi
-        hopp_mtx(2,2) = m*m * self%Vpp_sig + (1d0 - m*m) * self%Vpp_pi
-        hopp_mtx(3,3) = n*n * self%Vpp_sig + (1d0 - n*n) * self%Vpp_pi
+        hopp_mtx(1,1) = l * l * self%Vpp_sig + (1d0 - l * l) * self%Vpp_pi
+        hopp_mtx(2,2) = m * m * self%Vpp_sig + (1d0 - m * m) * self%Vpp_pi
+        hopp_mtx(3,3) = n * n * self%Vpp_sig + (1d0 - n * n) * self%Vpp_pi
 
         !cyclic permutations of H_x^y = l*m Vpp_sig - l*m Vpp_pi
         hopp_mtx(1,2) = l * m * (self%Vpp_sig - self%Vpp_pi)
