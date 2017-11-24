@@ -239,8 +239,7 @@ contains
         else if(trim(self%mag_type) == "random") then
             call self%set_mag_random()
         else
-            write (*,*) "Mag_type not known"
-            stop
+            call error_msg("Mag type not known", abort=.True.)
         endif
     end subroutine init_unit_square
 
@@ -391,8 +390,7 @@ contains
         else if(trim(self%mag_type) == "random") then
             call self%set_mag_random()
         else
-            write (*,*) "Mag_type not known"
-            stop
+            call error_msg("Mag type not known", abort=.True.)
         endif
 
         ! only one kind of atom from honey-comb unit cell needed
