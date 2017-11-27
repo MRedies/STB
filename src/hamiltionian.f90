@@ -295,20 +295,21 @@ contains
         implicit none
     class(hamil), intent(in) :: self
         complex(8), intent(inout):: H(:,:)
-        integer    :: i,id
+        integer    :: i, id, m
 
-        do i =  1,self%num_up
+        m = self%num_orb - 1
+        do i =  1,self%num_up, self%num_orb
             id = i +  self%num_up
             select case(self%UC%atoms(i)%site_type)
             case(A_site)
-                H(i,  i)  = H(i,   i) + self%E_A
-                H(id, id) = H(id, id) + self%E_A
+                H(i:i+m,   i:i+m)   = H(i:i+m,   i:i+m)   + self%E_A
+                H(id:id+m, id:id+m) = H(id:id+m, id:id+m) + self%E_A
             case(B_site)
-                H(i,  i)  = H(i,   i) + self%E_B
-                H(id, id) = H(id, id) + self%E_B
+                H(i:i+m,   i:i+m)   = H(i:i+m,   i:i+m)   + self%E_B
+                H(id:id+m, id:id+m) = H(id:id+m, id:id+m) + self%E_B
             case(no_site)
-                H(i,  i)  = H(i,   i) + self%E_s 
-                H(id, id) = H(id, id) + self%E_s
+                H(i:i+m,   i:i+m)   = H(i:i+m,   i:i+m)   + self%E_s
+                H(id:id+m, id:id+m) = H(id:id+m, id:id+m) + self%E_s
             case default
                 write (*,*) i, "unknown site type: ", self%UC%atoms(i)%site_type
                 call error_msg("Aborting due to unknown type site", abort=.True.)
@@ -323,12 +324,16 @@ contains
         complex(8), intent(inout) :: H(:,:)
         integer                   :: i, N, p_idx
 
-        N = 2 * self%num_up
+        if(self%num_orb == 3) then
+            N = 2 * self%num_up
 
-        do i=1,N
-            p_idx = mod((i-1),3) + 1
-            H(i,i) =  H(i,i) + self%E_p(p_idx)
-        enddo
+            do i=1,N
+                p_idx = mod((i-1),3) + 1
+                H(i,i) =  H(i,i) + self%E_p(p_idx)
+            enddo
+        else
+            call error_msg("p_energy only for p-orbitals (duh)!", abort=.True.)
+        endif
     end subroutine set_p_energy
 
     subroutine set_hopping(self,k, H)
@@ -337,7 +342,7 @@ contains
         real(8), intent(in)               :: k(3)
         complex(8), intent(inout)         :: H(:,:)
         integer                           :: i, i_d, j,&
-            j_d, conn, m, cnt
+            j_d, conn, m, cnt, n_idx
         real(8)                           :: k_dot_r, hopp_mtx(self%num_orb, self%num_orb), R(3)
         complex(8)                        :: new(self%num_orb, self%num_orb)
 
@@ -348,14 +353,14 @@ contains
         do i = 1,self%num_up,self%num_orb
             do conn = 1,size(self%UC%atoms(cnt)%neigh_idx)
                 if(self%UC%atoms(cnt)%conn_type(conn) == nn_conn) then
-                    j =  self%UC%atoms(cnt)%neigh_idx(conn)
+                    n_idx =  self%UC%atoms(cnt)%neigh_idx(conn)
+                    j     =  self%num_orb * (n_idx - 1) + 1
 
                     R =  self%UC%atoms(cnt)%neigh_conn(conn,:)
                     call self%set_hopp_mtx(R, hopp_mtx)
                     k_dot_r =  dot_product(k, R)
 
                     new = exp(i_unit * k_dot_r) * hopp_mtx
-                    
                     H(i:i+m, j:j+m) =  H(i:i+m,j:j+m) + new
                     H(j:j+m, i:i+m) =  H(j:j+m,i:i+m) + conjg(new)
                 endif
@@ -365,12 +370,11 @@ contains
 
         ! Spin down
         cnt = 1
-        do i = 1,self%num_up,self%num_orb
-            i_d =  i + self%num_up
+        do i_d = self%num_up+1,2*self%num_up,self%num_orb
             do conn = 1,size(self%UC%atoms(cnt)%neigh_idx)
                 if(self%UC%atoms(cnt)%conn_type(conn) == nn_conn) then
-                    j      = self%UC%atoms(cnt)%neigh_idx(conn)
-                    j_d = j + self%num_up
+                    n_idx =  self%UC%atoms(cnt)%neigh_idx(conn)
+                    j_d   =  self%num_orb * (n_idx - 1) + 1 + self%num_up
 
                     R =  self%UC%atoms(cnt)%neigh_conn(conn,:)
                     call self%set_hopp_mtx(R, hopp_mtx)
