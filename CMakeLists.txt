@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(STB)
 
-SET(STB_USE_64BIT ON CACHE BOOL "Use 64-bit interface")
+SET(STB_USE_64BIT OFF CACHE BOOL "Use 64-bit interface")
 
 file(GLOB_RECURSE sources  src/*.f90 
                            src/*.F90
@@ -59,7 +59,11 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "IBM")
     #set(CMAKE_Fortran_COMPILER scorep)
     #set(dialect "mpixlf2008_r -O2 -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm -qsmp=omp -qnosave")
     set(CMAKE_Fortran_COMPILER mpixlf2008_r)
-    set(dialect "-O2 -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm -qsmp=omp -qnosave")
+    if(STB_USE_64BIT)
+        set(dialect "-O2 -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm -qsmp=omp -qnosave -qintsize=8")
+    else()
+        set(dialect "-O2 -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm -qsmp=omp -qnosave")
+    endif()
     set(debug "-C")
 endif()
 

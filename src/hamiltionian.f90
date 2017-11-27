@@ -635,7 +635,7 @@ contains
         integer   , intent(in)   :: k_idx
         real(8)                   :: r(3), k_dot_r, hopp_mtx(self%num_orb, self%num_orb)
         complex(8)                :: forw(self%num_orb, self%num_orb), back(self%num_orb, self%num_orb)
-        integer                   :: i, j, conn, i_d, j_d, m, cnt
+        integer                   :: i, j, conn, i_d, j_d, m, cnt, n_idx
 
         m =  self%num_orb - 1
 
@@ -647,7 +647,8 @@ contains
             i_d =  i + self%num_up
             do conn = 1,size(self%UC%atoms(cnt)%neigh_idx)
                 if(self%UC%atoms(cnt)%conn_type(conn) == nn_conn) then
-                    j   = self%UC%atoms(cnt)%neigh_idx(conn)
+                    n_idx = self%UC%atoms(cnt)%neigh_idx(conn)
+                    j     = self%num_orb * (n_idx - 1) + 1
                     j_d = j + self%num_up
 
                     r   = self%UC%atoms(cnt)%neigh_conn(conn,:)
