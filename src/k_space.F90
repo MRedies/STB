@@ -806,8 +806,9 @@ contains
 
                 ! save current iteration and check if converged
                 done_hall =  self%process_step(hall, hall_old, iter, "hall_cond")
-            else
-                done_hall = .True.
+            endif
+            
+            if(done_hall) then
                 call error_msg("Switched to orbmag-weights", &
                                p_color=c_green, abort=.False.)
                 self%chosen_weights = "orbmag"
@@ -820,8 +821,9 @@ contains
                 ! save current iteration and check if converged
                 factor = self%ham%UC%calc_area() / self%units%mag_dipol
                 done_orbmag = self%process_step(orbmag*factor, orbmag_old*factor, iter, "orbmag   ")
-            else
-                done_orbmag = .True.
+            endif
+                
+            if(done_orbmag) then
                 call error_msg("Switched to hall-weights", &
                                p_color=c_green, abort=.False.)
                 self%chosen_weights = "hall"
