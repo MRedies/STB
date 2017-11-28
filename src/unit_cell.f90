@@ -197,12 +197,10 @@ contains
                        root,              MPI_COMM_WORLD, ierr(10))
 
 
-        call MPI_Bcast(self%n_wind, 1,              MYPI_INT, &
-                       root,        MPI_COMM_WORLD, ierr(11))
-
-        call MPI_Bcast(self%molecule,      1,              MPI_LOGICAL,   &
-                       root,               MPI_COMM_WORLD, ierr(12))
-        
+        call MPI_Bcast(self%n_wind,   1,              MYPI_INT,    &
+                       root,          MPI_COMM_WORLD, ierr(11))
+        call MPI_Bcast(self%molecule, 1,              MPI_LOGICAL, &
+                       root,          MPI_COMM_WORLD, ierr(12))
         call MPI_Bcast(self%test_run, 1,              MPI_LOGICAL, &
                         root,         MPI_COMM_WORLD, ierr(13))
 
@@ -213,22 +211,37 @@ contains
     subroutine init_unit_square(self)
         implicit none
         class(unit_cell), intent(inout) :: self
-        real(8)                         :: conn_mtx(3,3), transl_mtx(2,3)
+        real(8)                         :: conn_mtx(5,3), transl_mtx(4,3)
+        integer(4)                      :: conn_types(size(conn_mtx, dim=1)), i
         
         self%num_atoms = self%atom_per_dim **2
         allocate(self%atoms(self%num_atoms))
     
         call self%setup_square()
 
-        conn_mtx(1, :) =  (/ self%lattice_constant, 0d0, 0d0 /)
-        conn_mtx(2, :) =  (/ 0d0, self%lattice_constant, 0d0 /)
-        conn_mtx(3, :) =  (/ 0d0, 0d0, self%lattice_constant /)
+        conn_mtx(1, :) = self%lattice_constant * [ 1d0,  0d0, 0d0 ]
+        conn_mtx(2, :) = self%lattice_constant * [ 0d0,  1d0, 0d0 ]
+        conn_mtx(3, :) = self%lattice_constant * [ 0d0,  0d0, 1d0 ]
+        conn_mtx(4, :) = self%lattice_constant * [ 1d0,  1d0, 0d0 ]
+        conn_mtx(5, :) = self%lattice_constant * [ 1d0, -1d0, 0d0 ]
+        conn_types     = [nn_conn, nn_conn, nn_conn, snd_nn_conn, snd_nn_conn]
         
         transl_mtx = 0d0
         transl_mtx(1,1:2) = self%lattice(:,1)
-        transl_mtx(2,1:2) = self%lattice(:,2)
+        transl_mtx(2,1:2) =                     self%lattice(:,2)
+        transl_mtx(3,1:2) = self%lattice(:,1) + self%lattice(:,2)
+        transl_mtx(4,1:2) = self%lattice(:,1) - self%lattice(:,2)
 
-        call self%setup_gen_conn(conn_mtx,[nn_conn, nn_conn, nn_conn], transl_mtx)    
+        call self%setup_gen_conn(conn_mtx, conn_types, transl_mtx)  
+
+        do i = 1,size(self%atoms)
+            write (*,*) i
+            if(size(self%atoms(i)%neigh_idx) == 4) then
+                call error_msg("yeah", p_color=c_green)
+            else
+                call error_msg("noooh")
+            endif
+        enddo
 
         if(trim(self%mag_type) ==  "x_spiral") then
             call self%set_mag_x_spiral_square()
@@ -251,6 +264,8 @@ contains
         integer                           :: n(3), i, n_transl
         integer                           :: info
         character(len=300)                :: garb
+
+        call error_msg("2nd nearest neighbour not implemented for files", p_color=c_green)
 
         if(self%me ==  root) then 
             write (*,*) "file =  ", trim(self%mag_file)
@@ -356,7 +371,7 @@ contains
         real(8)  :: transl_mtx(3,3), l, base_len_uc, conn_mtx(3,3)
         real(8), allocatable             :: hexagon(:,:)
         integer, allocatable             :: site_type(:)
-        integer                          :: apd
+        integer                          :: apd, i
         
 
         apd         = self%atom_per_dim
@@ -401,6 +416,16 @@ contains
         
         call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
         call self%set_honey_snd_nearest()
+        
+        do i = 1,size(self%atoms)
+            write (*,*) i, size(self%atoms(i)%neigh_idx)
+            write (*,*) "conn_type"
+            call print_mtx(self%atoms(i)%conn_type)
+            write (*,*) "conn_mtx"
+            call print_mtx(self%atoms(i)%neigh_conn)
+            write (*,*) "#####################################"
+        enddo
+        
         deallocate(hexagon, site_type)
     end subroutine init_unit_honey
 
@@ -846,15 +871,15 @@ contains
 
     function gen_find_neigh(self, start, conn, transl_mtx) result(neigh)
         implicit none
-        class(unit_cell), intent(in)         :: self
-        real(8), intent(in) :: start(3) !> starting position in RS
-        real(8), intent(in) :: conn(3) !> RS connection
-        real(8), intent(in) :: transl_mtx(:,:) !> RS translation vectors to next unit cell
+        class(unit_cell), intent(in) :: self
+        real(8), intent(in)          :: start(3) !> starting position in RS
+        real(8), intent(in)          :: conn(3) !> RS connection
+        real(8), intent(in)          :: transl_mtx(:,:) !> RS translation vectors to next unit cell
         !> The vectors are save as columns in the matrix:
         !> The first index indicates the vector
         !> The second index indicates the element of the vector
         integer     :: neigh, idx, n_transl, i
-        real(8) :: new(3)
+        real(8)     :: new(3)
 
         n_transl =  size(transl_mtx, dim=1)
 
@@ -871,7 +896,7 @@ contains
                     neigh =  idx
                     return
                 endif
-                new =  conn -  transl_mtx(i,:)
+                new =  conn - transl_mtx(i,:)
                 idx =  self%in_cell(start, new)
 
                 if (idx /=  - 1) then

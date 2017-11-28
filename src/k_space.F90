@@ -1712,7 +1712,7 @@ contains
         real(8), allocatable    :: m(:), l_space(:), eig_val(:), RWORK(:)
         real(8)                 :: k_area
         complex(8), allocatable :: H(:,:), WORK(:)
-        integer                 :: N_k, lwork, lrwork, liwork, i, N, &
+        integer                 :: N_k, lwork, lrwork, liwork, N, &
                                    first, last, k_idx, info, ierr
         integer, allocatable    :: IWORK(:)
 

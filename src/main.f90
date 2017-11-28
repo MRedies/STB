@@ -188,9 +188,11 @@ contains
         call CFG_add(cfg, "units%temperature", "none", "unit of temperature")
         call CFG_add(cfg, "units%mag_dipol", "none", "unit of magnetic dipol")
 
-        call CFG_add(cfg, "hamil%Vss_sig",   0d0, "s-state hopping")
-        call CFG_add(cfg, "hamil%Vpp_sig",   0d0, "p-state del_l=0 hopping")
-        call CFG_add(cfg, "hamil%Vpp_pi",    0d0, "p-state del_l=+/-1 hopping")
+        call CFG_add(cfg, "hamil%Vss_sig",  0d0, "s-state hopping")
+        call CFG_add(cfg, "hamil%Vpp_sig",  0d0, "p-state del_l=0 hopping")
+        call CFG_add(cfg, "hamil%Vpp_pi",   0d0, "p-state del_l=+/-1 hopping")
+        call CFG_add(cfg, "hamil%V2pp_sig", 0d0, "2nd nearest neigh")
+        call CFG_add(cfg, "hamil%V2pp_pi",  0d0, "2nd nearest neigh")
 
         call CFG_add(cfg, "hamil%t_2",      0d0,     "2nd nearest neighbour hopping")
         call CFG_add(cfg, "hamil%phi_2",    0d0,     "2nd nearest neighbourh hopping phase")
