@@ -234,15 +234,6 @@ contains
 
         call self%setup_gen_conn(conn_mtx, conn_types, transl_mtx)  
 
-        do i = 1,size(self%atoms)
-            write (*,*) i
-            if(size(self%atoms(i)%neigh_idx) == 4) then
-                call error_msg("yeah", p_color=c_green)
-            else
-                call error_msg("noooh")
-            endif
-        enddo
-
         if(trim(self%mag_type) ==  "x_spiral") then
             call self%set_mag_x_spiral_square()
         else if(trim(self%mag_type) == "ferro") then
@@ -416,15 +407,6 @@ contains
         
         call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
         call self%set_honey_snd_nearest()
-        
-        do i = 1,size(self%atoms)
-            write (*,*) i, size(self%atoms(i)%neigh_idx)
-            write (*,*) "conn_type"
-            call print_mtx(self%atoms(i)%conn_type)
-            write (*,*) "conn_mtx"
-            call print_mtx(self%atoms(i)%neigh_conn)
-            write (*,*) "#####################################"
-        enddo
         
         deallocate(hexagon, site_type)
     end subroutine init_unit_honey
