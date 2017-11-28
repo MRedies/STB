@@ -787,7 +787,7 @@ contains
                     k_dot_r = dot_product(k, r)
 
                     forw    = i_unit * r(k_idx) * hopp_mtx * exp(i_unit * k_dot_r)
-                    back    =  transpose(conjg(forw))             
+                    back    = transpose(conjg(forw))             
 
                     !Spin up
                     self%del_H(i:i+m,j:j+m)     = self%del_H(i:i+m,j:j+m) + forw 
