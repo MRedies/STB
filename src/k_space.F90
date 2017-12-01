@@ -808,7 +808,7 @@ contains
                 done_hall =  self%process_step(hall, hall_old, iter, "hall_cond")
             endif
             
-            if(done_hall) then
+            if(done_hall .and. trim(self%chosen_weights) == "hall") then
                 call error_msg("Switched to orbmag-weights", &
                                p_color=c_green, abort=.False.)
                 self%chosen_weights = "orbmag"
@@ -823,7 +823,7 @@ contains
                 done_orbmag = self%process_step(orbmag*factor, orbmag_old*factor, iter, "orbmag   ")
             endif
                 
-            if(done_orbmag) then
+            if(done_orbmag .and. trim(self%chosen_weights) == "orbmag") then
                 call error_msg("Switched to hall-weights", &
                                p_color=c_green, abort=.False.)
                 self%chosen_weights = "hall"
