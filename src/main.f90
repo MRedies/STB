@@ -206,6 +206,10 @@ contains
         call CFG_add(cfg, "hamil%n",        0,       "n=0 -> s-states; n=1 -> p-states")
         call CFG_add(cfg, "hamil%molecule", .False., "should this be calculated as an isolated molecule")
 
+        call CFG_add(cfg, "hamil%HB1",    0d0, "Hongbin nearest neigh hopping")
+        call CFG_add(cfg, "hamil%HB2",    0d0, "Hongbin snd nearest neigh")
+        call CFG_add(cfg, "hamil%HB_eta", 0d0, "Hongbin SOC")
+
         call CFG_add(cfg, "grid%atoms_per_dim",    -1,    "")
         call CFG_add(cfg, "grid%unit_cell_type",   "",    "")
         call CFG_add(cfg, "grid%lattice_constant", 0d0,   "")

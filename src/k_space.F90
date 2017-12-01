@@ -1710,7 +1710,7 @@ contains
         implicit none
     class(k_space)              :: self
         real(8), allocatable    :: m(:), l_space(:), eig_val(:), RWORK(:)
-        real(8)                 :: k_area
+        real(8)                 :: area
         complex(8), allocatable :: H(:,:), WORK(:)
         integer                 :: N_k, lwork, lrwork, liwork, N, &
                                    first, last, k_idx, info, ierr
@@ -1748,10 +1748,8 @@ contains
                 m = m + self%calc_ACA_singleK(H, eig_val)
             enddo
 
-            k_area = my_norm2(self%ham%UC%rez_lattice(:,1)) &
-                   * my_norm2(self%ham%UC%rez_lattice(:,2))
-
-            m =  m / (N_k * k_area)
+            area =  self%ham%UC%calc_area()
+            m =  m / (N_k * area)
         
             if(self%me == root) then
                 call MPI_Reduce(MPI_IN_PLACE, m, size(m), MPI_REAL8, &

@@ -20,6 +20,7 @@ module Class_hamiltionian
         real(8)         :: phi_2 !> polar angle of 2nd nearest neighbour hopping in rad
         real(8)         :: t_so !> Rashba spin orb
         real(8)         :: lambda !> local exchange
+        real(8)         :: HB1, HB2, HB_eta !> parameters for hongbins model
         complex(8), allocatable    :: del_H(:,:)
         integer         :: nProcs
         integer         :: me
@@ -56,6 +57,8 @@ module Class_hamiltionian
         procedure :: free_ham                       => free_ham
         procedure :: set_snd_hopping                => set_snd_hopping
         procedure :: set_snd_hopp_mtx               => set_snd_hopp_mtx
+        procedure :: set_hongbin_hopp               => set_hongbin_hopp
+        procedure :: set_hongbin_SOC                => set_hongbin_SOC
     end type hamil
 
 contains
@@ -140,6 +143,11 @@ contains
         if(self%t_so      /= 0d0) call self%set_rashba_SO(k,H)
         if(self%eta_soc   /= 0d0) call self%set_SOC(H)
         if(self%lambda    /= 0d0) call self%set_loc_exch(H)
+
+        if(self%HB1 /= 0d0 .or. self%HB2 /= 0d0) then
+            call self%set_hongbin_hopp(k, H)
+        endif
+        if(self%HB_eta /= 0d0) call self%set_hongbin_SOC(H)
     end subroutine setup_H
 
     subroutine test_herm(H, tag)
@@ -219,6 +227,13 @@ contains
             self%num_orb =  2 * n +  1
             self%num_up  =  self%num_orb *  self%UC%num_atoms
             
+            call CFG_get(cfg, "hamil%HB1", tmp)
+            self%HB1 =  tmp * self%units%energy
+            call CFG_get(cfg, "hamil%HB2", tmp)
+            self%HB2 =  tmp * self%units%energy
+            call CFG_get(cfg, "hamil%HB_eta", tmp)
+            self%HB_eta =  tmp * self%units%energy
+            
             call CFG_get(cfg, "general%test_run", self%test_run)
         endif
         call self%Bcast_hamil()
@@ -227,7 +242,7 @@ contains
     subroutine Bcast_hamil(self)
         implicit none
     class(hamil)          :: self
-        integer   , parameter :: num_cast =  17
+        integer   , parameter :: num_cast = 20
         integer               :: ierr(num_cast)
 
         call MPI_Bcast(self%E_s,      1,              MPI_REAL8,   &
@@ -264,6 +279,14 @@ contains
                        root,          MPI_COMM_WORLD, ierr(16))
         call MPI_Bcast(self%test_run, 1,              MPI_LOGICAL, &
                         root,         MPI_COMM_WORLD, ierr(17))
+
+
+        call MPI_Bcast(self%HB1,    1,              MPI_REAL8, &
+                       root,        MPI_COMM_WORLD, ierr(18))
+        call MPI_Bcast(self%HB2,    1,              MPI_REAL8, &
+                       root,        MPI_COMM_WORLD, ierr(19))
+        call MPI_Bcast(self%HB_eta, 1,              MPI_REAL8, &
+                       root,        MPI_COMM_WORLD, ierr(20))
 
         call check_ierr(ierr, self%me, "Hamiltionian check err")
     end subroutine
@@ -408,7 +431,54 @@ contains
             cnt = cnt + 1
         enddo
     end subroutine set_hopping
-    
+
+    subroutine set_hongbin_hopp(self, k, H)
+        implicit none
+    class(hamil), intent(in)             :: self
+        real(8), intent(in)              :: k(3)
+        complex(8), intent(inout)        :: H(6,6)
+        real(8), parameter               :: A = 1d0
+        real(8)                          :: kx, ky, kz
+
+        kx = k(1)
+        ky = k(2)
+        kz = k(3)
+        if(kz /= 0d0) call error_msg("We only do 2d here", abort=.True.)
+        
+        H(1,1) = H(1,1) - 2d0 * self%HB1 * (cos(ky) + A)
+        H(2,2) = H(2,2) - 2d0 * self%HB1 * (cos(kx) + A)
+        H(3,3) = H(3,3) - 2d0 * self%HB1 * (cos(kx) + cos(ky))
+        
+        H(2,1) = H(2,1) + 4d0 * self%HB2 * sin(kx) * sin(ky)
+        H(1,2) = conjg(H(2,1))
+
+        
+        H(4:6,4:6) = H(1:3,1:3)
+    end subroutine set_hongbin_hopp
+
+    subroutine set_hongbin_SOC(self, H)
+        implicit none
+    class(hamil), intent(in)          :: self
+        complex(8), intent(inout)     :: H(6,6)
+        integer, parameter            :: x_or_z = 1
+        complex(8)                    :: soc_mtx(3,3)
+
+        soc_mtx      =   c_0
+        if(x_or_z ==  1) then
+            soc_mtx(2,1) = - c_i 
+            soc_mtx(1,2) =   c_i
+        elseif(x_or_z == 3) then
+            soc_mtx(3,2) = - c_i
+            soc_mtx(2,3) =   c_i
+        else
+            call error_msg("Hongbin hamiltonian only in x or z direction", &
+                abort=.True.)
+        endif
+
+        H(1:3,1:3) = H(1:3,1:3) + self%HB_eta * soc_mtx
+        H(4:6,4:6) = H(4:6,4:6) + self%HB_eta * soc_mtx
+    end subroutine set_hongbin_SOC
+
     subroutine set_snd_hopping(self,k, H)
         implicit none
     class(hamil), intent(in)              :: self 
@@ -696,7 +766,7 @@ contains
     class(hamil)                  :: self
         integer   , intent(in)    :: k_idx
         real(8), intent(in)       :: k(3)
-        logical                   :: has_hopp
+        logical                   :: has_hopp, has_hong
 
         if(k(3) /= 0) then
             write (*,*) "K_z not zero in set_derivative_k"
@@ -715,6 +785,11 @@ contains
         has_hopp =  (self%V2pp_sig /= 0d0)  & 
                 .or. (self%V2pp_pi /= 0d0)
         if(has_hopp) call self%set_derivative_snd_hopping(k, k_idx)
+
+        has_hong =   (self%HB1 /= 0d0) &
+                .or. (self%HB2 /= 0d0) &
+                .or. (self%HB_eta /= 0d0)
+        if(has_hong) call self%set_deriv_FD(k, k_idx, self%del_H)
     end subroutine set_derivative_k
 
     subroutine set_derivative_hopping(self, k, k_idx)
