@@ -82,7 +82,8 @@ module Class_k_space
         procedure :: integrate_orbmag       => integrate_orbmag
         procedure :: finalize_hall          => finalize_hall
         procedure :: finalize_orbmag        => finalize_orbmag
-        procedure :: process_step           => process_step
+        procedure :: process_hall           => process_hall
+        procedure :: process_orbmag         => process_orbmag
         procedure :: calc_new_berry_points  => calc_new_berry_points
         procedure :: calc_new_kidx          => calc_new_kidx
         procedure :: calc_orbmag_z_singleK  => calc_orbmag_z_singleK
@@ -805,7 +806,7 @@ contains
                 call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
 
                 ! save current iteration and check if converged
-                done_hall =  self%process_step(hall, hall_old, iter, "hall_cond")
+                done_hall =  self%process_hall(hall, hall_old, iter)
             endif
             
             if(done_hall .and. trim(self%chosen_weights) == "hall") then
@@ -820,7 +821,9 @@ contains
 
                 ! save current iteration and check if converged
                 factor = self%ham%UC%calc_area() / self%units%mag_dipol
-                done_orbmag = self%process_step(orbmag*factor, orbmag_old*factor, iter, "orbmag   ")
+                done_orbmag = self%process_orbmag(orbmag*factor, orbmag_old*factor, &
+                                                  orbmag_L*factor, orbmag_IC*factor,&
+                                                  iter)
             endif
                 
             if(done_orbmag .and. trim(self%chosen_weights) == "orbmag") then
@@ -922,12 +925,12 @@ contains
         deallocate(del_kx, del_ky)
     end subroutine calc_new_berry_points
     
-    function process_step(self, var, var_old, iter, var_name) result(cancel)
+    function process_hall(self, var, var_old, iter) result(cancel)
         implicit none
         class(k_space)                 :: self
         real(8), intent(in)            :: var(:), var_old(:)
         integer   , intent(in)         :: iter
-        character(len=*), intent(in)   :: var_name
+        character(len=*), parameter    :: var_name = "hall_cond"
         character(len=300)             :: filename
         logical                        :: cancel
         real(8)                        :: rel_error
@@ -957,7 +960,52 @@ contains
             if(self%me == root) write (*,*) "Converged " // trim(var_name) //   " interation"
             cancel = .True.
         endif
-    end function process_step
+    end function process_hall
+    
+    function process_orbmag(self, orbmag, orbmag_old, &
+                            orbmag_L, orbmag_IC, iter) result(cancel)
+        implicit none
+        class(k_space)                 :: self
+        real(8), intent(in)            :: orbmag(:), orbmag_old(:),&
+                                          orbmag_L(:), orbmag_IC(:)
+        integer   , intent(in)         :: iter
+        character(len=*), parameter    :: var_name = "orbmag   " 
+        character(len=300)             :: filename
+        logical                        :: cancel
+        real(8)                        :: rel_error
+
+        cancel = .False.
+
+        ! save current iteration data
+        if(self%me == root) then
+            write (filename, "(A,I0.5,A)") "orbmag_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), orbmag)
+
+            write (filename, "(A,I0.5,A)") "orbmag_L_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), orbmag_L)
+
+            write (filename, "(A,I0.5,A)") "orbmag_IC_iter=", iter, ".npy"
+            call save_npy(trim(self%prefix) // trim(filename), orbmag_IC)
+
+            call save_npy(trim(self%prefix) // "orbmag_E.npy", &
+                self%E_fermi / self%units%energy)
+        endif
+
+        ! check for convergence
+        rel_error = my_norm2(orbmag - orbmag_old) &
+                    / (self%kpts_per_step * self%nProcs * my_norm2(orbmag))!/ (1d0*size(orbmag))
+
+        if(self%me == root) then
+            write (*,"(I5,A,A,A,I7,A,ES10.3)") iter, " var: ", var_name, &
+                             " nkpts ", size(self%all_k_pts,2),&
+                             " err ", rel_error
+        endif
+        
+        if(rel_error < self%berry_conv_crit) then
+            if(self%me == root) write (*,*) "Converged " // trim(var_name) //   " interation"
+            cancel = .True.
+        endif
+    end function process_orbmag
 
     subroutine finalize_hall(self, var)
         implicit none        
