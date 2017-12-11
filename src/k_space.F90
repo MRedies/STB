@@ -755,7 +755,7 @@ contains
         integer     :: N_k, num_up, iter, n_ferm
         integer     :: all_err(13), info
         character(len=300)       :: msg
-        logical                  :: done_hall, done_orbmag
+        logical                  :: done_hall = .True., done_orbmag = .True.
 
 
         call self%setup_berry_inte_grid()
