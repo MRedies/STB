@@ -778,6 +778,7 @@ contains
         allocate(kidx_all(0),                        stat=all_err(12))
         allocate(self%all_k_pts(3,0),                stat=all_err(13))
 
+
         hall    =  1e35
         orbmag =  1e35 
         call check_ierr(all_err, self%me, "allocate hall vars")
@@ -794,6 +795,7 @@ contains
             call append_kidx(kidx_all, kidx_new)
             call self%append_kpts()
             call append_eigval(eig_val_all, eig_val_new)
+            write (*,*) self%me, "post appneding"
             
             if(self%calc_hall)   call append_quantitiy(omega_z_all, omega_z_new)
             if(self%calc_orbmag) then
@@ -808,6 +810,7 @@ contains
                 ! save current iteration and check if converged
                 done_hall =  self%process_hall(hall, hall_old, iter)
             endif
+            call time_msg("post hall")
             
             if(done_hall .and. trim(self%chosen_weights) == "hall") then
                 call error_msg("Switched to orbmag-weights", &
@@ -815,6 +818,8 @@ contains
                 self%chosen_weights = "orbmag"
             endif
 
+            call time_msg("integrate hall ")
+            
             if(self%calc_orbmag) then
                 orbmag_old = orbmag
                 call self%integrate_orbmag(kidx_all, Q_L_all, Q_IC_all, orbmag, orbmag_L, orbmag_IC)
@@ -825,6 +830,8 @@ contains
                                                   orbmag_L*factor, orbmag_IC*factor,&
                                                   iter)
             endif
+           
+            call time_msg("integrate om")
                 
             if(done_orbmag .and. trim(self%chosen_weights) == "orbmag") then
                 call error_msg("Switched to hall-weights", &
@@ -832,6 +839,7 @@ contains
                 self%chosen_weights = "hall"
             endif
 
+            
             ! Stop if both converged
             if(done_hall .and. done_orbmag) exit
 
@@ -852,6 +860,7 @@ contains
             endif
 
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
+            call time_msg("new kpts")
         enddo
         
         if(self%calc_hall)   call self%finalize_hall(hall)
@@ -905,20 +914,25 @@ contains
         if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(3))
         call check_ierr(err, self%me, " new chunk alloc")
 
+
         ! calculate 
         cnt =  1
         do k_idx = first, last
             k = self%new_k_pts(:,k_idx)
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky)
+
+            call time_msg("pre quantity")
             if(self%calc_hall) then
                 call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                           eig_val_new(:,cnt), del_kx, del_ky)
             endif
+            call time_msg("Post berry_z")
 
             if(self%calc_orbmag) then
                 call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), &
                                             eig_val_new(:,cnt), del_kx, del_ky)
             endif
+            call time_msg("Post orbmag_z")
             
             cnt = cnt + 1
         enddo
@@ -1278,13 +1292,14 @@ contains
 
         allocate(A_mtx(size(Vx_mtx,1), size(Vx_mtx,2)))
         
+        !make sure to sure memory efficient layout for A matrix
         !$omp parallel do private(n) default(shared)
         do m = 1,size(Vx_mtx,1)
             do n = 1,size(Vx_mtx,2)
-                A_mtx(m, n) = aimag(Vx_mtx(m, n) *  Vy_mtx(n, m))
+                A_mtx(n, m) = aimag(Vx_mtx(m, n) *  Vy_mtx(n, m))
             enddo
         enddo
-        
+
         Q_L  = 0
         Q_IC = 0
         !$omp parallel do private(n, m, Ef, f_nk, dE) default(shared)
@@ -1294,19 +1309,13 @@ contains
                 f_nk =  self%fermi_distr(eig_val(n), n_ferm)
                 if(f_nk /= 0d0) then
                     do m = 1, size(A_mtx,1)
-                        if(n /= m) then
-                            dE =  eig_val(m) -  eig_val(n)
-                            
-                            if(abs(dE) >=  eta) then
-                                Q_L(n_ferm)  = Q_L(n_ferm)  &
-                                               +       f_nk * A_mtx(n,m)/dE
-                                Q_IC(n_ferm) = Q_IC(n_ferm) &
-                                               - 2d0 * f_nk * (Ef - eig_val(n)) * A_mtx(n,m)/(dE**2)    
-                                !Q(n_ferm) = Q(n_ferm) &
-                                            !+ f_nk *  ((A_mtx(n,m)/dE)  &
-                                                         !- 2d0 * (Ef - eig_val(n)) & 
-                                                           !* A_mtx(n,m) / (dE**2))
-                            endif
+                        dE =  eig_val(m) -  eig_val(n)
+                        
+                        if(abs(dE) >=  eta) then
+                            Q_L(n_ferm)  = Q_L(n_ferm)  &
+                                           +       f_nk * A_mtx(m,n)/dE
+                            Q_IC(n_ferm) = Q_IC(n_ferm) &
+                                           - 2d0 * f_nk * (Ef - eig_val(n)) * A_mtx(m,n)/(dE**2)    
                         endif ! m != n
                     enddo !m
                 else
