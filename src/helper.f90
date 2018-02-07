@@ -319,6 +319,16 @@ contains
         res(20:23) =  date(1:4)
     end function date_time
 
+    subroutine time_msg(msg)
+        implicit none
+        character(len=*), intent(in)   :: msg
+        integer                        :: me, info
+        
+        call MPI_Comm_rank(MPI_COMM_WORLD, me, info)
+
+        write (*,*) me, date_time() // ": " // msg
+    end subroutine time_msg
+
     subroutine error_msg(msg, p_color, abort)
         implicit none
         character(len=*), intent(in) :: msg

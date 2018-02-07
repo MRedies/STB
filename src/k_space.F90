@@ -257,6 +257,8 @@ contains
 
         if(trim(self%ham%UC%uc_type) == "square_2d") then
             call self%setup_inte_grid_square(self%DOS_num_k_pts)
+        elseif(trim(self%ham%UC%uc_type) == "file_square") then
+            call self%setup_inte_grid_square(self%DOS_num_k_pts)
         elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
             call self%setup_inte_grid_hex(self%DOS_num_k_pts)
         else
@@ -810,7 +812,6 @@ contains
                 ! save current iteration and check if converged
                 done_hall =  self%process_hall(hall, hall_old, iter)
             endif
-            call time_msg("post hall")
             
             if(done_hall .and. trim(self%chosen_weights) == "hall") then
                 call error_msg("Switched to orbmag-weights", &
@@ -818,7 +819,6 @@ contains
                 self%chosen_weights = "orbmag"
             endif
 
-            call time_msg("integrate hall ")
             
             if(self%calc_orbmag) then
                 orbmag_old = orbmag
@@ -831,8 +831,6 @@ contains
                                                   iter)
             endif
            
-            call time_msg("integrate om")
-                
             if(done_orbmag .and. trim(self%chosen_weights) == "orbmag") then
                 call error_msg("Switched to hall-weights", &
                                p_color=c_green, abort=.False.)
@@ -860,7 +858,6 @@ contains
             endif
 
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
-            call time_msg("new kpts")
         enddo
         
         if(self%calc_hall)   call self%finalize_hall(hall)
@@ -921,18 +918,15 @@ contains
             k = self%new_k_pts(:,k_idx)
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky)
 
-            call time_msg("pre quantity")
             if(self%calc_hall) then
                 call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                           eig_val_new(:,cnt), del_kx, del_ky)
             endif
-            call time_msg("Post berry_z")
 
             if(self%calc_orbmag) then
                 call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), &
                                             eig_val_new(:,cnt), del_kx, del_ky)
             endif
-            call time_msg("Post orbmag_z")
             
             cnt = cnt + 1
         enddo
@@ -1790,7 +1784,8 @@ contains
 
         call linspace(0d0, 1d0, self%ACA_num_k_pts, l_space)
 
-        if(trim(self%ham%UC%uc_type) == "square_2d") then
+        if( trim(self%ham%UC%uc_type) == "square_2d" &
+        .or.trim(self%ham%UC%uc_type) == "file_square" ) then
             call self%setup_inte_grid_square(self%ACA_num_k_pts, padding=.False.)
             N_k = size(self%new_k_pts, 2)
             call my_section(self%me, self%nProcs, N_k, first, last)
