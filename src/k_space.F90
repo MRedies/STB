@@ -5,6 +5,7 @@ module Class_k_space
     use Class_hamiltionian
     use Class_helper
     use MYPI
+    use ieee_arithmetic
     implicit none
 
     type k_space
@@ -932,7 +933,8 @@ contains
 
             cnt = cnt + 1
         enddo
-        deallocate(del_kx, del_ky)
+        if(allocated(del_kx)) deallocate(del_kx)
+        if(allocated(del_ky)) deallocate(del_ky)
     end subroutine calc_new_berry_points
 
     function process_hall(self, var, var_old, iter) result(cancel)
@@ -946,6 +948,16 @@ contains
         real(8)                        :: rel_error
 
         cancel = .False.
+
+        if(self%me == root) then
+            if(any(ieee_is_nan(var))) then
+                write (*,*) "hall is nan"
+            endif
+            if(any(ieee_is_nan(var_old))) then
+                write (*,*) "hall_old is nan"
+            endif
+        endif
+
 
         ! save current iteration data
         if(self%me == root) then
