@@ -3,24 +3,24 @@ module Class_atom
     use Constants
     use mpi
     implicit none
-   
+
     enum, bind(c)  !> A or B site in graphene
         enumerator :: A_site, B_site, no_site
-    end enum 
+    end enum
 
     type atom
         real(8)                  :: m_phi   !> azimuthal spin angle \f$\phi\f$
                                             !> see german wikipedia, not english
         real(8)                  :: m_theta !> polar spin angle \f$\theta\f$
-                                            !> see german wikipedia, not english                 
+                                            !> see german wikipedia, not english
         real(8), dimension(3)    :: pos     !> Position in RS in atomic units
         integer(4)               :: site_type !> A or B site
-        
+
         integer   , allocatable  :: neigh_idx(:)  !> index of neighbour atom
-        real(8), allocatable     :: neigh_conn(:,:) !> real space connection to neighbour. 
-        integer(4), allocatable  :: conn_type(:) !> type of connection 
+        real(8), allocatable     :: neigh_conn(:,:) !> real space connection to neighbour.
+        integer(4), allocatable  :: conn_type(:) !> type of connection
         !> First index connection, second element of connection.
-        
+
         integer                  :: me, nProcs
 
     contains
@@ -34,7 +34,7 @@ contains
     subroutine free_atm(self)
         implicit none
         class(atom)         :: self
-        
+
         if(allocated(self%neigh_idx)) deallocate(self%neigh_idx)
         if(allocated(self%neigh_conn)) deallocate(self%neigh_conn)
     end subroutine free_atm
@@ -43,20 +43,20 @@ contains
         implicit none
         Class(atom), intent(in)   :: self
         real(8), dimension(3)     :: coord
-        
+
         ! assume r =  1
         coord(1) = sin(self%m_theta) *  cos(self%m_phi)
         coord(2) = sin(self%m_theta) *  sin(self%m_phi)
         coord(3) = cos(self%m_theta)
     end function get_m_cart
-    
+
     function init_ferro_z(p_pos, site) result(self)
         implicit none
         type(atom)                 :: self
         real(8), intent(in)        :: p_pos(3)
         integer, optional          :: site
         integer                    :: ierr(2)
-        
+
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr(1))
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr(2))
         call check_ierr(ierr, self%me, "init_ferro_z call")
@@ -67,7 +67,7 @@ contains
             self%site_type =  no_site
         endif
 
-        self%m_phi      = 0d0 
+        self%m_phi      = 0d0
         self%m_theta    = 0d0
         self%pos        = p_pos
     end function init_ferro_z
@@ -130,7 +130,7 @@ contains
             success = .False.
         endif
 
-        ! compare site_types        
+        ! compare site_types
         if(self%me == root) tmp_i4 = self%site_type
         call MPI_Bcast(tmp_i4, 1, MPI_INTEGER4, root, MPI_COMM_WORLD, ierr(4))
         if(tmp_i4 /= self%site_type) then
@@ -164,7 +164,7 @@ contains
             call error_msg("size(neigh_conn) doesn't match", abort=.True.)
             success = .False.
         endif
-        
+
         allocate(tmp_rmtx(size(self%neigh_conn, dim=1), &
                           size(self%neigh_conn, dim=2)))
         if(self%me == root) tmp_rmtx = self%neigh_conn
@@ -183,7 +183,7 @@ contains
             call error_msg("size(conn_type) doesn't match", abort=.True.)
             success = .False.
         endif
-        
+
         allocate(tmp_i4vec(size(self%conn_type)))
         if(self%me == root) tmp_i4vec = self%conn_type
         call MPI_Bcast(tmp_i4vec, size(tmp_i4vec), MPI_INTEGER4, &
@@ -200,4 +200,4 @@ contains
 
         call check_ierr(ierr, self%me, "compare atoms")
     end function compare_to_root
-end module 
+end module
