@@ -37,6 +37,7 @@ module Class_k_space
         real(8), allocatable :: k1_param(:) !> 1st k_space param
         real(8), allocatable :: k2_param(:) !> 2nd k_space param
         character(len=300)   :: filling, prefix, chosen_weights
+        character(len=6)     :: ada_mode
         logical              :: perform_pad !> should the k-grid be padded, to match cores
         logical              :: calc_hall !> should hall conductivity be calculated
         logical              :: calc_orbmag !> should orbital magnetism be calculated
@@ -377,6 +378,7 @@ contains
             call CFG_get(cfg, "berry%calc_hall", self%calc_hall)
             call CFG_get(cfg, "berry%calc_orbmag", self%calc_orbmag)
             call CFG_get(cfg, "berry%weights", self%chosen_weights)
+            call CFG_get(cfg, "berry%adaptive_mode", self%ada_mode)
 
             call CFG_get(cfg, "ACA%num_kpts", self%ACA_num_k_pts)
             call CFG_get(cfg, "plot%num_plot_points", self%num_plot_pts)
@@ -388,7 +390,7 @@ contains
 
     subroutine Bcast_k_space(self)
     class(k_space)             :: self
-        integer, parameter     :: num_cast =  24
+        integer, parameter     :: num_cast =  25
         integer                :: ierr(num_cast)
         integer                :: sz(2)
         ierr =  0
@@ -449,13 +451,15 @@ contains
             root,                            MPI_COMM_WORLD, ierr(20))
         call MPI_Bcast(self%chosen_weights,  300,          MPI_CHARACTER, &
             root,                            MPI_COMM_WORLD, ierr(21))
+        call MPI_Bcast(self%ada_mode,    6,          MPI_CHARACTER, &
+                root,                            MPI_COMM_WORLD, ierr(22))
 
         call MPI_Bcast(self%test_run,      1,              MPI_LOGICAL, &
-                        root,              MPI_COMM_WORLD, ierr(22))
-        call MPI_Bcast(self%ACA_num_k_pts, 1,              MYPI_INT,    &
                         root,              MPI_COMM_WORLD, ierr(23))
-        call MPI_Bcast(self%num_plot_pts,  1,              MYPI_INT,    &
+        call MPI_Bcast(self%ACA_num_k_pts, 1,              MYPI_INT,    &
                         root,              MPI_COMM_WORLD, ierr(24))
+        call MPI_Bcast(self%num_plot_pts,  1,              MYPI_INT,    &
+                        root,              MPI_COMM_WORLD, ierr(25))
 
         call check_ierr(ierr, self%me, "Ksp Bcast")
     end subroutine Bcast_k_space
@@ -858,7 +862,7 @@ contains
                 call error_msg("weights unknown", abort=.True.)
             endif
 
-            !call save_grid(self,iter)
+            call save_grid(self,iter)
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
         enddo
 
@@ -1746,8 +1750,8 @@ contains
     class(k_space)              :: self
         integer, intent(in)     :: n_new
         real(8), allocatable    :: new_ks(:,:), areas(:)
-        integer                 :: n_elem, i, cnt, area_cnt, weight_cnt
-        integer   , allocatable :: sort(:), sort_area(:)
+        integer                 :: n_elem, i, cnt, area_cnt, weight_cnt, num_kpts
+        integer   , allocatable :: sort_weight(:), sort_area(:)
 
         if(allocated(new_ks)) then
             if(size(new_ks,1) /= 3 .or. size(new_ks,2) /= n_new) then
@@ -1757,34 +1761,44 @@ contains
         if(.not. allocated(new_ks)) allocate(new_ks(3, n_new))
         n_elem = size(self%elem_nodes,1)
 
-        ! allocate(areas(n_elem))
-        ! forall(i = 1:n_elem) areas(i) = self%area_of_elem(self%all_k_pts, i)
-        !
-        ! call qargsort(areas, sort_area)
-        call qargsort(self%refine_weights, sort)
+        allocate(areas(n_elem))
+        forall(i = 1:n_elem) areas(i) = self%area_of_elem(self%all_k_pts, i)
+
+        call qargsort(areas, sort_area)
+        call qargsort(self%refine_weights, sort_weight)
 
         new_ks =  0d0
         i = n_elem
-        ! area_cnt   = n_elem
-        ! weight_cnt = n_elem
+        area_cnt   = n_elem
+        weight_cnt = n_elem
+        num_kpts   = size(self%all_k_pts, 2)
 
         do cnt = 1,n_new
-            new_ks(1:2, cnt) = self%centeroid_of_triang(sort(i), self%all_k_pts)
-            ! if(mod(cnt,2) == 0) then
-            !     new_ks(1:2, cnt) = self%centeroid_of_triang(sort(weight_cnt), self%all_k_pts)
-            !     write (*,*) "Added weight"
-            !     weight_cnt = weight_cnt - 1
-            ! else
-            !     new_ks(1:2, cnt) = self%centeroid_of_triang(sort_area(area_cnt), self%all_k_pts)
-            !     write (*,*) "Added area"
-            !     area_cnt = area_cnt - 1
-            ! endif
+            if(trim(self%ada_mode) == "area") then
+                new_ks(1:2, cnt) = self%centeroid_of_triang(sort_area(i), self%all_k_pts)
+                write (*,*) "Added area"
+            elseif(trim(self%ada_mode) == "weight") then
+                new_ks(1:2, cnt) = self%centeroid_of_triang(sort_weight(i), self%all_k_pts)
+                write (*,*) "Added weight"
+            elseif(trim(self%ada_mode) == "mixed") then
+                if(mod(cnt + num_kpts,2) == 0) then
+                    new_ks(1:2, cnt) = self%centeroid_of_triang(sort_weight(weight_cnt), self%all_k_pts)
+                    write (*,*) "Added weight"
+                    weight_cnt = weight_cnt - 1
+                else
+                    new_ks(1:2, cnt) = self%centeroid_of_triang(sort_area(area_cnt), self%all_k_pts)
+                    write (*,*) "Added area"
+                    area_cnt = area_cnt - 1
+                endif
+            else
+                call error_msg("adaptation not known", abort=.True.)
+            endif
             i = i - 1
             if(i == 0) then
                 call error_msg("Not enough elements", abort=.True.)
             endif
         enddo
-        !deallocate(areas)
+        deallocate(areas)
     end subroutine add_kpts_iter
 
     subroutine append_kpts(self)
