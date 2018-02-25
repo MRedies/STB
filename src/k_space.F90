@@ -9,7 +9,7 @@ module Class_k_space
 
     type k_space
         real(8), allocatable :: new_k_pts(:,:), all_k_pts(:,:)
-        real(8), allocatable :: int_DOS(:) !> integrated Density of states  
+        real(8), allocatable :: int_DOS(:) !> integrated Density of states
         real(8), allocatable :: E_DOS(:)
         real(8), allocatable :: E_fermi(:) !> Fermi lvl
         real(8)              :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
@@ -18,7 +18,7 @@ module Class_k_space
         real(8)              :: DOS_upper !> upper energy bound for DOS calc
         real(8)              :: temp !> temperature used in fermi-dirac
         !> used in DOS calculations
-        integer              :: DOS_num_k_pts !> number of kpts per dim 
+        integer              :: DOS_num_k_pts !> number of kpts per dim
         integer              :: berry_num_k_pts !> number of ks per dim in berry calc
         integer              :: ACA_num_k_pts
         integer              :: num_DOS_pts!> number of points on E grid
@@ -116,7 +116,7 @@ contains
 
     Subroutine  calc_and_print_band(self)
         Implicit None
-    class(k_space)                :: self 
+    class(k_space)                :: self
         integer                       :: first, last, N
         integer                       :: send_count, ierr
         integer   , allocatable       :: num_elems(:), offsets(:)
@@ -137,7 +137,7 @@ contains
         call my_section(self%me, self%nProcs, size(self%new_k_pts, 2), first, last)
         allocate(k_pts_sec(3, last - first + 1))
         k_pts_sec = self%new_k_pts(:,first:last)
-        
+
         call self%ham%calc_eigenvalues(k_pts_sec, sec_eig_val)
 
         N = 2 *  self%ham%num_up
@@ -154,7 +154,7 @@ contains
             eig_val,     num_elems,  offsets,   MPI_REAL8,&
             root,        MPI_COMM_WORLD, ierr)
 
-        if(self%me == root) then 
+        if(self%me == root) then
             call save_npy(trim(self%prefix) //  "band_k.npy", self%new_k_pts / self%units%inv_length)
             call save_npy(trim(self%prefix) //  "band_E.npy", eig_val / self%units%energy)
             call save_npy(trim(self%prefix) //  "lattice.npy", &
@@ -217,18 +217,18 @@ contains
             do m = 1,N
                 do j = 1,N
                     ! calc absolute of eigen_vectors
-                    H(j,m) =  H(j,m) *  conjg(H(j,m)) 
+                    H(j,m) =  H(j,m) *  conjg(H(j,m))
                 enddo
             enddo
 
 
             !$omp parallel do private(m,j,lor) default(shared)
-            do E_idx =  1,self%num_DOS_pts 
+            do E_idx =  1,self%num_DOS_pts
                 ! eigenvectors are stored column-wise
                 ! m-th eigenvalue
-                ! j-th component of 
+                ! j-th component of
                 do m =  1,N
-                    lor = self%lorentzian(E(E_idx) - eig_val(m)) 
+                    lor = self%lorentzian(E(E_idx) - eig_val(m))
                     do j = 1,N
                         loc_PDOS(j, E_idx) = loc_PDOS(j, E_idx) &
                             + lor * H(j,m)
@@ -292,7 +292,7 @@ contains
 
             allocate(self%int_DOS(self%num_DOS_pts))
 
-            if(size(self%E_DOS) >=  2) then 
+            if(size(self%E_DOS) >=  2) then
                 dE =  self%E_DOS(2) - self%E_DOS(1)
             else
                 call error_msg("Can't perform integration. Only one point", &
@@ -305,11 +305,11 @@ contains
             enddo
             ! integrated DOS ist unitless
             call save_npy(trim(self%prefix) // "DOS_integrated.npy", self%int_DOS)
-        endif 
+        endif
 
         deallocate(self%new_k_pts)
         deallocate(PDOS)
-        if(self%me == root) then 
+        if(self%me == root) then
             deallocate(DOS)
             deallocate(up)
             deallocate(down)
@@ -330,15 +330,15 @@ contains
         self%units = init_units(cfg, self%me)
         self%ham   = init_hamil(cfg)
 
-        if(self%me ==  0) then 
+        if(self%me ==  0) then
             call CFG_get(cfg, "grid%k_shift", self%k_shift)
-            
+
             call CFG_get(cfg, "output%band_prefix", self%prefix)
             if(self%prefix(len_trim(self%prefix):len_trim(self%prefix)) /=  "/") then
                 self%prefix =  trim(self%prefix) // "/"
             endif
-            call create_dir(self%prefix) 
-            
+            call create_dir(self%prefix)
+
             call CFG_get(cfg, "band%filling", self%filling)
 
             call CFG_get(cfg, "dos%delta_broadening", tmp)
@@ -360,7 +360,7 @@ contains
             call CFG_get(cfg, "dos%k_pts_per_dim", self%DOS_num_k_pts)
 
             call CFG_get(cfg, "dos%lower_E_bound", tmp)
-            self%DOS_lower =  tmp * self%units%energy 
+            self%DOS_lower =  tmp * self%units%energy
 
             call CFG_get(cfg, "dos%upper_E_bound", tmp)
             self%DOS_upper =  tmp * self%units%energy
@@ -379,7 +379,7 @@ contains
 
             call CFG_get(cfg, "ACA%num_kpts", self%ACA_num_k_pts)
             call CFG_get(cfg, "plot%num_plot_points", self%num_plot_pts)
-    
+
             call CFG_get(cfg, "general%test_run", self%test_run)
         endif
         call self%Bcast_k_space()
@@ -478,7 +478,7 @@ contains
         allocate(kx_points(sz_x))
         allocate(ky_points(sz_y))
 
-        call linspace(self%k1_param(1), self%k1_param(2), sz_x , kx_points) 
+        call linspace(self%k1_param(1), self%k1_param(2), sz_x , kx_points)
         call linspace(self%k2_param(1), self%k2_param(2), sz_y, ky_points)
 
         do j =  0,sz_y-1
@@ -514,7 +514,7 @@ contains
         allocate(self%new_k_pts(3,n_k**2))
 
         k1 =  0d0
-        k2 =  0d0 
+        k2 =  0d0
         k1(1:2) =  self%ham%UC%rez_lattice(:,1)
         k2(1:2) =  self%ham%UC%rez_lattice(:,2)
 
@@ -538,7 +538,7 @@ contains
                 call run_triang(self%new_k_pts, self%elem_nodes)
             endif
         endif
-        
+
         forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
                 self%new_k_pts(:,i) + my_norm2(k1) * self%k_shift
     end subroutine setup_inte_grid_square
@@ -578,10 +578,10 @@ contains
 
             start = halt + 1
         enddo
-        
+
         call run_triang(self%new_k_pts, self%elem_nodes)
         if(self%perform_pad) call self%pad_k_points_init()
-        
+
         forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
                 self%new_k_pts(:,i) + l * self%k_shift
     end subroutine setup_inte_grid_hex
@@ -595,14 +595,14 @@ contains
 
         call run_triang(self%all_k_pts, self%elem_nodes)
         call self%set_weights_ksp()
-        integral =  0d0 
+        integral =  0d0
         do i =  1, size(self%all_k_pts,2)
             kpt =  self%all_k_pts(:,i)
             f = test_func(kpt(1:2))
             integral =  integral + self%weights(i) * f
         enddo
         if(self%me ==  root) write (*,*) iter, "integration =  ", integral
-        
+
         if(self%me == root) then
             write (filename, "(A, I0.5, A)") "k_points_", iter, ".npy"
             call save_npy(trim(self%prefix) // trim(filename), self%all_k_pts)
@@ -681,7 +681,7 @@ contains
             start =  halt
         enddo
 
-    end subroutine setup_k_path_abs 
+    end subroutine setup_k_path_abs
 
     subroutine setup_k_path_rel(self)
         implicit none
@@ -691,7 +691,7 @@ contains
         integer    ::  n_pts, n_sec,i,j, start, halt, cnt
 
         n_sec =  size(self%k1_param) - 1
-        n_pts =  self%num_k_pts 
+        n_pts =  self%num_k_pts
 
         allocate(self%new_k_pts(3,n_sec * (n_pts - 1) + 1))
         allocate(c1_sec(n_sec))
@@ -705,7 +705,7 @@ contains
         start =  1
         do i =  1, n_sec
             halt =  start +  n_pts - 1
-            ! linear combination of k-vec in current 
+            ! linear combination of k-vec in current
             ! section.
 
             call linspace(self%k1_param(i),self% k1_param(i+1), n_pts, c1_sec)
@@ -749,7 +749,7 @@ contains
         implicit none
     class(k_space)          :: self
         real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
-             hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:),& 
+             hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:),&
              orbmag(:), orbmag_old(:), Q_L_all(:,:), Q_IC_all(:,:), &
              Q_L_new(:,:), Q_IC_new(:,:), orbmag_L(:), orbmag_IC(:)
         real(8)                  :: start, factor
@@ -765,7 +765,7 @@ contains
         num_up =  self%ham%num_up
         n_ferm = size(self%E_fermi)
         all_err = 0
-        
+
         allocate(self%ham%del_H(2*num_up, 2*num_up), stat=all_err(1))
         allocate(hall_old(size(self%E_fermi)),       stat=all_err(2))
         allocate(hall(size(self%E_fermi)),           stat=all_err(3))
@@ -782,11 +782,11 @@ contains
 
 
         hall    =  1e35
-        orbmag =  1e35 
+        orbmag =  1e35
         call check_ierr(all_err, self%me, "allocate hall vars")
 
         iter =  1
-        start = MPI_Wtime() 
+        start = MPI_Wtime()
         do iter =1,self%berry_iter
             if(self%me == root) write (*,*) "Time: ", MPI_Wtime() -  start
             call self%calc_new_berry_points(eig_val_new, omega_z_new, Q_L_new, Q_IC_new)
@@ -797,14 +797,14 @@ contains
             call append_kidx(kidx_all, kidx_new)
             call self%append_kpts()
             call append_eigval(eig_val_all, eig_val_new)
-            write (*,*) self%me, "post appneding"
-            
+            write (*,*) self%me, "post appending"
+
             if(self%calc_hall)   call append_quantitiy(omega_z_all, omega_z_new)
             if(self%calc_orbmag) then
                 call append_quantitiy(Q_L_all, Q_L_new)
                 call append_quantitiy(Q_IC_all, Q_IC_new)
             endif
-            
+
             if(self%calc_hall) then
                 hall_old = hall
                 call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
@@ -812,14 +812,14 @@ contains
                 ! save current iteration and check if converged
                 done_hall =  self%process_hall(hall, hall_old, iter)
             endif
-            
+
             if(done_hall .and. trim(self%chosen_weights) == "hall") then
                 call error_msg("Switched to orbmag-weights", &
                                p_color=c_green, abort=.False.)
                 self%chosen_weights = "orbmag"
             endif
 
-            
+
             if(self%calc_orbmag) then
                 orbmag_old = orbmag
                 call self%integrate_orbmag(kidx_all, Q_L_all, Q_IC_all, orbmag, orbmag_L, orbmag_IC)
@@ -830,18 +830,18 @@ contains
                                                   orbmag_L*factor, orbmag_IC*factor,&
                                                   iter)
             endif
-           
+
             if(done_orbmag .and. trim(self%chosen_weights) == "orbmag") then
                 call error_msg("Switched to hall-weights", &
                                p_color=c_green, abort=.False.)
                 self%chosen_weights = "hall"
             endif
 
-            
+
             ! Stop if both converged
             if(done_hall .and. done_orbmag) exit
 
-            if(trim(self%chosen_weights) == "hall")then 
+            if(trim(self%chosen_weights) == "hall")then
                 if(.not.self%calc_hall) then
                     call error_msg("Must calculate hall to use it as weights", abort=.True.)
                 endif
@@ -857,9 +857,10 @@ contains
                 call error_msg("weights unknown", abort=.True.)
             endif
 
+            !call save_grid(self,iter)
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
         enddo
-        
+
         if(self%calc_hall)   call self%finalize_hall(hall)
         if(self%calc_orbmag) call self%finalize_orbmag(orbmag, orbmag_L, orbmag_IC)
 
@@ -867,14 +868,14 @@ contains
         deallocate(self%ham%del_H, hall_old, eig_val_all, omega_z_all, &
                    kidx_all, self%all_k_pts, &
                    hall, stat=info, errmsg=msg)
-       
+
     end subroutine calc_berry_quantities
 
     subroutine calc_new_kidx(self, kidx_new)
         implicit none
         class(k_space)               :: self
         integer   , allocatable      :: kidx_new(:)
-        integer                      :: cnt, N_k, k_idx 
+        integer                      :: cnt, N_k, k_idx
         integer                      :: first, last
         integer                      :: err(1)
 
@@ -912,9 +913,10 @@ contains
         call check_ierr(err, self%me, " new chunk alloc")
 
 
-        ! calculate 
+        ! calculate
         cnt =  1
         do k_idx = first, last
+            if(self%me == root) write (*,*) k_idx, " of ", last
             k = self%new_k_pts(:,k_idx)
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky)
 
@@ -927,12 +929,12 @@ contains
                 call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), &
                                             eig_val_new(:,cnt), del_kx, del_ky)
             endif
-            
+
             cnt = cnt + 1
         enddo
         deallocate(del_kx, del_ky)
     end subroutine calc_new_berry_points
-    
+
     function process_hall(self, var, var_old, iter) result(cancel)
         implicit none
         class(k_space)                 :: self
@@ -963,13 +965,13 @@ contains
                              " nkpts ", size(self%all_k_pts,2),&
                              " err ", rel_error
         endif
-        
+
         if(rel_error < self%berry_conv_crit) then
             if(self%me == root) write (*,*) "Converged " // trim(var_name) //   " interation"
             cancel = .True.
         endif
     end function process_hall
-    
+
     function process_orbmag(self, orbmag, orbmag_old, &
                             orbmag_L, orbmag_IC, iter) result(cancel)
         implicit none
@@ -977,7 +979,7 @@ contains
         real(8), intent(in)            :: orbmag(:), orbmag_old(:),&
                                           orbmag_L(:), orbmag_IC(:)
         integer   , intent(in)         :: iter
-        character(len=*), parameter    :: var_name = "orbmag   " 
+        character(len=*), parameter    :: var_name = "orbmag   "
         character(len=300)             :: filename
         logical                        :: cancel
         real(8)                        :: rel_error
@@ -1008,7 +1010,7 @@ contains
                              " nkpts ", size(self%all_k_pts,2),&
                              " err ", rel_error
         endif
-        
+
         if(rel_error < self%berry_conv_crit) then
             if(self%me == root) write (*,*) "Converged " // trim(var_name) //   " interation"
             cancel = .True.
@@ -1016,7 +1018,7 @@ contains
     end function process_orbmag
 
     subroutine finalize_hall(self, var)
-        implicit none        
+        implicit none
         class(k_space)              :: self
         real(8), intent(in)         :: var(:)
 
@@ -1028,7 +1030,7 @@ contains
             call save_npy(trim(self%prefix) // "hall_cond_E.npy", &
                 self%E_fermi / self%units%energy)
         endif
-    end subroutine finalize_hall 
+    end subroutine finalize_hall
 
     subroutine finalize_orbmag(self, orbmag, orbmag_L, orbmag_IC)
         implicit none
@@ -1047,7 +1049,7 @@ contains
                     orbmag_L * area / self%units%mag_dipol)
             call save_npy(trim(self%prefix) // "orbmag_IC.npy", &
                     orbmag_IC * area / self%units%mag_dipol)
-            
+
             call save_npy(trim(self%prefix) // "orbmag_E.npy", &
                 self%E_fermi / self%units%energy)
         endif
@@ -1071,7 +1073,7 @@ contains
         !run triangulation
         call run_triang(self%all_k_pts, self%elem_nodes)
         call self%set_weights_ksp()
-        
+
         !perform integration with all points
         hall =  0d0
 
@@ -1091,7 +1093,7 @@ contains
         enddo
 
         hall = hall / (2d0*PI)
-        
+
         ! Allreduce is not suitable for convergence criteria
         ierr = 0
         if(self%me == root) then
@@ -1113,7 +1115,7 @@ contains
         real(8), intent(in)     :: Q_L_all(:, :), Q_IC_all(:,:)
         real(8), allocatable    :: orb_mag(:), orbmag_L(:), orbmag_IC(:)
         integer                 :: n_ferm, loc_idx, k_idx
-        integer                 :: ierr(4)   
+        integer                 :: ierr(4)
 
         if(allocated(orb_mag))then
             if(size(orb_mag) /= size(self%E_fermi)) deallocate(orb_mag)
@@ -1147,12 +1149,12 @@ contains
         enddo
 
 
-        orbmag_L  = orbmag_L  / (2d0 * speed_of_light * (2d0*PI)**2) 
+        orbmag_L  = orbmag_L  / (2d0 * speed_of_light * (2d0*PI)**2)
         orbmag_IC = orbmag_IC / (2d0 * speed_of_light * (2d0*PI)**2)
 
         ! reduce & bcast local term
         if(self%me == root) then
-            call MPI_Reduce(MPI_IN_PLACE, orbmag_L, size(orbmag_L),& 
+            call MPI_Reduce(MPI_IN_PLACE, orbmag_L, size(orbmag_L),&
                             MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
         else
             call MPI_Reduce(orbmag_L, orbmag_L, size(orbmag_L), MPI_REAL8,&
@@ -1160,7 +1162,7 @@ contains
         endif
         call MPI_Bcast(orbmag_L, size(orbmag_L), MPI_REAL8, root, &
                        MPI_COMM_WORLD, ierr(2))
-       
+
         ! reduce & bcast itinerant term
         if(self%me == root) then
             call MPI_Reduce(MPI_IN_PLACE, orbmag_IC, size(orbmag_IC), &
@@ -1171,7 +1173,7 @@ contains
         endif
         call MPI_Bcast(orbmag_IC, size(orbmag_IC), MPI_REAL8, root, &
                        MPI_COMM_WORLD, ierr(4))
-        
+
         orb_mag    = orbmag_L + orbmag_IC
         call check_ierr(ierr, me_in=self%me, info="orbmag")
     end subroutine integrate_orbmag
@@ -1185,7 +1187,7 @@ contains
         integer                :: n_elem
         integer                :: ierr(2), error(2) = [0,0]
         character(len=300)     :: msg = ""
-        
+
         n_elem = size(self%elem_nodes,1)
         error = 0
         if(allocated(self%refine_weights)) then
@@ -1229,7 +1231,7 @@ contains
 
     subroutine set_orbmag_weights(self, Q_all, Q_kidx_all)
         implicit none
-        class(k_space)            :: self 
+        class(k_space)            :: self
         real(8), intent(in)       :: Q_all(:,:)
         integer   , intent(in)    :: Q_kidx_all(:)
         integer                   :: i, node, k_idx, loc_idx
@@ -1247,7 +1249,7 @@ contains
             allocate(self%refine_weights(n_elem), stat=error(2))
         endif
         call check_ierr(error, self%me, " orb mag: set_refine_weights errors")
-        
+
         self%refine_weights = 0d0
         do i=1,n_elem
             do node=1,3
@@ -1276,6 +1278,33 @@ contains
 
     end subroutine set_orbmag_weights
 
+    ! function find_3k_neighbours(self, idx) result(neigh_idx)
+    !     implicit None
+    !     class(k_space)           :: self
+    !     integer, intent(in)      :: idx
+    !     integer                  :: neigh_idx
+    !     real(8)                  :: pos(3), dist(3)
+    !
+    !     pos = self%all_k_pts(:,idx)
+    !     dist = 1d35
+    !
+    !     do i = 1,size(self%all_k_pts, 1)
+    !         d = my_norm2(pos - self%all_k_pts(i,:))
+    !         if(d < maval(dist))then
+    !             l = maxloc(dist)
+    !             dist(l) = d
+    !             neigh_idx(l) = i
+    !         endif
+    !     enddo
+    ! end function find_3k_neighbours
+    !
+    ! function interp_with_neigh(self, idx, f) result(f_interp)
+    !     implicit None
+    !     class(k_space)           :: self
+    !     integer, intent(in)      :: idx
+    !     real(8), intent(in)      :: f(:,:)
+    !     real(8)                  :: f_interp(size(f, 2))
+
     subroutine calc_orbmag_z_singleK(self, Q_L, Q_IC, eig_val, Vx_mtx, Vy_mtx)
         implicit none
         class(k_space)           :: self
@@ -1285,7 +1314,7 @@ contains
         integer                  :: m, n, n_ferm
 
         allocate(A_mtx(size(Vx_mtx,1), size(Vx_mtx,2)))
-        
+
         !make sure to sure memory efficient layout for A matrix
         !$omp parallel do private(n) default(shared)
         do m = 1,size(Vx_mtx,1)
@@ -1304,12 +1333,12 @@ contains
                 if(f_nk /= 0d0) then
                     do m = 1, size(A_mtx,1)
                         dE =  eig_val(m) -  eig_val(n)
-                        
+
                         if(abs(dE) >=  eta) then
                             Q_L(n_ferm)  = Q_L(n_ferm)  &
                                            +       f_nk * A_mtx(m,n)/dE
                             Q_IC(n_ferm) = Q_IC(n_ferm) &
-                                           - 2d0 * f_nk * (Ef - eig_val(n)) * A_mtx(m,n)/(dE**2)    
+                                           - 2d0 * f_nk * (Ef - eig_val(n)) * A_mtx(m,n)/(dE**2)
                         endif ! m != n
                     enddo !m
                 else
@@ -1350,9 +1379,9 @@ contains
 
     subroutine append_kidx(kidx_all, kidx_new)
         implicit none
-        integer, allocatable   :: kidx_all(:), kidx_new(:), tmp(:) 
+        integer, allocatable   :: kidx_all(:), kidx_new(:), tmp(:)
         integer                :: i
-        
+
         if(allocated(kidx_all)) then
             !copy to tmp
             allocate(tmp(size(kidx_all)))
@@ -1371,7 +1400,7 @@ contains
             kidx_all =  kidx_new
             deallocate(kidx_new)
         endif
-    end subroutine append_kidx 
+    end subroutine append_kidx
 
     subroutine append_quantitiy(quantity_all, quantity_new)
         implicit none
@@ -1452,7 +1481,7 @@ contains
         i =  1
 
         delta_old = -1d0
-        delta_new = -1d0 
+        delta_new = -1d0
 
         do while((delta_old * delta_new) > 0)
             delta_old = target - self%int_DOS(i)
@@ -1474,7 +1503,7 @@ contains
         implicit none
     class(k_space)         :: self
         real(8)                :: fermi(1)
-        if(self%me ==  root) then 
+        if(self%me ==  root) then
             fermi =  self%E_fermi
 
             call save_npy(trim(self%prefix) //  "fermi.npy", fermi)
@@ -1501,7 +1530,7 @@ contains
         exp_term =  (E - self%E_fermi(n_ferm)) /&
             (boltzmann_const * self%temp)
         !cutting off at exp(x) =  10^16
-        ! which is at the machine eps 
+        ! which is at the machine eps
         if(exp_term > 36d0) then
             ferm = 0d0
         elseif(exp_term < -36d0) then
@@ -1594,7 +1623,7 @@ contains
         real(8), intent(in)         :: k_pts(:,:)
         real(8)                     :: centeroid(2)
 
-        centeroid =  0d0 
+        centeroid =  0d0
         do i = 1,3
             centeroid(1) =  centeroid(1) + k_pts(1,self%elem_nodes(idx,i))
             centeroid(2) =  centeroid(2) + k_pts(2,self%elem_nodes(idx,i))
@@ -1641,7 +1670,7 @@ contains
                 cand = self%new_pt(sort(i), self%new_k_pts)
                 do while(self%in_points(cand, new_ks(1:2,1:cnt-1)))
                     i = i - 1
-                    if(i < 1) then 
+                    if(i < 1) then
                         call error_msg("Not enough elemes for refinement", abort=.True.)
                     endif
                     cand = self%new_pt(sort(i), self%new_k_pts)
@@ -1704,9 +1733,9 @@ contains
         implicit none
     class(k_space)              :: self
         integer, intent(in)     :: n_new
-        real(8), allocatable    :: new_ks(:,:)
-        integer                 :: n_elem, i, cnt
-        integer   , allocatable :: sort(:)
+        real(8), allocatable    :: new_ks(:,:), areas(:)
+        integer                 :: n_elem, i, cnt, area_cnt, weight_cnt
+        integer   , allocatable :: sort(:), sort_area(:)
 
         if(allocated(new_ks)) then
             if(size(new_ks,1) /= 3 .or. size(new_ks,2) /= n_new) then
@@ -1716,18 +1745,34 @@ contains
         if(.not. allocated(new_ks)) allocate(new_ks(3, n_new))
         n_elem = size(self%elem_nodes,1)
 
+        ! allocate(areas(n_elem))
+        ! forall(i = 1:n_elem) areas(i) = self%area_of_elem(self%all_k_pts, i)
+        !
+        ! call qargsort(areas, sort_area)
         call qargsort(self%refine_weights, sort)
 
         new_ks =  0d0
         i = n_elem
+        ! area_cnt   = n_elem
+        ! weight_cnt = n_elem
 
         do cnt = 1,n_new
             new_ks(1:2, cnt) = self%centeroid_of_triang(sort(i), self%all_k_pts)
+            ! if(mod(cnt,2) == 0) then
+            !     new_ks(1:2, cnt) = self%centeroid_of_triang(sort(weight_cnt), self%all_k_pts)
+            !     write (*,*) "Added weight"
+            !     weight_cnt = weight_cnt - 1
+            ! else
+            !     new_ks(1:2, cnt) = self%centeroid_of_triang(sort_area(area_cnt), self%all_k_pts)
+            !     write (*,*) "Added area"
+            !     area_cnt = area_cnt - 1
+            ! endif
             i = i - 1
             if(i == 0) then
                 call error_msg("Not enough elements", abort=.True.)
             endif
         enddo
+        !deallocate(areas)
     end subroutine add_kpts_iter
 
     subroutine append_kpts(self)
@@ -1770,7 +1815,7 @@ contains
         if(self%ham%num_orb /= 3) then
             call error_msg("ACA only for p-orbitals", abort=.True.)
         endif
-        
+
         N = 2 * self%ham%num_up
         allocate(H(N,N))
         allocate(m(size(self%E_fermi)))
@@ -1789,7 +1834,7 @@ contains
             call self%setup_inte_grid_square(self%ACA_num_k_pts, padding=.False.)
             N_k = size(self%new_k_pts, 2)
             call my_section(self%me, self%nProcs, N_k, first, last)
-            
+
             do k_idx = first, last
                 call self%ham%setup_H(self%new_k_pts(:,k_idx), H)
 
@@ -1802,7 +1847,7 @@ contains
 
             area =  self%ham%UC%calc_area()
             m =  m / (N_k * area)
-        
+
             if(self%me == root) then
                 call MPI_Reduce(MPI_IN_PLACE, m, size(m), MPI_REAL8, &
                     MPI_SUM, root, MPI_COMM_WORLD, ierr)
@@ -1810,7 +1855,7 @@ contains
                 call MPI_Reduce(m, m, size(m), MPI_REAL8, &
                     MPI_SUM, root, MPI_COMM_WORLD, ierr)
             endif
-            
+
             if(self%me ==  root) then
                 call error_msg("Wrote ACA orbmag with questionable unit", &
                                p_color=c_green)
@@ -1831,13 +1876,13 @@ contains
         real(8), intent(in)        :: eig_val(:)
         real(8)                    :: m(size(self%E_fermi)),&
                                       l, f_n
-        integer                    :: n_ferm, n, i, n_states 
+        integer                    :: n_ferm, n, i, n_states
 
         m        = 0d0
         n_states = 2* self%ham%num_up
 
         do n = 1,size(eig_val)
-            l = 0d0 
+            l = 0d0
             do i = 1,n_states,3
                 l = l + calc_l(eig_vec(i:i+2,n))
             enddo
@@ -1850,12 +1895,12 @@ contains
 
         ! we drop the - 0.5 so we are directly in mu_b
         ! m = - 0.5d0 * m
-        m = - m 
+        m = - m
     end function calc_ACA_singleK
 
     function test_func(kpt) result(ret)
         implicit none
-        real(8)                :: kpt(2), ret, d 
+        real(8)                :: kpt(2), ret, d
 
         d =  my_norm2(kpt)
         ret = exp(-10d0*d)
@@ -1899,7 +1944,7 @@ contains
     class(k_space)               :: self
         real(8), allocatable     :: eig_val(:,:), omega_z(:,:), Q_L(:,:), Q_IC(:,:)
         logical                  :: tmp_ch, tmp_co
-        
+
         if(self%nProcs /= 1) call error_msg("Plot only for 1 process", abort=.True.)
 
         tmp_ch           = self%calc_hall
@@ -1909,7 +1954,7 @@ contains
 
         call self%setup_inte_grid_square(self%num_plot_pts, padding=.False.)
         call self%calc_new_berry_points(eig_val, omega_z, Q_L, Q_IC)
-        
+
         call save_npy(trim(self%prefix) // "k_grid.npy", self%new_k_pts)
         call save_npy(trim(self%prefix) // "omega_z.npy", omega_z)
 
