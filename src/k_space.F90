@@ -37,6 +37,7 @@ module Class_k_space
         real(8), allocatable :: k1_param(:) !> 1st k_space param
         real(8), allocatable :: k2_param(:) !> 2nd k_space param
         character(len=300)   :: filling, prefix, chosen_weights
+        character(len=6)     :: ada_mode
         logical              :: perform_pad !> should the k-grid be padded, to match cores
         logical              :: calc_hall !> should hall conductivity be calculated
         logical              :: calc_orbmag !> should orbital magnetism be calculated
@@ -377,6 +378,7 @@ contains
             call CFG_get(cfg, "berry%calc_hall", self%calc_hall)
             call CFG_get(cfg, "berry%calc_orbmag", self%calc_orbmag)
             call CFG_get(cfg, "berry%weights", self%chosen_weights)
+            call CFG_get(cfg, "berry%adaptive_mode", self%ada_mode)
 
             call CFG_get(cfg, "ACA%num_kpts", self%ACA_num_k_pts)
             call CFG_get(cfg, "plot%num_plot_points", self%num_plot_pts)
@@ -388,7 +390,7 @@ contains
 
     subroutine Bcast_k_space(self)
     class(k_space)             :: self
-        integer, parameter     :: num_cast =  24
+        integer, parameter     :: num_cast =  25
         integer                :: ierr(num_cast)
         integer                :: sz(2)
         ierr =  0
@@ -449,13 +451,15 @@ contains
             root,                            MPI_COMM_WORLD, ierr(20))
         call MPI_Bcast(self%chosen_weights,  300,          MPI_CHARACTER, &
             root,                            MPI_COMM_WORLD, ierr(21))
+        call MPI_Bcast(self%ada_mode,    6,          MPI_CHARACTER, &
+                root,                            MPI_COMM_WORLD, ierr(22))
 
         call MPI_Bcast(self%test_run,      1,              MPI_LOGICAL, &
-                        root,              MPI_COMM_WORLD, ierr(22))
-        call MPI_Bcast(self%ACA_num_k_pts, 1,              MYPI_INT,    &
                         root,              MPI_COMM_WORLD, ierr(23))
-        call MPI_Bcast(self%num_plot_pts,  1,              MYPI_INT,    &
+        call MPI_Bcast(self%ACA_num_k_pts, 1,              MYPI_INT,    &
                         root,              MPI_COMM_WORLD, ierr(24))
+        call MPI_Bcast(self%num_plot_pts,  1,              MYPI_INT,    &
+                        root,              MPI_COMM_WORLD, ierr(25))
 
         call check_ierr(ierr, self%me, "Ksp Bcast")
     end subroutine Bcast_k_space
@@ -798,6 +802,7 @@ contains
             call append_kidx(kidx_all, kidx_new)
             call self%append_kpts()
             call append_eigval(eig_val_all, eig_val_new)
+            write (*,*) self%me, "post appending"
 
             if(self%calc_hall)   call append_quantitiy(omega_z_all, omega_z_new)
             if(self%calc_orbmag) then
@@ -857,6 +862,7 @@ contains
                 call error_msg("weights unknown", abort=.True.)
             endif
 
+            call save_grid(self,iter)
             call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
         enddo
 
@@ -915,6 +921,7 @@ contains
         ! calculate
         cnt =  1
         do k_idx = first, last
+            if(self%me == root) write (*,*) k_idx, " of ", last
             k = self%new_k_pts(:,k_idx)
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky)
 
@@ -1286,6 +1293,33 @@ contains
 
 
     end subroutine set_orbmag_weights
+
+    ! function find_3k_neighbours(self, idx) result(neigh_idx)
+    !     implicit None
+    !     class(k_space)           :: self
+    !     integer, intent(in)      :: idx
+    !     integer                  :: neigh_idx
+    !     real(8)                  :: pos(3), dist(3)
+    !
+    !     pos = self%all_k_pts(:,idx)
+    !     dist = 1d35
+    !
+    !     do i = 1,size(self%all_k_pts, 1)
+    !         d = my_norm2(pos - self%all_k_pts(i,:))
+    !         if(d < maval(dist))then
+    !             l = maxloc(dist)
+    !             dist(l) = d
+    !             neigh_idx(l) = i
+    !         endif
+    !     enddo
+    ! end function find_3k_neighbours
+    !
+    ! function interp_with_neigh(self, idx, f) result(f_interp)
+    !     implicit None
+    !     class(k_space)           :: self
+    !     integer, intent(in)      :: idx
+    !     real(8), intent(in)      :: f(:,:)
+    !     real(8)                  :: f_interp(size(f, 2))
 
     subroutine calc_orbmag_z_singleK(self, Q_L, Q_IC, eig_val, Vx_mtx, Vy_mtx)
         implicit none
@@ -1715,9 +1749,9 @@ contains
         implicit none
     class(k_space)              :: self
         integer, intent(in)     :: n_new
-        real(8), allocatable    :: new_ks(:,:)
-        integer                 :: n_elem, i, cnt
-        integer   , allocatable :: sort(:)
+        real(8), allocatable    :: new_ks(:,:), areas(:)
+        integer                 :: n_elem, i, cnt, area_cnt, weight_cnt, num_kpts
+        integer   , allocatable :: sort_weight(:), sort_area(:)
 
         if(allocated(new_ks)) then
             if(size(new_ks,1) /= 3 .or. size(new_ks,2) /= n_new) then
@@ -1727,18 +1761,44 @@ contains
         if(.not. allocated(new_ks)) allocate(new_ks(3, n_new))
         n_elem = size(self%elem_nodes,1)
 
-        call qargsort(self%refine_weights, sort)
+        allocate(areas(n_elem))
+        forall(i = 1:n_elem) areas(i) = self%area_of_elem(self%all_k_pts, i)
+
+        call qargsort(areas, sort_area)
+        call qargsort(self%refine_weights, sort_weight)
 
         new_ks =  0d0
         i = n_elem
+        area_cnt   = n_elem
+        weight_cnt = n_elem
+        num_kpts   = size(self%all_k_pts, 2)
 
         do cnt = 1,n_new
-            new_ks(1:2, cnt) = self%centeroid_of_triang(sort(i), self%all_k_pts)
+            if(trim(self%ada_mode) == "area") then
+                new_ks(1:2, cnt) = self%centeroid_of_triang(sort_area(i), self%all_k_pts)
+                write (*,*) "Added area"
+            elseif(trim(self%ada_mode) == "weight") then
+                new_ks(1:2, cnt) = self%centeroid_of_triang(sort_weight(i), self%all_k_pts)
+                write (*,*) "Added weight"
+            elseif(trim(self%ada_mode) == "mixed") then
+                if(mod(cnt + num_kpts,2) == 0) then
+                    new_ks(1:2, cnt) = self%centeroid_of_triang(sort_weight(weight_cnt), self%all_k_pts)
+                    write (*,*) "Added weight"
+                    weight_cnt = weight_cnt - 1
+                else
+                    new_ks(1:2, cnt) = self%centeroid_of_triang(sort_area(area_cnt), self%all_k_pts)
+                    write (*,*) "Added area"
+                    area_cnt = area_cnt - 1
+                endif
+            else
+                call error_msg("adaptation not known", abort=.True.)
+            endif
             i = i - 1
             if(i == 0) then
                 call error_msg("Not enough elements", abort=.True.)
             endif
         enddo
+        deallocate(areas)
     end subroutine add_kpts_iter
 
     subroutine append_kpts(self)
@@ -1772,7 +1832,7 @@ contains
         implicit none
     class(k_space)              :: self
         real(8), allocatable    :: m(:), l_space(:), eig_val(:), RWORK(:)
-        real(8)                 :: area
+        real(8)                 :: area, t_start, t_stop
         complex(8), allocatable :: H(:,:), WORK(:)
         integer                 :: N_k, lwork, lrwork, liwork, N, &
                                    first, last, k_idx, info, ierr
@@ -1792,7 +1852,7 @@ contains
         allocate(IWORK(liwork))
 
         m = 0d0
-
+        t_start = MPI_Wtime()
         call linspace(0d0, 1d0, self%ACA_num_k_pts, l_space)
 
         if( trim(self%ham%UC%uc_type) == "square_2d" &
@@ -1832,6 +1892,8 @@ contains
         else
             call error_msg("ACA implemented for square only.", abort=.True.)
         endif
+        t_stop = MPI_Wtime()
+        if(self%me == root) write (*,*) "ACA time = ", t_stop - t_start
         deallocate(H, WORK, RWORK, IWORK, m)
     end subroutine calc_ACA
 
@@ -1840,22 +1902,21 @@ contains
     class(k_space), intent(in)     :: self
         complex(8), intent(in)     :: eig_vec(:,:)
         real(8), intent(in)        :: eig_val(:)
-        real(8)                    :: m(size(self%E_fermi)),&
-                                      l, f_n
+        real(8)                    :: m(size(self%E_fermi)), l
         integer                    :: n_ferm, n, i, n_states
 
         m        = 0d0
         n_states = 2* self%ham%num_up
 
-        do n = 1,size(eig_val)
-            l = 0d0
-            do i = 1,n_states,3
-                l = l + calc_l(eig_vec(i:i+2,n))
-            enddo
+        do n_ferm = 1,size(self%E_fermi)
+            do n = 1,n_states
+                l = 0d0
+                do i = 1,n_states,3
+                    l = l + calc_l(eig_vec(i:i+2,n))
+                enddo
 
-            do n_ferm = 1,size(self%E_fermi)
-                f_n = self%fermi_distr(eig_val(n), n_ferm)
-                m(n_ferm) = m(n_ferm) + f_n * l
+                m(n_ferm) = m(n_ferm) &
+                          + l * self%fermi_distr(eig_val(n), n_ferm)
             enddo
         enddo
 
@@ -1963,14 +2024,19 @@ contains
     function calc_l(p) result(l)
         implicit none
         complex(8), intent(in)  :: p(3)
-        complex(8)              :: a, b, l_prime
+        complex(8)              :: l_prime
         real(8)                 :: l
+        complex(8), parameter   :: m_l(3,3) &
+                                   = transpose(reshape( &
+                                                    [c_0, c_i, c_0, &
+                                                    -c_i, c_0, c_0, &
+                                                     c_0, c_0, c_0], &
+                                                     shape(m_l)))
+        complex(8)              :: rhs(3)
 
-        a = p(1)
-        b = p(2)
-
-        l_prime =  - i_unit * conjg(a) * b &
-                   + i_unit * conjg(b) * a
+        rhs     = matmul(m_l, p)
+        ! remember complex dot_product = sum(conjg(a) * b)
+        l_prime = dot_product(p, rhs)
 
         if(abs(aimag(l_prime)) > 1d-11) then
             call error_msg("l is imaginary", abort=.True.)
