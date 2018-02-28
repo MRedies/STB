@@ -1900,22 +1900,21 @@ contains
     class(k_space), intent(in)     :: self
         complex(8), intent(in)     :: eig_vec(:,:)
         real(8), intent(in)        :: eig_val(:)
-        real(8)                    :: m(size(self%E_fermi)),&
-                                      l, f_n
+        real(8)                    :: m(size(self%E_fermi)), l
         integer                    :: n_ferm, n, i, n_states
 
         m        = 0d0
         n_states = 2* self%ham%num_up
 
-        do n = 1,size(eig_val)
-            l = 0d0
-            do i = 1,n_states,3
-                l = l + calc_l(eig_vec(i:i+2,n))
-            enddo
+        do n_ferm = 1,size(self%E_fermi)
+            do n = 1,n_states
+                l = 0d0
+                do i = 1,n_states,3
+                    l = l + calc_l(eig_vec(i:i+2,n))
+                enddo
 
-            do n_ferm = 1,size(self%E_fermi)
-                f_n = self%fermi_distr(eig_val(n), n_ferm)
-                m(n_ferm) = m(n_ferm) + f_n * l
+                m(n_ferm) = m(n_ferm) &
+                          + l * self%fermi_distr(eig_val(n), n_ferm)
             enddo
         enddo
 
@@ -2023,14 +2022,19 @@ contains
     function calc_l(p) result(l)
         implicit none
         complex(8), intent(in)  :: p(3)
-        complex(8)              :: a, b, l_prime
+        complex(8)              :: l_prime
         real(8)                 :: l
+        complex(8), parameter   :: m_l(3,3) &
+                                   = transpose(reshape( &
+                                                    [c_0, c_i, c_0, &
+                                                    -c_i, c_0, c_0, &
+                                                     c_0, c_0, c_0], &
+                                                     shape(m_l)))
+        complex(8)              :: rhs(3)
 
-        a = p(1)
-        b = p(2)
-
-        l_prime =  - i_unit * conjg(a) * b &
-                   + i_unit * conjg(b) * a
+        rhs     = matmul(m_l, p)
+        ! remember complex dot_product = sum(conjg(a) * b)
+        l_prime = dot_product(p, rhs)
 
         if(abs(aimag(l_prime)) > 1d-11) then
             call error_msg("l is imaginary", abort=.True.)
