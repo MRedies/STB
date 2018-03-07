@@ -71,7 +71,7 @@ contains
     end subroutine free_ham
 
     subroutine compare_derivative(self, k)
-        implicit none 
+        implicit none
     class(hamil)                :: self
         real(8), intent(in)         :: k(3)
         complex(8), allocatable     :: fd_H(:,:)
@@ -87,22 +87,22 @@ contains
         do k_idx =  1,2
             call self%set_deriv_FD(k, k_idx, fd_H)
             call self%set_derivative_k(k, k_idx)
-            
+
             call test_herm(self%del_H, tag="del_H")
             call test_herm(fd_H, tag="FD H")
 
             if(cnorm2(reshape(fd_H - self%del_H, [N*N])) >= 1d-8) then
                 call error_msg("FD comp failed")
                 write (*,*) "FD"
-                call save_npy("output/dbg/fd_H.npy",fd_H) 
+                call save_npy("output/dbg/fd_H.npy",fd_H)
                 write (*,*) "analytic"
-                call save_npy("output/dbg/del_H.npy", self%del_H) 
+                call save_npy("output/dbg/del_H.npy", self%del_H)
                 !write (*,*) "diff"
                 call error_msg("Not hermitian", abort=.True.)
             else
                 call error_msg("All hermitian", c_green)
             endif
-            
+
         enddo
         deallocate(fd_H)
     end subroutine compare_derivative
@@ -126,19 +126,19 @@ contains
         if(has_E) call self%set_EigenE(H)
 
         if(any(self%E_p /= 0)) call self%set_p_energy(H)
-        
+
         !hopping
         has_hopp =   (self%Vss_sig /= 0d0) &
                 .or. (self%Vpp_sig /= 0d0) &
                 .or. (self%Vpp_pi /= 0d0)
         if(has_hopp) call self%set_hopping(k,H)
 
-        !2nd hopping 
+        !2nd hopping
         has_hopp =   (self%V2pp_sig /= 0d0) &
                 .or. (self%V2pp_pi  /= 0d0)
         if(has_hopp) call self%set_snd_hopping(k,H)
 
-        
+
         if(self%t_2       /= 0d0) call self%set_haldane_hopping(k,H)
         if(self%t_so      /= 0d0) call self%set_rashba_SO(k,H)
         if(self%eta_soc   /= 0d0) call self%set_SOC(H)
@@ -163,7 +163,7 @@ contains
             if(present(tag)) then
                 write (*,*) "Tag = ", tag
             endif
-            
+
             call error_msg("not hermitian", abort=.True.)
         endif
     end subroutine test_herm
@@ -182,22 +182,22 @@ contains
         self%units = init_units(cfg, self%me)
         self%UC    = init_unit(cfg)
 
-        if(self%me ==  0) then 
+        if(self%me ==  0) then
             call CFG_get(cfg, "hamil%Vss_sig", tmp)
             self%Vss_sig =  tmp * self%units%energy
-            
+
             call CFG_get(cfg, "hamil%Vpp_pi", tmp)
             self%Vpp_pi =  tmp * self%units%energy
-            
+
             call CFG_get(cfg, "hamil%Vpp_sig", tmp)
             self%Vpp_sig =  tmp * self%units%energy
-            
+
             call CFG_get(cfg, "hamil%V2pp_pi", tmp)
             self%V2pp_pi =  tmp * self%units%energy
-            
+
             call CFG_get(cfg, "hamil%V2pp_sig", tmp)
             self%V2pp_sig =  tmp * self%units%energy
-            
+
             call CFG_get(cfg, "hamil%t_2", tmp)
             self%t_2 =  tmp * self%units%energy
 
@@ -205,7 +205,7 @@ contains
 
             call CFG_get(cfg, "hamil%t_so", tmp)
             self%t_so =  tmp * self%units%energy
-            
+
             call CFG_get(cfg, "hamil%eta_soc", tmp)
             self%eta_soc =  tmp * self%units%energy
 
@@ -214,26 +214,26 @@ contains
 
             call CFG_get(cfg, "hamil%E_s", tmp)
             self%E_s =  tmp * self%units%energy
-            
+
             call CFG_get(cfg, "hamil%E_A", tmp)
             self%E_A =  tmp * self%units%energy
             call CFG_get(cfg, "hamil%E_B", tmp)
             self%E_B =  tmp * self%units%energy
-           
+
             call CFG_get(cfg, "hamil%E_p", self%E_p)
             self%E_p =  self%E_p* self%units%energy
 
             call CFG_get(cfg, "hamil%n", n)
             self%num_orb =  2 * n +  1
             self%num_up  =  self%num_orb *  self%UC%num_atoms
-            
+
             call CFG_get(cfg, "hamil%HB1", tmp)
             self%HB1 =  tmp * self%units%energy
             call CFG_get(cfg, "hamil%HB2", tmp)
             self%HB2 =  tmp * self%units%energy
             call CFG_get(cfg, "hamil%HB_eta", tmp)
             self%HB_eta =  tmp * self%units%energy
-            
+
             call CFG_get(cfg, "general%test_run", self%test_run)
         endif
         call self%Bcast_hamil()
@@ -303,7 +303,7 @@ contains
 
         do i =  1,self%num_up,self%num_orb
             i_up =  i
-            i_dw =  i +  self%num_up 
+            i_dw =  i +  self%num_up
 
             call self%setup_Stoner_mtx(atm,S)
 
@@ -359,7 +359,7 @@ contains
             end select
 
         enddo
-    end subroutine set_EigenE 
+    end subroutine set_EigenE
 
     subroutine set_p_energy(self, H)
         implicit none
@@ -381,7 +381,7 @@ contains
 
     subroutine set_hopping(self,k, H)
         implicit none
-    class(hamil), intent(in)          :: self 
+    class(hamil), intent(in)          :: self
         real(8), intent(in)               :: k(3)
         complex(8), intent(inout)         :: H(:,:)
         integer                           :: i, i_d, j,&
@@ -390,7 +390,7 @@ contains
         complex(8)                        :: new(self%num_orb, self%num_orb)
 
         m = self%num_orb - 1
-        
+
         ! Spin up
         cnt = 1
         do i = 1,self%num_up,self%num_orb
@@ -444,15 +444,15 @@ contains
         ky = k(2)
         kz = k(3)
         if(kz /= 0d0) call error_msg("We only do 2d here", abort=.True.)
-        
+
         H(1,1) = H(1,1) - 2d0 * self%HB1 * (cos(ky) + A)
         H(2,2) = H(2,2) - 2d0 * self%HB1 * (cos(kx) + A)
         H(3,3) = H(3,3) - 2d0 * self%HB1 * (cos(kx) + cos(ky))
-        
+
         H(2,1) = H(2,1) + 4d0 * self%HB2 * sin(kx) * sin(ky)
         H(1,2) = conjg(H(2,1))
 
-        
+
         H(4:6,4:6) = H(1:3,1:3)
     end subroutine set_hongbin_hopp
 
@@ -465,7 +465,7 @@ contains
 
         soc_mtx      =   c_0
         if(x_or_z ==  1) then
-            soc_mtx(2,1) = - c_i 
+            soc_mtx(2,1) = - c_i
             soc_mtx(1,2) =   c_i
         elseif(x_or_z == 3) then
             soc_mtx(3,2) = - c_i
@@ -481,7 +481,7 @@ contains
 
     subroutine set_snd_hopping(self,k, H)
         implicit none
-    class(hamil), intent(in)              :: self 
+    class(hamil), intent(in)              :: self
         real(8), intent(in)               :: k(3)
         complex(8), intent(inout)         :: H(:,:)
         integer                           :: i, i_d, j,&
@@ -490,7 +490,7 @@ contains
         complex(8)                        :: new(self%num_orb, self%num_orb)
 
         m = self%num_orb - 1
-        
+
         ! Spin up
         cnt = 1
         do i = 1,self%num_up,self%num_orb
@@ -535,7 +535,7 @@ contains
     subroutine set_p_hopp_mtx(R, Vpp_sig, Vpp_pi, hopp_mtx)
         implicit none
         real(8), intent(in)      :: R(3), Vpp_sig, Vpp_pi !> real-space connection between atoms
-        real(8), intent(out)     :: hopp_mtx(3,3) !> hopping matrix 
+        real(8), intent(out)     :: hopp_mtx(3,3) !> hopping matrix
         real(8)                  :: l, m, n !> directional cosines
 
         l = R(1)/my_norm2(R)
@@ -614,7 +614,7 @@ contains
     subroutine set_small_SOC(self, mu, nu, H)
         implicit none
     class(hamil), intent(in)       :: self
-        integer   , intent(in)     :: mu, nu 
+        integer   , intent(in)     :: mu, nu
         complex(8), intent(out)    :: H(2,2)
 
         H(1,1) =   self%eta_soc *  Lz(mu,nu)
@@ -625,7 +625,7 @@ contains
 
     subroutine set_haldane_hopping(self,k, H)
         implicit none
-    class(hamil), intent(in)              :: self 
+    class(hamil), intent(in)              :: self
         real(8), intent(in)               :: k(3)
         complex(8), intent(inout)         :: H(:,:)
         integer                           :: i, i_d, j, j_d, conn
@@ -646,10 +646,10 @@ contains
                     forw =  exp(i_unit * k_dot_r) * t_full
                     back =  conjg(forw)
 
-                    H(i,j) =  H(i,j) + forw 
+                    H(i,j) =  H(i,j) + forw
                     H(j,i) =  H(j,i) + back
 
-                    H(i_d, j_d) = H(i_d, j_d) + forw 
+                    H(i_d, j_d) = H(i_d, j_d) + forw
                     H(j_d, i_d) = H(j_d, i_d) + back
                 endif
             enddo
@@ -665,7 +665,7 @@ contains
         integer                     :: i, conn, j, i_d, j_d
         real(8)                     :: k_dot_r, d_ij(3)
         complex(8)                  :: new(2,2)
-    
+
         if(self%num_orb /= 1) call error_msg("Rashba only for s-oritals", abort=.True.)
 
         do i =  1, self%num_up
@@ -714,7 +714,7 @@ contains
             call set_p_hopp_mtx(R, self%Vpp_sig, self%Vpp_pi, hopp_mtx)
         endif
     end subroutine set_hopp_mtx
-    
+
     subroutine set_snd_hopp_mtx(self, R, hopp_mtx)
         implicit none
     class(hamil), intent(in)     :: self
@@ -775,14 +775,14 @@ contains
 
         self%del_H = 0d0
         has_hopp =   (self%Vss_sig /= 0d0)  &
-                .or. (self%Vpp_sig /= 0d0)  & 
+                .or. (self%Vpp_sig /= 0d0)  &
                 .or. (self%Vpp_pi /= 0d0)
         if(has_hopp) call self%set_derivative_hopping(k, k_idx)
 
         if(self%t_so /= 0d0) call self%set_derivative_rashba_so(k, k_idx)
         if(self%t_2  /= 0d0) call self%set_derivative_haldane_hopping(k, k_idx)
 
-        has_hopp =  (self%V2pp_sig /= 0d0)  & 
+        has_hopp =  (self%V2pp_sig /= 0d0)  &
                 .or. (self%V2pp_pi /= 0d0)
         if(has_hopp) call self%set_derivative_snd_hopping(k, k_idx)
 
@@ -820,10 +820,10 @@ contains
                     k_dot_r = dot_product(k, r)
 
                     forw    = i_unit * r(k_idx) * hopp_mtx * exp(i_unit * k_dot_r)
-                    back    =  transpose(conjg(forw))             
+                    back    =  transpose(conjg(forw))
 
                     !Spin up
-                    self%del_H(i:i+m,j:j+m)     = self%del_H(i:i+m,j:j+m) + forw 
+                    self%del_H(i:i+m,j:j+m)     = self%del_H(i:i+m,j:j+m) + forw
                     self%del_H(j:j+m,i:i+m)     = self%del_H(j:j+m,i:i+m) + back
 
                     !Spin down
@@ -833,7 +833,7 @@ contains
             enddo
         enddo
     end subroutine set_derivative_hopping
-    
+
     subroutine set_derivative_snd_hopping(self, k, k_idx)
         implicit none
     class(hamil)             :: self
@@ -862,10 +862,10 @@ contains
                     k_dot_r = dot_product(k, r)
 
                     forw    = i_unit * r(k_idx) * hopp_mtx * exp(i_unit * k_dot_r)
-                    back    = transpose(conjg(forw))             
+                    back    = transpose(conjg(forw))
 
                     !Spin up
-                    self%del_H(i:i+m,j:j+m)     = self%del_H(i:i+m,j:j+m) + forw 
+                    self%del_H(i:i+m,j:j+m)     = self%del_H(i:i+m,j:j+m) + forw
                     self%del_H(j:j+m,i:i+m)     = self%del_H(j:j+m,i:i+m) + back
 
                     !Spin down
@@ -900,10 +900,10 @@ contains
 
                     k_dot_r = dot_product(k, r)
                     forw    = i_unit * r(k_idx) * t_full * exp(i_unit * k_dot_r)
-                    back =  conjg(forw)                
+                    back =  conjg(forw)
 
                     !Spin up
-                    self%del_H(i,j)     = self%del_H(i,j) + forw 
+                    self%del_H(i,j)     = self%del_H(i,j) + forw
                     self%del_H(j,i)     = self%del_H(j,i) + back
 
                     !Spin down
@@ -923,7 +923,7 @@ contains
         integer                 :: i, j, i_d, j_d, conn
         complex(8)              :: e_z_sigma(2,2), forw(2,2), back(2,2)
 
-        !$omp  parallel do default(shared) & 
+        !$omp  parallel do default(shared) &
         !$omp& private(i_d, conn, j, j_d, r, d_ij, k_dot_r, e_z_sigma, forw, back)&
         !$omp& schedule(static)
         do i = 1,self%num_up
@@ -931,7 +931,7 @@ contains
             do conn = 1,size(self%UC%atoms(i)%neigh_idx)
                 if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
                     j   =  self%UC%atoms(i)%neigh_idx(conn)
-                    j_d = j + self%num_up 
+                    j_d = j + self%num_up
 
                     r    = self%UC%atoms(i)%neigh_conn(conn,:)
                     d_ij = - r / my_norm2(r)
@@ -972,7 +972,7 @@ contains
 
         if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
         call self%set_derivative_k(k, derive_idx)
-        
+
         call zgemm('N', 'N', n_dim, n_dim, n_dim, &
             c_1, self%del_H, n_dim,&
             eig_vec_mtx, n_dim,&
@@ -1016,8 +1016,6 @@ contains
         allocate(rwork(lrwork), stat=ierr(2))
         allocate(iwork(liwork), stat=ierr(3))
         call check_ierr(ierr, me_in=self%me, msg=["tried to allocate in zheevd"])
-        
-        if(self%me == root) write (*,*) self%me, "Start zheevd"
 
         call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
             work, lwork, rwork, lrwork, iwork, liwork, info)
@@ -1026,11 +1024,11 @@ contains
         endif
 
         deallocate(work, rwork, iwork)
-        
+
 
         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
-        
+
         deallocate(eig_vec)
     end subroutine calc_eig_and_velo
 

@@ -3,9 +3,9 @@ project(STB)
 
 SET(STB_USE_64BIT OFF CACHE BOOL "Use 64-bit interface")
 
-file(GLOB_RECURSE sources  src/*.f90 
+file(GLOB_RECURSE sources  src/*.f90
                            src/*.F90
-                           src/*.h 
+                           src/*.h
                            thirdparty/config_fortran/m_config.f90
                            thirdparty/NPY-for-Fortran/src/endian_swap.f90
                            thirdparty/triangulation/tri_wrapper.f90
@@ -36,9 +36,10 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     set(bounds "-fbounds-check -Wall")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+    #set(dialect "-std08 -warn all -g -init=Nan -implicitnone -heap_arrays")
     set(dialect "-std08 -warn all -g -implicitnone -heap_arrays")
     set(bounds "-check all")
-    set(debug "-traceback -debug ") 
+    set(debug "-traceback -debug ")
     if(STB_USE_64BIT)
         target_link_libraries(stb.x mkl_intel_ilp64 mkl_intel_thread mkl_core iomp5 pthread m dl)
         set(dialect "${dialect} -i8 -I$ENV{MKLROOT}/include")
@@ -47,7 +48,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
         target_link_libraries(stb.x mkl_intel_lp64 mkl_intel_thread mkl_core iomp5 pthread m dl)
         set(dialect "${dialect} -I$ENV{MKLROOT}/include")
     endif()
-endif() 
+endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
     set(dialect "-Mfreeform -Mdclchk -Mstandard -Mallocatable=03")
 	set(bounds "-C")

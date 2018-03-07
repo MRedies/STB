@@ -18,12 +18,12 @@ program STB
 
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
-    
+
     call random_seed(size = seed_sz)
     allocate(seed(seed_sz))
     seed =  7
     call random_seed(put=seed)
-    
+
     call get_inp_files(n_files, inp_files)
 
     call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
@@ -43,7 +43,7 @@ contains
                                           calc_orbmag, perform_ACA, plot_omega
         type(CFG_t)                     :: cfg
         character(len=25)               :: fermi_type
-        
+
         call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
         start =  MPI_Wtime()
 
@@ -71,7 +71,7 @@ contains
 
         Ksp =  init_k_space(cfg)
         if(me == root) call save_cfg(cfg)
-        
+
         if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
 
         halt =  MPI_Wtime()
@@ -81,7 +81,7 @@ contains
 
         if(perform_band) then
             if(root == me) write (*,*) "started Band"
-            call Ksp%calc_and_print_band() 
+            call Ksp%calc_and_print_band()
         endif
 
         if(trim(fermi_type) == "fixed") then
@@ -108,7 +108,7 @@ contains
             if(root == me) write (*,*) "Started ACA"
             call Ksp%calc_ACA()
         endif
-        
+
         if(plot_omega) then
             call error_msg("plotting Berry curvature...", p_color=c_green)
             call Ksp%plot_omega_square()
@@ -126,13 +126,13 @@ contains
 
     subroutine get_inp_files(n_files, inp_files)
         implicit none
-        integer, intent(out)     :: n_files 
+        integer, intent(out)     :: n_files
         character(len=300), allocatable :: inp_files(:)
         integer                  :: me, ierr, i
         character(len=300)       :: base_str, tmp_str, start_str, end_str, n_files_str
-        
+
         call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
-    
+
         if(me == root) then
             if(command_argument_count() == 0) then
                 call error_msg("need some input", abort=.True.)
@@ -176,10 +176,10 @@ contains
         enddo
 
     end subroutine get_inp_files
-        
+
     Subroutine  add_full_cfg(cfg)
         Implicit None
-        type(CFG_t)            :: cfg 
+        type(CFG_t)            :: cfg
 
         call CFG_add(cfg, "units%length",     "none", "unit of length")
         call CFG_add(cfg, "units%energy",     "none", "unit of Ener")
@@ -253,6 +253,7 @@ contains
         call CFG_add(cfg, "berry%conv_criterion", 0d0, "")
         call CFG_add(cfg, "berry%perform_pad", .True., "padding to use all procs")
         call CFG_add(cfg, "berry%weights", "", "use this quantity for refinement")
+        call CFG_add(cfg, "berry%adaptive_mode", "", "how to choose new points")
 
         call CFG_add(cfg, "output%band_prefix", "bar/foo","folder")
 
@@ -260,7 +261,7 @@ contains
 
         call CFG_add(cfg, "ACA%perform_ACA", .False., "perform ACA calculation")
         call CFG_add(cfg, "ACA%num_kpts", 0, "number of ACA k-points")
-        
+
         call CFG_add(cfg, "plot%num_plot_points", 0, "number of points used for plot")
         call CFG_add(cfg, "plot%plot_omega", .False., "perform berry curvature plot")
     End Subroutine add_full_cfg
@@ -276,4 +277,3 @@ contains
 
         end subroutine save_cfg
 end program STB
-
