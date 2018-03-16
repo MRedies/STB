@@ -1859,8 +1859,8 @@ contains
         S = 0d0
 
         call linspace(0d0, 1d0, self%ACA_num_k_pts, l_space)
-        t_stop = MPI_Wtime()
-        
+        t_start = MPI_Wtime()
+
         if( trim(self%ham%UC%uc_type) == "square_2d" &
         .or.trim(self%ham%UC%uc_type) == "file_square" ) then
             call self%setup_inte_grid_square(self%ACA_num_k_pts, padding=.False.)
