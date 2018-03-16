@@ -1834,8 +1834,13 @@ contains
     subroutine calc_ACA(self)
         implicit none
     class(k_space)              :: self
+<<<<<<< HEAD
         real(8), allocatable    :: m(:), l_space(:), eig_val(:), RWORK(:), S(:)
         real(8)                 :: area
+=======
+        real(8), allocatable    :: m(:), l_space(:), eig_val(:), RWORK(:)
+        real(8)                 :: area, t_start, t_stop
+>>>>>>> 0c07a31f1f258f1d88edf63917af2b94c550538b
         complex(8), allocatable :: H(:,:), WORK(:)
         integer                 :: N_k, lwork, lrwork, liwork, N, &
                                    first, last, k_idx, info, ierr
@@ -1856,8 +1861,12 @@ contains
         allocate(IWORK(liwork))
 
         m = 0d0
+<<<<<<< HEAD
         S = 0d0
 
+=======
+        t_start = MPI_Wtime()
+>>>>>>> 0c07a31f1f258f1d88edf63917af2b94c550538b
         call linspace(0d0, 1d0, self%ACA_num_k_pts, l_space)
 
         if( trim(self%ham%UC%uc_type) == "square_2d" &
@@ -1909,6 +1918,8 @@ contains
         else
             call error_msg("ACA implemented for square only.", abort=.True.)
         endif
+        t_stop = MPI_Wtime()
+        if(self%me == root) write (*,*) "ACA time = ", t_stop - t_start
         deallocate(H, WORK, RWORK, IWORK, m)
     end subroutine calc_ACA
 
