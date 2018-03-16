@@ -148,12 +148,6 @@ contains
             call self%set_hongbin_hopp(k, H)
         endif
         if(self%HB_eta /= 0d0) call self%set_hongbin_SOC(H)
-
-        ! call error_msg("Hamiltionian = ", p_color=c_green, abort=.False.)
-        ! call print_mtx(H)
-        ! write (*,*) "shape = ", shape(H)
-        ! write (*,*) "Phi   = ", self%UC%atoms(1)%m_phi
-        ! write (*,*) "Theta = ", self%UC%atoms(1)%m_theta
     end subroutine setup_H
 
     subroutine test_herm(H, tag, verbose)
@@ -334,19 +328,6 @@ contains
             atm = atm + 1
         enddo
     end subroutine set_loc_exch
-
-    ! subroutine setup_Stoner_U_style(self, atm, S)
-    !     implicit none
-    ! class(hamil), intent(in)      :: self
-    !     integer, intent(in)       :: atm 
-    !     complex(8), intent(inout) :: S(2,2)
-    !     complex(8)                :: U(2,2)
-    !     real(8)                   :: fac 
-    
-    !     fac =  - 0.5d0 *  self%lambda 
-
-
-    ! end subroutine setup_Stoner_U_style
 
     subroutine setup_Stoner_mtx(self,i,S)
         implicit none
@@ -638,12 +619,6 @@ contains
     class(hamil), intent(in)       :: self
         integer   , intent(in)     :: mu, nu
         complex(8), intent(out)    :: H(2,2)
-        ! complex(8)                 :: H_soc(6,6)
-
-        ! H_soc(1:3,1:3) = Lz 
-        ! H_soc(4:6,4:6) = -Lz
-        ! H_soc(1:3,4:6) = Lx - i_unit * Ly
-        ! H_soc(4:6,1:3) = Lx + i_unit * Ly
 
         H(1,1) =   self%eta_soc *  Lz(mu,nu)
         H(2,1) =   self%eta_soc * (Lx(mu,nu) + i_unit * Ly(mu,nu))
