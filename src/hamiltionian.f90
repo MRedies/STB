@@ -148,13 +148,27 @@ contains
             call self%set_hongbin_hopp(k, H)
         endif
         if(self%HB_eta /= 0d0) call self%set_hongbin_SOC(H)
+
+        ! call error_msg("Hamiltionian = ", p_color=c_green, abort=.False.)
+        ! call print_mtx(H)
+        ! write (*,*) "shape = ", shape(H)
+        ! write (*,*) "Phi   = ", self%UC%atoms(1)%m_phi
+        ! write (*,*) "Theta = ", self%UC%atoms(1)%m_theta
     end subroutine setup_H
 
-    subroutine test_herm(H, tag)
+    subroutine test_herm(H, tag, verbose)
         implicit none
         complex(8), intent(in)      :: H(:,:)
         integer                     :: n
         character(len=*), optional  :: tag
+        logical, optional           :: verbose
+        logical                     :: p_verbose
+
+        if(present(verbose)) then
+            p_verbose = verbose
+        else
+            p_verbose = .False.
+        endif
 
         n = size(H, dim=1)
 
@@ -165,6 +179,8 @@ contains
             endif
 
             call error_msg("not hermitian", abort=.True.)
+        else
+            if(p_verbose) write (*,*) tag, " is hermitian"
         endif
     end subroutine test_herm
 
@@ -318,6 +334,19 @@ contains
             atm = atm + 1
         enddo
     end subroutine set_loc_exch
+
+    ! subroutine setup_Stoner_U_style(self, atm, S)
+    !     implicit none
+    ! class(hamil), intent(in)      :: self
+    !     integer, intent(in)       :: atm 
+    !     complex(8), intent(inout) :: S(2,2)
+    !     complex(8)                :: U(2,2)
+    !     real(8)                   :: fac 
+    
+    !     fac =  - 0.5d0 *  self%lambda 
+
+
+    ! end subroutine setup_Stoner_U_style
 
     subroutine setup_Stoner_mtx(self,i,S)
         implicit none
@@ -562,7 +591,7 @@ contains
         implicit none
     class(hamil), intent(in)              :: self
         complex(8), intent(inout)         :: H(:,:)
-        complex(8)                        :: loc_H(2,2), U(2,2), tmp(2,2), rot_H(2,2)
+        complex(8)                        :: loc_H(2,2)
         integer                           :: i_u, i_d, mu, nu, ms, ns, i_atm
 
         if(self%num_orb /= 3) then
@@ -574,21 +603,14 @@ contains
                 do mu = 1,self%num_orb
                     do nu = 1,self%num_orb
                         call self%set_small_SOC(mu,nu, loc_H)
-                        call set_rot_SO(self%UC%atoms(i_atm), U)
-
-                        ! calculate tmp = U * H * U^dag
-                        call zgemm('N',   'N', 2,   2,     2, c_1, U,   2, &
-                            loc_H, 2,   c_0, tmp,   2)
-                        call zgemm('N',   'C', 2,   2,     2, c_1, tmp, 2, &
-                            U,    2,   c_0, rot_H, 2)
 
                         ms = mu - 1 ! mu-shift
                         ns = nu - 1 ! nu-shift
 
-                        H(i_u+ms, i_u+ns) = H(i_u+ms, i_u+ns) + rot_H(1, 1)
-                        H(i_d+ms, i_u+ns) = H(i_d+ms, i_u+ns) + rot_H(2, 1)
-                        H(i_u+ms, i_d+ns) = H(i_u+ms, i_d+ns) + rot_H(1, 2)
-                        H(i_d+ms, i_d+ns) = H(i_d+ms, i_d+ns) + rot_H(2, 2)
+                        H(i_u+ms, i_u+ns) = H(i_u+ms, i_u+ns) + loc_H(1, 1)
+                        H(i_d+ms, i_u+ns) = H(i_d+ms, i_u+ns) + loc_H(2, 1)
+                        H(i_u+ms, i_d+ns) = H(i_u+ms, i_d+ns) + loc_H(1, 2)
+                        H(i_d+ms, i_d+ns) = H(i_d+ms, i_d+ns) + loc_H(2, 2)
                     enddo
                 enddo
                 i_atm = i_atm + 1
@@ -600,7 +622,7 @@ contains
         implicit none
         type(atom), intent(in)   :: atm
         complex(8), intent(out)  :: U(2,2)
-        real(8)                  :: t_half, p_half
+        complex(8)                  :: t_half, p_half
 
         t_half =  0.5d0 * atm%m_theta
         p_half =  0.5d0 * atm%m_phi
@@ -616,6 +638,12 @@ contains
     class(hamil), intent(in)       :: self
         integer   , intent(in)     :: mu, nu
         complex(8), intent(out)    :: H(2,2)
+        ! complex(8)                 :: H_soc(6,6)
+
+        ! H_soc(1:3,1:3) = Lz 
+        ! H_soc(4:6,4:6) = -Lz
+        ! H_soc(1:3,4:6) = Lx - i_unit * Ly
+        ! H_soc(4:6,1:3) = Lx + i_unit * Ly
 
         H(1,1) =   self%eta_soc *  Lz(mu,nu)
         H(2,1) =   self%eta_soc * (Lx(mu,nu) + i_unit * Ly(mu,nu))

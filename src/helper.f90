@@ -272,6 +272,13 @@ contains
         enddo
     end function find_list_idx
 
+    function dag(M) result(dag_M)
+        implicit none
+        complex(8), intent(in) :: M(:,:)
+        complex(8)             :: dag_M(size(M,2), size(M,1))
+        dag_m = conjg(transpose(M))
+    end function
+
     subroutine gaussian_noise(out_arr, sigma, mu)
         implicit none
         real(8), intent(out)  :: out_arr(:)
