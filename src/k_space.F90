@@ -1834,7 +1834,7 @@ contains
     subroutine calc_ACA(self)
         implicit none
     class(k_space)              :: self
-        real(8), allocatable    :: m(:), l_space(:), eig_val(:), RWORK(:)
+        real(8), allocatable    :: m(:), S(:), l_space(:), eig_val(:), RWORK(:)
         real(8)                 :: area, t_start, t_stop
         complex(8), allocatable :: H(:,:), WORK(:)
         integer                 :: N_k, lwork, lrwork, liwork, N, &
