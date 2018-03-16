@@ -92,6 +92,8 @@ module Class_k_space
         procedure :: save_grid              => save_grid
         procedure :: calc_ACA               => calc_ACA
         procedure :: calc_ACA_singleK       => calc_ACA_singleK
+        procedure :: calc_S_singleK         => calc_S_singleK
+        procedure :: calc_local_l           => calc_local_l
         procedure :: plot_omega_square      => plot_omega_square
     end type k_space
 
@@ -200,6 +202,7 @@ contains
         PDOS = 0d0
 
         call my_section(self%me, self%nProcs, size(self%new_k_pts,2), first, last)
+        if(self%me == root) write (*,*) "DOS kpts", size(self%new_k_pts,2)
         percentage = 0
         do k_idx=first, last
             if(self%me == root) then
@@ -1831,7 +1834,7 @@ contains
     subroutine calc_ACA(self)
         implicit none
     class(k_space)              :: self
-        real(8), allocatable    :: m(:), l_space(:), eig_val(:), RWORK(:)
+        real(8), allocatable    :: m(:), S(:), l_space(:), eig_val(:), RWORK(:)
         real(8)                 :: area, t_start, t_stop
         complex(8), allocatable :: H(:,:), WORK(:)
         integer                 :: N_k, lwork, lrwork, liwork, N, &
@@ -1845,6 +1848,7 @@ contains
         N = 2 * self%ham%num_up
         allocate(H(N,N))
         allocate(m(size(self%E_fermi)))
+        allocate(S(size(self%E_fermi)))
         allocate(eig_val(N))
         call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
         allocate(WORK(lwork))
@@ -1852,8 +1856,10 @@ contains
         allocate(IWORK(liwork))
 
         m = 0d0
-        t_start = MPI_Wtime()
+        S = 0d0
+
         call linspace(0d0, 1d0, self%ACA_num_k_pts, l_space)
+        t_start = MPI_Wtime()
 
         if( trim(self%ham%UC%uc_type) == "square_2d" &
         .or.trim(self%ham%UC%uc_type) == "file_square" ) then
@@ -1863,22 +1869,30 @@ contains
 
             do k_idx = first, last
                 call self%ham%setup_H(self%new_k_pts(:,k_idx), H)
-
+                
                 call zheevd('V', 'U', N, H, N, eig_val, WORK, lwork, &
                     RWORK, lrwork, IWORK, liwork, info)
                 if(info /= 0) call error_msg("zheevd fail", abort=.True.)
 
+                ! write (*,*) "k = ", self%new_k_pts(:,k_idx)
                 m = m + self%calc_ACA_singleK(H, eig_val)
+                S = S + self%calc_S_singleK(H, eig_val)
+                ! write(*,*) "current m = ", m/k_idx
             enddo
 
             area =  self%ham%UC%calc_area()
             m =  m / (N_k * area)
+            S = S / N_k
 
             if(self%me == root) then
                 call MPI_Reduce(MPI_IN_PLACE, m, size(m), MPI_REAL8, &
                     MPI_SUM, root, MPI_COMM_WORLD, ierr)
+                call MPI_Reduce(MPI_IN_PLACE, S, size(S), MPI_REAL8, &
+                    MPI_SUM, root, MPI_COMM_WORLD, ierr)
             else
                 call MPI_Reduce(m, m, size(m), MPI_REAL8, &
+                    MPI_SUM, root, MPI_COMM_WORLD, ierr)
+                call MPI_Reduce(S, S, size(S), MPI_REAL8, &
                     MPI_SUM, root, MPI_COMM_WORLD, ierr)
             endif
 
@@ -1887,6 +1901,10 @@ contains
                                p_color=c_green)
                 call save_npy(trim(self%prefix) // "orbmag_ACA.npy", m)
                 call save_npy(trim(self%prefix) // "orbmag_E.npy", &
+                    self%E_fermi / self%units%energy)
+
+                call save_npy(trim(self%prefix) // "spinmag.npy", S)
+                call save_npy(trim(self%prefix) // "spinmag_E.npy", &
                     self%E_fermi / self%units%energy)
             endif
         else
@@ -1902,28 +1920,88 @@ contains
     class(k_space), intent(in)     :: self
         complex(8), intent(in)     :: eig_vec(:,:)
         real(8), intent(in)        :: eig_val(:)
-        real(8)                    :: m(size(self%E_fermi)), l
-        integer                    :: n_ferm, n, i, n_states
+        real(8)                    :: m(size(self%E_fermi))
+        integer                    :: n_ferm
 
         m        = 0d0
-        n_states = 2* self%ham%num_up
-
         do n_ferm = 1,size(self%E_fermi)
-            do n = 1,n_states
-                l = 0d0
-                do i = 1,n_states,3
-                    l = l + calc_l(eig_vec(i:i+2,n))
-                enddo
-
-                m(n_ferm) = m(n_ferm) &
-                          + l * self%fermi_distr(eig_val(n), n_ferm)
-            enddo
+            m(n_ferm) = m(n_ferm) + sum(self%calc_local_l(eig_vec, eig_val, n_ferm))
         enddo
 
         ! we drop the - 0.5 so we are directly in mu_b
         ! m = - 0.5d0 * m
         m = - m
     end function calc_ACA_singleK
+
+    function calc_S_singleK(self, eig_vec, eig_val) result(S)
+        implicit none
+    class(k_space), intent(in)     :: self
+        complex(8), intent(in)     :: eig_vec(:,:)
+        real(8), intent(in)        :: eig_val(:)
+        real(8)                    :: S(size(self%E_fermi)), f 
+        integer                    :: n_up, n_ferm, i
+        
+        n_up = self%ham%num_up
+        S    = 0d0
+
+        do n_ferm = 1,size(self%E_fermi)
+            do i = 1,size(eig_val)
+                f = self%fermi_distr(eig_val(i), n_ferm)
+                S(n_ferm) = S(n_ferm) &
+                          + f * (  sum(abs(eig_vec(     1:  n_up, i))**2) &
+                                 - sum(abs(eig_vec(n_up+1:2*n_up, i))**2) )
+            enddo
+        enddo
+    end function calc_S_singleK
+
+    function calc_local_l(self, eig_vec, eig_val, n_ferm) result(loc_l)
+        implicit none
+        class(k_space), intent(in)     :: self
+        complex(8), intent(in)         :: eig_vec(:,:)
+        real(8), intent(in)            :: eig_val(:)
+        integer, intent(in)            :: n_ferm
+        real(8)                        :: loc_l(self%ham%UC%num_atoms), f
+        integer                        :: i, s, n_stat, v_u, v_d
+
+        n_stat = 2 * self%ham%num_up
+        loc_l  = 0d0
+        do i = 1,self%ham%UC%num_atoms
+            ! vector index up
+            v_u = 3 * i - 2
+            ! vector index down
+            v_d = v_u + self%ham%num_up
+
+            do s = 1,n_stat
+                ! get fermi_factor
+                f = self%fermi_distr(eig_val(s), n_ferm)
+                loc_l(i) = loc_l(i) + f * calc_l(eig_vec(v_u:v_u+2, s))
+                loc_l(i) = loc_l(i) + f * calc_l(eig_vec(v_d:v_d+2, s))
+            enddo
+        enddo
+    end function calc_local_l
+
+    function calc_l(p) result(l)
+        implicit none
+        complex(8), intent(in)  :: p(3)
+        complex(8)              :: l_prime
+        real(8)                 :: l
+        complex(8), parameter   :: m_l(3,3) &
+                                   = transpose(reshape( &
+                                                    [c_0, c_i, c_0, &
+                                                    -c_i, c_0, c_0, &
+                                                     c_0, c_0, c_0], &
+                                                     shape(m_l)))
+        complex(8)              :: rhs(3)
+
+        rhs     = matmul(m_l, p)
+        ! remember complex dot_product = sum(conjg(a) * b)
+        l_prime = dot_product(p, rhs)
+
+        if(abs(aimag(l_prime)) > 1d-11) then
+            call error_msg("l is imaginary", abort=.True.)
+        endif
+        l = real(l_prime)
+    end function calc_l
 
     function test_func(kpt) result(ret)
         implicit none
@@ -2020,27 +2098,4 @@ contains
 
         call basis_trafo(cmplx_EV, BT_cmplx_to_real, real_EV)
     end subroutine p_cmplx_to_real
-
-    function calc_l(p) result(l)
-        implicit none
-        complex(8), intent(in)  :: p(3)
-        complex(8)              :: l_prime
-        real(8)                 :: l
-        complex(8), parameter   :: m_l(3,3) &
-                                   = transpose(reshape( &
-                                                    [c_0, c_i, c_0, &
-                                                    -c_i, c_0, c_0, &
-                                                     c_0, c_0, c_0], &
-                                                     shape(m_l)))
-        complex(8)              :: rhs(3)
-
-        rhs     = matmul(m_l, p)
-        ! remember complex dot_product = sum(conjg(a) * b)
-        l_prime = dot_product(p, rhs)
-
-        if(abs(aimag(l_prime)) > 1d-11) then
-            call error_msg("l is imaginary", abort=.True.)
-        endif
-        l = real(l_prime)
-    end function calc_l
 end module

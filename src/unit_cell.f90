@@ -212,7 +212,7 @@ contains
         implicit none
         class(unit_cell), intent(inout) :: self
         real(8)                         :: conn_mtx(5,3), transl_mtx(4,3)
-        integer(4)                      :: conn_types(size(conn_mtx, dim=1)), i
+        integer(4)                      :: conn_types(size(conn_mtx, dim=1))
         
         self%num_atoms = self%atom_per_dim **2
         allocate(self%atoms(self%num_atoms))
@@ -243,7 +243,7 @@ contains
         else if(trim(self%mag_type) == "random") then
             call self%set_mag_random()
         else
-            call error_msg("Mag type not known", abort=.True.)
+            call error_msg("mag_type not known", abort=.True.)
         endif
     end subroutine init_unit_square
 
@@ -255,8 +255,6 @@ contains
         integer                           :: n(3), i, n_transl
         integer                           :: info
         character(len=300)                :: garb
-
-        call error_msg("2nd nearest neighbour not implemented for files", p_color=c_green)
 
         if(self%me ==  root) then 
             write (*,*) "file =  ", trim(self%mag_file)
@@ -362,8 +360,7 @@ contains
         real(8)  :: transl_mtx(3,3), l, base_len_uc, conn_mtx(3,3)
         real(8), allocatable             :: hexagon(:,:)
         integer, allocatable             :: site_type(:)
-        integer                          :: apd, i
-        
+        integer                          :: apd       
 
         apd         = self%atom_per_dim
         base_len_uc = self%lattice_constant * apd
@@ -396,7 +393,7 @@ contains
         else if(trim(self%mag_type) == "random") then
             call self%set_mag_random()
         else
-            call error_msg("Mag type not known", abort=.True.)
+            call error_msg("mag_type not known", abort=.True.)
         endif
 
         ! only one kind of atom from honey-comb unit cell needed
