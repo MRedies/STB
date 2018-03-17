@@ -1779,18 +1779,18 @@ contains
         do cnt = 1,n_new
             if(trim(self%ada_mode) == "area") then
                 new_ks(1:2, cnt) = self%centeroid_of_triang(sort_area(i), self%all_k_pts)
-                write (*,*) "Added area"
+                if(self%me == root) write (*,*) "Added area"
             elseif(trim(self%ada_mode) == "weight") then
                 new_ks(1:2, cnt) = self%centeroid_of_triang(sort_weight(i), self%all_k_pts)
-                write (*,*) "Added weight"
+                if(self%me == root) write (*,*) "Added weight"
             elseif(trim(self%ada_mode) == "mixed") then
                 if(mod(cnt + num_kpts,2) == 0) then
                     new_ks(1:2, cnt) = self%centeroid_of_triang(sort_weight(weight_cnt), self%all_k_pts)
-                    write (*,*) "Added weight"
+                    if(self%me == root) write (*,*) "Added weight"
                     weight_cnt = weight_cnt - 1
                 else
                     new_ks(1:2, cnt) = self%centeroid_of_triang(sort_area(area_cnt), self%all_k_pts)
-                    write (*,*) "Added area"
+                    if(self%me == root) write (*,*) "Added area"
                     area_cnt = area_cnt - 1
                 endif
             else
