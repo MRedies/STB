@@ -1018,7 +1018,7 @@ contains
         allocate(work(lwork), stat=ierr(1))
         allocate(rwork(lrwork), stat=ierr(2))
         allocate(iwork(liwork), stat=ierr(3))
-        call check_ierr(ierr, me_in=self%me, msg=["tried to allocate in zheevd"])
+        call check_ierr(ierr, me_in=self%me, msg=[" tried to allocate in zheevd"])
 
         call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
             work, lwork, rwork, lrwork, iwork, liwork, info)
