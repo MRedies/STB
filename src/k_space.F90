@@ -805,7 +805,7 @@ contains
             call append_kidx(kidx_all, kidx_new)
             call self%append_kpts()
             call append_eigval(eig_val_all, eig_val_new)
-            write (*,*) self%me, "post appending"
+            if(self%me ==  root) write (*,*) self%me, "post appending"
 
             if(self%calc_hall)   call append_quantitiy(omega_z_all, omega_z_new)
             if(self%calc_orbmag) then
@@ -1864,15 +1864,21 @@ contains
             call my_section(self%me, self%nProcs, N_k, first, last)
 
             do k_idx = first, last
+                if(self%me == root) write (*,*) "Go kpt", k_idx, "of", last, date_time()
                 call self%ham%setup_H(self%new_k_pts(:,k_idx), H)
+                if(self%me == root) write (*,*) "Done setup   ", date_time()
                 
                 call zheevd('V', 'U', N, H, N, eig_val, WORK, lwork, &
                     RWORK, lrwork, IWORK, liwork, info)
+                if(self%me == root) write (*,*) "Done zheevd    ", date_time()
                 if(info /= 0) call error_msg("zheevd fail", abort=.True.)
 
                 ! write (*,*) "k = ", self%new_k_pts(:,k_idx)
                 m = m + self%calc_ACA_singleK(H, eig_val)
+                if(self%me == root) write (*,*) "Done ACA     ", date_time()                
+
                 S = S + self%calc_S_singleK(H, eig_val)
+                if(self%me == root) write (*,*) "Done magnetization   ", date_time()
                 ! write(*,*) "current m = ", m/k_idx
             enddo
 
@@ -1920,9 +1926,11 @@ contains
         integer                    :: n_ferm
 
         m        = 0d0
+        !$omp parallel do default(shared)
         do n_ferm = 1,size(self%E_fermi)
             m(n_ferm) = m(n_ferm) + sum(self%calc_local_l(eig_vec, eig_val, n_ferm))
         enddo
+        !$omp end parallel do
 
         ! we drop the - 0.5 so we are directly in mu_b
         ! m = - 0.5d0 * m
@@ -1940,6 +1948,7 @@ contains
         n_up = self%ham%num_up
         S    = 0d0
 
+        !$omp parallel do default(shared) private(i, f)
         do n_ferm = 1,size(self%E_fermi)
             do i = 1,size(eig_val)
                 f = self%fermi_distr(eig_val(i), n_ferm)
@@ -1948,6 +1957,7 @@ contains
                                  - sum(abs(eig_vec(n_up+1:2*n_up, i))**2) )
             enddo
         enddo
+        !$omp end parallel do
     end function calc_S_singleK
 
     function calc_local_l(self, eig_vec, eig_val, n_ferm) result(loc_l)
