@@ -926,17 +926,22 @@ contains
         do k_idx = first, last
             !if(self%me == root) write (*,*) k_idx, " of ", last
             k = self%new_k_pts(:,k_idx)
+            if(self%me == root) write (*,*) "start kpt", date_time()
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky)
-
+            
+            if(self%me == root) write (*,*) "start berry_z", date_time()
             if(self%calc_hall) then
                 call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                           eig_val_new(:,cnt), del_kx, del_ky)
             endif
 
+            if(self%me == root) write (*,*) "start orbmag", date_time()
             if(self%calc_orbmag) then
                 call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), &
                                             eig_val_new(:,cnt), del_kx, del_ky)
             endif
+            if(self%me == root) write (*,*) "done kpt", date_time()
+
 
             cnt = cnt + 1
         enddo
