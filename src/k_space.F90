@@ -185,13 +185,21 @@ contains
         integer   , allocatable :: IWORK(:)
         integer     :: first, last, ierr
         integer     :: k_idx, E_idx, j, m, N, info
-        integer     :: lwork, liwork, lrwork, percentage
+        integer(8)  :: lwork, liwork, lrwork, percentage
 
         N =  2 * self%ham%num_up
         allocate(H(N,N))
         allocate(eig_val(N))
 
         call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
+        if(self%me ==  0) then
+            write (*,*) "shape(H) =  ", shape(H)
+            write (*,*) "lwork =  ", lwork
+            write (*,*) "lrwork = ", lrwork
+            write (*,*) "liwork = ", liwork
+        endif
+
+
         allocate(WORK(lwork))
         allocate(RWORK(lrwork))
         allocate(IWORK(liwork))
@@ -1843,8 +1851,9 @@ contains
         real(8), allocatable    :: m(:), S(:), l_space(:), eig_val(:), RWORK(:)
         real(8)                 :: area, t_start, t_stop
         complex(8), allocatable :: H(:,:), WORK(:)
-        integer                 :: N_k, lwork, lrwork, liwork, N, &
+        integer                 :: N_k, N, &
                                    first, last, k_idx, info, ierr
+        integer(8)              :: lwork, lrwork, liwork
         integer, allocatable    :: IWORK(:)
 
         if(self%ham%num_orb /= 3) then
