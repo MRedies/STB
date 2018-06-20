@@ -243,6 +243,7 @@ contains
         else if(trim(self%mag_type) == "random") then
             call self%set_mag_random()
         else
+            write (*,*) "Mag_type = ", trim(self%mag_type)
             call error_msg("mag_type not known", abort=.True.)
         endif
     end subroutine init_unit_square
@@ -393,6 +394,7 @@ contains
         else if(trim(self%mag_type) == "random") then
             call self%set_mag_random()
         else
+            write (*,*) "Mag_type = ", trim(self%mag_type)
             call error_msg("mag_type not known", abort=.True.)
         endif
 
