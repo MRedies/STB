@@ -185,13 +185,21 @@ contains
         integer   , allocatable :: IWORK(:)
         integer     :: first, last, ierr
         integer     :: k_idx, E_idx, j, m, N, info
-        integer     :: lwork, liwork, lrwork, percentage
+        integer(8)  :: lwork, liwork, lrwork, percentage
 
         N =  2 * self%ham%num_up
         allocate(H(N,N))
         allocate(eig_val(N))
 
         call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
+        if(self%me ==  0) then
+            write (*,*) "shape(H) =  ", shape(H)
+            write (*,*) "lwork =  ", lwork
+            write (*,*) "lrwork = ", lrwork
+            write (*,*) "liwork = ", liwork
+        endif
+
+
         allocate(WORK(lwork))
         allocate(RWORK(lrwork))
         allocate(IWORK(liwork))
@@ -912,14 +920,19 @@ contains
         n_ferm =  size(self%E_fermi)
         num_up =  self%ham%num_up
 
+
         call my_section(self%me, self%nProcs, N_k, first, last)
+
+        write (*,*) "Here = ", num_up
+        write (*,*) "N = ",    last - first
+
         err =  0
         allocate(eig_val_new(2*num_up, last-first+1), stat=err(1))
         if(self%calc_hall)   allocate(omega_z_new(2*num_up, last-first+1), stat=err(2))
         if(self%calc_orbmag) allocate(Q_L_new(n_ferm,        last-first+1), stat=err(3))
         if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(3))
+        
         call check_ierr(err, self%me, " new chunk alloc")
-
 
         ! calculate
         cnt =  1
@@ -1838,8 +1851,9 @@ contains
         real(8), allocatable    :: m(:), S(:), l_space(:), eig_val(:), RWORK(:)
         real(8)                 :: area, t_start, t_stop
         complex(8), allocatable :: H(:,:), WORK(:)
-        integer                 :: N_k, lwork, lrwork, liwork, N, &
+        integer                 :: N_k, N, &
                                    first, last, k_idx, info, ierr
+        integer(8)              :: lwork, lrwork, liwork
         integer, allocatable    :: IWORK(:)
 
         if(self%ham%num_orb /= 3) then
