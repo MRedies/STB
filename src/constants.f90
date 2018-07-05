@@ -26,8 +26,8 @@ module Constants
 
     !<
     !real(8), parameter  :: small_imag = 1d-24
-    real(8), parameter  :: eta_sq =  1d-16
     real(8), parameter  :: eta    =  1d-8
+    real(8), parameter  :: eta_sq =  eta**2
     real(8), parameter  :: pos_eps    = 1d-6
 
     !> some useful angles
