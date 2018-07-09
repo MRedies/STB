@@ -180,6 +180,8 @@ contains
     Subroutine  add_full_cfg(cfg)
         Implicit None
         type(CFG_t)            :: cfg
+        real(8), allocatable   :: empty_array(:)
+        allocate(empty_array(0))
 
         call CFG_add(cfg, "units%length",     "none", "unit of length")
         call CFG_add(cfg, "units%energy",     "none", "unit of Ener")
@@ -261,6 +263,9 @@ contains
 
         call CFG_add(cfg, "ACA%perform_ACA", .False., "perform ACA calculation")
         call CFG_add(cfg, "ACA%num_kpts", 0, "number of ACA k-points")
+
+        call CFG_add(cfg, "layer_dropout%Vx", empty_array, "Vx dropout", dynamic_size=.True.)
+        call CFG_add(cfg, "layer_dropout%Vy", empty_array, "Vy dropout", dynamic_size=.True.) 
 
         call CFG_add(cfg, "plot%num_plot_points", 0, "number of points used for plot")
         call CFG_add(cfg, "plot%plot_omega", .False., "perform berry curvature plot")

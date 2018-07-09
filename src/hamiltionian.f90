@@ -21,6 +21,7 @@ module Class_hamiltionian
         real(8)         :: t_so !> Rashba spin orb
         real(8)         :: lambda !> local exchange
         real(8)         :: HB1, HB2, HB_eta !> parameters for hongbins model
+        real(8), allocatable       :: drop_Vx_layers(:), drop_Vy_layers(:)
         complex(8), allocatable    :: del_H(:,:)
         integer         :: nProcs
         integer         :: me
@@ -29,7 +30,6 @@ module Class_hamiltionian
         type(unit_cell) :: UC !> unit cell
         type(units)     :: units
     contains
-
         procedure :: Bcast_hamil                    => Bcast_hamil
         procedure :: setup_H                        => setup_H
         procedure :: calc_eigenvalues               => calc_eigenvalues
@@ -59,9 +59,48 @@ module Class_hamiltionian
         procedure :: set_snd_hopp_mtx               => set_snd_hopp_mtx
         procedure :: set_hongbin_hopp               => set_hongbin_hopp
         procedure :: set_hongbin_SOC                => set_hongbin_SOC
+        procedure :: z_layer_states                 => z_layer_states
+        procedure :: drop_layer_velo                => drop_layer_velo
     end type hamil
 
 contains
+    function z_layer_states(self) result(z)
+        implicit none
+        class(hamil), intent(in)      :: self
+        real(8)                       :: z(2 * self%num_up)
+        integer                       :: n_up, n_down, i_atm
+
+        i_atm = 1
+        do n_up = 1, self%num_up, self%num_orb
+            n_down = n_up + self%num_up
+            z(n_up:   n_up   + self%num_orb -1) = self%UC%atoms(i_atm)%pos(3)
+            z(n_down: n_down + self%num_orb -1) = self%UC%atoms(i_atm)%pos(3)
+
+            i_atm = i_atm + 1
+        enddo
+    end function z_layer_states
+
+    subroutine drop_layer_velo(self, mtx, layers)
+        implicit None
+        class(hamil), intent(in)      :: self
+        complex(8)                    :: mtx(:,:)
+        real(8), intent(in)           :: layers(:)
+        logical, allocatable          :: mask(:)
+        real(8), allocatable          :: z(:)
+        real(8), parameter            :: eps = 1e-6
+        integer                       :: i, m
+
+        z = self%z_layer_states()
+        do i = 1, size(layers)
+            mask = abs(layers(i) - z) < eps
+
+            do m = 1, 2*self%num_up
+                where(mask) mtx(m,:) = 0d0
+                where(mask) mtx(:,m) = 0d0
+            enddo
+        enddo
+    end subroutine drop_layer_velo
+
     subroutine free_ham(self)
         implicit none
     class(hamil)     :: self
@@ -245,6 +284,9 @@ contains
             self%HB_eta =  tmp * self%units%energy
 
             call CFG_get(cfg, "general%test_run", self%test_run)
+
+            call CFG_get(cfg, "layer_dropout%Vx", self%drop_Vx_layers)
+            call CFG_get(cfg, "layer_dropout%Vy", self%drop_Vy_layers)
         endif
         call self%Bcast_hamil()
     end function init_hamil
@@ -252,8 +294,8 @@ contains
     subroutine Bcast_hamil(self)
         implicit none
     class(hamil)          :: self
-        integer   , parameter :: num_cast = 20
-        integer               :: ierr(num_cast)
+        integer   , parameter :: num_cast = 24
+        integer               :: ierr(num_cast), Vx_len, Vy_len
 
         call MPI_Bcast(self%E_s,      1,              MPI_REAL8,   &
                        root,          MPI_COMM_WORLD, ierr(1))
@@ -297,6 +339,18 @@ contains
                        root,        MPI_COMM_WORLD, ierr(19))
         call MPI_Bcast(self%HB_eta, 1,              MPI_REAL8, &
                        root,        MPI_COMM_WORLD, ierr(20))
+
+        if(self%me ==root) Vx_len = size(self%drop_Vx_layers)
+        call MPI_Bcast(Vx_len, 1, MPI_INTEGER, &
+                       root, MPI_COMM_WORLD, ierr(21))
+        call MPI_Bcast(self%drop_Vx_layers, Vx_len, MPI_REAL8, &
+                       root, MPI_COMM_WORLD, ierr(22))
+
+        if(self%me ==root) Vy_len = size(self%drop_Vy_layers)
+        call MPI_Bcast(Vy_len, 1, MPI_INTEGER, &
+                       root, MPI_COMM_WORLD, ierr(23))
+        call MPI_Bcast(self%drop_Vy_layers, Vy_len, MPI_REAL8, &
+                       root, MPI_COMM_WORLD, ierr(24))        
 
         call check_ierr(ierr, self%me, "Hamiltionian check err")
     end subroutine
@@ -1030,7 +1084,20 @@ contains
 
 
         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
+        if(size(self%drop_Vx_layers) > 0) then
+            call self%drop_layer_velo(del_kx, self%drop_Vx_layers)
+        endif
+
+        call save_npy("drop_Vx.npy", del_kx)
+        
         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
+        if(size(self%drop_Vy_layers) > 0) then
+            call self%drop_layer_velo(del_ky, self%drop_Vy_layers)
+        endif 
+
+        call save_npy("drop_Vy.npy", del_ky)
+        
+        stop 7
 
         deallocate(eig_vec)
     end subroutine calc_eig_and_velo
