@@ -85,8 +85,8 @@ contains
         class(hamil), intent(in)      :: self
         complex(8)                    :: mtx(:,:)
         real(8), intent(in)           :: layers(:)
-        logical, allocatable          :: mask(:)
-        real(8), allocatable          :: z(:)
+        logical                       :: mask(2 * self%num_up)
+        real(8)                       :: z(2 * self%num_up)
         real(8), parameter            :: eps = 1e-6
         integer                       :: i, m
 
@@ -223,7 +223,7 @@ contains
         type(hamil)    :: self
         real(8)        :: tmp
         integer        :: ierr
-        integer        :: n
+        integer        :: n, n_arr
 
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
@@ -285,7 +285,12 @@ contains
 
             call CFG_get(cfg, "general%test_run", self%test_run)
 
+            call CFG_get_size(cfg, "layer_dropout%Vx", n_arr)
+            allocate(self%drop_Vx_layers(n_arr))
             call CFG_get(cfg, "layer_dropout%Vx", self%drop_Vx_layers)
+
+            call CFG_get_size(cfg, "layer_dropout%Vy", n_arr)
+            allocate(self%drop_Vy_layers(n_arr))
             call CFG_get(cfg, "layer_dropout%Vy", self%drop_Vy_layers)
         endif
         call self%Bcast_hamil()
@@ -1082,7 +1087,7 @@ contains
 
         deallocate(work, rwork, iwork)
 
-
+        write (*,*) "Vx:"
         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
         if(size(self%drop_Vx_layers) > 0) then
             call self%drop_layer_velo(del_kx, self%drop_Vx_layers)
@@ -1095,6 +1100,7 @@ contains
             call self%drop_layer_velo(del_ky, self%drop_Vy_layers)
         endif 
 
+        write (*,*) "Vy:"
         call save_npy("drop_Vy.npy", del_ky)
         
         stop 7
