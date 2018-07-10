@@ -345,18 +345,24 @@ contains
         call MPI_Bcast(self%HB_eta, 1,              MPI_REAL8, &
                        root,        MPI_COMM_WORLD, ierr(20))
 
-        if(self%me ==root) Vx_len = size(self%drop_Vx_layers)
+        ! allocate and share Vx_dropout
+        if(self%me == root) Vx_len = size(self%drop_Vx_layers)
         call MPI_Bcast(Vx_len, 1, MPI_INTEGER, &
                        root, MPI_COMM_WORLD, ierr(21))
+        if(self%me /= root) allocate(self%drop_Vx_layers(Vx_len))
+        
         call MPI_Bcast(self%drop_Vx_layers, Vx_len, MPI_REAL8, &
                        root, MPI_COMM_WORLD, ierr(22))
 
+        ! allocate and share Vy_dropout
         if(self%me ==root) Vy_len = size(self%drop_Vy_layers)
         call MPI_Bcast(Vy_len, 1, MPI_INTEGER, &
                        root, MPI_COMM_WORLD, ierr(23))
+        
+        if(self%me /= root) allocate(self%drop_Vy_layers(Vy_len))
         call MPI_Bcast(self%drop_Vy_layers, Vy_len, MPI_REAL8, &
-                       root, MPI_COMM_WORLD, ierr(24))        
-
+                       root, MPI_COMM_WORLD, ierr(24))    
+                       
         call check_ierr(ierr, self%me, "Hamiltionian check err")
     end subroutine
 

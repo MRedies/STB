@@ -922,10 +922,7 @@ contains
 
 
         call my_section(self%me, self%nProcs, N_k, first, last)
-
-        write (*,*) "Here = ", num_up
-        write (*,*) "N = ",    last - first
-
+        
         err =  0
         allocate(eig_val_new(2*num_up, last-first+1), stat=err(1))
         if(self%calc_hall)   allocate(omega_z_new(2*num_up, last-first+1), stat=err(2))
