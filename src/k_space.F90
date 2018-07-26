@@ -1168,7 +1168,7 @@ contains
         call run_triang(self%all_k_pts, self%elem_nodes)
         call self%set_weights_ksp()
 
-        orb_mag    = 0d0
+        orb_mag   = 0d0
         orbmag_L  = 0d0
         orbmag_IC = 0d0
 
@@ -1382,6 +1382,8 @@ contains
         enddo ! n_ferm
 
         deallocate(A_mtx)
+
+        write (*,*) " Shouldn't the Im & crossproduct combi give a factor 2?"
     end subroutine calc_orbmag_z_singleK
 
     subroutine append_eigval(eig_val_all, eig_val_new)
