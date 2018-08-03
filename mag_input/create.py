@@ -98,6 +98,38 @@ def shrink(dim, data, factor):
 
     return new_dat
 
+def scale_xy(dim, data, factor):
+    pos = data[:,:3]
+    m_x = data[:,3]
+    m_y = data[:,4]
+    m_z = data[:,5]
+
+    new_space = np.zeros(pos.shape)
+    new_space[:,0] = pos[:,0] * factor
+    new_space[:,1] = pos[:,1] * factor     
+    new_space[:,2] = pos[:,2]
+
+    interp_m_x = griddata(pos, m_x, new_space, method="linear")
+    interp_m_y = griddata(pos, m_y, new_space, method="linear")
+    interp_m_z = griddata(pos, m_z, new_space, method="linear")
+
+    oo_box = np.where(np.isnan(interp_m_x))
+    interp_m_x[oo_box] = 0.0
+    interp_m_y[oo_box] = 0.0
+    interp_m_z[oo_box] = 1.0
+    
+    new_dat = np.zeros(data.shape)
+
+    new_dat[:,:3] = pos
+    new_dat[:,3]  = interp_m_x
+    new_dat[:,4]  = interp_m_y
+    new_dat[:,5]  = interp_m_z
+
+    for i in range(np.prod(dim)):
+        new_dat[i,3:6] /= np.linalg.norm(new_dat[i,3:6])
+
+    return new_dat
+
 def stretch_z(dim, data, factor):
     pos = data[:,:3]
     m_x = data[:,3]
@@ -328,7 +360,7 @@ def mix_dbl_tube(a):
     dim, dbl_data, num_vec, vec = read_file("dbl_bobber.txt")
 
     tube_dim, tube_data, _,_  = read_file("skyrm_tube.txt")
-    _, tube_data = cut_data(tube_dim, tube_data, 8)
+    #_, tube_data = cut_data(tube_dim, tube_data, 8)
 
    
     dbl_theta, dbl_phi = cart_to_sphere(dbl_data[:,3],
@@ -454,7 +486,10 @@ def write_file(fname, dim, data, num_vec, vec):
 
 
 
+#dim, data, num_vec, vec  = read_file("skyrm_tube.txt")
 dim, data, num_vec, vec  = read_file("bobber_large.txt")
-data = ferro_below(data, 30)
-dim, data = cut_data(dim, data, 8)
-write_file("test.txt", dim, data, num_vec, vec)
+
+scale_fac = np.linspace(1, 2, 5)
+for fac in scale_fac:
+    scale_data = scale_xy(dim, data, fac)
+    write_file("bobber_scale_xy_{:4.2f}.txt".format(fac), dim, scale_data, num_vec, vec)
