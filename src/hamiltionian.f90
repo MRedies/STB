@@ -60,7 +60,7 @@ module Class_hamiltionian
         procedure :: set_hongbin_hopp               => set_hongbin_hopp
         procedure :: set_hongbin_SOC                => set_hongbin_SOC
         procedure :: z_layer_states                 => z_layer_states
-        procedure :: drop_layer_velo                => drop_layer_velo
+        procedure :: drop_layer_derivative          => drop_layer_derivative
     end type hamil
 
 contains
@@ -80,26 +80,36 @@ contains
         enddo
     end function z_layer_states
 
-    subroutine drop_layer_velo(self, mtx, layers)
+    subroutine drop_layer_derivative(self, k_idx)
         implicit None
         class(hamil), intent(in)      :: self
-        complex(8)                    :: mtx(:,:)
-        real(8), intent(in)           :: layers(:)
+        real(8), allocatable          :: layers(:)
         logical                       :: mask(2 * self%num_up)
         real(8)                       :: z(2 * self%num_up)
         real(8), parameter            :: eps = 1e-6
-        integer                       :: i, m
+        integer                       :: i, m, ierr
 
-        z = self%z_layer_states()
-        do i = 1, size(layers)
-            mask = abs(layers(i) - z) < eps
+        if(k_idx == 1) then
+            layers = self%drop_Vx_layers
+        elseif(k_idx == 2) then
+            layers = self%drop_Vy_layers
+        else
+            write (*,*) "Dropping kidx needs to be 1 or 2"
+            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+        endif            
 
-            do m = 1, 2*self%num_up
-                where(mask) mtx(m,:) = 0d0
-                where(mask) mtx(:,m) = 0d0
+        if(size(layers) > 0) then
+            z = self%z_layer_states()
+            do i = 1, size(layers)
+                mask = abs(layers(i) - z) < eps
+
+                do m = 1, 2*self%num_up
+                    where(mask) self%del_H(m,:) = 0d0
+                    where(mask) self%del_H(:,m) = 0d0
+                enddo
             enddo
-        enddo
-    end subroutine drop_layer_velo
+        endif
+    end subroutine drop_layer_derivative
 
     subroutine free_ham(self)
         implicit none
@@ -858,6 +868,9 @@ contains
                 .or. (self%HB2 /= 0d0) &
                 .or. (self%HB_eta /= 0d0)
         if(has_hong) call self%set_deriv_FD(k, k_idx, self%del_H)
+
+        ! drop layers if necessary
+        call self%drop_layer_derivative(k_idx)
     end subroutine set_derivative_k
 
     subroutine set_derivative_hopping(self, k, k_idx)
@@ -1028,12 +1041,12 @@ contains
 
     subroutine calc_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
         implicit none
-    class(hamil)                    :: self
+    class(hamil)                        :: self
         real(8), intent(in)             :: k(3)
         integer   , intent(in)          :: derive_idx
         complex(8), intent(in)          :: eig_vec_mtx(:,:)
         complex(8), allocatable         :: ret(:,:), tmp(:,:)
-        integer      :: n_dim
+        integer                         :: n_dim
 
         n_dim = 2 * self%num_up
         allocate(tmp(n_dim, n_dim))
@@ -1093,24 +1106,10 @@ contains
 
         deallocate(work, rwork, iwork)
 
-        write (*,*) "Vx:"
+        ! write (*,*) "Vx:"
         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
-        if(size(self%drop_Vx_layers) > 0) then
-            call self%drop_layer_velo(del_kx, self%drop_Vx_layers)
-        endif
-
-        call save_npy("drop_Vx.npy", del_kx)
-        
         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
-        if(size(self%drop_Vy_layers) > 0) then
-            call self%drop_layer_velo(del_ky, self%drop_Vy_layers)
-        endif 
-
-        write (*,*) "Vy:"
-        call save_npy("drop_Vy.npy", del_ky)
         
-        stop 7
-
         deallocate(eig_vec)
     end subroutine calc_eig_and_velo
 
