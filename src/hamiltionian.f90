@@ -82,7 +82,8 @@ contains
 
     subroutine drop_layer_derivative(self, k_idx)
         implicit None
-        class(hamil), intent(in)      :: self
+        class(hamil)                  :: self
+        integer, intent(in)           :: k_idx
         real(8), allocatable          :: layers(:)
         logical                       :: mask(2 * self%num_up)
         real(8)                       :: z(2 * self%num_up)
