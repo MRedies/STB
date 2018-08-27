@@ -69,16 +69,22 @@ contains
         character(len=1)          :: vn_flag
         complex(8), intent(in)    :: H(:,:)
         real(8), intent(in)       :: eig_val(:)
-        integer, intent(out)      :: lwork, lrwork, liwork
+        integer(8), intent(out)   :: lwork, lrwork, liwork
         complex(8)                :: lwork_tmp
         real(8)                   :: lrwork_tmp
-        integer                :: N, info
+        integer(8)                :: N, info, minus_1, me, nProcs
 
-        N =  size(H, dim=1)
+        minus_1 = - 1
+        N       = size(H, dim = 1)
+
         call zheevd(vn_flag, 'U', N, H, N, eig_val, &
-            lwork_tmp, -1, lrwork_tmp, - 1, liwork, -1, info)
-        lwork =  int(lwork_tmp)
-        lrwork =  int(lrwork_tmp)
+            lwork_tmp, minus_1, lrwork_tmp, minus_1, liwork, minus_1, info)
+        
+        call MPI_Comm_rank(MPI_COMM_WORLD, me, info)
+        call MPI_Comm_size(MPI_COMM_WORLD, nProcs, info)
+
+        lwork  = int(lwork_tmp, kind  = 8)
+        lrwork = int(lrwork_tmp, kind = 8)
     end subroutine calc_zheevd_size
 
     subroutine my_section(me, nProcs, length, first, last)

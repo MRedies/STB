@@ -89,6 +89,7 @@ module Class_k_space
         procedure :: calc_new_berry_points  => calc_new_berry_points
         procedure :: calc_new_kidx          => calc_new_kidx
         procedure :: calc_orbmag_z_singleK  => calc_orbmag_z_singleK
+        procedure :: setup_A_mtx            => setup_A_mtx
         procedure :: save_grid              => save_grid
         procedure :: calc_ACA               => calc_ACA
         procedure :: calc_ACA_singleK       => calc_ACA_singleK
@@ -1312,32 +1313,31 @@ contains
 
     end subroutine set_orbmag_weights
 
-    ! function find_3k_neighbours(self, idx) result(neigh_idx)
-    !     implicit None
-    !     class(k_space)           :: self
-    !     integer, intent(in)      :: idx
-    !     integer                  :: neigh_idx
-    !     real(8)                  :: pos(3), dist(3)
-    !
-    !     pos = self%all_k_pts(:,idx)
-    !     dist = 1d35
-    !
-    !     do i = 1,size(self%all_k_pts, 1)
-    !         d = my_norm2(pos - self%all_k_pts(i,:))
-    !         if(d < maval(dist))then
-    !             l = maxloc(dist)
-    !             dist(l) = d
-    !             neigh_idx(l) = i
-    !         endif
-    !     enddo
-    ! end function find_3k_neighbours
-    !
-    ! function interp_with_neigh(self, idx, f) result(f_interp)
-    !     implicit None
-    !     class(k_space)           :: self
-    !     integer, intent(in)      :: idx
-    !     real(8), intent(in)      :: f(:,:)
-    !     real(8)                  :: f_interp(size(f, 2))
+
+    function setup_A_mtx(self, Vx_mtx, Vy_mtx) result(A_mtx)
+        implicit none 
+        class(k_space), intent(in) :: self
+        complex(8), intent(in)     :: Vx_mtx(:,:), Vy_mtx(:,:)
+        real(8), allocatable       :: A_mtx(:,:)
+        integer                    :: m, n
+        real(8)                    :: t_start, t_stop
+
+        if(self%me == root) write (*,*) "Start A_mtx ", date_time()
+        t_start = MPI_Wtime()
+
+        allocate(A_mtx(size(Vx_mtx,1), size(Vx_mtx,2)))
+
+        !$omp parallel do private(n) collapse(2) default(shared)
+        do m = 1,size(Vx_mtx,1)
+            do n = 1,size(Vx_mtx,2)
+                A_mtx(n, m) = aimag(Vx_mtx(m, n) *  Vy_mtx(n, m))
+            enddo
+        enddo
+
+        t_stop = MPI_Wtime()
+        if(self%me == root) write (*,*) "A_mtx setup_time = ", t_stop - t_start
+    end function setup_A_mtx
+
 
     subroutine calc_orbmag_z_singleK(self, Q_L, Q_IC, eig_val, Vx_mtx, Vy_mtx)
         implicit none
@@ -1347,23 +1347,17 @@ contains
         real(8), allocatable     :: A_mtx(:,:)
         integer                  :: m, n, n_ferm
 
-        allocate(A_mtx(size(Vx_mtx,1), size(Vx_mtx,2)))
-
-        !make sure to sure memory efficient layout for A matrix
-        !$omp parallel do private(n) default(shared)
-        do m = 1,size(Vx_mtx,1)
-            do n = 1,size(Vx_mtx,2)
-                A_mtx(n, m) = aimag(Vx_mtx(m, n) *  Vy_mtx(n, m))
-            enddo
-        enddo
+        A_mtx = self%setup_A_mtx(Vx_mtx, Vy_mtx)
 
         Q_L  = 0
         Q_IC = 0
-        !$omp parallel do private(n, m, Ef, f_nk, dE) default(shared)
+        
+        !$omp parallel do private(n, m, Ef, f_nk, dE) collapse(2) default(shared)
         do n_ferm = 1, size(Q_L)
-            Ef =  self%E_fermi(n_ferm)
             n_loop: do n = 1, size(A_mtx,1)
+                Ef =  self%E_fermi(n_ferm)                
                 f_nk =  self%fermi_distr(eig_val(n), n_ferm)
+
                 if(f_nk /= 0d0) then
                     do m = 1, size(A_mtx,1)
                         dE =  eig_val(m) -  eig_val(n)
@@ -1375,15 +1369,16 @@ contains
                                            - 2d0 * f_nk * (Ef - eig_val(n)) * A_mtx(m,n)/(dE**2)
                         endif ! m != n
                     enddo !m
-                else
-                    exit n_loop
                 endif
             enddo n_loop !n
         enddo ! n_ferm
 
         deallocate(A_mtx)
 
-        write (*,*) " Shouldn't the Im & crossproduct combi give a factor 2?"
+        if(self%me == root) then
+            write (*,*) "orbmag Flag C ", date_time()
+            write (*,*) " Shouldn't the Im & crossproduct combi give a factor 2?"
+        endif
     end subroutine calc_orbmag_z_singleK
 
     subroutine append_eigval(eig_val_all, eig_val_new)
