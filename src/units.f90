@@ -59,8 +59,10 @@ contains
             !case ("mu_0")
                 !factor = 0.1591549430d0 ! 1/(2pi)
             case default
-                write (*,*) "Unit unknown: ", trim(unit_name)
-                stop
+                write (*,*) "Unit unknown"
+                write (*,*) "Unit: ", trim(unit_name)
+                write (*,*) "Field name: ", trim(field_name)
+                call MPI_Abort(MPI_COMM_WORLD, 13, ierr)
             end select
         endif
 
