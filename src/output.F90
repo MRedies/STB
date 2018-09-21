@@ -155,13 +155,15 @@ contains
         logical          :: already
         integer(4)       :: succ
 
-#ifdef IBM_COMPILER_USED        
-        !call rmdir(trim(folder))
-        !call mkdir(trim(folder), %val(755))
-        !write (*,*) "created: ", trim(folder)
-        !succ =  0
-#else
+
+
+#ifdef INTEL_USED 
         inquire(directory=folder, exist=already)
+#endif
+#ifdef GNU_USED
+        already = .True.
+#endif
+
         if(already) then
             call run_sys("rm " // trim(folder) // "*.npy", succ)
             if(succ /= 0) then
@@ -173,7 +175,6 @@ contains
                 write (*,*) "Could not reate dir through cmd"
             endif
         endif
-#endif
     end subroutine create_dir
 
 
