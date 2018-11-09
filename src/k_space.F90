@@ -719,6 +719,9 @@ contains
         k2(1:2) =  self%ham%UC%rez_lattice(:,2)
         k2(3)   =  0d0
 
+        write (*,*) "k1 = ", k1
+        write (*,*) "k2 = ", k2
+
         start =  1
         do i =  1, n_sec
             halt =  start +  n_pts - 1
@@ -937,21 +940,17 @@ contains
         do k_idx = first, last
             !if(self%me == root) write (*,*) k_idx, " of ", last
             k = self%new_k_pts(:,k_idx)
-            if(self%me == root) write (*,*) "start kpt     ", date_time()
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky)
             
-            if(self%me == root) write (*,*) "start berry_z ", date_time()
             if(self%calc_hall) then
                 call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                           eig_val_new(:,cnt), del_kx, del_ky)
             endif
 
-            if(self%me == root) write (*,*) "start orbmag  ", date_time()
             if(self%calc_orbmag) then
                 call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), &
                                             eig_val_new(:,cnt), del_kx, del_ky)
             endif
-            if(self%me == root) write (*,*) "done kpt      ", date_time()
 
 
             cnt = cnt + 1
@@ -1322,7 +1321,6 @@ contains
         integer                    :: m, n
         real(8)                    :: t_start, t_stop
 
-        if(self%me == root) write (*,*) "Start A_mtx ", date_time()
         t_start = MPI_Wtime()
 
         allocate(A_mtx(size(Vx_mtx,1), size(Vx_mtx,2)))
@@ -1335,7 +1333,6 @@ contains
         enddo
 
         t_stop = MPI_Wtime()
-        if(self%me == root) write (*,*) "A_mtx setup_time = ", t_stop - t_start
     end function setup_A_mtx
 
 
@@ -1375,10 +1372,6 @@ contains
 
         deallocate(A_mtx)
 
-        if(self%me == root) then
-            write (*,*) "orbmag Flag C ", date_time()
-            write (*,*) " Shouldn't the Im & crossproduct combi give a factor 2?"
-        endif
     end subroutine calc_orbmag_z_singleK
 
     subroutine append_eigval(eig_val_all, eig_val_new)

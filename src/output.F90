@@ -157,17 +157,17 @@ contains
 
 
 
-#ifdef INTEL_USED 
+!#ifdef INTEL_USED 
         inquire(directory=folder, exist=already)
-#endif
-#ifdef GNU_USED
-        already = .True.
-#endif
+!#endif
+!#ifdef GNU_USED
+        !already = .True.
+!#endif
 
         if(already) then
             call run_sys("rm " // trim(folder) // "*.npy", succ)
             if(succ /= 0) then
-                call error_msg("Could not clear dir", abort=.True.)
+                call error_msg("Could not clear dir", abort=.False.)
             endif
         else
             call run_sys("mkdir -p " // folder, succ)

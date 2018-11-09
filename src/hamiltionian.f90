@@ -101,6 +101,7 @@ contains
         endif            
 
         if(size(layers) > 0) then
+            write (*,*) "droping some layers"
             z = self%z_layer_states()
             do i = 1, size(layers)
                 mask = abs(layers(i) - z) < eps
@@ -113,8 +114,6 @@ contains
         endif
 
         t_stop = MPI_Wtime()
-
-        if(self%me == root) write (*,*) "drop out time = ", t_stop - t_start
     end subroutine drop_layer_derivative
 
     subroutine free_ham(self)
@@ -1060,7 +1059,6 @@ contains
         if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
         call self%set_derivative_k(k, derive_idx)
 
-        if(self%me == 0) write (*,*) "start 1st zgemm ", date_time()
         call zgemm('N', 'N', n_dim, n_dim, n_dim, &
             c_1, self%del_H, n_dim,&
             eig_vec_mtx, n_dim,&
@@ -1074,14 +1072,11 @@ contains
         endif
         if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
 
-        if(self%me == 0) write (*,*) "start 2nd zgemm ", date_time()
         call zgemm('C', 'N', n_dim, n_dim, n_dim, &
             c_1, eig_vec_mtx, n_dim, &
             tmp, n_dim, &
             c_0, ret, n_dim)
         deallocate(tmp)
-
-        if(self%me == 0) write (*,*) "stop zgemm ", date_time()
     end subroutine calc_velo_mtx
 
     subroutine calc_eig_and_velo(self, k, eig_val, del_kx, del_ky)
@@ -1108,10 +1103,8 @@ contains
         allocate(iwork(liwork), stat=ierr(3))
         call check_ierr(ierr, me_in=self%me, msg=[" tried to allocate in zheevd"])
 
-        if(self%me == root) write (*,*) "start zheevd     ", date_time()
         call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
             work, lwork, rwork, lrwork, iwork, liwork, info)
-        if(self%me == root) write (*,*) "stop zheevd     ", date_time()
         if(info /= 0) then
             write (*,*) "ZHEEVD in berry calculation failed"
         endif
@@ -1119,11 +1112,8 @@ contains
         deallocate(work, rwork, iwork)
 
         ! write (*,*) "Vx:"
-        if(self%me == root) write (*,*) "start velo1     ", date_time()
         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
-        if(self%me == root) write (*,*) "start velo2     ", date_time()
         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
-        if(self%me == root) write (*,*) "stop velo    ", date_time()
         
         deallocate(eig_vec)
     end subroutine calc_eig_and_velo
