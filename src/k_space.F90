@@ -46,7 +46,7 @@ module Class_k_space
       type(units)          :: units
    contains
 
-      procedure :: vol_k_space_parallelo  => vol_k_space_parallelo
+      procedure :: vol_k_space_para       => vol_k_space_para
       procedure :: calc_and_print_band    => calc_and_print_band
       procedure :: setup_k_path_rel       => setup_k_path_rel
       procedure :: setup_k_path_abs       => setup_k_path_abs
@@ -59,7 +59,7 @@ module Class_k_space
       procedure :: write_fermi            => write_fermi
       procedure :: calc_and_print_dos     => calc_and_print_dos
       procedure :: calc_berry_quantities  => calc_berry_quantities
-      procedure :: setup_inte_grid_square => setup_inte_grid_square
+      procedure :: setup_inte_grid_para   => setup_inte_grid_para
       procedure :: setup_inte_grid_hex    => setup_inte_grid_hex
       procedure :: setup_berry_inte_grid  => setup_berry_inte_grid
       procedure :: set_weights_ksp        => set_weights_ksp
@@ -265,9 +265,9 @@ contains
       integer              :: i, num_up
 
       if(trim(self%ham%UC%uc_type) == "square_2d") then
-         call self%setup_inte_grid_square(self%DOS_num_k_pts)
+         call self%setup_inte_grid_parallelo(self%DOS_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "file_square") then
-         call self%setup_inte_grid_square(self%DOS_num_k_pts)
+         call self%setup_inte_grid_parallelo(self%DOS_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
          call self%setup_inte_grid_hex(self%DOS_num_k_pts)
       else
@@ -512,7 +512,7 @@ contains
 
    end subroutine setup_k_grid
 
-   subroutine setup_inte_grid_square(self, n_k, padding)
+   subroutine setup_inte_grid_parallelo(self, n_k, padding)
       implicit none
       class(k_space)        :: self
       integer, intent(in):: n_k
@@ -552,7 +552,7 @@ contains
 
       forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
          self%new_k_pts(:,i) + my_norm2(k1) * self%k_shift
-   end subroutine setup_inte_grid_square
+   end subroutine setup_inte_grid_para
 
    subroutine setup_inte_grid_hex(self, n_k)
       implicit none
@@ -732,7 +732,7 @@ contains
 
    end subroutine setup_k_path_rel
 
-   function vol_k_space_parallelo(self) result(vol)
+   function vol_k_space_para(self) result(vol)
       implicit none
       class(k_space)         :: self
       real(8)                :: vol, k1(3), k2(3)
@@ -743,7 +743,7 @@ contains
       k2(1:2) = self%ham%UC%rez_lattice(:,2)
 
       vol = my_norm2(cross_prod(k1,k2))
-   end function vol_k_space_parallelo
+   end function vol_k_space_para
 
    function vol_k_hex(self) result(vol)
       implicit none
@@ -1438,9 +1438,9 @@ contains
       endif
 
       if(trim(self%ham%UC%uc_type) == "square_2d") then
-         call self%setup_inte_grid_square(self%berry_num_k_pts)
+         call self%setup_inte_grid_para(self%berry_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "file_square") then
-         call self%setup_inte_grid_square(self%berry_num_k_pts)
+         call self%setup_inte_grid_para(self%berry_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
          call self%setup_inte_grid_hex(self%berry_num_k_pts)
       else
@@ -1843,7 +1843,7 @@ contains
 
       if( trim(self%ham%UC%uc_type) == "square_2d" &
          .or.trim(self%ham%UC%uc_type) == "file_square" ) then
-         call self%setup_inte_grid_square(self%ACA_num_k_pts, padding=.False.)
+         call self%setup_inte_grid_para(self%ACA_num_k_pts, padding=.False.)
          N_k = size(self%new_k_pts, 2)
          call my_section(self%me, self%nProcs, N_k, first, last)
 
@@ -2047,7 +2047,7 @@ contains
       self%calc_hall   = .True.
       self%calc_orbmag = .False.
 
-      call self%setup_inte_grid_square(self%num_plot_pts, padding=.False.)
+      call self%setup_inte_grid_para(self%num_plot_pts, padding=.False.)
       call self%calc_new_berry_points(eig_val, omega_z, Q_L, Q_IC)
 
       call save_npy(trim(self%prefix) // "k_grid.npy", self%new_k_pts)

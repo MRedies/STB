@@ -42,7 +42,7 @@ module Class_unit_cell
         logical      :: test_run !> should unit tests be performed
     contains
     
-        procedure :: init_unit_honey             => init_unit_honey
+        procedure :: init_unit_honey_hexa        => init_unit_honey_hexa
         procedure :: init_unit_square            => init_unit_square
         procedure :: get_num_atoms               => get_num_atoms
         procedure :: setup_square                => setup_square
@@ -142,7 +142,9 @@ contains
         if(trim(self%uc_type) == "square_2d") then
             call self%init_unit_square()
         else if(trim(self%uc_type) == "honey_2d") then
-            call self%init_unit_honey()
+            call self%init_unit_honey_hexa()
+        else if(trim(self%uc_type) == "honey_line") then
+            call self%init_unit_honey_line()
         else if(trim(self%uc_type) == "file_square") then
             call self%init_file_square()
         else
@@ -355,7 +357,89 @@ contains
         deallocate(grid)
     end subroutine make_hexagon
 
-    subroutine init_unit_honey(self)
+    subroutine make_honeycomb_line(self, line, site_type)
+      implicit none
+      class(unit_cell), intent(inout)   :: self
+      real(8), allocatable              :: line(:,:)
+      integer, allocatable              :: site_type(:)
+      real(8)                           :: shift_mtx(2,3), base_len_uc, pos(3)
+      integer                           :: num_atoms, i 
+
+      num_atoms   = self%atom_per_dim
+      if(mod(num_atoms,2) /= 0) then
+         write (*,*) "number of atoms in honey_comb line has to be even"
+         call MPI_Abort(MPI_COMM_WORLD, 23)
+      endif
+
+      base_len_uc = self%lattice_constant * num_atoms
+
+      shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
+      shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
+      
+      allocate(line(num_atoms,3))
+      allocate(site_type(num_atoms))
+      pos = 0d0
+
+      do i = 1, num_atoms
+         line(i,:) = pos
+         if(mod(i-1,2) == 0) then
+            pos = pos + shift_mtx(1,:)
+            site_type(i) = B_site
+         else
+            pos = pos + shift_mtx(2,:)
+            site_type(i) = A_site
+         endif
+      enddo
+    end subroutine make_honeycomb_line
+
+
+    subroutine init_unit_honey_line(self)
+        implicit none
+        class(unit_cell), intent(inout)   :: self
+        real(8)                           :: transl_mtx(2,3),  base_len_uc, conn_mtx(3,3)
+        real(8), allocatable              :: line(:,:)
+        integer, allocatable              :: site_type(:)
+        integer                           :: apd       
+
+        apd         = self%atom_per_dim
+        base_len_uc = self%lattice_constant * apd
+      
+        shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
+        shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
+    
+        transl_mtx(1, :) =  apd/2 * (shift_mtx(1,:) + shift_mtx(2,:))
+        transl_mtx(2, :) =  self%lattice_constant * [0.5d0, sin(deg_60),   0d0]
+        
+        !if we want a molecule, ensure that no wrap-around is found
+        if(self%molecule) transl_mtx = transl_mtx * 10d0
+
+        ! this has to change
+        self%lattice(:,1) =  transl_mtx(1,1:2)
+        self%lattice(:,2) =  transl_mtx(2,1:2)
+
+        allocate(self%atoms(apd))
+
+        call self%make_honeycomb_line(line, site_type)
+        call self%setup_honey(line, site_type)
+        
+        write (*,*) "mag types still need some work for honeylines"
+        if(trim(self%mag_type) == "ferro_uiaeuiaeuia") then
+            call self%set_mag_ferro()
+        else
+            write (*,*) "Mag_type = ", trim(self%mag_type)
+            call error_msg("mag_type not known", abort=.True.)
+        endif
+
+        ! only one kind of atoms of the honey-comb unit cell needs
+        ! the other comes through complex conjugate
+        conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
+        conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
+        conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
+        
+        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
+    end subroutine init_unit_honey_line
+
+    subroutine init_unit_honey_hexa(self)
         implicit none
         class(unit_cell), intent(inout)   :: self
         real(8)  :: transl_mtx(3,3), l, base_len_uc, conn_mtx(3,3)
@@ -408,7 +492,7 @@ contains
         call self%set_honey_snd_nearest()
         
         deallocate(hexagon, site_type)
-    end subroutine init_unit_honey
+    end subroutine init_unit_honey_hexa
 
     subroutine set_honey_snd_nearest(self)
         implicit none
