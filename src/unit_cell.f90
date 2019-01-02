@@ -44,6 +44,7 @@ module Class_unit_cell
     
         procedure :: init_unit_honey_hexa        => init_unit_honey_hexa
         procedure :: init_unit_square            => init_unit_square
+        procedure :: init_unit_honey_line        => init_unit_honey_line
         procedure :: get_num_atoms               => get_num_atoms
         procedure :: setup_square                => setup_square
         procedure :: setup_single_hex            => setup_single_hex
@@ -66,6 +67,7 @@ module Class_unit_cell
         procedure :: Bcast_UC                    => Bcast_UC
         procedure :: setup_honey                 => setup_honey
         procedure :: make_hexagon                => make_hexagon
+        procedure :: make_honeycomb_line         => make_honeycomb_line
         procedure :: free_uc                     => free_uc
         procedure :: init_file_square            => init_file_square
         procedure :: run_tests                   => run_tests
@@ -363,12 +365,12 @@ contains
       real(8), allocatable              :: line(:,:)
       integer, allocatable              :: site_type(:)
       real(8)                           :: shift_mtx(2,3), base_len_uc, pos(3)
-      integer                           :: num_atoms, i 
+      integer                           :: num_atoms, i, ierr
 
       num_atoms   = self%atom_per_dim
       if(mod(num_atoms,2) /= 0) then
          write (*,*) "number of atoms in honey_comb line has to be even"
-         call MPI_Abort(MPI_COMM_WORLD, 23)
+         call MPI_Abort(MPI_COMM_WORLD, 23, ierr)
       endif
 
       base_len_uc = self%lattice_constant * num_atoms
@@ -396,7 +398,7 @@ contains
     subroutine init_unit_honey_line(self)
         implicit none
         class(unit_cell), intent(inout)   :: self
-        real(8)                           :: transl_mtx(2,3),  base_len_uc, conn_mtx(3,3)
+        real(8)                           :: transl_mtx(2,3),  base_len_uc, conn_mtx(3,3), shift_mtx(2,3)
         real(8), allocatable              :: line(:,:)
         integer, allocatable              :: site_type(:)
         integer                           :: apd       

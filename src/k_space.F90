@@ -265,9 +265,9 @@ contains
       integer              :: i, num_up
 
       if(trim(self%ham%UC%uc_type) == "square_2d") then
-         call self%setup_inte_grid_parallelo(self%DOS_num_k_pts)
+         call self%setup_inte_grid_para(self%DOS_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "file_square") then
-         call self%setup_inte_grid_parallelo(self%DOS_num_k_pts)
+         call self%setup_inte_grid_para(self%DOS_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
          call self%setup_inte_grid_hex(self%DOS_num_k_pts)
       else
@@ -512,7 +512,7 @@ contains
 
    end subroutine setup_k_grid
 
-   subroutine setup_inte_grid_parallelo(self, n_k, padding)
+   subroutine setup_inte_grid_para(self, n_k, padding)
       implicit none
       class(k_space)        :: self
       integer, intent(in):: n_k
