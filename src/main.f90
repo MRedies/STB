@@ -241,7 +241,7 @@ contains
       call CFG_add(cfg, "dos%lower_E_bound",    0d0,     "")
       call CFG_add(cfg, "dos%upper_E_bound",    0d0,     "")
       call CFG_add(cfg, "berry%fermi_type", "fixed",      "")
-      call CFG_add(cfg, "berry%E_fermi",          [0d0, 0d0, 0d0],   "")
+      call CFG_add(cfg, "berry%E_fermi",          [-10d0, 10d0, 300d0],   "")
       call CFG_add(cfg, "dos%fermi_fill",       0.5d0,   "")
 
       call CFG_add(cfg, "berry%calc_hall", .False., "")
