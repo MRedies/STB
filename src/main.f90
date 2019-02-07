@@ -240,7 +240,7 @@ contains
       call CFG_add(cfg, "dos%num_points",       300,     "")
       call CFG_add(cfg, "dos%lower_E_bound",    0d0,     "")
       call CFG_add(cfg, "dos%upper_E_bound",    0d0,     "")
-      call CFG_add(cfg, "berry%fermi_type",       "",      "")
+      call CFG_add(cfg, "berry%fermi_type", "fixed",      "")
       call CFG_add(cfg, "berry%E_fermi",          [0d0, 0d0, 0d0],   "")
       call CFG_add(cfg, "dos%fermi_fill",       0.5d0,   "")
 
@@ -253,7 +253,7 @@ contains
       call CFG_add(cfg, "grid%k_shift", [0d0, 0d0, 0d0], "shift brellouin zone")
       call CFG_add(cfg, "berry%conv_criterion", 0d0, "")
       call CFG_add(cfg, "berry%perform_pad", .True., "padding to use all procs")
-      call CFG_add(cfg, "berry%weights", "", "use this quantity for refinement")
+      call CFG_add(cfg, "berry%weights", "hall", "use this quantity for refinement")
       call CFG_add(cfg, "berry%adaptive_mode", "area", "how to choose new points")
 
       call CFG_add(cfg, "output%band_prefix", "bar/foo","folder")
