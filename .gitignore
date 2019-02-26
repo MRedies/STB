@@ -7,6 +7,7 @@ cmake_install.cmake
 *.x
 *.o
 *.pdf
+*.npy
 output/*
 inis/*cfg
 !inis/example.cfg
