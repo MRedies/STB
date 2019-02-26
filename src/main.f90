@@ -223,6 +223,10 @@ contains
       call CFG_add(cfg, "grid%skyrm_middle",     0.5d0, "skyrm position")
       call CFG_add(cfg, "grid%dblatan_width",    0d0,   "plateau width")
       call CFG_add(cfg, "grid%mag_file",         "",    "mag input file")
+      write (*,*) "FLAG A"
+      call CFG_add(cfg, "grid%anticol_phi",empty_array, "anticollinear polar angle", dynamic_size=.True.)
+      write (*,*) "FLAG B"
+      call CFG_add(cfg, "grid%anticol_theta",empty_array, "anticollinear azimutal angle", dynamic_size=.True.)
 
       call CFG_add(cfg, "band%perform_band",  .False., "")
       call CFG_add(cfg, "band%k_label",    (/ ""/),   "",&

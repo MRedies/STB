@@ -30,7 +30,8 @@ module Class_unit_cell
         real(8) :: lattice_constant !> lattice constant in atomic units
         real(8) :: eps !> threshold for positional accuracy
         real(8) :: ferro_phi, ferro_theta
-        real(8) :: atan_factor !> how fast do we change the border wall
+        real(8) ,allocatable:: anticol_phi(:),anticol_theta(:) !> the angles for anticollinear setups, one
+        real(8):: atan_factor !> how fast do we change the border wall
         real(8) :: dblatan_dist !> width of the atan plateau
         real(8) :: skyrm_middle !> position of inplane
         type(atom), dimension(:), allocatable :: atoms !> array containing all atoms
@@ -54,6 +55,7 @@ module Class_unit_cell
         procedure :: gen_find_neigh              => gen_find_neigh
         procedure :: save_unit_cell              => save_unit_cell
         procedure :: set_mag_ferro               => set_mag_ferro
+        procedure :: set_mag_anticol             => set_mag_anticol
         procedure :: set_mag_random              => set_mag_random
         procedure :: set_mag_x_spiral_square     => set_mag_x_spiral_square
         procedure :: set_mag_linrot_skyrm        => set_mag_linrot_skyrm
@@ -104,6 +106,7 @@ contains
         integer   , dimension(2)        :: ipiv
         integer                         :: info
         integer                         :: ierr
+        integer                         :: anticol_size
         
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
@@ -121,6 +124,16 @@ contains
             endif
 
             call CFG_get(cfg, "grid%mag_type", self%mag_type)
+            write (*,*) "FLAG C"
+            call CFG_get_size(cfg, "grid%anticol_phi", anticol_size)
+            write (*,*) "anticolsize = ", anticol_size
+            allocate(self%anticol_phi(anticol_size)) !allocate phi
+            call CFG_get(cfg, "grid%anticol_phi", self%anticol_phi)
+            call CFG_get_size(cfg, "grid%anticol_theta", anticol_size)
+            write (*,*) "anticolsize = ", anticol_size
+            allocate(self%anticol_theta(anticol_size)) !allocate theta
+            call CFG_get(cfg, "grid%anticol_theta", self%anticol_theta)
+
             call CFG_get(cfg, "grid%winding_number", self%n_wind)
             call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
 
@@ -137,6 +150,9 @@ contains
 
             call CFG_get(cfg, "grid%mag_file", self%mag_file)
             call CFG_get(cfg, "general%test_run", self%test_run)
+
+
+
         endif
 
         call self%Bcast_UC()
@@ -175,9 +191,15 @@ contains
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer   , parameter         :: num_cast = 13
+        integer   , parameter         :: num_cast = 17
         integer                       :: ierr(num_cast)
-        
+        integer                       :: anticol_size_phi
+        integer                       :: anticol_size_theta
+
+        if(self%me == root) then
+            anticol_size_phi = size(self%anticol_phi)
+            anticol_size_theta = size(self%anticol_theta)
+        endif
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
                        root,                  MPI_COMM_WORLD, ierr(1))
         call MPI_Bcast(self%mag_type,         25,             MPI_CHARACTER, &
@@ -208,6 +230,19 @@ contains
         call MPI_Bcast(self%test_run, 1,              MPI_LOGICAL, &
                         root,         MPI_COMM_WORLD, ierr(13))
 
+        call MPI_Bcast(anticol_size_phi, 1,              MYPI_INT, &
+                        root,         MPI_COMM_WORLD, ierr(14))
+        call MPI_Bcast(anticol_size_theta, 1,              MYPI_INT, &
+                        root,         MPI_COMM_WORLD, ierr(15))
+        if(self%me /= root) then
+            allocate(self%anticol_phi(anticol_size_phi))
+            allocate(self%anticol_theta(anticol_size_theta))
+        endif
+        call MPI_Bcast(self%anticol_theta, anticol_size_theta ,            MPI_REAL8, &
+                        root,              MPI_COMM_WORLD, ierr(16))
+        call MPI_Bcast(self%anticol_phi,  anticol_size_phi,            MPI_REAL8, &
+                        root,              MPI_COMM_WORLD, ierr(17))
+  
         
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
@@ -246,6 +281,8 @@ contains
             call self%set_mag_linrot_skrym_square()
         else if(trim(self%mag_type) == "random") then
             call self%set_mag_random()
+        else if(trim(self%mag_type) == "anticol") then
+            call self%set_mag_anticol()        
         else
             write (*,*) "Mag_type = ", trim(self%mag_type)
             call error_msg("mag_type not known", abort=.True.)
@@ -479,6 +516,8 @@ contains
             call self%set_mag_dblatan_skyrm_honey()
         else if(trim(self%mag_type) == "random") then
             call self%set_mag_random()
+        else if(trim(self%mag_type) == "anticol") then
+            call self%set_mag_anticol()        
         else
             write (*,*) "Mag_type = ", trim(self%mag_type)
             call error_msg("mag_type not known", abort=.True.)
@@ -574,6 +613,20 @@ contains
         enddo
     end subroutine set_mag_ferro
 
+    subroutine set_mag_anticol(self)
+        implicit none
+        class(unit_cell)        :: self
+        integer                 :: i        
+        
+        if(      size(self%anticol_phi)   /= self%num_atoms &
+            .or. size(self%anticol_theta)/= self%num_atoms) then
+            call error_msg("sizes of anticol_phi and anticol_theta not consistent with num_atoms", abort=.True.)
+        else
+            do i = 1,self%num_atoms
+                call self%atoms(i)%set_sphere(self%anticol_phi(i), self%anticol_theta(i))
+            enddo
+        endif    
+    end subroutine set_mag_anticol    
 
     subroutine set_mag_x_spiral_square(self)
         implicit none
