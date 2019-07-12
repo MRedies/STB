@@ -21,6 +21,7 @@ module Class_hamiltionian
       real(8)         :: t_so !> Rashba spin orb
       real(8)         :: lambda !> local exchange
       real(8)         :: HB1, HB2, HB_eta !> parameters for hongbins model
+      real(8)         :: lambda_KM !> parameter for Kane Mele term
       real(8), allocatable       :: drop_Vx_layers(:), drop_Vy_layers(:)
       complex(8), allocatable    :: del_H(:,:)
       integer         :: nProcs
@@ -51,6 +52,7 @@ module Class_hamiltionian
       procedure :: set_derivative_snd_hopping     => set_derivative_snd_hopping
       procedure :: set_derivative_haldane_hopping => set_derivative_haldane_hopping
       procedure :: set_derivative_rashba_so       => set_derivative_rashba_so
+      procedure :: set_derivative_KM              => set_derivative_KM
       procedure :: set_hopp_mtx                   => set_hopp_mtx
       procedure :: set_small_SOC                  => set_small_SOC
       procedure :: set_SOC                        => set_SOC
@@ -59,6 +61,7 @@ module Class_hamiltionian
       procedure :: set_snd_hopp_mtx               => set_snd_hopp_mtx
       procedure :: set_hongbin_hopp               => set_hongbin_hopp
       procedure :: set_hongbin_SOC                => set_hongbin_SOC
+      procedure :: set_KaneMele_exch              => set_KaneMele_exch
       procedure :: z_layer_states                 => z_layer_states
       procedure :: drop_layer_derivative          => drop_layer_derivative
    end type hamil
@@ -196,6 +199,7 @@ contains
       if(self%t_so      /= 0d0) call self%set_rashba_SO(k,H)
       if(self%eta_soc   /= 0d0) call self%set_SOC(H)
       if(self%lambda    /= 0d0) call self%set_loc_exch(H)
+      if(self%lambda_KM /= 0d0) call self%set_KaneMele_exch(k,H)
 
       if(self%HB1 /= 0d0 .or. self%HB2 /= 0d0) then
          call self%set_hongbin_hopp(k, H)
@@ -297,6 +301,9 @@ contains
          call CFG_get(cfg, "hamil%HB_eta", tmp)
          self%HB_eta =  tmp * self%units%energy
 
+         call CFG_get(cfg, "hamil%lambda_KM", tmp)
+         self%lambda_KM =  tmp * self%units%energy
+
          call CFG_get(cfg, "general%test_run", self%test_run)
 
          call CFG_get_size(cfg, "layer_dropout%Vx", n_arr)
@@ -313,7 +320,7 @@ contains
    subroutine Bcast_hamil(self)
       implicit none
       class(hamil)          :: self
-      integer   , parameter :: num_cast = 24
+      integer   , parameter :: num_cast = 25
       integer               :: ierr(num_cast), Vx_len, Vy_len
 
       call MPI_Bcast(self%E_s,      1,              MPI_REAL8,   &
@@ -357,6 +364,8 @@ contains
                      root,        MPI_COMM_WORLD, ierr(19))
       call MPI_Bcast(self%HB_eta, 1,              MPI_REAL8, &
                      root,        MPI_COMM_WORLD, ierr(20))
+      call MPI_Bcast(self%lambda_KM, 1,              MPI_REAL8, &
+                     root,        MPI_COMM_WORLD, ierr(25))
 
       ! allocate and share Vx_dropout
       if(self%me == root) Vx_len = size(self%drop_Vx_layers)
@@ -379,7 +388,7 @@ contains
       call check_ierr(ierr, self%me, "Hamiltionian check err")
    end subroutine
 
-   subroutine set_loc_exch(self,H)
+    subroutine set_loc_exch(self,H)
       implicit none
       class(hamil), intent(in)   :: self
       complex(8), intent(inout)  :: H(:,:)
@@ -737,6 +746,49 @@ contains
 
    end subroutine set_haldane_hopping
 
+   subroutine set_KaneMele_exch(self, k, H)
+    implicit none
+    class(hamil), intent(in)    :: self
+    real(8),intent(in)          ::k(3)
+    complex(8), intent(inout)   :: H(:,:)
+    real(8)                     ::a(3,2)
+    real(8)                     ::k_n(3)
+    integer                     ::conn,i,i_d,j,j_d
+    real(8)                     ::KM,lambda_KM,x,y,f
+
+    if(self%num_orb /= 1) call error_msg("Kane-Mele only for s-oritals", abort=.True.)
+
+    do i = 1,self%num_up
+         i_d =  i + self%num_up
+         do conn = 1,size(self%UC%atoms(i)%neigh_idx)
+            if(self%UC%atoms(i)%conn_type(conn) == snd_nn_conn) then
+               a(:,size(self%UC%atoms(i)%neigh_idx) + 1 - conn) = self%UC%atoms(i)%neigh_conn(conn,:) ! connection vectors 
+            endif
+         enddo
+      k_n = k/my_norm2(k)
+      if (my_norm2(a(:,2))>10**(-8)) then
+         a(:,2) = a(:,2)/my_norm2(a(:,2))
+      endif
+      if (my_norm2(a(:,1))>10**(-8)) then
+         a(:,1) = a(:,1)/my_norm2(a(:,1))
+      endif
+      y = 0.5*dot_product(k_n,a(:,2) + a(:,1))
+      x = 0.5*dot_product(k_n,a(:,1) - a(:,2))
+      f = 4*(2*sin(y)*cos(x) - sin(2*x))
+      KM = lambda_KM*f
+      H(i,i) = H(i,i) + KM
+      H(i_d,i_d) = H(i_d,i_d) - KM
+      do conn = 1,size(self%UC%atoms(i)%neigh_idx)
+         if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
+            j =  self%UC%atoms(i)%neigh_idx(conn)
+            j_d = j + self%num_up
+            H(j,j) = H(j,j) - KM
+            H(j_d,j_d) = H(j_d,j_d) + KM
+         endif
+      enddo
+    enddo
+    end subroutine set_KaneMele_exch
+
    subroutine set_rashba_SO(self, k, H)
       implicit none
       class(hamil), intent(in)    :: self
@@ -860,7 +912,7 @@ contains
 
       if(self%t_so /= 0d0) call self%set_derivative_rashba_so(k, k_idx)
       if(self%t_2  /= 0d0) call self%set_derivative_haldane_hopping(k, k_idx)
-
+      if(self%lambda_KM /= 0d0) call self%set_derivative_KM(k)
       has_hopp =  (self%V2pp_sig /= 0d0)  &
                  .or. (self%V2pp_pi /= 0d0)
       if(has_hopp) call self%set_derivative_snd_hopping(k, k_idx)
@@ -874,6 +926,52 @@ contains
       call self%drop_layer_derivative(k_idx)
    end subroutine set_derivative_k
 
+
+   subroutine set_derivative_KM(self, k )
+    implicit none
+    class(hamil)                :: self
+    real(8),intent(in)          ::k(3)
+    real(8)                     ::a(3,2)
+    real(8)                     ::k_n(3)
+    integer                     ::conn,i,i_d,j,j_d
+    real(8)                     ::abs_k,KM_deriv,lambda_KM,x,y,f_deriv
+
+    lambda_KM = self%lambda_KM
+
+    if(self%num_orb /= 1) call error_msg("Kane-Mele only for s-oritals", abort=.True.)
+    lambda_KM = self%lambda_KM
+    do i = 1,self%num_up
+        i_d =  i + self%num_up
+        self%del_H(i,i) = self%del_H(i,i) + KM_deriv
+        self%del_H(i_d,i_d) = self%del_H(i_d,i_d) - KM_deriv
+        do conn = 1,size(self%UC%atoms(i)%neigh_idx)
+            if(self%UC%atoms(i)%conn_type(conn) == snd_nn_conn) then
+               a(:,size(self%UC%atoms(i)%neigh_idx) + 1 - conn) = self%UC%atoms(i)%neigh_conn(conn,:) ! connection vectors
+               k_n = k/my_norm2(k)
+               if (my_norm2(a(:,2))>10**(-8)) then
+                  a(:,2) = a(:,2)/my_norm2(a(:,2))
+               endif
+               if (my_norm2(a(:,1))>10**(-8)) then
+                  a(:,1) = a(:,1)/my_norm2(a(:,1))
+               endif
+               !write (*,*) "y: " ,y
+               write (*,*) "a2" ,a(:,2)
+               !write (*,*) "x: " ,x
+               write (*,*) "a1: " ,a(:,1)
+               y = 0.5*dot_product(k_n,a(:,2) + a(:,1))
+               x = 0.5*dot_product(k_n,a(:,1) - a(:,2))
+               abs_k = my_norm2(k)
+               f_deriv = 8*(2*cos(y)*cos(x)*y/abs_k - 2*sin(y)*sin(x)*x/abs_k - 2*x/abs_k*cos(2*x))
+               KM_deriv = lambda_KM*f_deriv
+               j =  self%UC%atoms(i)%neigh_idx(conn)
+               j_d = j + self%num_up
+               self%del_H(j,j) = self%del_H(j,j) - KM_deriv
+               self%del_H(j_d,j_d) = self%del_H(j_d,j_d) + KM_deriv
+            endif
+        enddo
+    enddo
+
+    end subroutine set_derivative_KM
    subroutine set_derivative_hopping(self, k, k_idx)
       implicit none
       class(hamil)             :: self

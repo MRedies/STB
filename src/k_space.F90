@@ -89,7 +89,7 @@ module Class_k_space
       procedure :: calc_new_berry_points  => calc_new_berry_points
       procedure :: calc_new_kidx          => calc_new_kidx
       procedure :: calc_orbmag_z_singleK  => calc_orbmag_z_singleK
-      procedure :: setup_A_mtx            => setup_A_mtx
+      !procedure :: setup_A_mtx            => setup_A_mtx
       procedure :: save_grid              => save_grid
       procedure :: calc_ACA               => calc_ACA
       procedure :: calc_ACA_singleK       => calc_ACA_singleK
@@ -1294,9 +1294,9 @@ contains
 
    end subroutine set_orbmag_weights
 
-   function setup_A_mtx(self, Vx_mtx, Vy_mtx) result(A_mtx)
+   function setup_A_mtx(Vx_mtx, Vy_mtx) result(A_mtx)
       implicit none
-      class(k_space), intent(in) :: self
+      !class(k_space), intent(in) :: self
       complex(8), intent(in)     :: Vx_mtx(:,:), Vy_mtx(:,:)
       real(8), allocatable       :: A_mtx(:,:)
       integer                    :: m, n
@@ -1324,7 +1324,7 @@ contains
       real(8), allocatable     :: A_mtx(:,:)
       integer                  :: m, n, n_ferm
 
-      A_mtx = self%setup_A_mtx(Vx_mtx, Vy_mtx)
+      A_mtx = setup_A_mtx(Vx_mtx, Vy_mtx)
 
       Q_L  = 0
       Q_IC = 0

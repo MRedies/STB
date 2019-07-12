@@ -210,6 +210,7 @@ contains
       call CFG_add(cfg, "hamil%HB1",    0d0, "Hongbin nearest neigh hopping")
       call CFG_add(cfg, "hamil%HB2",    0d0, "Hongbin snd nearest neigh")
       call CFG_add(cfg, "hamil%HB_eta", 0d0, "Hongbin SOC")
+      call CFG_add(cfg, "hamil%lambda_KM", 0d0, "Kane Mele parameter")
 
       call CFG_add(cfg, "grid%atoms_per_dim",    -1,    "")
       call CFG_add(cfg, "grid%unit_cell_type",   "",    "")
@@ -223,9 +224,7 @@ contains
       call CFG_add(cfg, "grid%skyrm_middle",     0.5d0, "skyrm position")
       call CFG_add(cfg, "grid%dblatan_width",    0d0,   "plateau width")
       call CFG_add(cfg, "grid%mag_file",         "",    "mag input file")
-      write (*,*) "FLAG A"
       call CFG_add(cfg, "grid%anticol_phi",empty_array, "anticollinear polar angle", dynamic_size=.True.)
-      write (*,*) "FLAG B"
       call CFG_add(cfg, "grid%anticol_theta",empty_array, "anticollinear azimutal angle", dynamic_size=.True.)
 
       call CFG_add(cfg, "band%perform_band",  .False., "")
