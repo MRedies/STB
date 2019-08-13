@@ -46,7 +46,10 @@ module Class_hamiltionian
       procedure :: set_deriv_FD                   => set_deriv_FD
       procedure :: calc_berry_z                   => calc_berry_z
       procedure :: calc_velo_mtx                  => calc_velo_mtx
+      procedure :: calc_right_pert_velo_mtx       => calc_right_pert_velo_mtx
+      procedure :: calc_left_pert_velo_mtx        => calc_left_pert_velo_mtx
       procedure :: calc_eig_and_velo              => calc_eig_and_velo
+      procedure :: calc_exch_firstord             => calc_exch_firstord
       procedure :: compare_derivative             => compare_derivative
       procedure :: set_derivative_hopping         => set_derivative_hopping
       procedure :: set_derivative_snd_hopping     => set_derivative_snd_hopping
@@ -1137,6 +1140,31 @@ contains
          enddo
       enddo
    end subroutine set_derivative_rashba_so
+
+  subroutine calc_exch_firstord(H_xc_1):
+      implicit none
+      class(hamil)
+      complex, intent(inout)          :: H_xc_1 (:,:)
+      real                            :: theta,phi
+      integer                         :: i,i_d,conn,j,j_d
+      theta = self%UC%anticol_theta
+      phi = self%UC%anticol_phi
+      n_dim = 2 * self%num_up
+      !allocate(H_xc_1(n_dim,n_dim))
+      do i =  1, self%num_up
+         i_d =  i + self%num_up
+         do conn =  1,size(self%UC%atoms(i)%neigh_idx)
+            if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
+               j =  self%UC%atoms(i)%neigh_idx(conn)
+               j_d = j + self%num_up
+               H_xc_1(i,i_d) = -theta(1)*exp(-i_unit*phi(1))!> -theta*e(-iphi)
+               H_xc_1(i_d,i) = theta(1)*exp(i_unit*phi(1))!> theta*e(iphi)
+               H_xc_1(j,j_d) = -theta(2)*exp(-i_unit*phi(2))!> -theta*e(-iphi)
+               H_xc_1(j_d,j) = theta(2)*exp(i_unit*phi(2))!> theta*e(iphi)
+            endif
+         enddo
+      enddo
+   end subroutine calc_exch_firstord
 
    subroutine calc_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
       implicit none
