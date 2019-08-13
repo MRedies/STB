@@ -1141,11 +1141,11 @@ contains
       enddo
    end subroutine set_derivative_rashba_so
 
-  subroutine calc_exch_firstord(H_xc_1):
+   subroutine calc_exch_firstord(H_xc_1):
       implicit none
       class(hamil)
       complex, intent(inout)          :: H_xc_1 (:,:)
-      real                            :: theta,phi
+      real                            :: theta(2),phi(2)
       integer                         :: i,i_d,conn,j,j_d
       theta = self%UC%anticol_theta
       phi = self%UC%anticol_phi
@@ -1165,6 +1165,81 @@ contains
          enddo
       enddo
    end subroutine calc_exch_firstord
+
+   subroutine calc_left_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
+      implicit none
+      class(hamil)                    :: self
+      real(8), intent(in)             :: k(3)
+      integer   , intent(in)          :: derive_idx
+      complex(8), intent(in)          :: eig_vec_mtx(:,:)
+      complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
+      integer                         :: n_dim,i,i_d,conn,j,j_d
+
+      allocate(tmp(n_dim, n_dim))
+      allocate(H_xc_1(n_dim, n_dim))
+      H_xc_1 = 0d0
+      call self%exchange_firstorder(H_xc_1)
+      if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
+      call self%set_derivative_k(k, derive_idx)
+         call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+                    c_1, self%del_H, n_dim,&
+                    eig_vec_mtx, n_dim,&
+                    c_0, tmp, n_dim)
+         deallocate(self%del_H)
+
+         if(allocated(ret))then
+            if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
+               deallocate(ret)
+            endif
+         endif
+         if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
+
+         call zgemm('C', 'N', n_dim, n_dim, n_dim, &
+                    c_1, H_xc_1, n_dim, &
+                    tmp, n_dim, &
+                    c_0, ret, n_dim)
+         deallocate(tmp)
+   end subroutine calc_left_pert_velo_mtx
+
+   subroutine calc_right_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
+      implicit none
+      class(hamil)                    :: self
+      real(8), intent(in)             :: k(3)
+      integer   , intent(in)          :: derive_idx
+      complex(8), intent(in)          :: eig_vec_mtx(:,:)
+      complex(8), allocatable         :: ret(:,:), tmp(:,:)
+      integer                         :: n_dim
+      
+
+      n_dim = 2 * self%num_up
+      allocate(tmp(n_dim, n_dim))
+      allocate(H_xc_1(n_dim, n_dim))
+      H_xc_1 = 0d0
+      call self%exchange_firstorder(H_xc_1)
+
+      if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
+      call self%set_derivative_k(k, derive_idx)
+      if(pert_log == 0) then
+         call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+                    c_1, self%del_H, n_dim,&
+                    H_xc_1, n_dim,&
+                    c_0, tmp, n_dim)
+         deallocate(self%del_H)
+
+         if(allocated(ret))then
+            if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
+               deallocate(ret)
+            endif
+         endif
+         if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
+
+         call zgemm('C', 'N', n_dim, n_dim, n_dim, &
+                    c_1, eig_vec_mtx, n_dim, &
+                    tmp, n_dim, &
+                    c_0, ret, n_dim)
+         deallocate(tmp)
+      endif
+   end subroutine calc_right_pert_velo_mtx
 
    subroutine calc_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
       implicit none
