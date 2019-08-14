@@ -1167,10 +1167,10 @@ contains
         
    end subroutine calc_exch_firstord
 
-   subroutine calc_left_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
+   subroutine calc_left_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx,eig_val, ret)
       implicit none
       class(hamil)                    :: self
-      real(8), intent(in)             :: k(3)
+      real(8), intent(in)             :: k(3),eig_val(:)
       integer   , intent(in)          :: derive_idx
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
       complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
@@ -1190,7 +1190,7 @@ contains
                  c_0, H_xc_1, n_dim) !H_xc in first order in the eigenbasis of H
       do i=1,n_dim
         do j=1,n_dim
-        H_xc_1(i,j)=1/(self%eig_val(i)-self%eig_val(j))
+        H_xc_1(i,j)=1/(eig_val(i)-eig_val(j))
         enddo
       enddo
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
@@ -1215,14 +1215,14 @@ contains
          deallocate(tmp)
    end subroutine calc_left_pert_velo_mtx
 
-   subroutine calc_right_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
+   subroutine calc_right_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx,eig_val, ret)
       implicit none
       class(hamil)                    :: self
-      real(8), intent(in)             :: k(3)
+      real(8), intent(in)             :: k(3),eig_val(:)
       integer   , intent(in)          :: derive_idx
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
       complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
-      integer                         :: n_dim
+      integer                         :: n_dim,i,j
       
 
       n_dim = 2 * self%num_up
@@ -1240,7 +1240,7 @@ contains
                  c_0, H_xc_1, n_dim) !H_xc in first order in the eigenbasis of H
       do i=1,n_dim
         do j=1,n_dim
-        H_xc_1(i,j)=1/(self%eig_val(i)-self%eig_val(j))
+        H_xc_1(i,j)=1/(eig_val(i)-eig_val(j))
         enddo
       enddo
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
@@ -1300,7 +1300,7 @@ contains
       deallocate(tmp)
    end subroutine calc_velo_mtx
 
-   subroutine calc_eig_and_velo(self, k, eig_val, del_kx, del_ky)
+   subroutine calc_eig_and_velo(self, k, eig_val, del_kx, del_ky,pert_log)
       implicit none
       class(hamil)             :: self
       real(8), intent(in)      :: k(3)
@@ -1308,7 +1308,7 @@ contains
       complex(8), allocatable  :: eig_vec(:,:), del_kx(:,:), del_ky(:,:), work(:)
       real(8), allocatable     :: rwork(:)
       integer   , allocatable  :: iwork(:)
-      integer      :: n_dim, lwork, lrwork, liwork, info
+      integer      :: n_dim, lwork, lrwork, liwork, info,pert_log
       integer      :: ierr(3)
 
       n_dim = 2 * self%num_up
@@ -1333,9 +1333,22 @@ contains
       deallocate(work, rwork, iwork)
 
       ! write (*,*) "Vx:"
-      call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
-      call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
-
+      if(pert_log==0) then
+         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
+         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
+      else if(pert_log==1) then
+         call self%calc_left_pert_velo_mtx(k, 1, eig_vec, eig_val, del_kx)
+         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
+      else if(pert_log==2) then
+         call self%calc_right_pert_velo_mtx(k, 1, eig_vec, eig_val, del_kx)
+         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
+      else if(pert_log==3) then
+         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
+         call self%calc_left_pert_velo_mtx(k, 2, eig_vec, eig_val, del_ky)
+      else if(pert_log==4) then
+         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
+         call self%calc_right_pert_velo_mtx(k, 2, eig_vec, eig_val, del_ky)
+      endif
       deallocate(eig_vec)
    end subroutine calc_eig_and_velo
 

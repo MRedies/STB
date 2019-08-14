@@ -42,6 +42,7 @@ module Class_k_space
       logical              :: calc_hall !> should hall conductivity be calculated
       logical              :: calc_orbmag !> should orbital magnetism be calculated
       logical              :: test_run !> should unit tests be performed
+      logical              :: pert_log !>should berry be calculated in first order perturbation theory
       type(hamil)          :: ham
       type(units)          :: units
    contains
@@ -330,6 +331,7 @@ contains
       type(k_space)         :: self
       type(CFG_t)           :: cfg
       real(8)               :: tmp
+      !logical               :: logtmp
       integer               :: sz
       integer               :: ierr
 
@@ -373,6 +375,9 @@ contains
 
          call CFG_get(cfg, "dos%upper_E_bound", tmp)
          self%DOS_upper =  tmp * self%units%energy
+         
+         !call CFG_get(cfg,"berry%pert_log",logtmp)
+         !self%pert_log = logtmp
 
          call CFG_get(cfg, "berry%k_pts_per_dim", self%berry_num_k_pts)
          call CFG_get(cfg, "berry%temperature", tmp)
@@ -437,7 +442,7 @@ contains
       call MPI_Bcast(self%DOS_upper,     1,              MPI_REAL8, &
                      root,               MPI_COMM_WORLD, ierr(11))
 
-      ! Berry parameter
+      ! Berry parameter               
       call MPI_Bcast(self%berry_num_k_pts, 1,            MYPI_INT,   &
                      root,                            MPI_COMM_WORLD, ierr(12))
       call MPI_Bcast(self%temp,            1,            MPI_REAL8,     &
@@ -467,6 +472,8 @@ contains
                      root,              MPI_COMM_WORLD, ierr(24))
       call MPI_Bcast(self%num_plot_pts,  1,              MYPI_INT,    &
                      root,              MPI_COMM_WORLD, ierr(25))
+      call MPI_Bcast(self%pert_log, 1,            MPI_LOGICAL,   &
+                     root,                            MPI_COMM_WORLD, ierr(26))
 
       call check_ierr(ierr, self%me, "Ksp Bcast")
    end subroutine Bcast_k_space
@@ -756,7 +763,7 @@ contains
       vol =  3d0 * a * a * sin(deg_60)
    end function vol_k_hex
 
-   subroutine calc_berry_quantities(self)
+   subroutine calc_berry_quantities(self,pert_log)
       implicit none
       class(k_space)          :: self
       real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
@@ -768,7 +775,7 @@ contains
       integer     :: N_k, num_up, iter, n_ferm
       integer     :: all_err(13), info
       character(len=300)       :: msg
-      logical                  :: done_hall = .True., done_orbmag = .True.
+      logical                  :: done_hall = .True., done_orbmag = .True.,pert_log
 
       call self%setup_berry_inte_grid()
       N_k = size(self%new_k_pts, 2)
@@ -798,7 +805,7 @@ contains
       start = MPI_Wtime()
       do iter =1,self%berry_iter
          if(self%me == root) write (*,*) "Time: ", MPI_Wtime() -  start
-         call self%calc_new_berry_points(eig_val_new, omega_z_new, Q_L_new, Q_IC_new)
+         call self%calc_new_berry_points(eig_val_new, omega_z_new, Q_L_new, Q_IC_new,pert_log)
 
          call self%calc_new_kidx(kidx_new)
 
@@ -898,15 +905,17 @@ contains
       enddo
    end subroutine calc_new_kidx
 
-   subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, Q_L_new, Q_IC_new)
+   subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, Q_L_new, Q_IC_new,pert_log)
       implicit none
       class(k_space)            :: self
-      integer                   :: N_k, cnt, k_idx, num_up, n_ferm
+      integer                   :: N_k, cnt, k_idx, num_up, n_ferm,pert_idx
       integer                   :: first, last, err(3)
+      real(8)                   :: tmp
       real(8)                   :: k(3)
       real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), Q_L_new(:,:), Q_IC_new(:,:)
       complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
-
+      logical                   ::pert_log
+      tmp = 0d0
       N_k = size(self%new_k_pts, 2)
       n_ferm =  size(self%E_fermi)
       num_up =  self%ham%num_up
@@ -926,17 +935,34 @@ contains
       do k_idx = first, last
          !if(self%me == root) write (*,*) k_idx, " of ", last
          k = self%new_k_pts(:,k_idx)
-         call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky)
-
+         call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,0)
+         
          if(self%calc_hall) then
             call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
          endif
-
+         
          if(self%calc_orbmag) then
             call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), &
                                             eig_val_new(:,cnt), del_kx, del_ky)
          endif
+         
+         if(pert_log) then
+            do pert_idx=1,4
+               call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
+
+               if(self%calc_hall) then
+                  call self%ham%calc_berry_z(omega_z_new(:,cnt),&
+                                             eig_val_new(:,cnt), del_kx, del_ky)
+               endif
+      
+               !if(self%calc_orbmag) then
+               !   call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), &
+               !                                   eig_val_new(:,cnt), del_kx, del_ky)
+               !endif
+            enddo
+         endif
+
 
          cnt = cnt + 1
       enddo
@@ -2045,7 +2071,7 @@ contains
       self%calc_orbmag = .False.
 
       call self%setup_inte_grid_para(self%num_plot_pts, padding=.False.)
-      call self%calc_new_berry_points(eig_val, omega_z, Q_L, Q_IC)
+      call self%calc_new_berry_points(eig_val, omega_z, Q_L, Q_IC,.False.)
 
       call save_npy(trim(self%prefix) // "k_grid.npy", self%new_k_pts)
       call save_npy(trim(self%prefix) // "omega_z.npy", omega_z)
