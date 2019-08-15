@@ -402,7 +402,7 @@ contains
 
    subroutine Bcast_k_space(self)
       class(k_space)             :: self
-      integer, parameter     :: num_cast =  25
+      integer, parameter     :: num_cast =  26
       integer                :: ierr(num_cast)
       integer                :: sz(2)
       ierr =  0
@@ -776,7 +776,7 @@ contains
       integer     :: all_err(13), info
       character(len=300)       :: msg
       logical                  :: done_hall = .True., done_orbmag = .True.,pert_log
-
+      write (*,*) "flag2"
       call self%setup_berry_inte_grid()
       N_k = size(self%new_k_pts, 2)
       num_up =  self%ham%num_up

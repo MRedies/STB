@@ -51,9 +51,9 @@ contains
       if(me ==  root)then
          write (*,*) "running: ", trim(inp_file)
          call CFG_read_file(cfg, trim(inp_file))
-         write (*,*) "flag 1"
+
          call add_full_cfg(cfg)
-         !write (*,*) "flag 1"
+
          call CFG_get(cfg, "band%perform_band", perform_band)
          call CFG_get(cfg, "dos%perform_dos",   perform_dos)
          call CFG_get(cfg, "berry%fermi_type",  fermi_type)

@@ -1176,6 +1176,7 @@ contains
       complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
       integer                         :: n_dim,i,j
 
+      n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
       allocate(H_xc_1(n_dim, n_dim))
       H_xc_1 = 0d0
