@@ -119,6 +119,8 @@ contains
         if(self%me ==  0) then 
            call CFG_get(cfg, "berry%pert_log", tmp_log)
             self%pert_log =  tmp_log
+            write (*,*) "tmp_log = ", tmp_log
+            write (*,*) "pert_log = ", self%pert_log
            call CFG_get(cfg, "grid%epsilon", tmp)
             self%eps =  tmp * self%units%length
             
@@ -128,7 +130,7 @@ contains
             endif
 
             call CFG_get(cfg, "grid%mag_type", self%mag_type)
-            write (*,*) "FLAG C"
+            !write (*,*) "FLAG C"
             call CFG_get_size(cfg, "grid%anticol_phi", anticol_size)
             !write (*,*) "anticolsize = ", anticol_size
             allocate(self%anticol_phi(anticol_size)) !allocate phi
@@ -195,7 +197,7 @@ contains
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer   , parameter         :: num_cast = 17
+        integer   , parameter         :: num_cast = 18
         integer                       :: ierr(num_cast)
         integer                       :: anticol_size_phi
         integer                       :: anticol_size_theta
@@ -247,7 +249,8 @@ contains
         call MPI_Bcast(self%anticol_phi,  anticol_size_phi,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(17))
   
-        
+        call MPI_Bcast(self%pert_log, 1,              MPI_LOGICAL, &
+                        root,         MPI_COMM_WORLD, ierr(18))
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
@@ -628,8 +631,8 @@ contains
             call error_msg("sizes of anticol_phi and anticol_theta not consistent with num_atoms", abort=.True.)
         else
           if(size(self%anticol_phi)==2) then
-            write (*,*) "FLAG set_mag_anticol"
             if(self%pert_log) then
+              !write (*,*) "FLAG set_mag_anticol"  
               phi = (self%anticol_phi(1)+self%anticol_phi(2))/2
               theta = (self%anticol_theta(1)+self%anticol_theta(2))/2
               do i = 1,self%num_atoms

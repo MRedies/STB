@@ -42,7 +42,7 @@ module Class_k_space
       logical              :: calc_hall !> should hall conductivity be calculated
       logical              :: calc_orbmag !> should orbital magnetism be calculated
       logical              :: test_run !> should unit tests be performed
-      logical              :: pert_log !>should berry be calculated in first order perturbation theory
+      !logical              :: pert_log !>should berry be calculated in first order perturbation theory
       type(hamil)          :: ham
       type(units)          :: units
    contains
@@ -472,8 +472,8 @@ contains
                      root,              MPI_COMM_WORLD, ierr(24))
       call MPI_Bcast(self%num_plot_pts,  1,              MYPI_INT,    &
                      root,              MPI_COMM_WORLD, ierr(25))
-      call MPI_Bcast(self%pert_log, 1,            MPI_LOGICAL,   &
-                     root,                            MPI_COMM_WORLD, ierr(26))
+      !call MPI_Bcast(self%pert_log, 1,            MPI_LOGICAL,   &
+      !               root,                            MPI_COMM_WORLD, ierr(26))
 
       call check_ierr(ierr, self%me, "Ksp Bcast")
    end subroutine Bcast_k_space
@@ -776,7 +776,7 @@ contains
       integer     :: all_err(13), info
       character(len=300)       :: msg
       logical                  :: done_hall = .True., done_orbmag = .True.,pert_log
-      write (*,*) "flag2"
+      !write (*,*) "flag2"
       call self%setup_berry_inte_grid()
       N_k = size(self%new_k_pts, 2)
       num_up =  self%ham%num_up
@@ -914,7 +914,7 @@ contains
       real(8)                   :: k(3)
       real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), Q_L_new(:,:), Q_IC_new(:,:)
       complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
-      logical                   ::pert_log
+      logical, intent(in)       ::pert_log
       tmp = 0d0
       N_k = size(self%new_k_pts, 2)
       n_ferm =  size(self%E_fermi)

@@ -1174,8 +1174,8 @@ contains
       integer   , intent(in)          :: derive_idx
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
       complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
+      real(8)                         :: dE 
       integer                         :: n_dim,i,j
-
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
       allocate(H_xc_1(n_dim, n_dim))
@@ -1190,9 +1190,12 @@ contains
                  tmp, n_dim,&
                  c_0, H_xc_1, n_dim) !H_xc in first order in the eigenbasis of H
       do i=1,n_dim
-        do j=1,n_dim
-        H_xc_1(i,j)=1/(eig_val(i)-eig_val(j))
-        enddo
+         do j=1,n_dim
+            dE = eig_val(i)-eig_val(j)
+               if(dE>10**(-8)) then
+                  H_xc_1(i,j)=1d0/dE
+               endif
+         enddo
       enddo
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
       call self%set_derivative_k(k, derive_idx)
@@ -1224,6 +1227,7 @@ contains
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
       complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
       integer                         :: n_dim,i,j
+      real(8)                         :: dE
       
 
       n_dim = 2 * self%num_up
@@ -1241,7 +1245,10 @@ contains
                  c_0, H_xc_1, n_dim) !H_xc in first order in the eigenbasis of H
       do i=1,n_dim
         do j=1,n_dim
-        H_xc_1(i,j)=1/(eig_val(i)-eig_val(j))
+          dE = eig_val(i)-eig_val(j)
+          if(dE>10**(-8)) then
+             H_xc_1(i,j)=1d0/dE
+          endif
         enddo
       enddo
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
@@ -1309,7 +1316,8 @@ contains
       complex(8), allocatable  :: eig_vec(:,:), del_kx(:,:), del_ky(:,:), work(:)
       real(8), allocatable     :: rwork(:)
       integer   , allocatable  :: iwork(:)
-      integer      :: n_dim, lwork, lrwork, liwork, info,pert_log
+      integer, intent(in)      :: pert_log
+      integer      :: n_dim, lwork, lrwork, liwork, info
       integer      :: ierr(3)
 
       n_dim = 2 * self%num_up
