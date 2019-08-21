@@ -912,7 +912,7 @@ contains
       integer                   :: first, last, err(3)
       real(8)                   :: tmp
       real(8)                   :: k(3)
-      real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), Q_L_new(:,:), Q_IC_new(:,:)
+      real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:),omega_z_pert_new(:,:), Q_L_new(:,:), Q_IC_new(:,:)
       complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
       logical, intent(in)       ::pert_log
       tmp = 0d0
@@ -948,12 +948,14 @@ contains
          endif
          
          if(pert_log) then
+            allocate(omega_z_pert_new(2*num_up, last-first+1))
             do pert_idx=1,4
                call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
 
                if(self%calc_hall) then
-                  call self%ham%calc_berry_z(omega_z_new(:,cnt),&
+                  call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
                                              eig_val_new(:,cnt), del_kx, del_ky)
+                  omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new(:,cnt)
                endif
       
                !if(self%calc_orbmag) then
