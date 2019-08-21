@@ -46,7 +46,10 @@ module Class_hamiltionian
       procedure :: set_deriv_FD                   => set_deriv_FD
       procedure :: calc_berry_z                   => calc_berry_z
       procedure :: calc_velo_mtx                  => calc_velo_mtx
+      procedure :: calc_right_pert_velo_mtx       => calc_right_pert_velo_mtx
+      procedure :: calc_left_pert_velo_mtx        => calc_left_pert_velo_mtx
       procedure :: calc_eig_and_velo              => calc_eig_and_velo
+      procedure :: calc_exch_firstord             => calc_exch_firstord
       procedure :: compare_derivative             => compare_derivative
       procedure :: set_derivative_hopping         => set_derivative_hopping
       procedure :: set_derivative_snd_hopping     => set_derivative_snd_hopping
@@ -1138,6 +1141,138 @@ contains
       enddo
    end subroutine set_derivative_rashba_so
 
+   subroutine calc_exch_firstord(self,H_xc_1)
+      implicit none
+      class(hamil)                    :: self
+      complex(8), intent(inout)       :: H_xc_1(:,:)
+      real(8)                         :: theta(2),phi(2)
+      integer                         :: i,i_d,conn,j,j_d
+      theta = self%UC%anticol_theta
+      phi = self%UC%anticol_phi
+      !n_dim = 2 * self%num_up
+      !allocate(H_xc_1(n_dim,n_dim))
+      do i =  1, self%num_up
+         i_d =  i + self%num_up
+         do conn =  1,size(self%UC%atoms(i)%neigh_idx)
+            if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
+               j =  self%UC%atoms(i)%neigh_idx(conn)
+               j_d = j + self%num_up
+               H_xc_1(i,i_d) = -(theta(1)-theta(2))/2d0*exp(-i_unit*phi(1))!> -1/(e_i-e_i_d)theta*e(-iphi)
+               H_xc_1(i_d,i) =  (theta(1)-theta(2))/2d0*exp( i_unit*phi(1))!> 1/(e_i-e_i_d)-theta*e(iphi)
+               H_xc_1(j,j_d) = -(theta(2)-theta(1))/2d0*exp(-i_unit*phi(2))!>  -1/(e_i-e_i_d)theta*e(-iphi)
+               H_xc_1(j_d,j) =  (theta(2)-theta(1))/2d0*exp( i_unit*phi(2))!>  1/(e_i-e_i_d)-theta*e(iphi)
+            endif
+         enddo
+      enddo
+        
+   end subroutine calc_exch_firstord
+
+   subroutine calc_left_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx,eig_val, ret)
+      implicit none
+      class(hamil)                    :: self
+      real(8), intent(in)             :: k(3),eig_val(:)
+      integer   , intent(in)          :: derive_idx
+      complex(8), intent(in)          :: eig_vec_mtx(:,:)
+      complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
+      real(8)                         :: dE 
+      integer                         :: n_dim,i,j
+      n_dim = 2 * self%num_up
+      allocate(tmp(n_dim, n_dim))
+      allocate(H_xc_1(n_dim, n_dim))
+      H_xc_1 = 0d0
+      call self%calc_exch_firstord(H_xc_1) !H_xc in first order in atomic basis
+      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+                 c_1, H_xc_1, n_dim,&
+                 eig_vec_mtx, n_dim,&
+                 c_0, tmp, n_dim)
+      call zgemm('C', 'N', n_dim, n_dim, n_dim, &
+                 c_1, eig_vec_mtx, n_dim,&
+                 tmp, n_dim,&
+                 c_0, H_xc_1, n_dim) !H_xc in first order in the eigenbasis of H
+      do i=1,n_dim
+         do j=1,n_dim
+            dE = eig_val(j)-eig_val(i)
+               if(abs(dE)>10**(-8)) then
+                  H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
+               endif
+         enddo
+      enddo
+      if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
+      call self%set_derivative_k(k, derive_idx)
+         call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+                    c_1, self%del_H, n_dim,&
+                    eig_vec_mtx, n_dim,&
+                    c_0, tmp, n_dim)
+         deallocate(self%del_H)
+
+         if(allocated(ret))then
+            if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
+               deallocate(ret)
+            endif
+         endif
+         if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
+
+         call zgemm('C', 'N', n_dim, n_dim, n_dim, &
+                    c_1, H_xc_1, n_dim, &
+                    tmp, n_dim, &
+                    c_0, ret, n_dim)
+         deallocate(tmp)
+   end subroutine calc_left_pert_velo_mtx
+
+   subroutine calc_right_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx,eig_val, ret)
+      implicit none
+      class(hamil)                    :: self
+      real(8), intent(in)             :: k(3),eig_val(:)
+      integer   , intent(in)          :: derive_idx
+      complex(8), intent(in)          :: eig_vec_mtx(:,:)
+      complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
+      integer                         :: n_dim,i,j
+      real(8)                         :: dE
+      
+
+      n_dim = 2 * self%num_up
+      allocate(tmp(n_dim, n_dim))
+      allocate(H_xc_1(n_dim, n_dim))
+      H_xc_1 = 0d0
+      call self%calc_exch_firstord(H_xc_1) !H_xc in first order in atomic basis
+      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+                 c_1, H_xc_1, n_dim,&
+                 eig_vec_mtx, n_dim,&
+                 c_0, tmp, n_dim)
+      call zgemm('C', 'N', n_dim, n_dim, n_dim, &
+                 c_1, eig_vec_mtx, n_dim,&
+                 tmp, n_dim,&
+                 c_0, H_xc_1, n_dim) !H_xc in first order in the eigenbasis of H
+      do i=1,n_dim
+        do j=1,n_dim
+          dE = eig_val(j)-eig_val(i)
+          if(abs(dE)>10**(-8)) then
+             H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
+          endif
+        enddo
+      enddo
+      if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
+      call self%set_derivative_k(k, derive_idx)
+      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+                    c_1, self%del_H, n_dim,&
+                    H_xc_1, n_dim,&
+                    c_0, tmp, n_dim)
+      deallocate(self%del_H)
+
+         if(allocated(ret))then
+            if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
+               deallocate(ret)
+            endif
+         endif
+         if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
+
+         call zgemm('C', 'N', n_dim, n_dim, n_dim, &
+                    c_1, eig_vec_mtx, n_dim, &
+                    tmp, n_dim, &
+                    c_0, ret, n_dim)
+         deallocate(tmp)
+   end subroutine calc_right_pert_velo_mtx
+
    subroutine calc_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
       implicit none
       class(hamil)                        :: self
@@ -1173,7 +1308,7 @@ contains
       deallocate(tmp)
    end subroutine calc_velo_mtx
 
-   subroutine calc_eig_and_velo(self, k, eig_val, del_kx, del_ky)
+   subroutine calc_eig_and_velo(self, k, eig_val, del_kx, del_ky,pert_log)
       implicit none
       class(hamil)             :: self
       real(8), intent(in)      :: k(3)
@@ -1181,6 +1316,7 @@ contains
       complex(8), allocatable  :: eig_vec(:,:), del_kx(:,:), del_ky(:,:), work(:)
       real(8), allocatable     :: rwork(:)
       integer   , allocatable  :: iwork(:)
+      integer, intent(in)      :: pert_log
       integer      :: n_dim, lwork, lrwork, liwork, info
       integer      :: ierr(3)
 
@@ -1206,9 +1342,22 @@ contains
       deallocate(work, rwork, iwork)
 
       ! write (*,*) "Vx:"
-      call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
-      call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
-
+      if(pert_log==0) then
+         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
+         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
+      else if(pert_log==1) then
+         call self%calc_left_pert_velo_mtx(k, 1, eig_vec, eig_val, del_kx)
+         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
+      else if(pert_log==2) then
+         call self%calc_right_pert_velo_mtx(k, 1, eig_vec, eig_val, del_kx)
+         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
+      else if(pert_log==3) then
+         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
+         call self%calc_left_pert_velo_mtx(k, 2, eig_vec, eig_val, del_ky)
+      else if(pert_log==4) then
+         call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
+         call self%calc_right_pert_velo_mtx(k, 2, eig_vec, eig_val, del_ky)
+      endif
       deallocate(eig_vec)
    end subroutine calc_eig_and_velo
 

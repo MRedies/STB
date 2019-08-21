@@ -41,6 +41,7 @@ module Class_unit_cell
         character(len=300):: mag_file
         logical :: molecule !> should we have a k-space or not?
         logical      :: test_run !> should unit tests be performed
+        logical         :: pert_log ! berry in first order pert.
     contains
     
         procedure :: init_unit_honey_hexa        => init_unit_honey_hexa
@@ -107,6 +108,7 @@ contains
         integer                         :: info
         integer                         :: ierr
         integer                         :: anticol_size
+        logical                         :: tmp_log
         
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
         call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
@@ -115,7 +117,11 @@ contains
         
         
         if(self%me ==  0) then 
-            call CFG_get(cfg, "grid%epsilon", tmp)
+           call CFG_get(cfg, "berry%pert_log", tmp_log)
+            self%pert_log =  tmp_log
+            write (*,*) "tmp_log = ", tmp_log
+            write (*,*) "pert_log = ", self%pert_log
+           call CFG_get(cfg, "grid%epsilon", tmp)
             self%eps =  tmp * self%units%length
             
             call CFG_get(cfg, "hamil%molecule", self%molecule)
@@ -124,13 +130,13 @@ contains
             endif
 
             call CFG_get(cfg, "grid%mag_type", self%mag_type)
-            write (*,*) "FLAG C"
+            !write (*,*) "FLAG C"
             call CFG_get_size(cfg, "grid%anticol_phi", anticol_size)
-            write (*,*) "anticolsize = ", anticol_size
+            !write (*,*) "anticolsize = ", anticol_size
             allocate(self%anticol_phi(anticol_size)) !allocate phi
             call CFG_get(cfg, "grid%anticol_phi", self%anticol_phi)
             call CFG_get_size(cfg, "grid%anticol_theta", anticol_size)
-            write (*,*) "anticolsize = ", anticol_size
+            !write (*,*) "anticolsize = ", anticol_size
             allocate(self%anticol_theta(anticol_size)) !allocate theta
             call CFG_get(cfg, "grid%anticol_theta", self%anticol_theta)
 
@@ -191,7 +197,7 @@ contains
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer   , parameter         :: num_cast = 17
+        integer   , parameter         :: num_cast = 18
         integer                       :: ierr(num_cast)
         integer                       :: anticol_size_phi
         integer                       :: anticol_size_theta
@@ -243,7 +249,8 @@ contains
         call MPI_Bcast(self%anticol_phi,  anticol_size_phi,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(17))
   
-        
+        call MPI_Bcast(self%pert_log, 1,              MPI_LOGICAL, &
+                        root,         MPI_COMM_WORLD, ierr(18))
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
@@ -616,15 +623,27 @@ contains
     subroutine set_mag_anticol(self)
         implicit none
         class(unit_cell)        :: self
-        integer                 :: i        
+        real(8)                 :: phi,theta
+        integer                 :: i         
         
         if(      size(self%anticol_phi)   /= self%num_atoms &
             .or. size(self%anticol_theta)/= self%num_atoms) then
             call error_msg("sizes of anticol_phi and anticol_theta not consistent with num_atoms", abort=.True.)
         else
-            do i = 1,self%num_atoms
-                call self%atoms(i)%set_sphere(self%anticol_phi(i), self%anticol_theta(i))
-            enddo
+          if(self%pert_log) then  
+            write (*,*) "FLAG set_mag_anticol"
+            if(size(self%anticol_phi)==2) then  
+              phi = (self%anticol_phi(1)+self%anticol_phi(2))/2
+              theta = (self%anticol_theta(1)+self%anticol_theta(2))/2
+              do i = 1,self%num_atoms
+                  call self%atoms(i)%set_sphere(phi, theta)
+              enddo
+            endif
+          else
+              do i = 1,self%num_atoms
+                  call self%atoms(i)%set_sphere(self%anticol_phi(i), self%anticol_theta(i))
+              enddo
+          endif
         endif    
     end subroutine set_mag_anticol    
 

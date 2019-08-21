@@ -15,7 +15,7 @@ program STB
    integer   , allocatable         :: seed(:)
    integer                         :: ierr, me
    character(len=300), allocatable :: inp_files(:)
-
+ 
    call MPI_Init(ierr)
    call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
 
@@ -27,6 +27,7 @@ program STB
    call get_inp_files(n_files, inp_files)
 
    call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
+   
    do n_inp = 1, n_files
       if(me == root) write (*,*) "started at ", date_time()
       call process_file(inp_files(n_inp))
@@ -40,7 +41,7 @@ contains
       real(8)                        :: start, halt
       integer                        :: me, ierr
       logical                        :: perform_band, perform_dos, calc_hall,&
-                                        calc_orbmag, perform_ACA, plot_omega
+                                        calc_orbmag, perform_ACA,plot_omega,pert_log
       type(CFG_t)                     :: cfg
       character(len=25)               :: fermi_type
 
@@ -50,11 +51,13 @@ contains
       if(me ==  root)then
          write (*,*) "running: ", trim(inp_file)
          call CFG_read_file(cfg, trim(inp_file))
+
          call add_full_cfg(cfg)
 
          call CFG_get(cfg, "band%perform_band", perform_band)
          call CFG_get(cfg, "dos%perform_dos",   perform_dos)
          call CFG_get(cfg, "berry%fermi_type",  fermi_type)
+         call CFG_get(cfg, "berry%pert_log",  pert_log)
          call CFG_get(cfg, "berry%calc_hall",   calc_hall)
          call CFG_get(cfg, "berry%calc_orbmag", calc_orbmag)
          call CFG_get(cfg, "ACA%perform_ACA",   perform_ACA)
@@ -101,7 +104,7 @@ contains
 
       if(calc_hall .or. calc_orbmag) then
          if(root == me) write (*,*) "started Berry"
-         call Ksp%calc_berry_quantities()
+         call Ksp%calc_berry_quantities(pert_log)
       endif
 
       if(perform_ACA) then
@@ -246,6 +249,7 @@ contains
       call CFG_add(cfg, "berry%fermi_type", "fixed",      "")
       call CFG_add(cfg, "berry%E_fermi",          [-10d0, 10d0, 300d0],   "")
       call CFG_add(cfg, "dos%fermi_fill",       0.5d0,   "")
+      call CFG_add(cfg, "berry%pert_log", .False., "")
 
       call CFG_add(cfg, "berry%calc_hall", .False., "")
       call CFG_add(cfg, "berry%calc_orbmag", .False., "")
