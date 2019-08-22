@@ -822,6 +822,7 @@ contains
          endif
 
          if(self%calc_hall) then
+            call save_npy(trim(self%prefix) // trim("hall_cond_uc.npy"),hall)
             hall_old = hall
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
 

@@ -623,28 +623,33 @@ contains
     subroutine set_mag_anticol(self)
         implicit none
         class(unit_cell)        :: self
-        real(8)                 :: phi,theta
-        integer                 :: i         
-        
+        real(8)                 :: phi_nc,phi_col,theta_nc,theta_col
+        integer                 :: i                 
         if(      size(self%anticol_phi)   /= self%num_atoms &
             .or. size(self%anticol_theta)/= self%num_atoms) then
             call error_msg("sizes of anticol_phi and anticol_theta not consistent with num_atoms", abort=.True.)
         else
-          if(self%pert_log) then  
-            write (*,*) "FLAG set_mag_anticol"
-            if(size(self%anticol_phi)==2) then  
-              phi = (self%anticol_phi(1)+self%anticol_phi(2))/2
-              theta = (self%anticol_theta(1)+self%anticol_theta(2))/2
-              do i = 1,self%num_atoms
-                  call self%atoms(i)%set_sphere(phi, theta)
-              enddo
+            if(     size(self%anticol_theta) ==2 &
+            .and.   size(self%anticol_phi)   ==2)  then
+                phi_col   = self%anticol_phi(1)
+                phi_nc    = self%anticol_phi(2)
+                theta_col = self%anticol_theta(1)
+                theta_nc  = self%anticol_theta(2)
+                if(self%pert_log) then
+                    do i = 1,self%num_atoms
+                        call self%atoms(i)%set_sphere(phi_col,theta_col)
+                    enddo
+                else
+                    do i = 1,self%num_atoms
+                        call self%atoms(i)%set_sphere(phi_col - (-1)**i*phi_nc,theta_col - (-1)**i*theta_nc)
+                    enddo
+                endif
+            else
+                do i = 1,self%num_atoms
+                    call self%atoms(i)%set_sphere(self%anticol_phi(i), self%anticol_theta(i))
+                enddo
             endif
-          else
-              do i = 1,self%num_atoms
-                  call self%atoms(i)%set_sphere(self%anticol_phi(i), self%anticol_theta(i))
-              enddo
-          endif
-        endif    
+        endif
     end subroutine set_mag_anticol    
 
     subroutine set_mag_x_spiral_square(self)
