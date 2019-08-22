@@ -822,6 +822,7 @@ contains
          endif
 
          if(self%calc_hall) then
+            call save_npy(trim(self%prefix) // trim("hall_cond_uc.npy"),hall)
             hall_old = hall
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
 
@@ -948,6 +949,7 @@ contains
          endif
          
          if(pert_log) then
+            if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
             allocate(omega_z_pert_new(2*num_up, last-first+1))
             do pert_idx=1,4
                call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
