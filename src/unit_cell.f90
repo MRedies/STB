@@ -871,6 +871,8 @@ contains
             z(i)               = self%atoms(i)%pos(3)
             phi(i)             = self%atoms(i)%m_phi
             theta(i)           = self%atoms(i)%m_theta
+            write(*,*) "i", i
+            write(*,*) "theta", theta(i)
             site_type(i)       = self%atoms(i)%site_type
 
             n_neigh                = size(self%atoms(i)%neigh_idx)
