@@ -637,11 +637,11 @@ contains
                 theta_nc  = self%anticol_theta(2)
                 if(self%pert_log) then
                     do i = 1,self%num_atoms
-                        call self%atoms(i)%set_sphere(phi_col - (-1)**i*phi_nc,theta_col - (-1)**i*theta_nc)
+                        call self%atoms(i)%set_sphere(phi_col,theta_col)
                     enddo
                 else
                     do i = 1,self%num_atoms
-                        call self%atoms(i)%set_sphere(phi_col,theta_col)
+                        call self%atoms(i)%set_sphere(phi_col - (-1)**i*phi_nc,theta_col - (-1)**i*theta_nc)
                     enddo
                 endif
             else
