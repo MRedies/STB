@@ -1199,7 +1199,7 @@ contains
          do j=1,n_dim
             dE = eig_val(i)-eig_val(j)
                if(abs(dE)>10**(-12)) then
-                  H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
+                  H_xc_1(i,j)=H_xc_1(i,j)*self%lambda/dE
                else
                   !write(*,*) "E trunc Flag"
                endif
