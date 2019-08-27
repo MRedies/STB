@@ -1159,14 +1159,14 @@ contains
             if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
                j =  self%UC%atoms(i)%neigh_idx(conn)
                j_d = j + self%num_up
-               H_xc_1(i,i)     = -sin(theta_col)*theta_nc/2d0
-               H_xc_1(i_d,i_d) =  sin(theta_col)*theta_nc/2d0
-               H_xc_1(j,j)     =  sin(theta_col)*theta_nc/2d0
-               H_xc_1(j_d,j_d) = -sin(theta_col)*theta_nc/2d0
-               H_xc_1(i,i_d)   =  cos(theta_col)*theta_nc/2d0*exp(-i_unit*phi(1))!> -1/(e_i-e_i_d)theta*e(-iphi)
-               H_xc_1(i_d,i)   =  cos(theta_col)*theta_nc/2d0*exp( i_unit*phi(1))!> 1/(e_i-e_i_d)-theta*e(iphi)
-               H_xc_1(j,j_d)   = -cos(theta_col)*theta_nc/2d0*exp(-i_unit*phi(2))!>  -1/(e_i-e_i_d)theta*e(-iphi)
-               H_xc_1(j_d,j)   = -cos(theta_col)*theta_nc/2d0*exp( i_unit*phi(2))!>  1/(e_i-e_i_d)-theta*e(iphi)
+               H_xc_1(i,i)     = -self%lambda*sin(theta_col)*theta_nc/2d0
+               H_xc_1(i_d,i_d) =  self%lambda*sin(theta_col)*theta_nc/2d0
+               H_xc_1(j,j)     =  self%lambda*sin(theta_col)*theta_nc/2d0
+               H_xc_1(j_d,j_d) = -self%lambda*sin(theta_col)*theta_nc/2d0
+               H_xc_1(i,i_d)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*phi(1))!> -1/(e_i-e_i_d)theta*e(-iphi)
+               H_xc_1(i_d,i)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*phi(1))!> 1/(e_i-e_i_d)-theta*e(iphi)
+               H_xc_1(j,j_d)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*phi(2))!>  -1/(e_i-e_i_d)theta*e(-iphi)
+               H_xc_1(j_d,j)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*phi(2))!>  1/(e_i-e_i_d)-theta*e(iphi)
             endif
          enddo
       enddo
@@ -1199,7 +1199,7 @@ contains
          do j=1,n_dim
             dE = eig_val(i)-eig_val(j)
                if(abs(dE)>10**(-12)) then
-                  H_xc_1(i,j)=H_xc_1(i,j)*self%lambda/dE
+                  H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
                else
                   !write(*,*) "E trunc Flag"
                endif
