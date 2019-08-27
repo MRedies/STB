@@ -869,8 +869,15 @@ contains
             x(i)               = self%atoms(i)%pos(1)
             y(i)               = self%atoms(i)%pos(2)
             z(i)               = self%atoms(i)%pos(3)
-            phi(i)             = self%atoms(i)%m_phi
-            theta(i)           = self%atoms(i)%m_theta
+
+            if(self%pert_log) then
+                phi(i)             = self%anticol_phi(i)
+                theta(i)           = self%anticol_theta(i)
+            else
+                phi(i)             = self%atoms(i)%m_phi
+                theta(i)           = self%atoms(i)%m_theta
+            endif
+            
             site_type(i)       = self%atoms(i)%site_type
 
             n_neigh                = size(self%atoms(i)%neigh_idx)
