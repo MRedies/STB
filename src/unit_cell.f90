@@ -641,7 +641,7 @@ contains
                     enddo
                 else
                     do i = 1,self%num_atoms
-                        call self%atoms(i)%set_sphere(phi_col - (-1)**i*phi_nc,theta_col - (-1)**i*theta_nc)
+                        call self%atoms(i)%set_sphere(phi_col - (-1)**i*phi_nc/2d0,theta_col - (-1)**i*theta_nc/2d0)
                     enddo
                 endif
             else
@@ -877,7 +877,7 @@ contains
                 phi(i)             = self%atoms(i)%m_phi
                 theta(i)           = self%atoms(i)%m_theta
             endif
-            
+
             site_type(i)       = self%atoms(i)%site_type
 
             n_neigh                = size(self%atoms(i)%neigh_idx)

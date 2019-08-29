@@ -1145,12 +1145,14 @@ contains
       implicit none
       class(hamil)                    :: self
       complex(8), intent(inout)       :: H_xc_1(:,:)
-      real(8)                         :: theta(2),phi(2),theta_nc,theta_col
+      real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col
       integer                         :: i,i_d,conn,j,j_d
       theta = self%UC%anticol_theta
       phi = self%UC%anticol_phi
-      theta_nc = (theta(1)-theta(2))/2d0
-      theta_col = (theta(1)+theta(2))/2d0
+      theta_nc = theta(2)
+      theta_col = theta(1)
+      phi_nc = phi(2)
+      phi_col = phi(1)
       !n_dim = 2 * self%num_up
       !allocate(H_xc_1(n_dim,n_dim))
       do i =  1, self%num_up
@@ -1163,10 +1165,10 @@ contains
                H_xc_1(i_d,i_d) =  self%lambda*sin(theta_col)*theta_nc/2d0
                H_xc_1(j,j)     =  self%lambda*sin(theta_col)*theta_nc/2d0
                H_xc_1(j_d,j_d) = -self%lambda*sin(theta_col)*theta_nc/2d0
-               H_xc_1(i,i_d)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*phi(1))!> -1/(e_i-e_i_d)theta*e(-iphi)
-               H_xc_1(i_d,i)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*phi(1))!> 1/(e_i-e_i_d)-theta*e(iphi)
-               H_xc_1(j,j_d)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*phi(2))!>  -1/(e_i-e_i_d)theta*e(-iphi)
-               H_xc_1(j_d,j)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*phi(2))!>  1/(e_i-e_i_d)-theta*e(iphi)
+               H_xc_1(i,i_d)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
+               H_xc_1(i_d,i)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
+               H_xc_1(j,j_d)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
+               H_xc_1(j_d,j)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
             endif
          enddo
       enddo
@@ -1200,8 +1202,6 @@ contains
             dE = eig_val(i)-eig_val(j)
                if(abs(dE)>10**(-12)) then
                   H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
-               else
-                  !write(*,*) "E trunc Flag"
                endif
          enddo
       enddo
