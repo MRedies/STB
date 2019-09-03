@@ -1189,11 +1189,11 @@ contains
       allocate(H_xc_1(n_dim, n_dim))
       H_xc_1 = 0d0
       call self%calc_exch_firstord(H_xc_1) !H_xc in first order in atomic basis
-      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+      call zgemm('N', 'C', n_dim, n_dim, n_dim, &
                  c_1, H_xc_1, n_dim,&
                  eig_vec_mtx, n_dim,&
                  c_0, tmp, n_dim)
-      call zgemm('C', 'N', n_dim, n_dim, n_dim, &
+      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                  c_1, eig_vec_mtx, n_dim,&
                  tmp, n_dim,&
                  c_0, H_xc_1, n_dim) !H_xc in first order in the eigenbasis of H
@@ -1245,11 +1245,11 @@ contains
       allocate(H_xc_1(n_dim, n_dim))
       H_xc_1 = 0d0
       call self%calc_exch_firstord(H_xc_1) !H_xc in first order in atomic basis
-      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+      call zgemm('N', 'C', n_dim, n_dim, n_dim, &
                  c_1, H_xc_1, n_dim,&
                  eig_vec_mtx, n_dim,&
                  c_0, tmp, n_dim)
-      call zgemm('C', 'N', n_dim, n_dim, n_dim, &
+      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                  c_1, eig_vec_mtx, n_dim,&
                  tmp, n_dim,&
                  c_0, H_xc_1, n_dim) !H_xc in first order in the eigenbasis of H
