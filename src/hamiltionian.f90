@@ -1199,7 +1199,7 @@ contains
                  c_0, H_xc_1, n_dim) !H_xc in first order in the eigenbasis of H
       do i=1,n_dim
          do j=1,n_dim
-            if(n /= m) then
+            if(i /= j) then
                dE = eig_val(i)-eig_val(j)
                   if(abs(dE)>10**(-12)) then
                      H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
@@ -1255,7 +1255,7 @@ contains
                  c_0, H_xc_1, n_dim) !H_xc in first order in the eigenbasis of H
       do i=1,n_dim
         do j=1,n_dim
-         if(n /= m) then
+         if(i /= j) then
             dE = eig_val(i)-eig_val(j)
             if(abs(dE)>10**(-8)) then
                H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
