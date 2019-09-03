@@ -1199,10 +1199,12 @@ contains
                  c_0, H_xc_1, n_dim) !H_xc in first order in the eigenbasis of H
       do i=1,n_dim
          do j=1,n_dim
-            dE = eig_val(i)-eig_val(j)
-               if(abs(dE)>10**(-12)) then
-                  H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
-               endif
+            if(n /= m) then
+               dE = eig_val(i)-eig_val(j)
+                  if(abs(dE)>10**(-12)) then
+                     H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
+                  endif
+            endif
          enddo
       enddo
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
@@ -1253,10 +1255,12 @@ contains
                  c_0, H_xc_1, n_dim) !H_xc in first order in the eigenbasis of H
       do i=1,n_dim
         do j=1,n_dim
-          dE = eig_val(i)-eig_val(j)
-          if(abs(dE)>10**(-8)) then
-             H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
-          endif
+         if(n /= m) then
+            dE = eig_val(i)-eig_val(j)
+            if(abs(dE)>10**(-8)) then
+               H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
+            endif
+         endif
         enddo
       enddo
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
