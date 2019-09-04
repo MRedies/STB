@@ -1201,8 +1201,10 @@ contains
          do j=1,n_dim
             if(i /= j) then
                dE = eig_val(i)-eig_val(j)
-                  if(abs(dE)>10**(-12)) then
+                  if(abs(dE)>10**(-8)) then
                      H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
+                  else if(abs(dE)<=10**(-8)) then
+                     H_xc_1(i,j)=H_xc_1(i,j)*1d0/10**(-8)
                   endif
             endif
          enddo
@@ -1354,6 +1356,7 @@ contains
       deallocate(work, rwork, iwork)
 
       ! write (*,*) "Vx:"
+      !write (*,*) "pert_idx:",pert_log
       if(pert_log==0) then
          call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
          call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
