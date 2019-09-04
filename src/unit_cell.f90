@@ -119,8 +119,8 @@ contains
         if(self%me ==  0) then 
            call CFG_get(cfg, "berry%pert_log", tmp_log)
             self%pert_log =  tmp_log
-            write (*,*) "tmp_log = ", tmp_log
-            write (*,*) "pert_log = ", self%pert_log
+            !write (*,*) "tmp_log = ", tmp_log
+            !write (*,*) "pert_log = ", self%pert_log
            call CFG_get(cfg, "grid%epsilon", tmp)
             self%eps =  tmp * self%units%length
             

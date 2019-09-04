@@ -806,7 +806,6 @@ contains
       do iter =1,self%berry_iter
          if(self%me == root) write (*,*) "Time: ", MPI_Wtime() -  start
          call self%calc_new_berry_points(eig_val_new, omega_z_new, Q_L_new, Q_IC_new,pert_log)
-
          call self%calc_new_kidx(kidx_new)
 
          ! concat to old ones
@@ -958,6 +957,7 @@ contains
                   call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
                                              eig_val_new(:,cnt), del_kx, del_ky)
                   omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new(:,cnt)
+                  !write(*,*) "omega: ",omega_z_pert_new(:,cnt)
                endif
       
                !if(self%calc_orbmag) then
@@ -967,6 +967,7 @@ contains
             enddo
             cnt = cnt + 1
          enddo
+      cnt =  1
       else if(.not. pert_log) then
          !write(*,*) "pert_log:",pert_log
          do k_idx = first, last
