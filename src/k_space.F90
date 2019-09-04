@@ -933,24 +933,24 @@ contains
 
       ! calculate
       cnt =  1
-      do k_idx = first, last
+      if(pert_log) then
+         if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
+         allocate(omega_z_pert_new(2*num_up, last-first+1))
+         !write(*,*) "pert_log:",pert_log
+         do k_idx = first, last
          !if(self%me == root) write (*,*) k_idx, " of ", last
-         k = self%new_k_pts(:,k_idx)
-         call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,0)
+            k = self%new_k_pts(:,k_idx)
+            call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,0)
          
-         if(self%calc_hall) then
-            call self%ham%calc_berry_z(omega_z_new(:,cnt),&
+            if(self%calc_hall) then
+               call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
-         endif
+            endif
          
-         if(self%calc_orbmag) then
-            call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), &
+            if(self%calc_orbmag) then
+               call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), &
                                             eig_val_new(:,cnt), del_kx, del_ky)
-         endif
-         
-         if(pert_log) then
-            if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
-            allocate(omega_z_pert_new(2*num_up, last-first+1))
+            endif
             do pert_idx=1,4
                call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
 
@@ -965,11 +965,27 @@ contains
                !                                   eig_val_new(:,cnt), del_kx, del_ky)
                !endif
             enddo
-         endif
-
-
-         cnt = cnt + 1
-      enddo
+            cnt = cnt + 1
+         enddo
+      else if(.not. pert_log) then
+         !write(*,*) "pert_log:",pert_log
+         do k_idx = first, last
+         !if(self%me == root) write (*,*) k_idx, " of ", last
+            k = self%new_k_pts(:,k_idx)
+            call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,0)
+         
+            if(self%calc_hall) then
+               call self%ham%calc_berry_z(omega_z_new(:,cnt),&
+                                       eig_val_new(:,cnt), del_kx, del_ky)
+            endif
+         
+            if(self%calc_orbmag) then
+               call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), &
+                                            eig_val_new(:,cnt), del_kx, del_ky)
+            endif
+            cnt = cnt + 1
+         enddo
+      endif
       if(allocated(del_kx)) deallocate(del_kx)
       if(allocated(del_ky)) deallocate(del_ky)
    end subroutine calc_new_berry_points
