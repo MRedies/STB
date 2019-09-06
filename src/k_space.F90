@@ -912,7 +912,8 @@ contains
       integer                   :: first, last, err(3)
       real(8)                   :: tmp
       real(8)                   :: k(3)
-      real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:),omega_z_pert_new(:,:), Q_L_new(:,:), Q_IC_new(:,:)
+      real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:),&
+                                   omega_z_pert_new(:,:), Q_L_new(:,:), Q_IC_new(:,:)
       complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
       logical, intent(in)       ::pert_log
       tmp = 0d0
@@ -934,7 +935,9 @@ contains
       cnt =  1
       if(pert_log) then
          if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
-         allocate(omega_z_pert_new(2*num_up, last-first+1))
+         allocate(omega_z_pert_new(2*num_up, last-first+1), stat=err(1))
+         !if(allocated(omega_z_new_old)) deallocate(omega_z_new_old)
+         !allocate(omega_z_new_old(2*num_up, last-first+1))
          !write(*,*) "pert_log:",pert_log
          do k_idx = first, last
          !if(self%me == root) write (*,*) k_idx, " of ", last
@@ -944,27 +947,22 @@ contains
             if(self%calc_hall) then
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
+               do pert_idx=1,4
+                  call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
+
+                  if(self%calc_hall) then
+                     call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
+                                                eig_val_new(:,cnt), del_kx, del_ky)
+                     !omega_z_new_old(:,cnt) = omega_z_new(:,cnt)
+                     omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new(:,cnt)
+                     !write(*,*) "omega_diff: ",omega_z_new_old(:,cnt) - omega_z_pert_new(:,cnt)
+                  endif
+               enddo
             endif
-         
             if(self%calc_orbmag) then
                call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), &
                                             eig_val_new(:,cnt), del_kx, del_ky)
             endif
-            do pert_idx=1,4
-               call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
-
-               if(self%calc_hall) then
-                  call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
-                                             eig_val_new(:,cnt), del_kx, del_ky)
-                  omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new(:,cnt)
-                  !write(*,*) "omega: ",omega_z_pert_new(:,cnt)
-               endif
-      
-               !if(self%calc_orbmag) then
-               !   call self%calc_orbmag_z_singleK(Q_L_new(:,cnt), Q_IC_new(:,cnt), &
-               !                                   eig_val_new(:,cnt), del_kx, del_ky)
-               !endif
-            enddo
             cnt = cnt + 1
          enddo
       cnt =  1

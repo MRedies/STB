@@ -1141,13 +1141,14 @@ contains
       enddo
    end subroutine set_derivative_rashba_so
 
-   subroutine calc_exch_firstord(self,H_xc_1,eig_vec_mtx)
+   subroutine calc_exch_firstord(self,H_xc_1,eig_vec_mtx,eig_val)
       implicit none
       class(hamil)                    :: self
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
+      real(8),intent(in)              :: eig_val(:)
       complex(8), intent(inout)       :: H_xc_1(:,:)
       complex(8), allocatable         :: temp(:,:),ret(:,:)
-      real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col
+      real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE
       integer                         :: i,i_d,conn,j,j_d,n_dim
       n_dim = 2 * self%num_up
       allocate(temp(n_dim, n_dim))
@@ -1164,14 +1165,14 @@ contains
             if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
                j =  self%UC%atoms(i)%neigh_idx(conn)
                j_d = j + self%num_up
-               temp(i,i)     = -self%lambda*sin(theta_col)*theta_nc/2d0
-               temp(i_d,i_d) =  self%lambda*sin(theta_col)*theta_nc/2d0
-               temp(j,j)     =  self%lambda*sin(theta_col)*theta_nc/2d0
-               temp(j_d,j_d) = -self%lambda*sin(theta_col)*theta_nc/2d0
-               temp(i,i_d)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
-               temp(i_d,i)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
-               temp(j,j_d)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
-               temp(j_d,j)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
+               temp(i,i)     =  self%lambda*(cos(theta_col)-sin(theta_col))*theta_nc/2d0
+               temp(i_d,i_d) = -self%lambda*(cos(theta_col)-sin(theta_col))*theta_nc/2d0
+               temp(j,j)     =  self%lambda*(cos(theta_col)+sin(theta_col))*theta_nc/2d0
+               temp(j_d,j_d) = -self%lambda*(cos(theta_col)+sin(theta_col))*theta_nc/2d0
+               temp(i,i_d)   =  self%lambda*(cos(theta_col)+sin(theta_col))*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
+               temp(i_d,i)   =  self%lambda*(cos(theta_col)+sin(theta_col))*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
+               temp(j,j_d)   =  self%lambda*(cos(theta_col)-sin(theta_col))*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
+               temp(j_d,j)   =  self%lambda*(cos(theta_col)-sin(theta_col))*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
             endif
          enddo
       enddo
@@ -1184,7 +1185,24 @@ contains
                   c_1, eig_vec_mtx, n_dim,&
                   ret, n_dim,&
                   c_0, H_xc_1, n_dim)
-        
+      do i=1,n_dim
+         do j=1,n_dim
+            if(i /= j) then
+               dE = eig_val(j)-eig_val(i)
+                  if(abs(dE)>10**(-8)) then
+                     H_xc_1(i,j)=H_xc_1(i,j)/dE
+                  else if(abs(dE)<=10**(-8)) then
+                     H_xc_1(i,j)=H_xc_1(i,j)/10**(-8)
+                  endif
+            else if(i==j) then
+               H_xc_1(i,j) = 0d0
+            endif
+         enddo
+      enddo
+      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+                  c_1, H_xc_1, n_dim,&
+                  eig_vec_mtx, n_dim,&
+                  c_0, H_xc_1, n_dim)
    end subroutine calc_exch_firstord
 
    subroutine calc_left_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx,eig_val, ret)
@@ -1193,33 +1211,13 @@ contains
       real(8), intent(in)             :: k(3),eig_val(:)
       integer   , intent(in)          :: derive_idx
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
-      complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:),temp_H(:,:)
-      real(8)                         :: dE 
-      integer                         :: n_dim,i,j
+      complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
+      integer                         :: n_dim
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
       allocate(H_xc_1(n_dim, n_dim))
       H_xc_1 = 0d0
-      call self%calc_exch_firstord(H_xc_1,eig_vec_mtx) !H_xc in first order in atomic basis
-      do i=1,n_dim
-         do j=1,n_dim
-            if(i /= j) then
-               dE = eig_val(j)-eig_val(i)
-                  if(abs(dE)>10**(-8)) then
-                     H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
-                  else if(abs(dE)<=10**(-8)) then
-                     H_xc_1(i,j)=H_xc_1(i,j)*1d0/10**(-8)
-                  endif
-            else if(i==j) then
-               H_xc_1(i,j) = 0d0
-            endif
-         enddo
-      enddo
-      allocate(temp_H(n_dim, n_dim))
-      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
-                  c_1, H_xc_1, n_dim,&
-                  eig_vec_mtx, n_dim,&
-                  c_0, temp_H, n_dim)
+      call self%calc_exch_firstord(H_xc_1,eig_vec_mtx,eig_val) !H_xc in first order in atomic basis
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
       call self%set_derivative_k(k, derive_idx)
          call zgemm('N', 'N', n_dim, n_dim, n_dim, &
@@ -1234,12 +1232,11 @@ contains
          endif
          if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
          call zgemm('C', 'N', n_dim, n_dim, n_dim, &
-                    c_1, temp_H, n_dim, &
+                    c_1, H_xc_1, n_dim, &
                     tmp, n_dim, &
                     c_0, ret, n_dim)
          deallocate(tmp)
          deallocate(H_xc_1)
-         deallocate(temp_H)
    end subroutine calc_left_pert_velo_mtx
 
    subroutine calc_right_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx,eig_val, ret)
@@ -1248,40 +1245,19 @@ contains
       real(8), intent(in)             :: k(3),eig_val(:)
       integer   , intent(in)          :: derive_idx
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
-      complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:),temp_H(:,:)
-      integer                         :: n_dim,i,j
-      real(8)                         :: dE
-      
-
+      complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
+      integer                         :: n_dim
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
       allocate(H_xc_1(n_dim, n_dim))
       H_xc_1 = 0d0
-      call self%calc_exch_firstord(H_xc_1,eig_vec_mtx) !H_xc in first order in atomic basis
-      do i=1,n_dim
-        do j=1,n_dim
-         if(i /= j) then
-            dE = eig_val(j)-eig_val(i)
-            if(abs(dE)>10**(-8)) then
-               H_xc_1(i,j)=H_xc_1(i,j)*1d0/dE
-            else if(abs(dE)<=10**(-8)) then
-               H_xc_1(i,j)=H_xc_1(i,j)*1d0/10**(-8)
-            endif
-         else if(i==j) then
-            H_xc_1(i,j) = 0d0
-         endif
-        enddo
-      enddo
-      allocate(temp_H(n_dim, n_dim))
-      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
-                  c_1, H_xc_1, n_dim,&
-                  eig_vec_mtx, n_dim,&
-                  c_0, temp_H, n_dim)
+      call self%calc_exch_firstord(H_xc_1,eig_vec_mtx,eig_val) !H_xc in first order in atomic basis
+
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
       call self%set_derivative_k(k, derive_idx)
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                     c_1, self%del_H, n_dim,&
-                    temp_H, n_dim,&
+                    H_xc_1, n_dim,&
                     c_0, tmp, n_dim)
       deallocate(self%del_H)
 
@@ -1298,7 +1274,6 @@ contains
                     c_0, ret, n_dim)
          deallocate(tmp)
          deallocate(H_xc_1)
-         deallocate(temp_H)
    end subroutine calc_right_pert_velo_mtx
 
    subroutine calc_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
