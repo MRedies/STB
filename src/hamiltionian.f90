@@ -1199,10 +1199,10 @@ contains
             endif
          enddo
       enddo
-      !call zgemm('N', 'N', n_dim, n_dim, n_dim, &
-      !            c_1, H_xc_1, n_dim,&
-      !            eig_vec_mtx, n_dim,&
-      !            c_0, H_xc_1, n_dim)
+      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+                  c_1, H_xc_1, n_dim,&
+                  eig_vec_mtx, n_dim,&
+                  c_0, H_xc_1, n_dim)
    end subroutine calc_exch_firstord
 
    subroutine calc_left_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx,eig_val, ret)
