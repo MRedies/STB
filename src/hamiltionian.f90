@@ -1147,10 +1147,11 @@ contains
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
       real(8),intent(in)              :: eig_val(:)
       complex(8), intent(inout)       :: H_xc_1(:,:)
-      complex(8), allocatable         :: temp(:,:),ret(:,:)
+      complex(8), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
       real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE
       integer                         :: i,i_d,conn,j,j_d,n_dim
       n_dim = 2 * self%num_up
+      allocate(H_temp(n_dim, n_dim))
       allocate(temp(n_dim, n_dim))
       allocate(ret(n_dim, n_dim))
       theta = self%UC%anticol_theta
@@ -1184,23 +1185,23 @@ contains
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                   c_1, eig_vec_mtx, n_dim,&
                   ret, n_dim,&
-                  c_0, H_xc_1, n_dim)
+                  c_0, H_temp, n_dim)
       do i=1,n_dim
          do j=1,n_dim
             if(i /= j) then
-               dE = eig_val(j)-eig_val(i)
+               dE = eig_val(i)-eig_val(j)
                   if(abs(dE)>10**(-8)) then
-                     H_xc_1(i,j)=H_xc_1(i,j)/dE
+                     H_temp(i,j)=H_temp(i,j)/dE
                   else if(abs(dE)<=10**(-8)) then
-                     H_xc_1(i,j)=H_xc_1(i,j)/10**(-8)
+                     H_temp(i,j)=H_temp(i,j)/10**(-8)
                   endif
-            else if(i==j) then
-               H_xc_1(i,j) = 0d0
+            !else if(i==j) then
+            !   H_xc_1(i,j) = 0d0
             endif
          enddo
       enddo
-      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
-                  c_1, H_xc_1, n_dim,&
+      call zgemm('N', 'C', n_dim, n_dim, n_dim, &
+                  c_1, H_temp, n_dim,&
                   eig_vec_mtx, n_dim,&
                   c_0, H_xc_1, n_dim)
    end subroutine calc_exch_firstord
