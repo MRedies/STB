@@ -1141,7 +1141,7 @@ contains
       enddo
    end subroutine set_derivative_rashba_so
 
-   subroutine calc_exch_firstord(self,H_xc_1,eig_vec_mtx,eig_val)
+   subroutine calc_exch_firstord(self,eig_vec_mtx,eig_val,H_xc_1)
       implicit none
       class(hamil)                    :: self
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
@@ -1166,14 +1166,15 @@ contains
             if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
                j =  self%UC%atoms(i)%neigh_idx(conn)
                j_d = j + self%num_up
-               temp(i,i)     =  self%lambda*(cos(theta_col)-sin(theta_col))*theta_nc/2d0
-               temp(i_d,i_d) = -self%lambda*(cos(theta_col)-sin(theta_col))*theta_nc/2d0
-               temp(j,j)     =  self%lambda*(cos(theta_col)+sin(theta_col))*theta_nc/2d0
-               temp(j_d,j_d) = -self%lambda*(cos(theta_col)+sin(theta_col))*theta_nc/2d0
-               temp(i,i_d)   =  self%lambda*(cos(theta_col)+sin(theta_col))*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
-               temp(i_d,i)   =  self%lambda*(cos(theta_col)+sin(theta_col))*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
-               temp(j,j_d)   =  self%lambda*(cos(theta_col)-sin(theta_col))*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
-               temp(j_d,j)   =  self%lambda*(cos(theta_col)-sin(theta_col))*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
+               ! H_xc_at = lambda * (H_0 + H_1 * t_nc)
+               temp(i,i)     =  self%lambda*(cos(theta_col)-sin(theta_col)*theta_nc/2d0)
+               temp(i_d,i_d) = -self%lambda*(cos(theta_col)-sin(theta_col)*theta_nc/2d0)
+               temp(j,j)     =  self%lambda*(cos(theta_col)+sin(theta_col)*theta_nc/2d0)
+               temp(j_d,j_d) = -self%lambda*(cos(theta_col)+sin(theta_col)*theta_nc/2d0)
+               temp(i,i_d)   =  self%lambda*(sin(theta_col)+cos(theta_col)*theta_nc/2d0)*exp(-i_unit*(phi_col+phi_nc/2d0))
+               temp(i_d,i)   =  self%lambda*(sin(theta_col)+cos(theta_col)*theta_nc/2d0)*exp( i_unit*(phi_col+phi_nc/2d0))
+               temp(j,j_d)   = -self%lambda*(sin(theta_col)-cos(theta_col)*theta_nc/2d0)*exp(-i_unit*(phi_col-phi_nc/2d0))
+               temp(j_d,j)   = -self%lambda*(sin(theta_col)-cos(theta_col)*theta_nc/2d0)*exp( i_unit*(phi_col-phi_nc/2d0))
             endif
          enddo
       enddo
@@ -1215,10 +1216,9 @@ contains
       complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
       integer                         :: n_dim
       n_dim = 2 * self%num_up
-      allocate(tmp(n_dim, n_dim))
+       allocate(tmp(n_dim, n_dim))
       allocate(H_xc_1(n_dim, n_dim))
-      H_xc_1 = 0d0
-      call self%calc_exch_firstord(H_xc_1,eig_vec_mtx,eig_val) !H_xc in first order in atomic basis
+      call self%calc_exch_firstord(eig_vec_mtx,eig_val,H_xc_1)
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
       call self%set_derivative_k(k, derive_idx)
          call zgemm('N', 'N', n_dim, n_dim, n_dim, &
@@ -1251,8 +1251,7 @@ contains
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
       allocate(H_xc_1(n_dim, n_dim))
-      H_xc_1 = 0d0
-      call self%calc_exch_firstord(H_xc_1,eig_vec_mtx,eig_val) !H_xc in first order in atomic basis
+      call self%calc_exch_firstord(eig_vec_mtx,eig_val,H_xc_1) !H_xc in first order in atomic basis
 
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
       call self%set_derivative_k(k, derive_idx)
