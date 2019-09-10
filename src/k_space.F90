@@ -945,12 +945,9 @@ contains
                                        eig_val_new(:,cnt), del_kx, del_ky)
                do pert_idx=1,4
                   call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
-
-                  if(self%calc_hall) then
-                     call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
-                                                eig_val_new(:,cnt), del_kx, del_ky)
-                     omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new(:,cnt)
-                  endif
+                  call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
+                                             eig_val_new(:,cnt), del_kx, del_ky)
+                  omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new(:,cnt)
                enddo
             endif
             if(self%calc_orbmag) then

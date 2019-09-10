@@ -1227,23 +1227,24 @@ contains
       call self%calc_exch_firstord(eig_vec_mtx,eig_val,H_xc_1)
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
       call self%set_derivative_k(k, derive_idx)
-         call zgemm('N', 'N', n_dim, n_dim, n_dim, &
-                    c_1, self%del_H, n_dim,&
-                    eig_vec_mtx, n_dim,&
-                    c_0, tmp, n_dim)
-         deallocate(self%del_H)
-         if(allocated(ret))then
-            if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
-               deallocate(ret)
-            endif
+      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+                  c_1, self%del_H, n_dim,&
+                  eig_vec_mtx, n_dim,&
+                  c_0, tmp, n_dim)
+      deallocate(self%del_H)
+      if(allocated(ret))then
+         if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
+            deallocate(ret)
          endif
-         if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
-         call zgemm('C', 'N', n_dim, n_dim, n_dim, &
-                    c_1, H_xc_1, n_dim, &
-                    tmp, n_dim, &
-                    c_0, ret, n_dim)
-         deallocate(tmp)
-         deallocate(H_xc_1)
+      endif
+      if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
+      ret = 0d0
+      call zgemm('C', 'N', n_dim, n_dim, n_dim, &
+                  c_1, H_xc_1, n_dim, &
+                  tmp, n_dim, &
+                  c_0, ret, n_dim)
+      deallocate(tmp)
+      deallocate(H_xc_1)
    end subroutine calc_left_pert_velo_mtx
 
    subroutine calc_right_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx,eig_val, ret)
@@ -1258,7 +1259,6 @@ contains
       allocate(tmp(n_dim, n_dim))
       allocate(H_xc_1(n_dim, n_dim))
       call self%calc_exch_firstord(eig_vec_mtx,eig_val,H_xc_1) !H_xc in first order in atomic basis
-
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
       call self%set_derivative_k(k, derive_idx)
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
@@ -1266,20 +1266,19 @@ contains
                     H_xc_1, n_dim,&
                     c_0, tmp, n_dim)
       deallocate(self%del_H)
-
-         if(allocated(ret))then
-            if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
-               deallocate(ret)
-            endif
+      if(allocated(ret))then
+         if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
+            deallocate(ret)
          endif
-         if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
-
-         call zgemm('C', 'N', n_dim, n_dim, n_dim, &
-                    c_1, eig_vec_mtx, n_dim, &
-                    tmp, n_dim, &
-                    c_0, ret, n_dim)
-         deallocate(tmp)
-         deallocate(H_xc_1)
+      endif
+      if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
+      ret = 0d0
+      call zgemm('C', 'N', n_dim, n_dim, n_dim, &
+                  c_1, eig_vec_mtx, n_dim, &
+                  tmp, n_dim, &
+                  c_0, ret, n_dim)
+      deallocate(tmp)
+      deallocate(H_xc_1)
    end subroutine calc_right_pert_velo_mtx
 
    subroutine calc_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
@@ -1349,9 +1348,6 @@ contains
       endif
 
       deallocate(work, rwork, iwork)
-
-      ! write (*,*) "Vx:"
-      !write (*,*) "pert_idx:",pert_log
       if(pert_log==0) then
          call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
          call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
