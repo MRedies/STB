@@ -947,6 +947,7 @@ contains
                   call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
                   call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
                                              eig_val_new(:,cnt), del_kx, del_ky)
+                  write(*,*) "Omega",omega_z_pert_new(:,cnt)
                   omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new(:,cnt)
                enddo
             endif
@@ -958,9 +959,7 @@ contains
          enddo
       cnt =  1
       else if(.not. pert_log) then
-         !write(*,*) "pert_log:",pert_log
          do k_idx = first, last
-         !if(self%me == root) write (*,*) k_idx, " of ", last
             k = self%new_k_pts(:,k_idx)
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,0)
          
