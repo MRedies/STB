@@ -1199,6 +1199,7 @@ contains
                   if(abs(dE)>10**(-8)) then
                      H_temp(i,j)=H_temp(i,j)/dE
                   else if(abs(dE)<=10**(-8)) then
+                     write(*,*) "dE: ", dE
                      H_temp(i,j)=H_temp(i,j)/10**(-8)
                   endif
             !else if(i==j) then
@@ -1221,7 +1222,7 @@ contains
       complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
       integer                         :: n_dim
       n_dim = 2 * self%num_up
-       allocate(tmp(n_dim, n_dim))
+      allocate(tmp(n_dim, n_dim))
       allocate(H_xc_1(n_dim, n_dim))
       call self%calc_exch_firstord(eig_vec_mtx,eig_val,H_xc_1)
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
