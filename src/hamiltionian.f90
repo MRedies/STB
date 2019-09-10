@@ -1205,7 +1205,12 @@ contains
                      !write(*,*) "H_temp: ", H_temp(i,j)
                   else if(abs(dE)<=10**(-8)) then
                      write(*,*) "dE: ", dE
-                     H_temp(i,j)=H_temp(i,j)/10**(-8)
+                     if (dE<0d0) then
+                        H_temp(i,j)=-H_temp(i,j)/10**(-8)
+                     else if (dE>0d0) then
+                        H_temp(i,j)= H_temp(i,j)/10**(-8)
+                     endif
+                     
                   endif
             else if(i==j) then
                !write(*,*) "H_xc_1 = 0",i
