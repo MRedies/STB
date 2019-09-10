@@ -1207,12 +1207,13 @@ contains
                      write(*,*) "dE: ", dE
                      H_temp(i,j)=H_temp(i,j)/10**(-8)
                   endif
-            !else if(i==j) then
-            !   H_xc_1(i,j) = 0d0
+            else if(i==j) then
+               write(*,*) "H_xc_1 = 0",i
+               H_xc_1(i,j) = 0d0
             endif
          enddo
       enddo
-      call zgemm('N', 'C', n_dim, n_dim, n_dim, &
+      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                   c_1, H_temp, n_dim,&
                   eig_vec_mtx, n_dim,&
                   c_0, H_xc_1, n_dim)

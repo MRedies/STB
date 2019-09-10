@@ -947,8 +947,8 @@ contains
                   call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
                   call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
                                              eig_val_new(:,cnt), del_kx, del_ky)
-                  write(*,*) "pert_idx :",pert_idx
-                  write(*,*) "Omega",omega_z_pert_new(:,cnt)
+                  !write(*,*) "pert_idx :",pert_idx
+                  !write(*,*) "Omega",omega_z_pert_new(:,cnt)
                   omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new(:,cnt)
                enddo
             endif
