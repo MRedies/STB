@@ -1202,13 +1202,13 @@ contains
                dE = eig_val(i)-eig_val(j)
                   if(abs(dE)>10**(-8)) then
                      H_temp(i,j)=H_temp(i,j)/dE
-                     write(*,*) "H_temp: ", H_temp(i,j)
+                     !write(*,*) "H_temp: ", H_temp(i,j)
                   else if(abs(dE)<=10**(-8)) then
                      write(*,*) "dE: ", dE
                      H_temp(i,j)=H_temp(i,j)/10**(-8)
                   endif
             else if(i==j) then
-               write(*,*) "H_xc_1 = 0",i
+               !write(*,*) "H_xc_1 = 0",i
                H_xc_1(i,j) = 0d0
             endif
          enddo
