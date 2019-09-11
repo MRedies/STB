@@ -1167,18 +1167,18 @@ contains
             if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
                j =  self%UC%atoms(i)%neigh_idx(conn)
                j_d = j + self%num_up
-               ! H_xc_at = lambda * (H_0 + H_1 * t_nc)
+               ! H_xc_at = lambda * (H_1 * t_nc)
                !testing collinear perturbation here
                temp(i,i)     = -self%lambda*sin(theta_col)*theta_nc/2d0
                temp(i_d,i_d) =  self%lambda*sin(theta_col)*theta_nc/2d0
-               !temp(j,j)     =  self%lambda*sin(theta_col)*theta_nc/2d0
                temp(j,j)     = -self%lambda*sin(theta_col)*theta_nc/2d0
-               !temp(j_d,j_d) = -self%lambda*sin(theta_col)*theta_nc/2d0
                temp(j_d,j_d) =  self%lambda*sin(theta_col)*theta_nc/2d0
                temp(i,i_d)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
                temp(i_d,i)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
                temp(j,j_d)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
                temp(j_d,j)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
+               !temp(j,j)     =  self%lambda*sin(theta_col)*theta_nc/2d0
+               !temp(j_d,j_d) = -self%lambda*sin(theta_col)*theta_nc/2d0
                !temp(j,j_d)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
                !temp(j_d,j)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
             endif
@@ -1207,7 +1207,6 @@ contains
                      else if (dE>0d0) then
                         H_temp(i,j)= H_temp(i,j)/10**(-8)
                      endif
-                     
                   endif
             else if(i==j) then
                !write(*,*) "H_xc_1 = 0",i
