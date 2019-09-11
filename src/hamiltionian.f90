@@ -1169,20 +1169,17 @@ contains
                j_d = j + self%num_up
                ! H_xc_at = lambda * (H_0 + H_1 * t_nc)
                !testing collinear perturbation here
-               temp(i,i)     =  self%lambda*(cos(theta_col)-sin(theta_col)*theta_nc/2d0)
-               temp(i_d,i_d) = -self%lambda*(cos(theta_col)-sin(theta_col)*theta_nc/2d0)
-               temp(j,j)     =  self%lambda*(cos(theta_col)+sin(theta_col)*theta_nc/2d0)
+               temp(i,i)     = -self%lambda*sin(theta_col)*theta_nc/2d0
+               temp(i_d,i_d) =  self%lambda*sin(theta_col)*theta_nc/2d0
+               temp(j,j)     =  self%lambda*sin(theta_col)*theta_nc/2d0
                !temp(j,j)     =  self%lambda*(cos(theta_col)-sin(theta_col)*theta_nc/2d0)
-               temp(j_d,j_d) = -self%lambda*(cos(theta_col)+sin(theta_col)*theta_nc/2d0)
+               temp(j_d,j_d) = -self%lambda*sin(theta_col)*theta_nc/2d0
                !temp(j_d,j_d) = -self%lambda*(cos(theta_col)-sin(theta_col)*theta_nc/2d0)
-               temp(i,i_d)   =  self%lambda*(sin(theta_col)+cos(theta_col)*theta_nc/2d0)*exp(-i_unit*(phi_col+phi_nc/2d0))
-               !write(*,*) "i:", i
-               !write(*,*) "tempdiag: ", temp(i,i)
-               !write(*,*) "temp: ", temp(i,i_d)
-               temp(i_d,i)   =  self%lambda*(sin(theta_col)+cos(theta_col)*theta_nc/2d0)*exp( i_unit*(phi_col+phi_nc/2d0))
-               temp(j,j_d)   =  self%lambda*(sin(theta_col)-cos(theta_col)*theta_nc/2d0)*exp(-i_unit*(phi_col-phi_nc/2d0))
+               temp(i,i_d)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
+               temp(i_d,i)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
+               temp(j,j_d)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
                !temp(j,j_d)   =  self%lambda*(sin(theta_col)+cos(theta_col)*theta_nc/2d0)*exp(-i_unit*(phi_col-phi_nc/2d0))
-               temp(j_d,j)   =  self%lambda*(sin(theta_col)-cos(theta_col)*theta_nc/2d0)*exp( i_unit*(phi_col-phi_nc/2d0))
+               temp(j_d,j)   = -self%lambda*(cos(theta_col)*theta_nc/2d0)*exp( i_unit*(phi_col-phi_nc/2d0))
                !temp(j_d,j)   =  self%lambda*(sin(theta_col)+cos(theta_col)*theta_nc/2d0)*exp( i_unit*(phi_col-phi_nc/2d0))
             endif
          enddo
