@@ -104,6 +104,7 @@ contains
 
       if(calc_hall .or. calc_orbmag) then
          if(root == me) write (*,*) "started Berry"
+         write(*,*) "pert_log main: ", pert_log
          call Ksp%calc_berry_quantities(pert_log)
       endif
 

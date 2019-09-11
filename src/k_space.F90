@@ -775,7 +775,8 @@ contains
       integer     :: N_k, num_up, iter, n_ferm
       integer     :: all_err(13), info
       character(len=300)       :: msg
-      logical                  :: done_hall = .True., done_orbmag = .True.,pert_log
+      logical                  :: done_hall = .True., done_orbmag = .True.
+      logical, intent(in)      :: pert_log
       !write (*,*) "flag2"
       call self%setup_berry_inte_grid()
       N_k = size(self%new_k_pts, 2)
@@ -915,7 +916,7 @@ contains
       real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:),&
                                    omega_z_pert_new(:,:), Q_L_new(:,:), Q_IC_new(:,:)
       complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
-      logical, intent(in)       ::pert_log
+      logical, intent(in)       :: pert_log
       tmp = 0d0
       N_k = size(self%new_k_pts, 2)
       n_ferm =  size(self%E_fermi)
