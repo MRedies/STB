@@ -942,8 +942,8 @@ contains
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,0)
          
             if(self%calc_hall) then
-               !call self%ham%calc_berry_z(omega_z_new(:,cnt),&
-               !                        eig_val_new(:,cnt), del_kx, del_ky)
+               call self%ham%calc_berry_z(omega_z_new(:,cnt),&
+                                       eig_val_new(:,cnt), del_kx, del_ky)
                do pert_idx=1,4
                   call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
                   call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
