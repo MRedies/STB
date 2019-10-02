@@ -1179,14 +1179,14 @@ contains
                !temp(j_d,j)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
                ! H_xc_at = lambda * (H_1 * t_nc)
                !this is full exchange (without zero order, thats already in the col case)
-               temp(i,i)     = -self%lambda*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
-               temp(i_d,i_d) =  self%lambda*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
+               temp(i,i)     =  self%lambda*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
+               temp(i_d,i_d) = -self%lambda*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
                temp(j,j)     =  self%lambda*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
                temp(j_d,j_d) = -self%lambda*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
                temp(i,i_d)   =  self%lambda*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col+phi_nc/2d0))
                temp(i_d,i)   =  self%lambda*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col+phi_nc/2d0))
-               temp(j,j_d)   = -self%lambda*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col-phi_nc/2d0))
-               temp(j_d,j)   = -self%lambda*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col-phi_nc/2d0))
+               temp(j,j_d)   =  self%lambda*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col-phi_nc/2d0))
+               temp(j_d,j)   =  self%lambda*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col-phi_nc/2d0))
             endif
          enddo
       enddo
