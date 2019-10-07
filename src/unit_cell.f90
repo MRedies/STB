@@ -119,8 +119,6 @@ contains
         if(self%me ==  0) then 
            call CFG_get(cfg, "berry%pert_log", tmp_log)
             self%pert_log =  tmp_log
-            !write (*,*) "tmp_log = ", tmp_log
-            !write (*,*) "pert_log = ", self%pert_log
            call CFG_get(cfg, "grid%epsilon", tmp)
             self%eps =  tmp * self%units%length
             
@@ -130,13 +128,10 @@ contains
             endif
 
             call CFG_get(cfg, "grid%mag_type", self%mag_type)
-            !write (*,*) "FLAG C"
             call CFG_get_size(cfg, "grid%anticol_phi", anticol_size)
-            !write (*,*) "anticolsize = ", anticol_size
             allocate(self%anticol_phi(anticol_size)) !allocate phi
             call CFG_get(cfg, "grid%anticol_phi", self%anticol_phi)
             call CFG_get_size(cfg, "grid%anticol_theta", anticol_size)
-            !write (*,*) "anticolsize = ", anticol_size
             allocate(self%anticol_theta(anticol_size)) !allocate theta
             call CFG_get(cfg, "grid%anticol_theta", self%anticol_theta)
 
@@ -641,7 +636,8 @@ contains
                     enddo
                 else
                     do i = 1,self%num_atoms
-                        call self%atoms(i)%set_sphere(phi_col - (-1)**i*phi_nc/2d0,theta_col - (-1)**i*theta_nc/2d0)
+                        call self%atoms(i)%set_sphere(phi_col - (-1)*phi_nc/2d0,theta_col - (-1)*theta_nc/2d0)
+                        !write (*,*) "theta = ", theta_col - (-1)**i*theta_nc/2d0
                     enddo
                 endif
             else
