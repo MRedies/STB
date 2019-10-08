@@ -1157,7 +1157,6 @@ contains
       allocate(ret(n_dim, n_dim))
       theta = self%UC%anticol_theta
       phi = self%UC%anticol_phi
-      !write(*,*) "theta:", theta
       theta_nc = theta(2)
       theta_col = theta(1)
       phi_nc = phi(2)
@@ -1206,7 +1205,6 @@ contains
                dE = eig_val(j)-eig_val(i)
                   if(abs(dE)>10**(-8)) then
                      H_temp(i,j)=H_temp(i,j)/dE
-                     !write(*,*) "H_temp: ", H_temp(i,j)
                   else if(abs(dE)<=10**(-8)) then
                      write(*,*) "dE: ", dE
                      if      (dE<0d0) then
@@ -1216,8 +1214,7 @@ contains
                      endif
                   endif
             else if(i==j) then
-               !write(*,*) "H_xc_1 = 0",i
-               H_xc_1(i,j) = 0d0
+               H_temp(i,j) = 0d0
             endif
          enddo
       enddo
