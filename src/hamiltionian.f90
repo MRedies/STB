@@ -1150,6 +1150,7 @@ contains
       complex(8), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
       real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE
       integer                         :: i,i_d,conn,j,j_d,n_dim
+      H_xc_1 = 0d0
       n_dim = 2 * self%num_up
       allocate(H_temp(n_dim, n_dim))
       allocate(temp(n_dim, n_dim))
