@@ -1181,16 +1181,16 @@ contains
                !this is full exchange (without zero order, thats already in the col case)
                temp(i,i)     =  self%lambda*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
                temp(i_d,i_d) = -self%lambda*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
-               temp(j,j)     =  self%lambda*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
-               temp(j_d,j_d) = -self%lambda*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
+               temp(j,j)     =  self%lambda*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
+               temp(j_d,j_d) = -self%lambda*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
                temp(i,i_d)   =  self%lambda*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col+phi_nc/2d0))
                temp(i_d,i)   =  self%lambda*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col+phi_nc/2d0))
-               temp(j,j_d)   =  self%lambda*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col-phi_nc/2d0))
-               temp(j_d,j)   =  self%lambda*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col-phi_nc/2d0))
+               temp(j,j_d)   =  self%lambda*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col-phi_nc/2d0))
+               temp(j_d,j)   =  self%lambda*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col-phi_nc/2d0))
             endif
          enddo
       enddo
-      !rotate hxc into the eigenbasis of the hamiltonian with EHE_dagger 
+      !rotate hxc into the eigenbasis of the hamiltonian with E_dagger H E
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                   c_1, temp, n_dim,&
                   eig_vec_mtx, n_dim,&
@@ -1203,10 +1203,9 @@ contains
          do j=1,n_dim
             if(i /= j) then
                dE = eig_val(j)-eig_val(i)
-                  if(abs(dE)>10**(-8)) then
+                  if       (abs(dE)>10**(-8))   then
                      H_temp(i,j)=H_temp(i,j)/dE
-                  else if(abs(dE)<=10**(-8)) then
-                     write(*,*) "dE: ", dE
+                  else if  (abs(dE)<=10**(-8))  then
                      if      (dE<0d0) then
                         H_temp(i,j)=-H_temp(i,j)/10**(-8)
                      else if (dE>0d0) then
@@ -1232,6 +1231,7 @@ contains
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
       complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
       integer                         :: n_dim
+
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
       allocate(H_xc_1(n_dim, n_dim))

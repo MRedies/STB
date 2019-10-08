@@ -376,8 +376,7 @@ contains
          call CFG_get(cfg, "dos%upper_E_bound", tmp)
          self%DOS_upper =  tmp * self%units%energy
          
-         !call CFG_get(cfg,"berry%pert_log",logtmp)
-         !self%pert_log = logtmp
+         !call CFG_get(cfg,"berry%pert_log",self%pert_log)
 
          call CFG_get(cfg, "berry%k_pts_per_dim", self%berry_num_k_pts)
          call CFG_get(cfg, "berry%temperature", tmp)
@@ -777,7 +776,6 @@ contains
       character(len=300)       :: msg
       logical                  :: done_hall = .True., done_orbmag = .True.
       logical, intent(in)      :: pert_log
-      !write (*,*) "flag2"
       call self%setup_berry_inte_grid()
       N_k = size(self%new_k_pts, 2)
       num_up =  self%ham%num_up
@@ -959,7 +957,6 @@ contains
             endif
             cnt = cnt + 1
          enddo
-      cnt =  1
       else if(.not. pert_log) then
          do k_idx = first, last
             k = self%new_k_pts(:,k_idx)
