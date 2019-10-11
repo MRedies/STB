@@ -92,6 +92,7 @@ contains
 
         self%m_phi   = phi
         self%m_theta = theta
+        write(*,*) "self%m_theta",self%m_theta
     end subroutine set_sphere
 
     function compare_to_root(self) result(success)

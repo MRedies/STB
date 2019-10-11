@@ -933,7 +933,6 @@ contains
 
       ! calculate
       cnt =  1
-      write(*,*) "ksp%calc_new_berry_points: ", pert_log
       if(pert_log) then
          if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
          allocate(omega_z_pert_new(2*num_up, last-first+1), stat=err(1))
@@ -947,8 +946,6 @@ contains
                   call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
                   call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
                                              eig_val_new(:,cnt), del_kx, del_ky)
-                  !write(*,*) "pert_idx :",pert_idx
-                  !write(*,*) "Omega",omega_z_pert_new(:,cnt)
                   omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new(:,cnt)
                enddo
             endif

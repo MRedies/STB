@@ -618,7 +618,7 @@ contains
     subroutine set_mag_anticol(self)
         implicit none
         class(unit_cell)        :: self
-        real(8)                 :: phi_nc,phi_col,theta_nc,theta_col
+        real(8)                 :: phi,theta,phi_nc,phi_col,theta_nc,theta_col
         integer                 :: i                 
         if(      size(self%anticol_phi)   /= self%num_atoms &
             .or. size(self%anticol_theta)/= self%num_atoms) then
@@ -633,15 +633,12 @@ contains
                 if(self%pert_log) then
                     do i = 1,self%num_atoms
                         call self%atoms(i)%set_sphere(phi_col,theta_col)
-                        write (*,*) "pert_log = ", self%pert_log
-                        write (*,*) "theta = ", theta_col
                     enddo
                 else
                     do i = 1,self%num_atoms
-                        call self%atoms(i)%set_sphere(phi_col - (-1)*phi_nc/2d0,theta_col - (-1)*theta_nc/2d0)
-                        write (*,*) "pert_log = ", self%pert_log
-                        write (*,*) "theta = ", theta_col - (-1)*theta_nc/2d0
-                        write (*,*) "theta2 = ", theta_col - (-1d0)*theta_nc/2d0
+                        phi = phi_col - (-1)*phi_nc/2d0
+                        theta = theta_col - (-1)*theta_nc/2d0
+                        call self%atoms(i)%set_sphere(phi,theta)
                     enddo
                 endif
             else

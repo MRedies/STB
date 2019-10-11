@@ -427,6 +427,7 @@ contains
       real(8)                  :: m(3), fac
 
       m = self%UC%atoms(i)%get_m_cart()
+      write(*,*) "stoner m: ", m
       fac =  - 0.5d0 *  self%lambda
 
       S = fac * ( m(1) * sigma_x &
@@ -1359,8 +1360,7 @@ contains
       endif
 
       deallocate(work, rwork, iwork)
-      write(*,*) "ham%calc_eig_and_velo :",pert_log
-      if(pert_log==0) then
+      if     (pert_log==0) then
          call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
          call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
       else if(pert_log==1) then
