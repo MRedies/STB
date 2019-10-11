@@ -1359,6 +1359,7 @@ contains
       endif
 
       deallocate(work, rwork, iwork)
+      write(*,*) "ham%calc_eig_and_velo :",pert_log
       if(pert_log==0) then
          call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
          call self%calc_velo_mtx(k, 2, eig_vec, del_ky)

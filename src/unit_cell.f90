@@ -633,11 +633,15 @@ contains
                 if(self%pert_log) then
                     do i = 1,self%num_atoms
                         call self%atoms(i)%set_sphere(phi_col,theta_col)
+                        write (*,*) "pert_log = ", self%pert_log
+                        write (*,*) "theta = ", theta_col
                     enddo
                 else
                     do i = 1,self%num_atoms
                         call self%atoms(i)%set_sphere(phi_col - (-1)*phi_nc/2d0,theta_col - (-1)*theta_nc/2d0)
-                        !write (*,*) "theta = ", theta_col - (-1)**i*theta_nc/2d0
+                        write (*,*) "pert_log = ", self%pert_log
+                        write (*,*) "theta = ", theta_col - (-1)*theta_nc/2d0
+                        write (*,*) "theta2 = ", theta_col - (-1d0)*theta_nc/2d0
                     enddo
                 endif
             else
