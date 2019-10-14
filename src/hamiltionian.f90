@@ -427,7 +427,7 @@ contains
       real(8)                  :: m(3), fac
 
       m = self%UC%atoms(i)%get_m_cart()
-      write(*,*) "stoner m: ", m
+      !write(*,*) "stoner m: ", m
       fac =  - 0.5d0 *  self%lambda
 
       S = fac * ( m(1) * sigma_x &

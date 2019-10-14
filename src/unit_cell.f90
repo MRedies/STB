@@ -1314,11 +1314,17 @@ contains
     subroutine run_tests(self)
         implicit none
         class(unit_cell), intent(in)   :: self
-        integer                        :: i
-        logical                        :: passed
+        integer                        :: i,ierr
+        logical                        :: passed,tmp,success
 
         passed = .True.
-
+        !compare perturbation logical
+        if(self%me == root) tmp = self%pert_log
+        call MPI_Bcast(tmp, 1, MPI_LOGICAL, root, MPI_COMM_WORLD,ierr)
+        if(tmp .NEQV. self%pert_log) then
+            call error_msg("pert_log doesn't match", abort=.True.)
+            success = .False.
+        endif
         do i = 1,self%num_atoms
             passed = passed .and. self%atoms(i)%compare_to_root()
         enddo

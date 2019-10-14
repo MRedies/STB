@@ -804,7 +804,6 @@ contains
       start = MPI_Wtime()
       do iter =1,self%berry_iter
          if(self%me == root) write (*,*) "Time: ", MPI_Wtime() -  start
-         write(*,*) "ksp%calc_new_berry_quantities: ", pert_log
          call self%calc_new_berry_points(eig_val_new, omega_z_new, Q_L_new, Q_IC_new,pert_log)
          call self%calc_new_kidx(kidx_new)
 
