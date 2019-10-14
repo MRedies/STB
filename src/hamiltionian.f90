@@ -1209,8 +1209,10 @@ contains
                   else if  (abs(dE)<=10**(-8))  then
                      if      (dE<0d0) then
                         H_temp(i,j)=-H_temp(i,j)/10**(-8)
+                        write(*,*) "H_temp: ",-H_temp(i,j)/10**(-8)
                      else if (dE>0d0) then
                         H_temp(i,j)= H_temp(i,j)/10**(-8)
+                        write(*,*) "H_temp: ",-H_temp(i,j)/10**(-8)
                      endif
                   endif
             else if(i==j) then
