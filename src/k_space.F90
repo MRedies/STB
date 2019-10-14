@@ -942,6 +942,8 @@ contains
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
                do pert_idx=1,4
+                  if(allocated(del_kx)) deallocate(del_kx)
+                  if(allocated(del_ky)) deallocate(del_ky)
                   call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
                   call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
                                              eig_val_new(:,cnt), del_kx, del_ky)
