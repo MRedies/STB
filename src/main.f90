@@ -74,9 +74,9 @@ contains
       call MPI_Bcast(pert_log,     1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
 
       !compare perturbation logical
-      if(self%me == root) tmp = self%pert_log
+      if(me == root) tmp = pert_log
       call MPI_Bcast(tmp, 1, MPI_LOGICAL, root, MPI_COMM_WORLD,ierr2)
-      if(tmp .NEQV. self%pert_log) then
+      if(tmp .NEQV. pert_log) then
           call error_msg("pert_log doesn't match in main", abort=.True.)
           success = .False.
       endif
