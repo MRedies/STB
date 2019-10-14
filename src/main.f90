@@ -39,9 +39,9 @@ contains
       implicit none
       character(len=300), intent(in) :: inp_file
       real(8)                        :: start, halt
-      integer                        :: me, ierr
+      integer                        :: me, ierr,ierr2
       logical                        :: perform_band, perform_dos, calc_hall,&
-                                        calc_orbmag, perform_ACA,plot_omega,pert_log
+                                        calc_orbmag, perform_ACA,plot_omega,pert_log,tmp,success
       type(CFG_t)                     :: cfg
       character(len=25)               :: fermi_type
 
@@ -73,6 +73,13 @@ contains
       call MPI_Bcast(plot_omega,   1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(pert_log,     1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
 
+      !compare perturbation logical
+      if(self%me == root) tmp = self%pert_log
+      call MPI_Bcast(tmp, 1, MPI_LOGICAL, root, MPI_COMM_WORLD,ierr2)
+      if(tmp .NEQV. self%pert_log) then
+          call error_msg("pert_log doesn't match in main", abort=.True.)
+          success = .False.
+      endif
       Ksp =  init_k_space(cfg)
       if(me == root) call save_cfg(cfg)
 
