@@ -1315,7 +1315,7 @@ contains
         implicit none
         class(unit_cell), intent(in)   :: self
         integer                        :: i,ierr
-        logical                        :: passed,tmp,success
+        logical                        :: passed,tmp
 
         passed = .True.
         !compare perturbation logical
@@ -1323,7 +1323,7 @@ contains
         call MPI_Bcast(tmp, 1, MPI_LOGICAL, root, MPI_COMM_WORLD,ierr)
         if(tmp .NEQV. self%pert_log) then
             call error_msg("pert_log doesn't match", abort=.True.)
-            success = .False.
+            passed = .False.
         endif
         do i = 1,self%num_atoms
             passed = passed .and. self%atoms(i)%compare_to_root()
