@@ -940,14 +940,11 @@ contains
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
                do pert_idx=1,4
-                  write(*,*) "before"
                   if(allocated(del_kx)) deallocate(del_kx)
                   if(allocated(del_ky)) deallocate(del_ky)
                   if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
                   allocate(omega_z_pert_new(2*num_up, last-first+1), stat=err(2))
-                  write(*,*) "before2"
                   call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
-                  write(*,*) "after"
                   call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
                                              eig_val_new(:,cnt), del_kx, del_ky)
                   omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new(:,cnt)
