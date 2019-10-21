@@ -1151,7 +1151,7 @@ contains
       complex(8), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
       real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE
       integer                         :: i,i_d,conn,j,j_d,n_dim
-      H_xc_1 = 0d0
+      H_xc_1 = (0d0,0d0)
       n_dim = 2 * self%num_up
       if(allocated(H_temp)) deallocate(H_temp)
       if(allocated(temp)) deallocate(temp)
@@ -1159,9 +1159,9 @@ contains
       allocate(H_temp(n_dim, n_dim))
       allocate(temp(n_dim, n_dim))
       allocate(ret(n_dim, n_dim))
-      H_temp=0d0
-      temp=0d0
-      ret = 0d0
+      H_temp=(0d0,0d0)
+      temp=(0d0,0d0)
+      ret = (0d0,0d0)
       theta = self%UC%anticol_theta
       phi = self%UC%anticol_phi
       theta_nc = theta(2)
@@ -1222,7 +1222,7 @@ contains
                      endif
                   endif
             else if(i==j) then
-               H_temp(i,j) = 0d0
+               H_temp(i,j) = (0d0,0d0)
             endif
          enddo
       enddo
@@ -1247,11 +1247,10 @@ contains
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
       allocate(H_xc_1(n_dim, n_dim))
-      tmp=0d0
-      H_xc_1=0d0
+      tmp=(0d0,0d0)
+      H_xc_1=(0d0,0d0)
       call self%calc_exch_firstord(eig_vec_mtx,eig_val,H_xc_1)
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
-      self%del_H=0d0
       call self%set_derivative_k(k, derive_idx)
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                   c_1, self%del_H, n_dim,&
@@ -1264,7 +1263,7 @@ contains
          endif
       endif
       if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
-      ret=0d0
+      ret=(0d0,0d0)
       call zgemm('C', 'N', n_dim, n_dim, n_dim, &
                   c_1, H_xc_1, n_dim, &
                   tmp, n_dim, &
@@ -1284,8 +1283,8 @@ contains
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
       allocate(H_xc_1(n_dim, n_dim))
-      tmp=0d0
-      H_xc_1=0d0
+      tmp=(0d0,0d0)
+      H_xc_1=(0d0,0d0)
       call self%calc_exch_firstord(eig_vec_mtx,eig_val,H_xc_1) !H_xc in first order in atomic basis
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
       call self%set_derivative_k(k, derive_idx)
@@ -1300,7 +1299,7 @@ contains
          endif
       endif
       if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
-      ret = 0d0
+      ret = (0d0,0d0)
       call zgemm('C', 'N', n_dim, n_dim, n_dim, &
                   c_1, eig_vec_mtx, n_dim, &
                   tmp, n_dim, &
@@ -1320,7 +1319,7 @@ contains
 
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
-
+      tmp=(0d0,0d0)
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
       call self%set_derivative_k(k, derive_idx)
 
@@ -1336,7 +1335,7 @@ contains
          endif
       endif
       if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
-      ret=0d0
+      ret=(0d0,0d0)
       call zgemm('C', 'N', n_dim, n_dim, n_dim, &
                  c_1, eig_vec_mtx, n_dim, &
                  tmp, n_dim, &
@@ -1358,10 +1357,8 @@ contains
 
       n_dim = 2 * self%num_up
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
-
       eig_vec = 0d0
       call self%setup_H(k, eig_vec)
-
       call calc_zheevd_size('V', eig_vec, eig_val, lwork, lrwork, liwork)
 
       allocate(work(lwork), stat=ierr(1))
