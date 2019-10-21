@@ -1206,7 +1206,7 @@ contains
       do i=1,n_dim
          do j=1,n_dim
             if(i /= j) then
-               dE = eig_val(j)-eig_val(i)
+               dE = eig_val(i)-eig_val(j)
                   if       (abs(dE)>10**(-8))   then
                      H_temp(i,j)=H_temp(i,j)/dE
                   else if  (abs(dE)<=10**(-8))  then
