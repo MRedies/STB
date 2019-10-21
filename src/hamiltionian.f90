@@ -1153,6 +1153,9 @@ contains
       integer                         :: i,i_d,conn,j,j_d,n_dim
       H_xc_1 = 0d0
       n_dim = 2 * self%num_up
+      if(allocated(H_temp)) deallocate(H_temp)
+      if(allocated(temp)) deallocate(temp)
+      if(allocated(ret)) deallocate(ret)
       allocate(H_temp(n_dim, n_dim))
       allocate(temp(n_dim, n_dim))
       allocate(ret(n_dim, n_dim))
@@ -1224,6 +1227,9 @@ contains
                   c_1, H_temp, n_dim,&
                   eig_vec_mtx, n_dim,&
                   c_0, H_xc_1, n_dim)
+      if(allocated(H_temp)) deallocate(H_temp)
+      if(allocated(temp)) deallocate(temp)
+      if(allocated(ret)) deallocate(ret)
    end subroutine calc_exch_firstord
 
    subroutine calc_left_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx,eig_val, ret)
