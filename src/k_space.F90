@@ -907,12 +907,12 @@ contains
    subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, Q_L_new, Q_IC_new,pert_log)
       implicit none
       class(k_space)            :: self
-      integer                   :: N_k, cnt, k_idx, num_up, n_ferm,pert_idx
+      integer                   :: N_k, cnt, k_idx, num_up, n_ferm,pert_idx,dum_idx
       integer                   :: first, last, err(3)
       real(8)                   :: tmp
       real(8)                   :: k(3)
       real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:),&
-                                   omega_z_pert_new(:,:), Q_L_new(:,:), Q_IC_new(:,:)
+                                   omega_z_pert_new(:,:),omega_z_pert_dummy(:,:), Q_L_new(:,:), Q_IC_new(:,:)
       complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
       logical, intent(in)       :: pert_log
       tmp = 0d0
@@ -939,16 +939,15 @@ contains
             if(self%calc_hall) then
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
+               if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
+               allocate(omega_z_pert_new(2*num_up, last-first+1), stat=err(2))
                do pert_idx=1,4
                   if(allocated(del_kx)) deallocate(del_kx)
                   if(allocated(del_ky)) deallocate(del_ky)
-                  if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
-                  allocate(omega_z_pert_new(2*num_up, last-first+1), stat=err(2))
                   call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
                   call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
                                              eig_val_new(:,cnt), del_kx, del_ky)
-                  write(*,*) "omega_z_new: ", omega_z_pert_new(:,cnt)
-                  omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new(:,cnt)
+                  omega_z_pert(:,cnt) = omega_z_pert(:,cnt) + omega_z_pert_new(:,cnt)
                enddo
             endif
             if(self%calc_orbmag) then
