@@ -1335,8 +1335,8 @@ contains
             deallocate(ret)
          endif
       endif
-      if(.not. allocated(ret)) allocate(ret(n_dim, n_dim),source=0d0)
-
+      if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
+      ret=0d0
       call zgemm('C', 'N', n_dim, n_dim, n_dim, &
                  c_1, eig_vec_mtx, n_dim, &
                  tmp, n_dim, &
