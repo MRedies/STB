@@ -1165,6 +1165,7 @@ contains
       theta_col = theta(1)
       phi_nc = phi(2)
       phi_col = phi(1)
+      write(*,*) "theta_nc: ", theta_nc
       do i =  1, self%num_up
          i_d =  i + self%num_up
          do conn =  1,size(self%UC%atoms(i)%neigh_idx)
