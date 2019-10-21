@@ -940,8 +940,9 @@ contains
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
                if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
-               allocate(omega_z_pert_new(2*num_up, last-first+1), stat=err(2),source=0d0)
-               allocation for omega_z_pert_new can be done here, since ham%calc_berry_z sets to zero
+               allocate(omega_z_pert_new(2*num_up, last-first+1), stat=err(2))
+               omega_z_pert_new=0d0
+               !allocation for omega_z_pert_new can be done here, since ham%calc_berry_z sets to zero
                do pert_idx=1,4
                   if(allocated(del_kx)) deallocate(del_kx)
                   if(allocated(del_ky)) deallocate(del_ky)
