@@ -939,7 +939,6 @@ contains
             if(self%calc_hall) then
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
-               ! IMPORT PHI UND THETA HERE AND CHECK IF THEY ARE NULL, SO WE DONT CALC ALL THE TIME
                do pert_idx=1,4
                   if(allocated(del_kx)) deallocate(del_kx)
                   if(allocated(del_ky)) deallocate(del_ky)
