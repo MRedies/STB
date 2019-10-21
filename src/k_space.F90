@@ -907,12 +907,12 @@ contains
    subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, Q_L_new, Q_IC_new,pert_log)
       implicit none
       class(k_space)            :: self
-      integer                   :: N_k, cnt, k_idx, num_up, n_ferm,pert_idx,dum_idx
+      integer                   :: N_k, cnt, k_idx, num_up, n_ferm,pert_idx
       integer                   :: first, last, err(3)
       real(8)                   :: tmp
       real(8)                   :: k(3)
       real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:),&
-                                   omega_z_pert_new(:,:),omega_z_pert_dummy(:,:), Q_L_new(:,:), Q_IC_new(:,:)
+                                   omega_z_pert_new(:,:), Q_L_new(:,:), Q_IC_new(:,:)
       complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
       logical, intent(in)       :: pert_log
       tmp = 0d0
