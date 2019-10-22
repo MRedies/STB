@@ -1357,7 +1357,7 @@ contains
 
       n_dim = 2 * self%num_up
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
-      eig_vec = 0d0
+      eig_vec = (0d0,0d0)
       call self%setup_H(k, eig_vec)
       call calc_zheevd_size('V', eig_vec, eig_val, lwork, lrwork, liwork)
 
