@@ -818,7 +818,7 @@ contains
             call append_quantitiy(Q_L_all, Q_L_new)
             call append_quantitiy(Q_IC_all, Q_IC_new)
          endif
-
+         call save_npy(trim(self%prefix) // trim("hall_cond_uc.npy"),omega_z_all)
          if(self%calc_hall) then
             hall_old = hall
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
@@ -951,7 +951,6 @@ contains
                   call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
                   call self%ham%calc_berry_z(omega_z_pert_new,&
                                              eig_val_new(:,cnt), del_kx, del_ky)
-                  write(*,*)"omega: ",omega_z_pert_new
                   omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new
                enddo
             endif
