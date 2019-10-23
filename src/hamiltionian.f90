@@ -1226,6 +1226,7 @@ contains
             endif
          enddo
       enddo
+      !write(*,*) "temp2: ", H_temp
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                   c_1, H_temp, n_dim,&
                   eig_vec_mtx, n_dim,&
@@ -1354,7 +1355,6 @@ contains
       integer, intent(in)      :: pert_log
       integer      :: n_dim, lwork, lrwork, liwork, info
       integer      :: ierr(3)
-
       n_dim = 2 * self%num_up
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
       eig_vec = (0d0,0d0)
@@ -1371,7 +1371,6 @@ contains
       if(info /= 0) then
          write (*,*) "ZHEEVD in berry calculation failed"
       endif
-
       deallocate(work, rwork, iwork)
       if     (pert_log==0) then
          call self%calc_velo_mtx(k, 1, eig_vec, del_kx)

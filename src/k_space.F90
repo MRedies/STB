@@ -820,7 +820,6 @@ contains
          endif
 
          if(self%calc_hall) then
-            call save_npy(trim(self%prefix) // trim("hall_cond_uc.npy"),hall)
             hall_old = hall
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
 
@@ -874,7 +873,10 @@ contains
          call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
       enddo
 
-      if(self%calc_hall)   call self%finalize_hall(hall)
+      if(self%calc_hall) then
+         call self%finalize_hall(hall)
+         call save_npy(trim(self%prefix) // trim("hall_cond_uc.npy"),omega_z_all)
+      endif
       if(self%calc_orbmag) call self%finalize_orbmag(orbmag, orbmag_L, orbmag_IC)
 
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
@@ -912,7 +914,7 @@ contains
       real(8)                   :: tmp
       real(8)                   :: k(3)
       real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:),&
-                                   omega_z_pert_new(:,:), Q_L_new(:,:), Q_IC_new(:,:)
+                                   omega_z_pert_new(:), Q_L_new(:,:), Q_IC_new(:,:)
       complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
       logical, intent(in)       :: pert_log
       tmp = 0d0
@@ -940,16 +942,16 @@ contains
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
                if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
-               allocate(omega_z_pert_new(2*num_up, last-first+1), stat=err(2))
+               allocate(omega_z_pert_new(2*num_up), stat=err(2))
                omega_z_pert_new=0d0
                !allocation for omega_z_pert_new can be done here, since ham%calc_berry_z sets to zero
                do pert_idx=1,4
                   if(allocated(del_kx)) deallocate(del_kx)
                   if(allocated(del_ky)) deallocate(del_ky)
                   call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
-                  call self%ham%calc_berry_z(omega_z_pert_new(:,cnt),&
+                  call self%ham%calc_berry_z(omega_z_pert_new,&
                                              eig_val_new(:,cnt), del_kx, del_ky)
-                  omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new(:,cnt)
+                  omega_z_new(:,cnt) = omega_z_new(:,cnt) + omega_z_pert_new
                enddo
             endif
             if(self%calc_orbmag) then
