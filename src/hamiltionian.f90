@@ -1199,11 +1199,11 @@ contains
          enddo
       enddo
       !rotate hxc into the eigenbasis of the hamiltonian with E_dagger H E
-      call zgemm('N', 'C', n_dim, n_dim, n_dim, &
+      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                   c_1, temp, n_dim,&
                   eig_vec_mtx, n_dim,&
                   c_0, ret, n_dim)
-      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+      call zgemm('C', 'N', n_dim, n_dim, n_dim, &
                   c_1, eig_vec_mtx, n_dim,&
                   ret, n_dim,&
                   c_0, H_temp, n_dim)
@@ -1228,7 +1228,7 @@ contains
          enddo
       enddo
       !write(*,*) "temp2: ", H_temp
-      call zgemm('N', 'C', n_dim, n_dim, n_dim, &
+      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                   c_1, H_temp, n_dim,&
                   eig_vec_mtx, n_dim,&
                   c_0, H_xc_1, n_dim)
