@@ -939,8 +939,8 @@ contains
             k = self%new_k_pts(:,k_idx)
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,0)
             if(self%calc_hall) then
-               !call self%ham%calc_berry_z(omega_z_new(:,cnt),&
-               !                        eig_val_new(:,cnt), del_kx, del_ky)
+               call self%ham%calc_berry_z(omega_z_new(:,cnt),&
+                                       eig_val_new(:,cnt), del_kx, del_ky)
                if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
                allocate(omega_z_pert_new(2*num_up), stat=err(2))
                omega_z_pert_new=0d0
