@@ -1211,7 +1211,7 @@ contains
       do i=1,n_dim
          do j=1,n_dim
             if(i /= j) then
-               dE = eig_val(j)-eig_val(i)
+               dE = (eig_val(j)-eig_val(i))*self%units%energy
                   if       (abs(dE)>10**(-8))   then
                      H_temp(i,j)=H_temp(i,j)/dE
                   else if  (abs(dE)<=10**(-8))  then
@@ -1239,9 +1239,7 @@ contains
                   c_1, H_temp, n_dim,&
                   eig_vec_mtx, n_dim,&
                   c_0, H_xc_1, n_dim)
-      if(allocated(H_temp)) deallocate(H_temp)
-      
-      if(allocated(ret)) deallocate(ret)
+      deallocate(H_temp)
    end subroutine calc_exch_firstord
 
    subroutine calc_left_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx,eig_val, ret)
