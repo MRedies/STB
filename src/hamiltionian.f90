@@ -1214,7 +1214,6 @@ contains
                dE = eig_val(j)-eig_val(i)
                   if       (abs(dE)>10**(-8))   then
                      H_temp(i,j)=H_temp(i,j)/dE
-                     write(*,*)"temp: ", H_temp(i,j)
                   else if  (abs(dE)<=10**(-8))  then
                      if      (dE<0d0) then
                         H_temp(i,j)=-H_temp(i,j)/10**(-8)
