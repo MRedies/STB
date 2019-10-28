@@ -819,7 +819,7 @@ contains
             call append_quantitiy(Q_IC_all, Q_IC_new)
          endif
          call save_npy(trim(self%prefix) // trim("hall_cond_uc.npy"),omega_z_all)
-         call save_npy(trim(self%prefix) // trim("k_hc_uc.npy"),k_idx_all)
+         call save_npy(trim(self%prefix) // trim("k_hc_uc.npy"),kidx_all)
          if(self%calc_hall) then
             hall_old = hall
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
@@ -877,7 +877,7 @@ contains
       if(self%calc_hall) then
          call self%finalize_hall(hall)
          call save_npy(trim(self%prefix) // trim("hall_cond_uc.npy"),omega_z_all)
-         call save_npy(trim(self%prefix) // trim("k_hc_uc.npy"),k_idx_all)
+         call save_npy(trim(self%prefix) // trim("k_hc_uc.npy"),kidx_all)
       endif
       if(self%calc_orbmag) call self%finalize_orbmag(orbmag, orbmag_L, orbmag_IC)
 
