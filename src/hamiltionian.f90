@@ -1256,7 +1256,6 @@ contains
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
       complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
       integer                         :: n_dim
-      write(*,*) "left"
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
       !allocate(H_xc_1(n_dim, n_dim))
