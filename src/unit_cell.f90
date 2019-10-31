@@ -616,11 +616,11 @@ contains
     end subroutine set_mag_ferro
 
     subroutine set_mag_anticol(self)
-        write(*,*)"This is the noncollinear perturbation case!"
         implicit none
         class(unit_cell)        :: self
         real(8)                 :: phi,theta,phi_nc,phi_col,theta_nc,theta_col
-        integer                 :: i                 
+        integer                 :: i
+        write(*,*)"This is the noncollinear perturbation case!"                 
         if(      size(self%anticol_phi)   /= self%num_atoms &
             .or. size(self%anticol_theta)/= self%num_atoms) then
             call error_msg("sizes of anticol_phi and anticol_theta not consistent with num_atoms", abort=.True.)
