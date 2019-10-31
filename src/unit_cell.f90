@@ -616,6 +616,7 @@ contains
     end subroutine set_mag_ferro
 
     subroutine set_mag_anticol(self)
+        write(*,*)"This is the noncollinear perturbation case!"
         implicit none
         class(unit_cell)        :: self
         real(8)                 :: phi,theta,phi_nc,phi_col,theta_nc,theta_col

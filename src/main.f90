@@ -44,7 +44,6 @@ contains
                                         calc_orbmag, perform_ACA,plot_omega,pert_log,tmp,success
       type(CFG_t)                     :: cfg
       character(len=25)               :: fermi_type
-
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       start =  MPI_Wtime()
 
