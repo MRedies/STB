@@ -1169,7 +1169,6 @@ contains
       phi_col = phi(1)
       fac = -0.5d0 * self%lambda
       do i =  1, self%num_up
-         write(*,*)"i",i
          i_d =  i + self%num_up
          do conn =  1,size(self%UC%atoms(i)%neigh_idx)
             if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
