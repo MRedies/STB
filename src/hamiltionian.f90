@@ -1198,7 +1198,6 @@ contains
             endif
          enddo
       enddo
-      !write(*,*)"temp: ",temp
       !rotate hxc into the eigenbasis of the hamiltonian with E_dagger H E
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                   c_1, temp, n_dim,&
@@ -1210,25 +1209,12 @@ contains
                   ret, n_dim,&
                   c_0, H_temp, n_dim)
       deallocate(ret)
-      !Efac =  dE**2/(dE**2 + eta_sq)**2
       do i=1,n_dim
          do j=1,n_dim
             if(i /= j) then
                dE = (eig_val(j)-eig_val(i))
                Efac =  dE/(dE + eta_sq)**2
-               !write(*,*)"dE: ",1d0/dE-Efac
                H_temp(i,j) = H_temp(i,j)*Efac
-                  !if       (abs(dE)>10**(-8))   then
-                  !   H_temp(i,j)=H_temp(i,j)/dE
-                  !else if  (abs(dE)<=10**(-8))  then
-                  !   if      (dE<0d0) then
-                  !      H_temp(i,j)=-H_temp(i,j)/10**(-8)
-                  !      write(*,*) "H_temp: ",-H_temp(i,j)/10**(-8)
-                  !   else if (dE>0d0) then
-                  !      H_temp(i,j)= H_temp(i,j)/10**(-8)
-                  !      write(*,*) "H_temp: ",-H_temp(i,j)/10**(-8)
-                  !   endif
-                  !endif
             else if(i==j) then
                H_temp(i,j) = (0d0,0d0)
             endif
@@ -1241,10 +1227,7 @@ contains
       endif
       if(.not. allocated(H_xc_1)) allocate(H_xc_1(n_dim, n_dim))
       H_xc_1 = (0d0,0d0)
-      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
-                  c_1, H_temp, n_dim,&
-                  eig_vec_mtx, n_dim,&
-                  c_0, H_xc_1, n_dim)
+      H_xc_1 = H_temp
       deallocate(H_temp)
    end subroutine calc_exch_firstord
 
@@ -1258,17 +1241,9 @@ contains
       integer                         :: n_dim
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
-      !allocate(H_xc_1(n_dim, n_dim))
       tmp=(0d0,0d0)
-      !H_xc_1=(0d0,0d0)
       call self%calc_exch_firstord(eig_vec_mtx,eig_val,H_xc_1)
-      if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
-      call self%set_derivative_k(k, derive_idx)
-      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
-                  c_1, self%del_H, n_dim,&
-                  eig_vec_mtx, n_dim,&
-                  c_0, tmp, n_dim)
-      deallocate(self%del_H)
+      call self%calc_velo_mtx(k,derive_idx,eig_vec_mtx,eig_val,tmp)
       if(allocated(ret))then
          if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
             deallocate(ret)
@@ -1294,18 +1269,9 @@ contains
       integer                         :: n_dim
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
-      !allocate(H_xc_1(n_dim, n_dim))
       tmp=(0d0,0d0)
-      !H_xc_1=(0d0,0d0)
-      call self%calc_exch_firstord(eig_vec_mtx,eig_val,H_xc_1) !H_xc in first order in atomic basis
-      if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
-      call self%set_derivative_k(k, derive_idx)
-      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
-                    c_1, self%del_H, n_dim,&
-                    H_xc_1, n_dim,&
-                    c_0, tmp, n_dim)
-      deallocate(self%del_H)
-      deallocate(H_xc_1)
+      call self%calc_exch_firstord(eig_vec_mtx,eig_val,H_xc_1)
+      call self%calc_velo_mtx(k,derive_idx,eig_vec_mtx,eig_val,tmp)
       if(allocated(ret))then
          if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
             deallocate(ret)
@@ -1313,11 +1279,12 @@ contains
       endif
       if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
       ret = (0d0,0d0)
-      call zgemm('C', 'N', n_dim, n_dim, n_dim, &
-                  c_1, eig_vec_mtx, n_dim, &
-                  tmp, n_dim, &
-                  c_0, ret, n_dim)
+      call zgemm('N', 'N', n_dim, n_dim, n_dim, &
+                    c_1, tmp, n_dim,&
+                    H_xc_1, n_dim,&
+                    c_0, ret, n_dim)
       deallocate(tmp)
+      deallocate(H_xc_1)
    end subroutine calc_right_pert_velo_mtx
 
    subroutine calc_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
