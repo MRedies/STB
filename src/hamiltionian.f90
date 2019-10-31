@@ -1242,7 +1242,7 @@ contains
       allocate(tmp(n_dim, n_dim))
       tmp=(0d0,0d0)
       call self%calc_exch_firstord(eig_vec_mtx,eig_val,H_xc_1)
-      call self%calc_velo_mtx(k,derive_idx,eig_vec_mtx,eig_val,tmp)
+      call self%calc_velo_mtx(k,derive_idx,eig_vec_mtx,tmp)
       if(allocated(ret))then
          if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
             deallocate(ret)
@@ -1270,7 +1270,7 @@ contains
       allocate(tmp(n_dim, n_dim))
       tmp=(0d0,0d0)
       call self%calc_exch_firstord(eig_vec_mtx,eig_val,H_xc_1)
-      call self%calc_velo_mtx(k,derive_idx,eig_vec_mtx,eig_val,tmp)
+      call self%calc_velo_mtx(k,derive_idx,eig_vec_mtx,tmp)
       if(allocated(ret))then
          if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
             deallocate(ret)
