@@ -1075,6 +1075,7 @@ contains
       implicit none
       class(k_space)              :: self
       real(8), intent(in)         :: var(:)
+      real(8), intent(in)         :: varall(:)
 
       if(self%me == root) then
          write (*,*) size(self%all_k_pts,2), &
