@@ -1081,7 +1081,7 @@ contains
             "saving hall_cond with questionable unit"
 
          call save_npy(trim(self%prefix) // "hall_cond.npy", var)
-         !call save_npy(trim(self%prefix) // "hall_cond.npy", varall)
+         call save_npy(trim(self%prefix) // "hall_cond_uc.npy", varall)
          call save_npy(trim(self%prefix) // "hall_cond_E.npy", &
                        self%E_fermi / self%units%energy)
       endif
