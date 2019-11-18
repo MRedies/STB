@@ -771,7 +771,7 @@ contains
                                  Q_L_new(:,:), Q_IC_new(:,:), orbmag_L(:), orbmag_IC(:)
       real(8)                  :: start, factor
       integer   , allocatable  :: kidx_all(:), kidx_new(:)
-      integer     :: N_k, num_up, iter, n_ferm
+      integer     :: N_k, num_up, iter, n_ferm,nProcs
       integer     :: all_err(13), info
       character(len=300)       :: msg
       logical                  :: done_hall = .True., done_orbmag = .True.
@@ -780,6 +780,7 @@ contains
       N_k = size(self%new_k_pts, 2)
       num_up =  self%ham%num_up
       n_ferm = size(self%E_fermi)
+      nProcs = self%nProcs
       all_err = 0
 
       allocate(self%ham%del_H(2*num_up, 2*num_up), stat=all_err(1))
@@ -823,7 +824,7 @@ contains
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
 
             ! save current iteration and check if converged
-            done_hall =  self%process_hall(hall, hall_old, iter)
+            done_hall =  self%process_hall(hall, hall_old,omega_z_all, iter,nProcs)
          endif
 
          if(done_hall .and. trim(self%chosen_weights) == "hall") then
@@ -980,11 +981,11 @@ contains
       if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
    end subroutine calc_new_berry_points
 
-   function process_hall(self, var, var_old, iter) result(cancel)
+   function process_hall(self, var, var_old,varall, iter,nProcs) result(cancel)
       implicit none
       class(k_space)                 :: self
-      real(8), intent(in)            :: var(:), var_old(:)
-      integer   , intent(in)         :: iter
+      real(8), intent(in)            :: var(:), var_old(:),varall(:,:)
+      integer   , intent(in)         :: iter,nProcs
       character(len=*), parameter    :: var_name = "hall_cond"
       character(len=300)             :: filename
       logical                        :: cancel
@@ -1008,6 +1009,10 @@ contains
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
+         if (nProcs==1) then
+            call save_npy(trim(self%prefix) // trim(var_name) //  "_uc_iter",iter,".npy", &
+                          varall)
+         endif
       endif
 
       ! check for convergence
@@ -1082,6 +1087,7 @@ contains
             "saving hall_cond with questionable unit"
 
          call save_npy(trim(self%prefix) // "hall_cond.npy", var)
+         call save_npy(trim(self%prefix) // "k_pts.npy",    self%all_k_pts)
          call save_npy(trim(self%prefix) // "hall_cond_uc.npy", varall)
          call save_npy(trim(self%prefix) // "hall_cond_E.npy", &
                        self%E_fermi / self%units%energy)
