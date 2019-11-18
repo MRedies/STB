@@ -824,7 +824,7 @@ contains
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
 
             ! save current iteration and check if converged
-            done_hall =  self%process_hall(hall, hall_old,omega_z_all, iter,nProcs)
+            done_hall =  self%process_hall(hall, hall_old, iter, omega_z_all)
          endif
 
          if(done_hall .and. trim(self%chosen_weights) == "hall") then
@@ -981,11 +981,11 @@ contains
       if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
    end subroutine calc_new_berry_points
 
-   function process_hall(self, var, var_old,varall, iter,nProcs) result(cancel)
+   function process_hall(self, var, var_old, iter, varall) result(cancel)
       implicit none
       class(k_space)                 :: self
-      real(8), intent(in)            :: var(:), var_old(:),varall(:,:)
-      integer   , intent(in)         :: iter,nProcs
+      real(8), intent(in)            :: var(:), var_old(:), varall(:,:)
+      integer   , intent(in)         :: iter
       character(len=*), parameter    :: var_name = "hall_cond"
       character(len=300)             :: filename
       logical                        :: cancel
@@ -1009,9 +1009,8 @@ contains
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
-         if (nProcs==1) then
-            call save_npy(trim(self%prefix) // trim(var_name) //  "_uc_iter",iter,".npy", &
-                          varall)
+         if (self%nProcs==1)then
+            call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
          endif
       endif
 
@@ -1087,7 +1086,6 @@ contains
             "saving hall_cond with questionable unit"
 
          call save_npy(trim(self%prefix) // "hall_cond.npy", var)
-         call save_npy(trim(self%prefix) // "k_pts.npy",    self%all_k_pts)
          call save_npy(trim(self%prefix) // "hall_cond_uc.npy", varall)
          call save_npy(trim(self%prefix) // "hall_cond_E.npy", &
                        self%E_fermi / self%units%energy)
