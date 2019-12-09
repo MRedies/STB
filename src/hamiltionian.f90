@@ -427,7 +427,6 @@ contains
       real(8)                  :: m(3), fac
 
       m = self%UC%atoms(i)%get_m_cart()
-      !write(*,*) "stoner m: ", m
       fac =  - 0.5d0 *  self%lambda
 
       S = fac * ( m(1) * sigma_x &
@@ -1176,24 +1175,24 @@ contains
                j_d = j + self%num_up
                ! H_xc_at = lambda * (H_1 * t_nc)
                !this is exchange in first order (without zero order, thats already in the col case)
-               !temp(i,i)     = -self%lambda*sin(theta_col)*theta_nc/2d0
-               !temp(i_d,i_d) =  self%lambda*sin(theta_col)*theta_nc/2d0
-               !temp(j,j)     =  self%lambda*sin(theta_col)*theta_nc/2d0
-               !temp(j_d,j_d) = -self%lambda*sin(theta_col)*theta_nc/2d0
-               !temp(i,i_d)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
-               !temp(i_d,i)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
-               !temp(j,j_d)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
-               !temp(j_d,j)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
+               temp(i,i)     = -fac*sin(theta_col)*theta_nc/2d0
+               temp(i_d,i_d) =  fac*sin(theta_col)*theta_nc/2d0
+               temp(j,j)     =  fac*sin(theta_col)*theta_nc/2d0
+               temp(j_d,j_d) = -fac*sin(theta_col)*theta_nc/2d0
+               temp(i,i_d)   =  fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
+               temp(i_d,i)   =  fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
+               temp(j,j_d)   = -fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
+               temp(j_d,j)   = -fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
                ! H_xc_at = lambda * (H_1 * t_nc)
                !this is full exchange (without zero order, thats already in the col case)
-               temp(i,i)     =  fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
-               temp(i_d,i_d) = -fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
-               temp(j,j)     =  fac*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
-               temp(j_d,j_d) = -fac*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
-               temp(i,i_d)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col+phi_nc/2d0))
-               temp(i_d,i)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col+phi_nc/2d0))
-               temp(j,j_d)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col-phi_nc/2d0))
-               temp(j_d,j)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col-phi_nc/2d0))
+               !temp(i,i)     =  fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
+               !temp(i_d,i_d) = -fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
+               !temp(j,j)     =  fac*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
+               !temp(j_d,j_d) = -fac*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
+               !temp(i,i_d)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col+phi_nc/2d0))
+               !temp(i_d,i)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col+phi_nc/2d0))
+               !temp(j,j_d)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col-phi_nc/2d0))
+               !temp(j_d,j)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col-phi_nc/2d0))
             endif
          enddo
       enddo
@@ -1211,6 +1210,8 @@ contains
       do i=1,n_dim
          do j=1,n_dim
             if(i /= j) then
+               !the sign here is tested, it is correct this way, 
+               !also the energy factor would scale the outcome by one order of magn.
                dE = (eig_val(j)-eig_val(i))
                Efac =  dE/(dE + eta_sq)**2
                H_temp(i,j) = H_temp(i,j)*Efac
