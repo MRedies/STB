@@ -275,6 +275,7 @@ contains
 
          call CFG_get(cfg, "hamil%t_so", tmp)
          self%t_so =  tmp * self%units%energy
+         !write(*,*) "Rasbha spin orbit:", self%t_so,tmp
 
          call CFG_get(cfg, "hamil%eta_soc", tmp)
          self%eta_soc =  tmp * self%units%energy
@@ -1149,7 +1150,7 @@ contains
       complex(8), allocatable         :: H_xc_1(:,:)
       complex(8), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
       real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE,fac,Efac
-      integer                         :: i,i_d,conn,j,j_d,n_dim
+      integer                         :: i,i_d,conn,j,j_d,n_dim,switch
       n_dim = 2 * self%num_up
       if(allocated(H_temp)) deallocate(H_temp)
       if(allocated(temp)) deallocate(temp)
@@ -1166,7 +1167,13 @@ contains
       theta_col = theta(1)
       phi_nc = phi(2)
       phi_col = phi(1)
-      fac = -0.5d0 * self%lambda
+      !if(self%me ==  0) then 
+      !   if(switch==0)then
+      !      write(*,*) theta_nc,sin(theta_nc),cos(theta_nc),sin(Pi),cos(Pi),exp(i_unit*Pi)
+      !      switch = 1
+      !   endif
+      !endif
+      fac = 0.5d0 * self%lambda
       do i =  1, self%num_up
          i_d =  i + self%num_up
          do conn =  1,size(self%UC%atoms(i)%neigh_idx)
@@ -1212,7 +1219,7 @@ contains
             if(i /= j) then
                !the sign here is tested, it is correct this way, 
                !also the energy factor would scale the outcome by one order of magn.
-               dE = (eig_val(j)-eig_val(i))
+               dE = (eig_val(i)-eig_val(j))! + (H_temp(j,j)-H_temp(i,i))
                Efac =  dE/(dE + eta_sq)**2
                H_temp(i,j) = H_temp(i,j)*Efac
             else if(i==j) then
