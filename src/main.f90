@@ -110,7 +110,7 @@ contains
       endif
 
       if(calc_hall .or. calc_orbmag) then
-         if(root == me) write (*,*) "started Berry"
+         if(root == me) write (*,*) "started Berry", pert_log
          call Ksp%calc_berry_quantities(pert_log)
       endif
 
