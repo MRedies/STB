@@ -1150,7 +1150,7 @@ contains
       complex(8), allocatable         :: H_xc_1(:,:)
       complex(8), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
       real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE,fac,Efac
-      integer                         :: i,i_d,conn,j,j_d,n_dim,switch
+      integer                         :: i,i_d,conn,j,j_d,n_dim
       n_dim = 2 * self%num_up
       if(allocated(H_temp)) deallocate(H_temp)
       if(allocated(temp)) deallocate(temp)
@@ -1167,12 +1167,6 @@ contains
       theta_col = theta(1)
       phi_nc = phi(2)
       phi_col = phi(1)
-      !if(self%me ==  0) then 
-      !   if(switch==0)then
-      !      write(*,*) theta_nc,sin(theta_nc),cos(theta_nc),sin(Pi),cos(Pi),exp(i_unit*Pi)
-      !      switch = 1
-      !   endif
-      !endif
       fac = 0.5d0 * self%lambda
       do i =  1, self%num_up
          i_d =  i + self%num_up
@@ -1203,6 +1197,7 @@ contains
             endif
          enddo
       enddo
+      write(*,*) "H_xc_1", temp
       !rotate hxc into the eigenbasis of the hamiltonian with E_dagger H E
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                   c_1, temp, n_dim,&
