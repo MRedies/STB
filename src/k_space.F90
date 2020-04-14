@@ -909,7 +909,7 @@ contains
       implicit none
       class(k_space)            :: self
       integer                   :: N_k, cnt, k_idx, num_up, n_ferm,pert_idx
-      integer                   :: first, last, err(3)
+      integer                   :: first, last, err(3), me, ierr
       real(8)                   :: tmp
       real(8)                   :: k(3)
       real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:),&
@@ -930,7 +930,7 @@ contains
       if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(3))
 
       call check_ierr(err, self%me, " new chunk alloc")
-
+      call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       ! calculate
       cnt =  1
       if(pert_log) then
