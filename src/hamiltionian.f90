@@ -1197,7 +1197,7 @@ contains
             endif
          enddo
       enddo
-      write(*,*) "H_xc_1", temp
+      write(*,*) "H_xc_1", temp, self%lambda
       !rotate hxc into the eigenbasis of the hamiltonian with E_dagger H E
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                   c_1, temp, n_dim,&
