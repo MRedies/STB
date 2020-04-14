@@ -945,7 +945,7 @@ contains
                omega_z_pert_new=0d0
                !allocation for omega_z_pert_new can be done here, since ham%calc_berry_z sets to zero
                do pert_idx=1,4
-                  if(root == me) write (*,*) "calc_new_berrypoints", pert_log, pert_idx
+                  write (*,*) "calc_new_berrypoints", me, pert_log, pert_idx
                   if(allocated(del_kx)) deallocate(del_kx)
                   if(allocated(del_ky)) deallocate(del_ky)
                   call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
