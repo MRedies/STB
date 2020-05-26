@@ -135,6 +135,7 @@ contains
    end subroutine process_file
 
    subroutine get_inp_files(n_files, inp_files)
+      use mpi
       implicit none
       integer, intent(out)     :: n_files
       character(len=300), allocatable :: inp_files(:)
@@ -188,6 +189,7 @@ contains
    end subroutine get_inp_files
 
    Subroutine  add_full_cfg(cfg)
+      use mpi
       Implicit None
       type(CFG_t)            :: cfg
       real(8), allocatable   :: empty_array(:)
