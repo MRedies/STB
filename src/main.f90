@@ -287,6 +287,7 @@ contains
    End Subroutine add_full_cfg
 
    subroutine save_cfg(cfg)
+      use mpi
       Implicit None
       type(CFG_t)            :: cfg
       character(len=300)     :: prefix
