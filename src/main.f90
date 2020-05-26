@@ -36,6 +36,7 @@ program STB
    call MPI_Finalize(ierr)
 contains
    subroutine process_file(inp_file)
+      use mpi
       implicit none
       character(len=300), intent(in) :: inp_file
       real(8)                        :: start, halt
