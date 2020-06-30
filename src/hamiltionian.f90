@@ -1174,7 +1174,7 @@ contains
       j = i + self%num_orb
       j_d = i_d + self%num_orb
 
-      full = .False.
+      full = .True.
       do i =  1, self%num_up,self%num_orb
         i_d =  i + self%num_up
         do j = 0,self%num_orb-1
