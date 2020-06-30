@@ -1176,6 +1176,7 @@ contains
       j_d = i_d + self%num_orb
       full = .True.
       if(full) then
+        write(*,*) "full"
         temp(i,i)     =  fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
         temp(i_d,i_d) = -fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
         temp(j,j)     = -fac*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
@@ -1185,6 +1186,7 @@ contains
         temp(j,j_d)   = -fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col-phi_nc/2d0))
         temp(j_d,j)   = -fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col-phi_nc/2d0))
       else
+        write(*,*) "linear"
         temp(i,i)     = -fac*sin(theta_col)*theta_nc/2d0
         temp(i_d,i_d) =  fac*sin(theta_col)*theta_nc/2d0
         temp(j,j)     =  fac*sin(theta_col)*theta_nc/2d0
