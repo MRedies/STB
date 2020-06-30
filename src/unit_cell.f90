@@ -623,8 +623,8 @@ contains
 
         if (self%me==root) then
             write(*,*) "This is the noncollinear perturbation case!"
-            write(*,*) "theta: ", anticol_theta
-            write(*,*) "phi: ", anticol_phi
+            write(*,*) "theta: ", self%anticol_theta
+            write(*,*) "phi: ", self%anticol_phi
         endif
         if(      size(self%anticol_phi)   /= self%num_atoms &
             .or. size(self%anticol_theta)/= self%num_atoms) then
