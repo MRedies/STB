@@ -1151,6 +1151,7 @@ contains
       complex(8), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
       real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE,fac,Efac
       integer                         :: i,i_d,conn,j,j_d,n_dim
+      logical                         :: full
       n_dim = 2 * self%num_up
       if(allocated(H_temp)) deallocate(H_temp)
       if(allocated(temp)) deallocate(temp)
@@ -1173,6 +1174,7 @@ contains
       i_d = i + self%num_up
       j = i + self%num_orb
       j_d = i_d + self%num_orb
+      full = .True.
       if(full) then
         temp(i,i)     =  fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
         temp(i_d,i_d) = -fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
