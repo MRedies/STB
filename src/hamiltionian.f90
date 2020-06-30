@@ -1150,7 +1150,7 @@ contains
       complex(8), allocatable         :: H_xc_1(:,:)
       complex(8), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
       real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE,fac,Efac
-      integer                         :: i,i_d,conn,j,j_d,n_dim
+      integer                         :: i,i_d,conn,j,j_u,j_d,n_dim
       logical                         :: full
       n_dim = 2 * self%num_up
       if(allocated(H_temp)) deallocate(H_temp)
@@ -1169,62 +1169,38 @@ contains
       phi_nc = phi(2)
       phi_col = phi(1)
       fac = 0.5d0 * self%lambda
-      !write(*,*) "numup,numorb", self%num_up,self%num_orb
       i = 1
       i_d = i + self%num_up
       j = i + self%num_orb
       j_d = i_d + self%num_orb
+
       full = .False.
-      if(full) then
-        temp(i,i)     =  fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
-        temp(i_d,i_d) = -fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
-        temp(j,j)     =  fac*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
-        temp(j_d,j_d) = -fac*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
-        temp(i,i_d)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col+phi_nc/2d0))
-        temp(i_d,i)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col+phi_nc/2d0))
-        temp(j,j_d)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col-phi_nc/2d0))
-        temp(j_d,j)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col-phi_nc/2d0))
-      else
-        temp(i,i)     = -fac*sin(theta_col)*theta_nc/2d0
-        temp(i_d,i_d) =  fac*sin(theta_col)*theta_nc/2d0
-        temp(j,j)     =  fac*sin(theta_col)*theta_nc/2d0
-        temp(j_d,j_d) = -fac*sin(theta_col)*theta_nc/2d0
-        temp(i,i_d)   =  fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
-        temp(i_d,i)   =  fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
-        temp(j,j_d)   = -fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
-        temp(j_d,j)   = -fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
-      endif
-      !do i =  1, self%num_up,self%num_orb
-      !   i_d =  i + self%num_up
-      !   do j = 0,self%num_orb-1
-         !do conn =  1,size(self%UC%atoms(i)%neigh_idx)
-            !if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
-               !j_u =  i + j!self%UC%atoms(i)%neigh_idx(conn)
-               !j_d = i_d + j! + self%num_up
-               ! H_xc_at = lambda * (H_1 * t_nc)
-               !this is exchange in first order (without zero order, thats already in the col case)
-               !temp(i,i)     = -fac*sin(theta_col)*theta_nc/2d0
-               !temp(i_d,i_d) =  fac*sin(theta_col)*theta_nc/2d0
-               !temp(j,j)     =  fac*sin(theta_col)*theta_nc/2d0
-               !temp(j_d,j_d) = -fac*sin(theta_col)*theta_nc/2d0
-               !temp(i,i_d)   =  fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
-               !temp(i_d,i)   =  fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
-               !temp(j,j_d)   = -fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
-               !temp(j_d,j)   = -fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
-               ! H_xc_at = lambda * (H_1 * t_nc)
-               !this is full exchange (without zero order, thats already in the col case)
-               !temp(i,i)     =  fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
-               !temp(i_d,i_d) = -fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
-               !temp(j,j)     =  fac*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
-               !temp(j_d,j_d) = -fac*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
-               !temp(i,i_d)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col+phi_nc/2d0))
-               !temp(i_d,i)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col+phi_nc/2d0))
-               !temp(j,j_d)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col-phi_nc/2d0))
-               !temp(j_d,j)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col-phi_nc/2d0))
-      !      endif
-      !   enddo
-      !enddo
-      !write(*,*) "H_xc_1", temp, self%lambda
+      do i =  1, self%num_up,self%num_orb
+        i_d =  i + self%num_up
+        do j = 0,self%num_orb-1
+            j_u =  i + j
+            j_d = i_d + j
+            if(full) then
+                temp(i,i)     =  fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
+                temp(i_d,i_d) = -fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
+                temp(j_u,j_u)     =  fac*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
+                temp(j_d,j_d) = -fac*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
+                temp(i,i_d)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col+phi_nc/2d0))
+                temp(i_d,i)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col+phi_nc/2d0))
+                temp(j_u,j_d)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col-phi_nc/2d0))
+                temp(j_d,j_u)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col-phi_nc/2d0))
+            else
+                temp(i,i)     = -fac*sin(theta_col)*theta_nc/2d0
+                temp(i_d,i_d) =  fac*sin(theta_col)*theta_nc/2d0
+                temp(j_u,j_u)     =  fac*sin(theta_col)*theta_nc/2d0
+                temp(j_d,j_d) = -fac*sin(theta_col)*theta_nc/2d0
+                temp(i,i_d)   =  fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
+                temp(i_d,i)   =  fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
+                temp(j_u,j_d)   = -fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
+                temp(j_d,j_u)   = -fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
+            endif
+        enddo
+      enddo
       !rotate hxc into the eigenbasis of the hamiltonian with E_dagger H E
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                   c_1, temp, n_dim,&
