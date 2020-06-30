@@ -1168,22 +1168,31 @@ contains
       phi_nc = phi(2)
       phi_col = phi(1)
       fac = 0.5d0 * self%lambda
-      do i =  1, self%num_up
-         i_d =  i + self%num_up
-         do conn =  1,size(self%UC%atoms(i)%neigh_idx)
-            if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
-               j =  self%UC%atoms(i)%neigh_idx(conn)
-               j_d = j + self%num_up
+      temp(1,1)     = -fac*sin(theta_col)*theta_nc/2d0
+      temp(2,2) =  fac*sin(theta_col)*theta_nc/2d0
+      temp(3,3)     =  fac*sin(theta_col)*theta_nc/2d0
+      temp(4,4) = -fac*sin(theta_col)*theta_nc/2d0
+      temp(1,2)   =  fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
+      temp(2,1)   =  fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
+      temp(3,4)   = -fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
+      temp(4,3)   = -fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
+      !do i =  1, self%num_up,self%num_orb
+      !   i_d =  i + self%num_up
+      !   do j = 0,self%num_orb-1
+         !do conn =  1,size(self%UC%atoms(i)%neigh_idx)
+            !if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
+               !j_u =  i + j!self%UC%atoms(i)%neigh_idx(conn)
+               !j_d = i_d + j! + self%num_up
                ! H_xc_at = lambda * (H_1 * t_nc)
                !this is exchange in first order (without zero order, thats already in the col case)
-               temp(i,i)     = -fac*sin(theta_col)*theta_nc/2d0
-               temp(i_d,i_d) =  fac*sin(theta_col)*theta_nc/2d0
-               temp(j,j)     =  fac*sin(theta_col)*theta_nc/2d0
-               temp(j_d,j_d) = -fac*sin(theta_col)*theta_nc/2d0
-               temp(i,i_d)   =  fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
-               temp(i_d,i)   =  fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
-               temp(j,j_d)   = -fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
-               temp(j_d,j)   = -fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
+               !temp(i,i)     = -fac*sin(theta_col)*theta_nc/2d0
+               !temp(i_d,i_d) =  fac*sin(theta_col)*theta_nc/2d0
+               !temp(j,j)     =  fac*sin(theta_col)*theta_nc/2d0
+               !temp(j_d,j_d) = -fac*sin(theta_col)*theta_nc/2d0
+               !temp(i,i_d)   =  fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
+               !temp(i_d,i)   =  fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
+               !temp(j,j_d)   = -fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
+               !temp(j_d,j)   = -fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
                ! H_xc_at = lambda * (H_1 * t_nc)
                !this is full exchange (without zero order, thats already in the col case)
                !temp(i,i)     =  fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
@@ -1194,10 +1203,10 @@ contains
                !temp(i_d,i)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col+phi_nc/2d0))
                !temp(j,j_d)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col-phi_nc/2d0))
                !temp(j_d,j)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col-phi_nc/2d0))
-            endif
-         enddo
-      enddo
-      write(*,*) "H_xc_1", temp, self%lambda
+      !      endif
+      !   enddo
+      !enddo
+      !write(*,*) "H_xc_1", temp, self%lambda
       !rotate hxc into the eigenbasis of the hamiltonian with E_dagger H E
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                   c_1, temp, n_dim,&
