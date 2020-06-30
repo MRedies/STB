@@ -1168,6 +1168,7 @@ contains
       phi_nc = phi(2)
       phi_col = phi(1)
       fac = 0.5d0 * self%lambda
+      write(*,*) "numup,numorb", self%num_up,self%num_orb
       temp(1,1)     = -fac*sin(theta_col)*theta_nc/2d0
       temp(2,2) =  fac*sin(theta_col)*theta_nc/2d0
       temp(3,3)     =  fac*sin(theta_col)*theta_nc/2d0
