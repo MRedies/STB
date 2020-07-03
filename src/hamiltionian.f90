@@ -1217,7 +1217,7 @@ contains
             if(i /= j) then
                !the sign here is tested, it is correct this way, 
                !also the energy factor would scale the outcome by one order of magn.
-               dE = (eig_val(i)-eig_val(j)) + (H_temp(i,i)-H_temp(j,j))
+               dE = (eig_val(i)-eig_val(j))! + (H_temp(i,i)-H_temp(j,j))
                Efac =  dE/(dE + eta_sq)**2
                H_temp(i,j) = H_temp(i,j)*Efac
             else if(i==j) then
