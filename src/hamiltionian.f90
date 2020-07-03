@@ -1168,7 +1168,7 @@ contains
       theta_col = theta(1)
       phi_nc = phi(2)
       phi_col = phi(1)
-      fac = 0.5d0 * self%lambda / PI 
+      fac = 0.5d0 * self%lambda
       i = 1
       i_d = i + self%num_up
       j = i + self%num_orb
@@ -1217,7 +1217,7 @@ contains
             if(i /= j) then
                !the sign here is tested, it is correct this way, 
                !also the energy factor would scale the outcome by one order of magn.
-               dE = (eig_val(i)-eig_val(j))! + (H_temp(j,j)-H_temp(i,i))
+               dE = (eig_val(i)-eig_val(j)) + (H_temp(i,i)-H_temp(j,j))
                Efac =  dE/(dE + eta_sq)**2
                H_temp(i,j) = H_temp(i,j)*Efac
             else if(i==j) then
