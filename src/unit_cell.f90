@@ -625,6 +625,7 @@ contains
             write(*,*) "This is the noncollinear perturbation case!"
             write(*,*) "theta: ", self%anticol_theta
             write(*,*) "phi: ", self%anticol_phi
+            write(*,*) "sin(Pi)", sin(PI)
         endif
         if(      size(self%anticol_phi)   /= self%num_atoms &
             .or. size(self%anticol_theta)/= self%num_atoms) then
