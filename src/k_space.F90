@@ -1010,9 +1010,7 @@ contains
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
-         if (self%nProcs==1)then
-            call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
-         endif
+         call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
       endif
 
       ! check for convergence
