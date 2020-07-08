@@ -857,7 +857,7 @@ contains
         real(8)               :: radius
 
         radius = 0.5d0*my_norm2(self%lattice(:,1))
-        call self%set_mag_linrot_spiral(center, radius)
+        call self%set_mag_linrot_1D_spiral(center, radius)
 
     end subroutine set_mag_linrot_1D_spiral_honey
 
