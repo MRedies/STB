@@ -44,37 +44,39 @@ module Class_unit_cell
         logical         :: pert_log ! berry in first order pert.
     contains
     
-        procedure :: init_unit_honey_hexa        => init_unit_honey_hexa
-        procedure :: init_unit_square            => init_unit_square
-        procedure :: init_unit_honey_line        => init_unit_honey_line
-        procedure :: get_num_atoms               => get_num_atoms
-        procedure :: setup_square                => setup_square
-        procedure :: setup_single_hex            => setup_single_hex
-        procedure :: in_cell                     => in_cell
-        procedure :: setup_gen_conn              => setup_gen_conn
-        procedure :: get_atoms                   => get_atoms
-        procedure :: gen_find_neigh              => gen_find_neigh
-        procedure :: save_unit_cell              => save_unit_cell
-        procedure :: set_mag_ferro               => set_mag_ferro
-        procedure :: set_mag_anticol             => set_mag_anticol
-        procedure :: set_mag_random              => set_mag_random
-        procedure :: set_mag_x_spiral_square     => set_mag_x_spiral_square
-        procedure :: set_mag_linrot_skyrm        => set_mag_linrot_skyrm
-        procedure :: set_mag_atan_skyrm          => set_mag_atan_skyrm
-        procedure :: set_mag_atan_skyrm_honey    => set_mag_atan_skyrm_honey
-        procedure :: set_mag_dblatan_skyrm       => set_mag_dblatan_skyrm
-        procedure :: set_mag_dblatan_skyrm_honey => set_mag_dblatan_skyrm_honey
-        procedure :: set_mag_linrot_skrym_square => set_mag_linrot_skrym_square
-        procedure :: set_mag_linrot_skrym_honey  => set_mag_linrot_skrym_honey
-        procedure :: set_honey_snd_nearest       => set_honey_snd_nearest
-        procedure :: Bcast_UC                    => Bcast_UC
-        procedure :: setup_honey                 => setup_honey
-        procedure :: make_hexagon                => make_hexagon
-        procedure :: make_honeycomb_line         => make_honeycomb_line
-        procedure :: free_uc                     => free_uc
-        procedure :: init_file_square            => init_file_square
-        procedure :: run_tests                   => run_tests
-        procedure :: calc_area                   => calc_area
+        procedure :: init_unit_honey_hexa           => init_unit_honey_hexa
+        procedure :: init_unit_square               => init_unit_square
+        procedure :: init_unit_honey_line           => init_unit_honey_line
+        procedure :: get_num_atoms                  => get_num_atoms
+        procedure :: setup_square                   => setup_square
+        procedure :: setup_single_hex               => setup_single_hex
+        procedure :: in_cell                        => in_cell
+        procedure :: setup_gen_conn                 => setup_gen_conn
+        procedure :: get_atoms                      => get_atoms
+        procedure :: gen_find_neigh                 => gen_find_neigh
+        procedure :: save_unit_cell                 => save_unit_cell
+        procedure :: set_mag_ferro                  => set_mag_ferro
+        procedure :: set_mag_anticol                => set_mag_anticol
+        procedure :: set_mag_random                 => set_mag_random
+        procedure :: set_mag_x_spiral_square        => set_mag_x_spiral_square
+        procedure :: set_mag_linrot_1D_spiral       => set_mag_linrot_1D_spiral
+        procedure :: set_mag_linrot_1D_spiral_honey => set_mag_linrot_1D_spiral_honey
+        procedure :: set_mag_linrot_skyrm           => set_mag_linrot_skyrm
+        procedure :: set_mag_atan_skyrm             => set_mag_atan_skyrm
+        procedure :: set_mag_atan_skyrm_honey       => set_mag_atan_skyrm_honey
+        procedure :: set_mag_dblatan_skyrm          => set_mag_dblatan_skyrm
+        procedure :: set_mag_dblatan_skyrm_honey    => set_mag_dblatan_skyrm_honey
+        procedure :: set_mag_linrot_skrym_square    => set_mag_linrot_skrym_square
+        procedure :: set_mag_linrot_skrym_honey     => set_mag_linrot_skrym_honey
+        procedure :: set_honey_snd_nearest          => set_honey_snd_nearest
+        procedure :: Bcast_UC                       => Bcast_UC
+        procedure :: setup_honey                    => setup_honey
+        procedure :: make_hexagon                   => make_hexagon
+        procedure :: make_honeycomb_line            => make_honeycomb_line
+        procedure :: free_uc                        => free_uc
+        procedure :: init_file_square               => init_file_square
+        procedure :: run_tests                      => run_tests
+        procedure :: calc_area                      => calc_area
     end type unit_cell
 contains
     subroutine free_uc(self)
@@ -519,7 +521,9 @@ contains
         else if(trim(self%mag_type) == "random") then
             call self%set_mag_random()
         else if(trim(self%mag_type) == "anticol") then
-            call self%set_mag_anticol()        
+            call self%set_mag_anticol()
+        else if(trim(self%mag_type) == "1Dspiral") then
+            call self%set_mag_linrot_1D_spiral_honey()
         else
             write (*,*) "Mag_type = ", trim(self%mag_type)
             call error_msg("mag_type not known", abort=.True.)
@@ -845,6 +849,40 @@ contains
         enddo
 
     end subroutine set_mag_dblatan_skyrm
+
+    subroutine set_mag_linrot_1D_spiral_honey(self)
+        implicit none
+        class(unit_cell)      :: self
+        real(8), parameter    :: center(3) = [0d0, 0d0, 0d0]
+        real(8)               :: radius
+
+        radius = 0.5d0*my_norm2(self%lattice(:,1))
+        call self%set_mag_linrot_spiral(center, radius)
+
+    end subroutine set_mag_linrot_1D_spiral_honey
+
+    subroutine set_mag_linrot_1D_spiral(self, center, radius)
+        implicit none
+        class(unit_cell)    :: self
+        real(8)             :: psi, x, wavelength
+        real(8)             :: R(3,3), m(3), m0(3) = [0d0,0d0,1d0], axis(3) = [1d0,0d0,0d0], wavevector(3) = [0d0,1d0,0d0]
+        integer             :: site_type
+        psi = 2d0*PI*self%n_wind/wavelength!self%atoms_per_dim
+        do i =  1,self%num_atoms
+            site_type = self%atoms(i)%site_type
+            conn  = center - self%atoms(i)%pos
+            x = dot_product(wavevector,conn)
+            if(my_norm2(conn-x*wavevector) > pos_eps * self%lattice_constant &
+                    .and. my_norm2(conn) <= radius + pos_eps) then
+
+                R     = R_mtx(psi*x, axis)
+                m     = matmul(R, m0)
+            else
+                m = m0
+            endif
+            call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
+        enddo
+    end subroutine set_mag_linrot_1D_spiral
 
     subroutine save_unit_cell(self, folder)
         implicit none
