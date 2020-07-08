@@ -1010,7 +1010,7 @@ contains
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
-         if (self%num_atoms==2) then
+         if (self%ham%UC%num_atoms==2) then
             call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
          endif
       endif
@@ -2066,7 +2066,7 @@ contains
 
       if(self%me == root) then
          write (k_file,    "(A,I0.5,A)") trim(self%prefix) // "kpts_iter=", iter, ".npy"
-         if (self%num_atoms==2) then
+         if (self%ham%UC%num_atoms==2) then
             write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "elem_iter=", iter, ".npy"
          endif
          call save_npy(trim(k_file),    self%all_k_pts)
