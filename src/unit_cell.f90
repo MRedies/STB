@@ -864,8 +864,8 @@ contains
     subroutine set_mag_linrot_1D_spiral(self, center, radius)
         implicit none
         class(unit_cell)    :: self
-        real(8)             :: psi, x, wavelength
-        real(8)             :: R(3,3), m(3), conn(3), m0(3) = [0d0,0d0,1d0], axis(3) = [1d0,0d0,0d0], wavevector(3) = [0d0,1d0,0d0]
+        real(8), intent(in) :: center(3), radius
+        real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), m0(3) = [0d0,0d0,1d0], axis(3) = [1d0,0d0,0d0], wavevector(3) = [0d0,1d0,0d0]
         integer             :: site_type, i
         psi = 2d0*PI*self%n_wind/wavelength!self%atoms_per_dim
         do i =  1,self%num_atoms
