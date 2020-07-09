@@ -826,7 +826,6 @@ contains
             ! save current iteration and check if converged
             done_hall =  self%process_hall(hall, hall_old, iter, omega_z_all)
          endif
-         write(*,*) "Flag ksp%calc_berry_quantities"
          if(done_hall .and. trim(self%chosen_weights) == "hall") then
             call error_msg("Switched to orbmag-weights", &
                            p_color=c_green, abort=.False.)
@@ -876,6 +875,7 @@ contains
       if(self%calc_hall) then
          call self%finalize_hall(hall,omega_z_all)
       endif
+      write(*,*) "Flag ksp%calc_berry_quantities"
       if(self%calc_orbmag) call self%finalize_orbmag(orbmag, orbmag_L, orbmag_IC)
 
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
