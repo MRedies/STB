@@ -832,7 +832,6 @@ contains
                            p_color=c_green, abort=.False.)
             self%chosen_weights = "orbmag"
          endif
-         write(*,*) "Flag ksp%calc_berry_quantities 0.1"
          if(self%calc_orbmag) then
             orbmag_old = orbmag
             call self%integrate_orbmag(kidx_all, Q_L_all, Q_IC_all, orbmag, orbmag_L, orbmag_IC)
@@ -867,11 +866,11 @@ contains
          else
             call error_msg("weights unknown", abort=.True.)
          endif
-
+         write(*,*) "Flag ksp%calc_berry_quantities 0.1"
          call save_grid(self,iter)
+         write(*,*) "Flag ksp%calc_berry_quantities 1"
          call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
       enddo
-      write(*,*) "Flag ksp%calc_berry_quantities 1"
       if(self%calc_hall) then
          call self%finalize_hall(hall,omega_z_all)
       endif
