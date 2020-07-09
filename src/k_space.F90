@@ -2064,12 +2064,12 @@ contains
       character(len=300)      :: k_file, elem_file
 
       if(self%me == root) then
-         write (k_file,    "(A,I0.5,A)") trim(self%prefix) // "kpts_iter=", iter, ".npy"
-         if (self%ham%UC%num_atoms==2) then
-            write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "elem_iter=", iter, ".npy"
-         endif
-         call save_npy(trim(k_file),    self%all_k_pts)
-         call save_npy(trim(elem_file), self%elem_nodes)
+        write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "elem_iter=", iter, ".npy"
+        call save_npy(trim(elem_file), self%elem_nodes) 
+        if (self%ham%UC%num_atoms==2) then
+            write (k_file,    "(A,I0.5,A)") trim(self%prefix) // "kpts_iter=", iter, ".npy"
+            call save_npy(trim(k_file),    self%all_k_pts)
+        endif
       endif
 
    end subroutine save_grid
