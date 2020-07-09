@@ -106,7 +106,7 @@ contains
         type(CFG_t)       :: cfg !> config file as read by m_config
         type(unit_cell)   :: self
         integer   , parameter           :: lwork =  20
-        real(8)                         :: work(lwork), tmp 
+        real(8)                         :: work(lwork), tmp, wavevector(3), axis(3), m0(3)
         integer   , dimension(2)        :: ipiv
         integer                         :: info
         integer                         :: ierr
