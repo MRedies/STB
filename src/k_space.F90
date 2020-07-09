@@ -871,11 +871,11 @@ contains
          call save_grid(self,iter)
          call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
       enddo
-
+      write(*,*) "Flag ksp%calc_berry_quantities 1"
       if(self%calc_hall) then
          call self%finalize_hall(hall,omega_z_all)
       endif
-      write(*,*) "Flag ksp%calc_berry_quantities"
+      write(*,*) "Flag ksp%calc_berry_quantities 2"
       if(self%calc_orbmag) call self%finalize_orbmag(orbmag, orbmag_L, orbmag_IC)
 
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
