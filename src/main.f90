@@ -239,6 +239,9 @@ contains
       call CFG_add(cfg, "grid%mag_file",         "",    "mag input file")
       call CFG_add(cfg, "grid%anticol_phi",empty_array, "anticollinear polar angle", dynamic_size=.True.)
       call CFG_add(cfg, "grid%anticol_theta",empty_array, "anticollinear azimutal angle", dynamic_size=.True.)
+      call CFG_add(cfg, "grid%wavevector",empty_array, "wavector of spinspiral", dynamic_size=.True.)
+      call CFG_add(cfg, "grid%axis", self%axis,empty_array, "rotation axis of spinspiral", dynamic_size=.True.)
+      call CFG_add(cfg, "grid%m0", self%m0,empty_array, "initial state of spinspiral", dynamic_size=.True.)
 
       call CFG_add(cfg, "band%perform_band",  .False., "")
       call CFG_add(cfg, "band%k_label",    (/ ""/),   "",&

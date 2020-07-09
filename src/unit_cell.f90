@@ -31,6 +31,7 @@ module Class_unit_cell
         real(8) :: eps !> threshold for positional accuracy
         real(8) :: ferro_phi, ferro_theta
         real(8) ,allocatable:: anticol_phi(:),anticol_theta(:) !> the angles for anticollinear setups, one
+        real(8) :: wavevector(3),axis(3),m0(3) !> the angles for anticollinear setups, one
         real(8):: atan_factor !> how fast do we change the border wall
         real(8) :: dblatan_dist !> width of the atan plateau
         real(8) :: skyrm_middle !> position of inplane
@@ -140,6 +141,10 @@ contains
             call CFG_get(cfg, "grid%winding_number", self%n_wind)
             call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
 
+            call CFG_get(cfg, "grid%wavevector", self%wavevector)
+            call CFG_get(cfg, "grid%axis", self%axis)
+            call CFG_get(cfg, "grid%m0", self%m0)
+            
             call CFG_get(cfg, "grid%lattice_constant", tmp)
             self%lattice_constant = tmp * self%units%length
 
@@ -857,7 +862,6 @@ contains
         real(8)               :: radius
 
         radius = 0.5d0*my_norm2(self%lattice(:,1))
-        write(*,*) "Radius: ",radius, self%num_atoms
         call self%set_mag_linrot_1D_spiral(center, radius)
 
     end subroutine set_mag_linrot_1D_spiral_honey
@@ -866,9 +870,11 @@ contains
         implicit none
         class(unit_cell)    :: self
         real(8), intent(in) :: center(3), radius
-        real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), m0(3) = [0d0,0d0,1d0], axis(3) = [1d0,0d0,0d0], wavevector(3) = [0d0,1d0,0d0]
+        real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), m0(3), axis(3), wavevector(3)
         integer             :: site_type, i
-        write(*,*) "N_wind: " ,self%n_wind
+        wavevector = self%wavevector
+        axis = self%axis
+        m0 = self%m0
         wavelength = 2d0*radius
         psi = 2d0*PI*self%n_wind/wavelength!self%atoms_per_dim
         do i =  1,self%num_atoms
