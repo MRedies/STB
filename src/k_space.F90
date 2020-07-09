@@ -832,7 +832,7 @@ contains
                            p_color=c_green, abort=.False.)
             self%chosen_weights = "orbmag"
          endif
-
+         write(*,*) "Flag ksp%calc_berry_quantities 0.1"
          if(self%calc_orbmag) then
             orbmag_old = orbmag
             call self%integrate_orbmag(kidx_all, Q_L_all, Q_IC_all, orbmag, orbmag_L, orbmag_IC)
