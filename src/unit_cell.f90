@@ -915,10 +915,11 @@ contains
         real(8), intent(in) :: center(3), radius
         real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), axis(3), wavevector(3), wavevector_len
         integer             :: site_type, i
-        write(self%wavevector,self%lattice(:,1),self%lattice(:,2))
-        wavevector = self%wavevector(1)*self%lattice(:,1) + self%wavevector(2)*self%lattice(:,2)! + self%wavevector(3)*self%lattice(:,3)
-        wavevector_len = my_norm2(wavevector)
-        wavevector = wavevector/wavevector_len
+        write(*,*) "vectors: ",self%wavevector,self%lattice(:,1),self%lattice(:,2)
+        !wavevector = self%wavevector(1)*self%lattice(:,1) + self%wavevector(2)*self%lattice(:,2)! + self%wavevector(3)*self%lattice(:,3)
+        !wavevector_len = my_norm2(wavevector)
+        !wavevector = wavevector/wavevector_len
+        wavevector = self%wavevector
         axis = self%axis
         wavelength = 2d0*radius/self%n_wind
         psi = 2d0*PI/wavelength!self%atoms_per_dim
