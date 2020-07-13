@@ -949,7 +949,7 @@ contains
         implicit none
         class(unit_cell)        :: self
         character(len=*)        :: folder
-        real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
+        real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:), axis(:)
         integer                 :: i, n_neigh
         integer   , allocatable :: neigh(:,:)
         integer, allocatable    :: site_type(:), conn_type(:,:)
@@ -965,7 +965,6 @@ contains
 
         neigh     = - 1
         conn_type = - 1
-
         do i = 1,self%num_atoms
 
             x(i)               = self%atoms(i)%pos(1)
@@ -979,7 +978,6 @@ contains
                 phi(i)             = self%atoms(i)%m_phi
                 theta(i)           = self%atoms(i)%m_theta
             endif
-
             site_type(i)       = self%atoms(i)%site_type
 
             n_neigh                = size(self%atoms(i)%neigh_idx)
@@ -995,6 +993,12 @@ contains
         call save_npy(folder // "site_type.npy", site_type)
         call save_npy(folder // "neigh.npy", neigh)
         call save_npy(folder // "conn_type.npy", conn_type)
+        if(trim(self%mag_type) == "anticol") then
+            call save_npy(folder // "1Dspiralaxis.npy", self%axis)
+        endif
+        if(trim(self%mag_type) == "anticol") then
+            call save_npy(folder // "1Dspiralwavevector.npy", self%wavevector)
+        endif
     end subroutine save_unit_cell
 
     subroutine setup_single_hex(self)
