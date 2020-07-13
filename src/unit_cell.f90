@@ -27,11 +27,12 @@ module Class_unit_cell
         integer    :: nProcs
         integer    :: me
         integer    :: n_wind !> winding number for lin_rot
+        integer, allocatable    :: wavevector
         real(8) :: lattice_constant !> lattice constant in atomic units
         real(8) :: eps !> threshold for positional accuracy
         real(8) :: ferro_phi, ferro_theta
         real(8) ,allocatable:: anticol_phi(:),anticol_theta(:),m0_A(:),m0_B(:) !> the angles for anticollinear setups, one
-        real(8) :: wavevector(3),axis(3) !> the angles for anticollinear setups, one
+        real(8) :: axis(3) !> the angles for anticollinear setups, one
         real(8):: atan_factor !> how fast do we change the border wall
         real(8) :: dblatan_dist !> width of the atan plateau
         real(8) :: skyrm_middle !> position of inplane
@@ -254,7 +255,7 @@ contains
   
         call MPI_Bcast(self%pert_log, 1,              MPI_LOGICAL, &
                         root,         MPI_COMM_WORLD, ierr(18))
-        call MPI_Bcast(self%wavevector, 3 ,            MPI_REAL8, &
+        call MPI_Bcast(self%wavevector, 3 ,            MYPI_INT, &
                         root,              MPI_COMM_WORLD, ierr(19))
         call MPI_Bcast(self%axis, 3 ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(20))
@@ -916,10 +917,10 @@ contains
         real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), axis(3), wavevector(3), wavevector_len
         integer             :: site_type, i
         write(*,*) "vectors: ",self%wavevector,self%lattice(:,1),self%lattice(:,2)
-        !wavevector = self%wavevector(1)*self%lattice(:,1) + self%wavevector(2)*self%lattice(:,2)! + self%wavevector(3)*self%lattice(:,3)
-        !wavevector_len = my_norm2(wavevector)
-        !wavevector = wavevector/wavevector_len
-        wavevector = self%wavevector
+        wavevector = self%wavevector(1)*self%atoms(1)%neigh_conn(:,1) + self%wavevector(2)*self%atoms(1)%neigh_conn(:,2)! + self%wavevector(2)*self%atoms(1)%neigh_conn(:,3)
+        wavevector_len = my_norm2(wavevector)
+        wavevector = wavevector/wavevector_len
+        !wavevector = self%wavevector
         axis = self%axis
         wavelength = 2d0*radius/self%n_wind
         psi = 2d0*PI/wavelength!self%atoms_per_dim
