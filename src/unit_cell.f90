@@ -27,7 +27,7 @@ module Class_unit_cell
         integer    :: nProcs
         integer    :: me
         integer    :: n_wind !> winding number for lin_rot
-        integer, allocatable    :: wavevector
+        integer, allocatable    :: wavevector(:)
         real(8) :: lattice_constant !> lattice constant in atomic units
         real(8) :: eps !> threshold for positional accuracy
         real(8) :: ferro_phi, ferro_theta
