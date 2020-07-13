@@ -112,7 +112,6 @@ contains
         integer                         :: info
         integer                         :: ierr
         integer                         :: anticol_size
-        integer, allocatable            :: m0_size(:,:)
         logical                         :: tmp_log
         
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
@@ -259,9 +258,9 @@ contains
                         root,              MPI_COMM_WORLD, ierr(19))
         call MPI_Bcast(self%axis, 3 ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(20))
-        call MPI_Bcast(self%m0A, 3 ,            MPI_REAL8, &
+        call MPI_Bcast(self%m0_A, 3 ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(21))
-        call MPI_Bcast(self%m0B, 3 ,            MPI_REAL8, &
+        call MPI_Bcast(self%m0_B, 3 ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(22))
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
@@ -689,6 +688,8 @@ contains
             .and. mod(self%num_atoms,size(self%anticol_theta)) == 0&
             .and. size(self%anticol_theta) ==2 &
             .and.   size(self%anticol_phi)   ==2) then
+                allocate(self%m0_A(3))
+                allocate(self%m0_B(3))
                 phi_col   = self%anticol_phi(1)
                 phi_nc    = self%anticol_phi(2)
                 theta_col = self%anticol_theta(1)
@@ -933,10 +934,10 @@ contains
                 
                 R     = R_mtx(psi*x, axis)
                 !if (site_type ==) then 
-                m = matmul(R, m0A)
+                m = matmul(R, self%m0_A)
                 !endif
             else
-                m = m0A
+                m = self%m0_A
             endif
             call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
         enddo
