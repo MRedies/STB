@@ -310,6 +310,7 @@ contains
     end subroutine init_unit_square
 
     subroutine init_file_square(self)
+        use mpi
         implicit none
         class(unit_cell), intent(inout)   :: self
         real(8)                           :: conn_mtx(3,3)
@@ -1378,6 +1379,7 @@ contains
     end function n_times_phi
 
     subroutine run_tests(self)
+        use mpi
         implicit none
         class(unit_cell), intent(in)   :: self
         integer                        :: i,ierr
