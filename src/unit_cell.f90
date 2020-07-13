@@ -931,7 +931,7 @@ contains
                 R     = R_mtx(psi*x, axis)
                 if (site_type == 0) then 
                     m = matmul(R, self%m0_A)
-                elseif(site_type == 1)
+                elseif(site_type == 1) then
                     m = matmul(R, self%m0_A)
                 endif
             else
