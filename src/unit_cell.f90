@@ -78,7 +78,6 @@ module Class_unit_cell
         procedure :: init_file_square               => init_file_square
         procedure :: run_tests                      => run_tests
         procedure :: calc_area                      => calc_area
-        procedure :: check_wave_commen              => check_wave_commen
     end type unit_cell
 contains
     subroutine free_uc(self)
@@ -112,7 +111,7 @@ contains
         integer                         :: info
         integer                         :: ierr
         integer                         :: anticol_size
-        integer, allocatable            :: m0_size
+        integer, allocatable            :: m0_size(:,:)
         logical                         :: tmp_log
         
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
@@ -202,6 +201,7 @@ contains
     end function
 
     subroutine Bcast_UC(self)
+        use mpi
         implicit none
         class(unit_cell)              :: self
         integer   , parameter         :: num_cast = 21
@@ -873,7 +873,6 @@ contains
         real(8)               :: radius
 
         radius = 0.5d0*my_norm2(self%lattice(:,1))
-        call self%check_wave_commen()
         call self%set_mag_linrot_1D_spiral(center, radius)
 
     end subroutine set_mag_linrot_1D_spiral_honey
