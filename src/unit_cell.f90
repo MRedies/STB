@@ -681,8 +681,8 @@ contains
         integer                 :: i
 
         if (self%me==root) then
-            write(*,*) "theta: ", self%anticol_theta
-            write(*,*) "phi: ", self%anticol_phi
+            write(*,*) "spiral theta: ", self%anticol_theta
+            write(*,*) "spiral phi: ", self%anticol_phi
         endif
         if(      mod(self%num_atoms,size(self%anticol_phi)) == 0 &
             .and. mod(self%num_atoms,size(self%anticol_theta)) == 0&
@@ -909,7 +909,7 @@ contains
         real(8)               :: radius
 
         radius = 0.5d0*my_norm2(self%lattice(:,1))
-        
+        call set_mag_linrot_1D_spiral_m0()
         call self%set_mag_linrot_1D_spiral(center, radius)
 
     end subroutine set_mag_linrot_1D_spiral_honey
