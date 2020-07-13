@@ -258,7 +258,6 @@ contains
                         root,              MPI_COMM_WORLD, ierr(19))
         call MPI_Bcast(self%axis, 3 ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(20))
-        write(*,*) "Flag BCAST_UC 1"
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
@@ -923,16 +922,18 @@ contains
         psi = 2d0*PI/wavelength!self%atoms_per_dim
         do i =  1,self%num_atoms
             site_type = self%atoms(i)%site_type
-            write(*,*) "Site type: ", site_type
+            !write(*,*) "Site type: ", site_type
             conn  = center - self%atoms(i)%pos
             x = dot_product(wavevector,conn)
             if(my_norm2(conn-x*wavevector) > pos_eps * self%lattice_constant &
                     .and. my_norm2(conn) <= radius + pos_eps) then
                 
                 R     = R_mtx(psi*x, axis)
-                !if (site_type ==) then 
-                m = matmul(R, self%m0_A)
-                !endif
+                if (site_type == 0) then 
+                    m = matmul(R, self%m0_A)
+                elseif(sote_type == 1)
+                    m = matmul(R, self%m0_A)
+                endif
             else
                 m = self%m0_A
             endif
