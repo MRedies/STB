@@ -1150,7 +1150,7 @@ contains
       complex(8), allocatable         :: H_xc_1(:,:)
       complex(8), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
       real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE,fac,Efac
-      integer                         :: i,i_d,conn,j,j_u,j_d,n_dim
+      integer                         :: i,i_d,j,j_u,j_d,n_dim
       logical                         :: full
       n_dim = 2 * self%num_up
       if(allocated(H_temp)) deallocate(H_temp)
