@@ -677,7 +677,7 @@ contains
     subroutine set_mag_linrot_1D_spiral_m0(self)
         implicit none
         class(unit_cell)        :: self
-        real(8)                 :: phi,theta,phi_nc,phi_col,theta_nc,theta_col,thetaA,thetaB,phiA,phiB
+        real(8)                 :: phi_nc,phi_col,theta_nc,theta_col,thetaA,thetaB,phiA,phiB
         integer                 :: i
 
         if (self%me==root) then
