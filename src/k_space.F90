@@ -826,7 +826,6 @@ contains
             ! save current iteration and check if converged
             done_hall =  self%process_hall(hall, hall_old, iter, omega_z_all)
          endif
-         write(*,*) "Flag ksp%calc_berry_quantities 0"
          if(done_hall .and. trim(self%chosen_weights) == "hall") then
             call error_msg("Switched to orbmag-weights", &
                            p_color=c_green, abort=.False.)
@@ -866,9 +865,7 @@ contains
          else
             call error_msg("weights unknown", abort=.True.)
          endif
-         write(*,*) "Flag ksp%calc_berry_quantities 0.1"
          call save_grid(self,iter)
-         write(*,*) "Flag ksp%calc_berry_quantities 1"
          call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
       enddo
       if(self%calc_hall) then

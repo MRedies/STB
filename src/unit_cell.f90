@@ -30,8 +30,8 @@ module Class_unit_cell
         real(8) :: lattice_constant !> lattice constant in atomic units
         real(8) :: eps !> threshold for positional accuracy
         real(8) :: ferro_phi, ferro_theta
-        real(8) ,allocatable:: anticol_phi(:),anticol_theta(:) !> the angles for anticollinear setups, one
-        real(8) :: wavevector(3),axis(3),m0(3) !> the angles for anticollinear setups, one
+        real(8) ,allocatable:: anticol_phi(:),anticol_theta(:),m0(:,:) !> the angles for anticollinear setups, one
+        real(8) :: wavevector(3),axis(3) !> the angles for anticollinear setups, one
         real(8):: atan_factor !> how fast do we change the border wall
         real(8) :: dblatan_dist !> width of the atan plateau
         real(8) :: skyrm_middle !> position of inplane
@@ -78,6 +78,7 @@ module Class_unit_cell
         procedure :: init_file_square               => init_file_square
         procedure :: run_tests                      => run_tests
         procedure :: calc_area                      => calc_area
+        procedure :: check_wave_commen              => check_wave_commen
     end type unit_cell
 contains
     subroutine free_uc(self)
@@ -106,7 +107,7 @@ contains
         type(CFG_t)       :: cfg !> config file as read by m_config
         type(unit_cell)   :: self
         integer   , parameter           :: lwork =  20
-        real(8)                         :: work(lwork), tmp, wavevector(3), axis(3), m0(3)
+        real(8)                         :: work(lwork), tmp, wavevector(3), axis(3), m0(:,:)
         integer   , dimension(2)        :: ipiv
         integer                         :: info
         integer                         :: ierr
@@ -143,6 +144,9 @@ contains
 
             call CFG_get(cfg, "grid%wavevector", self%wavevector)
             call CFG_get(cfg, "grid%axis", self%axis)
+            call CFG_get_size(cfg, "grid%m0", m0_size)
+            write(*,*) "M size: " , m0_size
+            allocate(self%m0(m0_size)) !allocate phi
             call CFG_get(cfg, "grid%m0", self%m0)
             
             call CFG_get(cfg, "grid%lattice_constant", tmp)
@@ -199,7 +203,7 @@ contains
     subroutine Bcast_UC(self)
         implicit none
         class(unit_cell)              :: self
-        integer   , parameter         :: num_cast = 18
+        integer   , parameter         :: num_cast = 21
         integer                       :: ierr(num_cast)
         integer                       :: anticol_size_phi
         integer                       :: anticol_size_theta
@@ -253,6 +257,12 @@ contains
   
         call MPI_Bcast(self%pert_log, 1,              MPI_LOGICAL, &
                         root,         MPI_COMM_WORLD, ierr(18))
+        call MPI_Bcast(self%wavevector, 3 ,            MPI_REAL8, &
+                        root,              MPI_COMM_WORLD, ierr(19))
+        call MPI_Bcast(self%axis, 3 ,            MPI_REAL8, &
+                        root,              MPI_COMM_WORLD, ierr(20))
+        call MPI_Bcast(self%m0, 6 ,            MPI_REAL8, &
+                        root,              MPI_COMM_WORLD, ierr(21))
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
@@ -862,6 +872,7 @@ contains
         real(8)               :: radius
 
         radius = 0.5d0*my_norm2(self%lattice(:,1))
+        call self%check_wave_commen()
         call self%set_mag_linrot_1D_spiral(center, radius)
 
     end subroutine set_mag_linrot_1D_spiral_honey
@@ -870,24 +881,26 @@ contains
         implicit none
         class(unit_cell)    :: self
         real(8), intent(in) :: center(3), radius
-        real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), m0(3), axis(3), wavevector(3)
+        real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), axis(3), wavevector(3)
+        real(8), allocatable:: m0(:,:)
         integer             :: site_type, i
         wavevector = self%wavevector
         axis = self%axis
         m0 = self%m0
-        wavelength = 2d0*radius
-        psi = 2d0*PI*self%n_wind/wavelength!self%atoms_per_dim
+        wavelength = 2d0*radius/self%n_wind
+        psi = 2d0*PI/wavelength!self%atoms_per_dim
         do i =  1,self%num_atoms
             site_type = self%atoms(i)%site_type
+            write(*,*) "Site type: ", site_type
             conn  = center - self%atoms(i)%pos
             x = dot_product(wavevector,conn)
             if(my_norm2(conn-x*wavevector) > pos_eps * self%lattice_constant &
                     .and. my_norm2(conn) <= radius + pos_eps) then
 
                 R     = R_mtx(psi*x, axis)
-                m     = matmul(R, m0)
+                m = matmul(R, m0(:,site_type))
             else
-                m = m0
+                m = m0m0(:,site_type)
             endif
             call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
         enddo
