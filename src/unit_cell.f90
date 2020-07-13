@@ -931,11 +931,17 @@ contains
                 R     = R_mtx(psi*x, axis)
                 if (site_type == 0) then 
                     m = matmul(R, self%m0_A)
+                    write(*,*) "A: ", m
                 elseif(site_type == 1) then
-                    m = matmul(R, self%m0_A)
+                    m = matmul(R, self%m0_B)
+                    write(*,*) "B: ", m
                 endif
             else
-                m = self%m0_A
+                if (site_type == 0) then 
+                    m = self%m0_A
+                elseif(site_type == 1) then
+                    m = self%m0_B
+                endif
             endif
             call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
         enddo
