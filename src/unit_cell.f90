@@ -993,10 +993,10 @@ contains
         call save_npy(folder // "site_type.npy", site_type)
         call save_npy(folder // "neigh.npy", neigh)
         call save_npy(folder // "conn_type.npy", conn_type)
-        if(trim(self%mag_type) == "anticol") then
+        if(trim(self%mag_type) == "1Dspiral") then
             call save_npy(folder // "1Dspiralaxis.npy", self%axis)
         endif
-        if(trim(self%mag_type) == "anticol") then
+        if(trim(self%mag_type) == "1Dspiral") then
             call save_npy(folder // "1Dspiralwavevector.npy", self%wavevector)
         endif
     end subroutine save_unit_cell
