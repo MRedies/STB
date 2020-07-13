@@ -112,7 +112,8 @@ contains
         integer   , dimension(2)        :: ipiv
         integer                         :: info
         integer                         :: ierr
-        integer                         :: anticol_size, m0_size
+        integer                         :: anticol_size
+        integer, allocatable            :: m0_size
         logical                         :: tmp_log
         
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
@@ -147,7 +148,7 @@ contains
             call CFG_get(cfg, "grid%axis", self%axis)
             call CFG_get_size(cfg, "grid%m0", m0_size)
             write(*,*) "M size: " , m0_size
-            allocate(self%m0(m0_size)) !allocate phi
+            allocate(self%m0(m0_size)) !allocate m0
             call CFG_get(cfg, "grid%m0", self%m0)
             
             call CFG_get(cfg, "grid%lattice_constant", tmp)
