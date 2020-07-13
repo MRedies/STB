@@ -107,11 +107,12 @@ contains
         type(CFG_t)       :: cfg !> config file as read by m_config
         type(unit_cell)   :: self
         integer   , parameter           :: lwork =  20
-        real(8)                         :: work(lwork), tmp, wavevector(3), axis(3), m0(:,:)
+        real(8)                         :: work(lwork), tmp, wavevector(3), axis(3)
+        real(8), allocatable            :: m0(:,:)
         integer   , dimension(2)        :: ipiv
         integer                         :: info
         integer                         :: ierr
-        integer                         :: anticol_size
+        integer                         :: anticol_size, m0_size
         logical                         :: tmp_log
         
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
