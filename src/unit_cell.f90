@@ -900,7 +900,7 @@ contains
                 R     = R_mtx(psi*x, axis)
                 m = matmul(R, m0(:,site_type))
             else
-                m = m0m0(:,site_type)
+                m = m0(:,site_type)
             endif
             call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
         enddo
