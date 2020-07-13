@@ -924,7 +924,7 @@ contains
             !write(*,*) "Site type: ", site_type
             conn  = center - self%atoms(i)%pos
             x = dot_product(wavevector,conn)
-            if(my_norm2(conn-x*wavevector) > pos_eps * self%lattice_constant &
+            if(my_norm2(conn-x*wavevector) < pos_eps * self%lattice_constant &
                     .and. my_norm2(conn) <= radius + pos_eps) then
                 R = R_mtx(psi*x, axis)
                 if (site_type == 0) then 
