@@ -30,7 +30,7 @@ module Class_unit_cell
         real(8) :: lattice_constant !> lattice constant in atomic units
         real(8) :: eps !> threshold for positional accuracy
         real(8) :: ferro_phi, ferro_theta
-        real(8) ,allocatable:: anticol_phi(:),anticol_theta(:),m0(:,:) !> the angles for anticollinear setups, one
+        real(8) ,allocatable:: anticol_phi(:),anticol_theta(:),m0_A(:),m0_B(:) !> the angles for anticollinear setups, one
         real(8) :: wavevector(3),axis(3) !> the angles for anticollinear setups, one
         real(8):: atan_factor !> how fast do we change the border wall
         real(8) :: dblatan_dist !> width of the atan plateau
@@ -62,6 +62,7 @@ module Class_unit_cell
         procedure :: set_mag_x_spiral_square        => set_mag_x_spiral_square
         procedure :: set_mag_linrot_1D_spiral       => set_mag_linrot_1D_spiral
         procedure :: set_mag_linrot_1D_spiral_honey => set_mag_linrot_1D_spiral_honey
+        procedure :: set_mag_linrot_1D_spiral_m0 => set_mag_linrot_1D_spiral_m0
         procedure :: set_mag_linrot_skyrm           => set_mag_linrot_skyrm
         procedure :: set_mag_atan_skyrm             => set_mag_atan_skyrm
         procedure :: set_mag_atan_skyrm_honey       => set_mag_atan_skyrm_honey
@@ -144,10 +145,6 @@ contains
 
             call CFG_get(cfg, "grid%wavevector", self%wavevector)
             call CFG_get(cfg, "grid%axis", self%axis)
-            call CFG_get_size(cfg, "grid%m0", m0_size)
-            write(*,*) "M size: " , m0_size
-            allocate(self%m0(m0_size)) !allocate m0
-            call CFG_get(cfg, "grid%m0", self%m0)
             
             call CFG_get(cfg, "grid%lattice_constant", tmp)
             self%lattice_constant = tmp * self%units%length
@@ -204,7 +201,7 @@ contains
         use mpi
         implicit none
         class(unit_cell)              :: self
-        integer   , parameter         :: num_cast = 21
+        integer   , parameter         :: num_cast = 22
         integer                       :: ierr(num_cast)
         integer                       :: anticol_size_phi
         integer                       :: anticol_size_theta
@@ -262,8 +259,10 @@ contains
                         root,              MPI_COMM_WORLD, ierr(19))
         call MPI_Bcast(self%axis, 3 ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(20))
-        call MPI_Bcast(self%m0, 6 ,            MPI_REAL8, &
+        call MPI_Bcast(self%m0A, 3 ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(21))
+        call MPI_Bcast(self%m0B, 3 ,            MPI_REAL8, &
+                        root,              MPI_COMM_WORLD, ierr(22))
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
@@ -676,6 +675,41 @@ contains
         endif
     end subroutine set_mag_anticol    
 
+    subroutine set_mag_linrot_1D_spiral_m0(self)
+        implicit none
+        class(unit_cell)        :: self
+        real(8)                 :: phi,theta,phi_nc,phi_col,theta_nc,theta_col,thetaA,thetaB,phiA,phiB
+        integer                 :: i
+
+        if (self%me==root) then
+            write(*,*) "theta: ", self%anticol_theta
+            write(*,*) "phi: ", self%anticol_phi
+        endif
+        if(      mod(self%num_atoms,size(self%anticol_phi)) == 0 &
+            .and. mod(self%num_atoms,size(self%anticol_theta)) == 0&
+            .and. size(self%anticol_theta) ==2 &
+            .and.   size(self%anticol_phi)   ==2) then
+                phi_col   = self%anticol_phi(1)
+                phi_nc    = self%anticol_phi(2)
+                theta_col = self%anticol_theta(1)
+                theta_nc  = self%anticol_theta(2)
+                phiA = phi_col + phi_nc/2d0
+                phiB = phi_col - phi_nc/2d0
+                thetaA = theta_col + theta_nc/2d0
+                thetaB = theta_col - theta_nc/2d0
+                self%m0_A(1) = sin(thetaA) *  cos(phiA)
+                self%m0_A(2) = sin(thetaA) *  sin(phiA)
+                self%m0_A(3) = cos(thetaA)
+                self%m0_B(1) = sin(thetaB) *  cos(phiB)
+                self%m0_B(2) = sin(thetaB) *  sin(phiB)
+                self%m0_B(3) = cos(thetaB)
+                !call self%atoms(i)%set_sphere(phi,theta)
+        else
+                call error_msg("sizes of anticol_phi and anticol_theta not consistent with num_atoms", abort=.True.)    
+        endif
+    end subroutine set_mag_linrot_1D_spiral_m0
+
+
     subroutine set_mag_x_spiral_square(self)
         implicit none
         class(unit_cell)                 :: self 
@@ -874,6 +908,7 @@ contains
         real(8)               :: radius
 
         radius = 0.5d0*my_norm2(self%lattice(:,1))
+        
         call self%set_mag_linrot_1D_spiral(center, radius)
 
     end subroutine set_mag_linrot_1D_spiral_honey
@@ -883,11 +918,9 @@ contains
         class(unit_cell)    :: self
         real(8), intent(in) :: center(3), radius
         real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), axis(3), wavevector(3)
-        real(8), allocatable:: m0(:,:)
         integer             :: site_type, i
         wavevector = self%wavevector
         axis = self%axis
-        m0 = self%m0
         wavelength = 2d0*radius/self%n_wind
         psi = 2d0*PI/wavelength!self%atoms_per_dim
         do i =  1,self%num_atoms
@@ -897,11 +930,13 @@ contains
             x = dot_product(wavevector,conn)
             if(my_norm2(conn-x*wavevector) > pos_eps * self%lattice_constant &
                     .and. my_norm2(conn) <= radius + pos_eps) then
-
+                
                 R     = R_mtx(psi*x, axis)
-                m = matmul(R, m0(:,site_type))
+                !if (site_type ==) then 
+                m = matmul(R, m0A)
+                !endif
             else
-                m = m0(:,site_type)
+                m = m0A
             endif
             call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
         enddo
