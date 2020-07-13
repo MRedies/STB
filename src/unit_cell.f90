@@ -258,8 +258,10 @@ contains
                         root,              MPI_COMM_WORLD, ierr(19))
         call MPI_Bcast(self%axis, 3 ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(20))
+        write(*,*) "Flag BCAST_UC 1"
         call MPI_Bcast(self%m0_A, 3 ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(21))
+        write(*,*) "Flag BCAST_UC 2"
         call MPI_Bcast(self%m0_B, 3 ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(22))
         call check_ierr(ierr, self%me, "Unit cell check err")
