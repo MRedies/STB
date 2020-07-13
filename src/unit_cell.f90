@@ -907,7 +907,6 @@ contains
         radius = 0.5d0*my_norm2(self%lattice(:,1))
         call self%set_mag_linrot_1D_spiral_m0()
         call self%set_mag_linrot_1D_spiral(center, radius)
-
     end subroutine set_mag_linrot_1D_spiral_honey
 
     subroutine set_mag_linrot_1D_spiral(self, center, radius)
@@ -927,14 +926,13 @@ contains
             x = dot_product(wavevector,conn)
             if(my_norm2(conn-x*wavevector) > pos_eps * self%lattice_constant &
                     .and. my_norm2(conn) <= radius + pos_eps) then
-                
-                R     = R_mtx(psi*x, axis)
+                R = R_mtx(psi*x, axis)
                 if (site_type == 0) then 
                     m = matmul(R, self%m0_A)
-                    write(*,*) "A: ", m
+                    !write(*,*) "A: ", m
                 elseif(site_type == 1) then
                     m = matmul(R, self%m0_B)
-                    write(*,*) "B: ", m
+                    !write(*,*) "B: ", m
                 endif
             else
                 if (site_type == 0) then 
@@ -943,6 +941,7 @@ contains
                     m = self%m0_B
                 endif
             endif
+            write(*,*) "End: ", m
             call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
         enddo
     end subroutine set_mag_linrot_1D_spiral
