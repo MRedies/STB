@@ -142,8 +142,6 @@ contains
 
             call CFG_get(cfg, "grid%winding_number", self%n_wind)
             call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
-            write(*,*) "Flag init_unit"
-            write(*,*) "wavevector: " , self%wavevector
             call CFG_get(cfg, "grid%wavevector", self%wavevector)
             call CFG_get(cfg, "grid%axis", self%axis)
             
@@ -679,11 +677,6 @@ contains
         class(unit_cell)        :: self
         real(8)                 :: phi_nc,phi_col,theta_nc,theta_col,thetaA,thetaB,phiA,phiB
         integer                 :: i
-
-        if (self%me==root) then
-            write(*,*) "spiral theta: ", self%anticol_theta
-            write(*,*) "spiral phi: ", self%anticol_phi
-        endif
         if(      mod(self%num_atoms,size(self%anticol_phi)) == 0 &
             .and. mod(self%num_atoms,size(self%anticol_theta)) == 0&
             .and. size(self%anticol_theta) ==2 &
@@ -909,7 +902,6 @@ contains
         real(8)               :: radius
 
         radius = 0.5d0*my_norm2(self%lattice(:,1))
-        write(*,*) "Radius: ", radius
         call self%set_mag_linrot_1D_spiral_m0()
         call self%set_mag_linrot_1D_spiral(center, radius)
     end subroutine set_mag_linrot_1D_spiral_honey
