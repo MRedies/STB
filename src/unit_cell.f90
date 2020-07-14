@@ -523,6 +523,15 @@ contains
         call self%make_hexagon(hexagon, site_type)
         call self%setup_honey(hexagon, site_type)
         
+        ! only one kind of atom from honey-comb unit cell needed
+        ! the other comes through complex conjugate
+        conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
+        conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
+        conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
+        
+        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
+        call self%set_honey_snd_nearest()
+
         if(trim(self%mag_type) == "ferro") then
             call self%set_mag_ferro()
         else if(trim(self%mag_type) == "lin_skyrm") then
@@ -541,16 +550,9 @@ contains
             write (*,*) "Mag_type = ", trim(self%mag_type)
             call error_msg("mag_type not known", abort=.True.)
         endif
+        
+        !setup_gen_conn block was here before!
 
-        ! only one kind of atom from honey-comb unit cell needed
-        ! the other comes through complex conjugate
-        conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
-        conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
-        conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
-        
-        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
-        call self%set_honey_snd_nearest()
-        
         deallocate(hexagon, site_type)
     end subroutine init_unit_honey_hexa
 
@@ -1026,9 +1028,6 @@ contains
         base_vecs(3, :) = (/-0.5d0, sin(60d0/180d0 * PI), 0d0 /)
         base_vecs =  base_vecs *  base_len
         self%atoms(1)%neigh_conn =  base_vecs 
-        write(*,*) "FLAG SINGLE HEX"
-        write(*,*) "base_vecs",base_vecs
-        write(*,*) "conns",self%atoms(1)%neigh_conn
     
         self%lattice(:,1) = base_vecs(1,1:2)
         self%lattice(:,2) = base_vecs(2,1:2)
