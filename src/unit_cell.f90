@@ -1025,7 +1025,7 @@ contains
         base_vecs(3, :) = (/-0.5d0, sin(60d0/180d0 * PI), 0d0 /)
         base_vecs =  base_vecs *  base_len
         self%atoms(1)%neigh_conn =  base_vecs 
-        write(*,*) "base_vecs",basevecs
+        write(*,*) "base_vecs",base_vecs
         write(*,*) "conns",self%atoms(1)%neigh_conn
     
         self%lattice(:,1) = base_vecs(1,1:2)
