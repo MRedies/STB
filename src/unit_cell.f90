@@ -909,6 +909,7 @@ contains
         real(8)               :: radius
 
         radius = 0.5d0*my_norm2(self%lattice(:,1))
+        write(*,*) "Radius: ", radius
         call self%set_mag_linrot_1D_spiral_m0()
         call self%set_mag_linrot_1D_spiral(center, radius)
     end subroutine set_mag_linrot_1D_spiral_honey
@@ -919,11 +920,9 @@ contains
         real(8), intent(in) :: center(3), radius
         real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), axis(3), wavevector(3), wavevector_len
         integer             :: site_type, i
-        write(*,*) "flag 1d spiral"
         wavevector = self%wavevector(1)*self%atoms(1)%neigh_conn(1,:) + self%wavevector(2)*self%atoms(1)%neigh_conn(2,:)! + self%wavevector(2)*self%atoms(1)%neigh_conn(:,3)
         wavevector_len = my_norm2(wavevector)
         wavevector = wavevector/wavevector_len
-        write(*,*) "vectors: ",wavevector
         !wavevector = self%wavevector
         axis = self%axis
         wavelength = 2d0*radius/self%n_wind
