@@ -143,6 +143,7 @@ contains
             call CFG_get(cfg, "grid%winding_number", self%n_wind)
             call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
             write(*,*) "Flag init_unit"
+            write(*,*) "wavevector: " , self%wavevector
             call CFG_get(cfg, "grid%wavevector", self%wavevector)
             call CFG_get(cfg, "grid%axis", self%axis)
             
