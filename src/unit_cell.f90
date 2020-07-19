@@ -1073,7 +1073,7 @@ contains
         real(8)  :: start_pos(3), conn(3)
         logical, allocatable :: found_conn(:)
 
-
+        write(*,*) "FLAG make_honey 2"
         n_conn =  size(conn_mtx, 1)
         if(n_conn /= size(conn_type))then
             call error_msg("number of connections have to agree", abort=.True.)
