@@ -435,7 +435,6 @@ contains
       allocate(line(num_atoms,3))
       allocate(site_type(num_atoms))
       pos = 0d0
-      write(*,*) "FLAG make_honey"
       do i = 1, num_atoms
          line(i,:) = pos
          if(mod(i-1,2) == 0) then
@@ -491,7 +490,7 @@ contains
         conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
         conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
         conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
-        
+        write(*,*) "FLAG make_honey"
         call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
     end subroutine init_unit_honey_line
 
