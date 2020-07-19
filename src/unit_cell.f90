@@ -491,7 +491,8 @@ contains
         conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
         conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
         write(*,*) "FLAG make_honey"
-        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
+        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
+        write(*,*) "FLAG make_honey 2"  
     end subroutine init_unit_honey_line
 
     subroutine init_unit_honey_hexa(self)
@@ -1080,7 +1081,6 @@ contains
 
         allocate(found_conn(n_conn))
         allocate(neigh(n_conn))
-        write(*,*) "FLAG make_honey 2"
         !$omp parallel do default(shared) schedule(dynamic)&
         !$omp& private(start_pos, n_found, found_conn, cnt, neigh, j, conn, &
         !$omp& candidate)
