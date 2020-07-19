@@ -1413,7 +1413,7 @@ contains
       N =  2 * self%num_up
       allocate(eig_val(N, size(k_list, 2)))
       allocate(H(N,N))
-      write(*,*) "Flag ham%calc_eigenvalues"
+      write(*,*) "Flag ham%calc_eigenvalues",N,size(k_list)
       call calc_zheevd_size('N', H, eig_val(:,1), lwork, lrwork, liwork)
       allocate(RWORK(lrwork))
       allocate(IWORK(liwork))
