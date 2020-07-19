@@ -421,7 +421,7 @@ contains
 
       num_atoms   = self%atom_per_dim
       self%num_atoms = calc_num_atoms_line_honey(num_atoms)
-      write(*,*) "Num Atoms:",num_atoms
+      write(*,*) "Num Atoms:",num_atoms,self%num_atoms
       if(mod(num_atoms,2) /= 0) then
          write (*,*) "number of atoms in honey_comb line has to be even"
          call MPI_Abort(MPI_COMM_WORLD, 23, ierr)
