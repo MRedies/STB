@@ -420,6 +420,7 @@ contains
       integer                           :: num_atoms, i, ierr
 
       num_atoms   = self%atom_per_dim
+      self%num_atoms = calc_num_atoms_line_honey(num_atoms)
       write(*,*) "Num Atoms:",num_atoms
       if(mod(num_atoms,2) /= 0) then
          write (*,*) "number of atoms in honey_comb line has to be even"
@@ -1260,6 +1261,15 @@ contains
             n_atm =  inner +  3 * next_side - 4
         endif
     end function calc_num_atoms_non_red_honey
+
+    function calc_num_atoms_line_honey(n) result(n_atm)
+        implicit none
+        integer   , intent(in)   :: n
+        integer                  :: n_atm
+
+        n_atm = 6+(n-1)*4
+
+    end function calc_num_atoms_line_honey
 
     function in_hexagon(pos, a) result(inside)
         implicit none
