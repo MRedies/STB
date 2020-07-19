@@ -1073,7 +1073,6 @@ contains
         real(8)  :: start_pos(3), conn(3)
         logical, allocatable :: found_conn(:)
 
-        write(*,*) "FLAG make_honey 2"
         n_conn =  size(conn_mtx, 1)
         if(n_conn /= size(conn_type))then
             call error_msg("number of connections have to agree", abort=.True.)
@@ -1081,7 +1080,7 @@ contains
 
         allocate(found_conn(n_conn))
         allocate(neigh(n_conn))
-        
+        write(*,*) "FLAG make_honey 2"
         !$omp parallel do default(shared) schedule(dynamic)&
         !$omp& private(start_pos, n_found, found_conn, cnt, neigh, j, conn, &
         !$omp& candidate)
