@@ -420,6 +420,7 @@ contains
       integer                           :: num_atoms, i, ierr
 
       num_atoms   = self%atom_per_dim
+      write(*,*) "Num Atoms:",num_atoms
       if(mod(num_atoms,2) /= 0) then
          write (*,*) "number of atoms in honey_comb line has to be even"
          call MPI_Abort(MPI_COMM_WORLD, 23, ierr)
