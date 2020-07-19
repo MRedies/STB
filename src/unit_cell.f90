@@ -491,8 +491,7 @@ contains
         conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
         conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
         write(*,*) "FLAG make_honey"
-        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
-        write(*,*) "FLAG make_honey 2"  
+        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
     end subroutine init_unit_honey_line
 
     subroutine init_unit_honey_hexa(self)
@@ -1103,11 +1102,11 @@ contains
                     cnt     = cnt + 1 
                 endif
             enddo
-
+            write(*,*) "FLAG make_honey 2"
             allocate(self%atoms(i)%neigh_idx(n_found))
             allocate(self%atoms(i)%neigh_conn(n_found, 3))
             allocate(self%atoms(i)%conn_type(n_found))
-            
+            write(*,*) "FLAG make_honey 3"
             cnt =  1
             do j = 1,n_conn
                 if(found_conn(j)) then
