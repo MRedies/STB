@@ -1423,7 +1423,7 @@ contains
       do i = 1,size(k_list,2)
          k =  k_list(:,i)
          call self%setup_H(k, H)
-
+         write(*,*) "Flag ham%calc_eigenvalues"
          call zheevd('N', 'U', N, H, N, eig_val(:,i), WORK, lwork, &
                      RWORK, lrwork, IWORK, liwork, info)
          if( info /= 0) then
