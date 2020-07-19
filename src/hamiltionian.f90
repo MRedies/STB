@@ -180,7 +180,7 @@ contains
       endif
 
       H =  0d0
-      write(*,*) "Flag ham%setup_H"
+      !write(*,*) "Flag ham%setup_H"
       ! on-site eigenenergy
       has_E = (self%E_s /= 0) .or. (self%E_A /= 0) .or. (self%E_B /= 0)
       if(has_E) call self%set_EigenE(H)
@@ -1413,7 +1413,7 @@ contains
       N =  2 * self%num_up
       allocate(eig_val(N, size(k_list, 2)))
       allocate(H(N,N))
-
+      write(*,*) "Flag ham%calc_eigenvalues"
       call calc_zheevd_size('N', H, eig_val(:,1), lwork, lrwork, liwork)
       allocate(RWORK(lrwork))
       allocate(IWORK(liwork))
@@ -1423,7 +1423,7 @@ contains
       do i = 1,size(k_list,2)
          k =  k_list(:,i)
          call self%setup_H(k, H)
-         write(*,*) "Flag ham%calc_eigenvalues"
+         
          call zheevd('N', 'U', N, H, N, eig_val(:,i), WORK, lwork, &
                      RWORK, lrwork, IWORK, liwork, info)
          if( info /= 0) then
