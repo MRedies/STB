@@ -1102,7 +1102,7 @@ contains
                     cnt     = cnt + 1 
                 endif
             enddo
-            write(*,*) "FLAG make_honey 2"
+            write(*,*) "FLAG make_honey 2",i,n_conn
             allocate(self%atoms(i)%neigh_idx(n_found))
             allocate(self%atoms(i)%neigh_conn(n_found, 3))
             allocate(self%atoms(i)%conn_type(n_found))
