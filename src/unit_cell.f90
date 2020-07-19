@@ -435,7 +435,7 @@ contains
       allocate(line(num_atoms,3))
       allocate(site_type(num_atoms))
       pos = 0d0
-
+      write(*,*) "FLAG make_honey"
       do i = 1, num_atoms
          line(i,:) = pos
          if(mod(i-1,2) == 0) then
