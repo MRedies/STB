@@ -485,7 +485,7 @@ contains
         write (*,*) "mag types still need some work for honeylines"
         if(trim(self%mag_type) == "ferro_uiaeuiaeuia") then
             call self%set_mag_ferro()
-        if(trim(self%mag_type) == "1D_spiral") then
+        else if(trim(self%mag_type) == "1D_spiral") then
             call self%set_mag_linrot_1D_spiral_honey()
         else
             write (*,*) "Mag_type = ", trim(self%mag_type)
