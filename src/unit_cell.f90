@@ -432,10 +432,9 @@ contains
       shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
       shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
       if(trim(self%mag_type) == "1D_spiral") then
-        wavevector = matmul(shift_mtx,self%wavevector)
+        wavevector = matmul(transpose(shift_mtx),self%wavevector)
       else
-        wavevector = matmul(transpose(shift_mtx),[1d0,1d0,0d0])
-        write(*,*) "wavevector: ", wavevector, matmul(shift_mtx,self%wavevector)
+        wavevector = matmul(transpose(shift_mtx),[1d0,0d0,0d0])
       endif
       allocate(line(num_atoms,3))
       allocate(site_type(num_atoms))
