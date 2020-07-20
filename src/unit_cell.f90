@@ -430,7 +430,11 @@ contains
 
       if(trim(self%mag_type) == "1D_spiral") then
         shift_mtx(1, :) =  self%lattice_constant * self%wavevector(1) * [1d0,   0d0,           0d0]
-        shift_mtx(2, :) =  self%lattice_constant * self%wavevector(2) *  [0.5d0, sin(deg_60),   0d0]
+        if(self%wavevector/=0) then
+            shift_mtx(2, :) =  self%lattice_constant * self%wavevector(2) *  [0.5d0, sin(deg_60),   0d0]
+        else
+            shift_mtx(2, :) =  self%lattice_constant * [2d0, 0d0,   0d0]
+        endif
         shift_mtx(3, :) =  self%lattice_constant * self%wavevector(3) *  [0.5d0, -sin(deg_60),   0d0]  
       else
         shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
@@ -487,7 +491,7 @@ contains
         conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
         conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
         call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
-                
+
         write (*,*) "mag types still need some work for honeylines"
         if(trim(self%mag_type) == "ferro_uiaeuiaeuia") then
             call self%set_mag_ferro()
