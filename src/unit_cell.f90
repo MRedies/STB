@@ -481,7 +481,13 @@ contains
 
         call self%make_honeycomb_line(line, site_type)
         call self%setup_honey(line, site_type)
-        
+        ! only one kind of atoms of the honey-comb unit cell needs
+        ! the other comes through complex conjugate
+        conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
+        conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
+        conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
+        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
+                
         write (*,*) "mag types still need some work for honeylines"
         if(trim(self%mag_type) == "ferro_uiaeuiaeuia") then
             call self%set_mag_ferro()
@@ -492,12 +498,6 @@ contains
             call error_msg("mag_type not known", abort=.True.)
         endif
 
-        ! only one kind of atoms of the honey-comb unit cell needs
-        ! the other comes through complex conjugate
-        conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
-        conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
-        conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
-        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
     end subroutine init_unit_honey_line
 
     subroutine init_unit_honey_hexa(self)
