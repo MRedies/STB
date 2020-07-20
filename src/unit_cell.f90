@@ -149,6 +149,7 @@ contains
             self%lattice_constant = tmp * self%units%length
 
             call CFG_get(cfg, "grid%atoms_per_dim", self%atom_per_dim)
+            write(*,*) "CFG_GET: ",self%atom_per_dim 
 
             call CFG_get(cfg, "grid%ferro_phi",      self%ferro_phi)
             call CFG_get(cfg, "grid%ferro_theta",    self%ferro_theta)
