@@ -417,12 +417,11 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(8), allocatable              :: line(:,:)
       integer, allocatable              :: site_type(:)
-      real(8)                           :: shift_mtx(2,3), base_len_uc, pos(3)
+      real(8)                           :: shift_mtx(3,3), base_len_uc, pos(3), wavevector(3)
       integer                           :: num_atoms, i, ierr
 
       num_atoms   = self%atom_per_dim
       self%num_atoms = calc_num_atoms_line_honey(num_atoms)
-      write(*,*) "Num Atoms:",num_atoms,self%num_atoms
       if(mod(num_atoms,2) /= 0) then
          write (*,*) "number of atoms in honey_comb line has to be even"
          call MPI_Abort(MPI_COMM_WORLD, 23, ierr)
@@ -432,7 +431,12 @@ contains
 
       shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
       shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
-      
+      shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
+      if(trim(self%mag_type) == "1D_spiral") then
+        wavevector = matmul(shift_mtx,self%wavevector)
+      else
+        wavevector = matmul(shift_mtx,[1d0,1d0,0d0])
+      endif
       allocate(line(num_atoms,3))
       allocate(site_type(num_atoms))
       pos = 0d0
@@ -491,7 +495,6 @@ contains
         conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
         conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
         conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
-        write(*,*) "FLAG make_honey"
         call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
     end subroutine init_unit_honey_line
 
@@ -1108,11 +1111,9 @@ contains
                     cnt     = cnt + 1 
                 endif
             enddo
-            write(*,*) "FLAG make_honey 2",i,n_conn
             allocate(self%atoms(i)%neigh_idx(n_found))
             allocate(self%atoms(i)%neigh_conn(n_found, 3))
             allocate(self%atoms(i)%conn_type(n_found))
-            write(*,*) "FLAG make_honey 3"
             cnt =  1
             do j = 1,n_conn
                 if(found_conn(j)) then
