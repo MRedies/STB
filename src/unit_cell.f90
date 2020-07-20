@@ -421,13 +421,13 @@ contains
 
       num_atoms   = self%atom_per_dim
       self%num_atoms = calc_num_atoms_line_honey(num_atoms)
-      if(mod(num_atoms,2) /= 0) then
+      if(mod(self%num_atoms,2) /= 0) then
          write (*,*) "number of atoms in honey_comb line has to be even"
          call MPI_Abort(MPI_COMM_WORLD, 23, ierr)
       endif
 
       base_len_uc = self%lattice_constant * num_atoms
-
+      !so far only spirals along connection vectors
       if(trim(self%mag_type) == "1D_spiral") then
         shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
         shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
@@ -435,7 +435,6 @@ contains
         conn_vec_1 = matmul(transpose(shift_mtx),self%wavevector)
         write(*,*) "conn_vec_1: ",conn_vec_1
         conn_vec_2 = 2d0 * conn_vec_1
-
       else
         shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
         shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
@@ -1280,7 +1279,7 @@ contains
         integer   , intent(in)   :: n
         integer                  :: n_atm
 
-        n_atm = n!6+(n-1)*4
+        n_atm = 2*n!6+(n-1)*4
 
     end function calc_num_atoms_line_honey
 
