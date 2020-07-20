@@ -435,7 +435,7 @@ contains
         wavevector = matmul(shift_mtx,self%wavevector)
       else
         wavevector = matmul(transpose(shift_mtx),[1d0,1d0,0d0])
-        write(*,*) "wavevector: ", wavevector
+        write(*,*) "wavevector: ", wavevector, matmul(shift_mtx,self%wavevector)
       endif
       allocate(line(num_atoms,3))
       allocate(site_type(num_atoms))
