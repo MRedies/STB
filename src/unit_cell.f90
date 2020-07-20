@@ -149,7 +149,6 @@ contains
             self%lattice_constant = tmp * self%units%length
 
             call CFG_get(cfg, "grid%atoms_per_dim", self%atom_per_dim)
-            write(*,*) "CFG_GET: ",self%atom_per_dim 
 
             call CFG_get(cfg, "grid%ferro_phi",      self%ferro_phi)
             call CFG_get(cfg, "grid%ferro_theta",    self%ferro_theta)
@@ -436,6 +435,7 @@ contains
         wavevector = matmul(shift_mtx,self%wavevector)
       else
         wavevector = matmul(shift_mtx,[1d0,1d0,0d0])
+        write(*,*) "wavevector: " wavevector
       endif
       allocate(line(num_atoms,3))
       allocate(site_type(num_atoms))
@@ -1091,7 +1091,6 @@ contains
         !$omp parallel do default(shared) schedule(dynamic)&
         !$omp& private(start_pos, n_found, found_conn, cnt, neigh, j, conn, &
         !$omp& candidate)
-        write(*,*) "Gen_conn: ",self%num_atoms
         do i =  1, self%num_atoms
             start_pos             =  self%atoms(i)%pos
 
