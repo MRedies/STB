@@ -420,7 +420,6 @@ contains
       integer                           :: num_atoms, i, ierr
 
       num_atoms   = self%atom_per_dim
-      self%num_atoms = calc_num_atoms_line_honey(num_atoms)
       if(mod(self%num_atoms,2) /= 0) then
          write (*,*) "number of atoms in honey_comb line has to be even"
          call MPI_Abort(MPI_COMM_WORLD, 23, ierr)
@@ -442,8 +441,8 @@ contains
         conn_vec_1 = shift_mtx(1,:)
         conn_vec_2 = shift_mtx(2,:)
       endif
-      allocate(line(num_atoms,3))
-      allocate(site_type(num_atoms))
+      allocate(line(self%num_atoms,3))
+      allocate(site_type(self%num_atoms))
       pos = 0d0
       do i = 1, num_atoms
          line(i,:) = pos
@@ -467,6 +466,7 @@ contains
         integer                           :: apd       
 
         apd         = self%atom_per_dim
+        self%num_atoms = calc_num_atoms_line_honey(apd)
         base_len_uc = self%lattice_constant * apd
       
         shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
@@ -482,7 +482,7 @@ contains
         self%lattice(:,1) =  transl_mtx(1,1:2)
         self%lattice(:,2) =  transl_mtx(2,1:2)
 
-        allocate(self%atoms(apd))
+        allocate(self%atoms(self%num_atoms))
 
         call self%make_honeycomb_line(line, site_type)
         call self%setup_honey(line, site_type)
