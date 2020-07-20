@@ -416,7 +416,7 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(8), allocatable              :: line(:,:)
       integer, allocatable              :: site_type(:)
-      real(8)                           :: shift_mtx(3,3), base_len_uc, pos(3), wavevector(3)
+      real(8)                           :: shift_mtx(3,3), base_len_uc, pos(3), conn_vec_1(3),conn_vec_2(3)
       integer                           :: num_atoms, i, ierr
 
       num_atoms   = self%atom_per_dim
@@ -429,21 +429,19 @@ contains
       base_len_uc = self%lattice_constant * num_atoms
 
       if(trim(self%mag_type) == "1D_spiral") then
-        if(self%wavevector(1)/=0) then
-            shift_mtx(1, :) =  self%lattice_constant * self%wavevector(1) * [1d0,   0d0,           0d0]
-        else
-            shift_mtx(1, :) =  self%lattice_constant * [0d0,   2d0 * sin(deg_60),           0d0]
-        endif
-        if(self%wavevector(2)/=0) then
-            shift_mtx(2, :) =  self%lattice_constant * self%wavevector(2) *  [0.5d0, sin(deg_60),   0d0]
-        else
-            shift_mtx(2, :) =  self%lattice_constant * [2d0, 0d0,   0d0]
-        endif
-        shift_mtx(3, :) =  self%lattice_constant * self%wavevector(3) *  [0.5d0, -sin(deg_60),   0d0]  
+        shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
+        shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
+        shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
+        conn_vec_1 = matmul(transpose(shift_mtx),self%wavevector)
+        write(*,*) "conn_vec_1: ",conn_vec_1
+        conn_vec_2 = 2d0 * conn_vec_1
+
       else
         shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
         shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
         shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
+        conn_vec_1 = shift_mtx(1,:)
+        conn_vec_2 = shift_mtx(2,:)
       endif
       allocate(line(num_atoms,3))
       allocate(site_type(num_atoms))
@@ -451,10 +449,10 @@ contains
       do i = 1, num_atoms
          line(i,:) = pos
          if(mod(i-1,2) == 0) then
-            pos = pos + shift_mtx(1,:)
+            pos = pos + conn_vec_1
             site_type(i) = B_site
          else
-            pos = pos + shift_mtx(2,:)
+            pos = pos + conn_vec_2
             site_type(i) = A_site
          endif
       enddo
