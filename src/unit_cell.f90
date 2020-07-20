@@ -428,13 +428,14 @@ contains
 
       base_len_uc = self%lattice_constant * num_atoms
 
-      shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
-      shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
-      shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
       if(trim(self%mag_type) == "1D_spiral") then
-        wavevector = matmul(transpose(shift_mtx),self%wavevector)
+        shift_mtx(1, :) =  self%lattice_constant * self%wavevector(1) * [1d0,   0d0,           0d0]
+        shift_mtx(2, :) =  self%lattice_constant * self%wavevector(2) *  [0.5d0, sin(deg_60),   0d0]
+        shift_mtx(3, :) =  self%lattice_constant * self%wavevector(3) *  [0.5d0, -sin(deg_60),   0d0]  
       else
-        wavevector = matmul(transpose(shift_mtx),[1d0,0d0,0d0])
+        shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
+        shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
+        shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
       endif
       allocate(line(num_atoms,3))
       allocate(site_type(num_atoms))
@@ -484,6 +485,8 @@ contains
         write (*,*) "mag types still need some work for honeylines"
         if(trim(self%mag_type) == "ferro_uiaeuiaeuia") then
             call self%set_mag_ferro()
+        if(trim(self%mag_type) == "1D_spiral") then
+            call self%set_mag_linrot_1D_spiral_honey()
         else
             write (*,*) "Mag_type = ", trim(self%mag_type)
             call error_msg("mag_type not known", abort=.True.)
