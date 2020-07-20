@@ -997,9 +997,9 @@ contains
         if(trim(self%mag_type) == "1Dspiral") then
             call save_npy(folder // "1Dspiralwavevector.npy", self%wavevector)
         endif
-        call save_npy(trim(self%prefix) //  "lattice.npy", &
+        call save_npy(folder //  "lattice.npy", &
             self%lattice / self%units%length)
-        call save_npy(trim(self%prefix) //  "rez_lattice.npy", &
+        call save_npy(folder //  "rez_lattice.npy", &
             self%rez_lattice / self%units%inv_length)
     end subroutine save_unit_cell
 
