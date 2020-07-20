@@ -1083,6 +1083,7 @@ contains
         !$omp parallel do default(shared) schedule(dynamic)&
         !$omp& private(start_pos, n_found, found_conn, cnt, neigh, j, conn, &
         !$omp& candidate)
+        write(*,*) "Gen_conn: ",self%num_atoms
         do i =  1, self%num_atoms
             start_pos             =  self%atoms(i)%pos
 
