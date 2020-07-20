@@ -434,7 +434,7 @@ contains
       if(trim(self%mag_type) == "1D_spiral") then
         wavevector = matmul(shift_mtx,self%wavevector)
       else
-        wavevector = matmul(shift_mtx,[1d0,1d0,0d0])
+        wavevector = matmul(transpose(shift_mtx),[1d0,1d0,0d0])
         write(*,*) "wavevector: ", wavevector
       endif
       allocate(line(num_atoms,3))
