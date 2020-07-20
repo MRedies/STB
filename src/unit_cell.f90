@@ -430,7 +430,7 @@ contains
 
       if(trim(self%mag_type) == "1D_spiral") then
         shift_mtx(1, :) =  self%lattice_constant * self%wavevector(1) * [1d0,   0d0,           0d0]
-        if(self%wavevector/=0) then
+        if(self%wavevector(2)/=0) then
             shift_mtx(2, :) =  self%lattice_constant * self%wavevector(2) *  [0.5d0, sin(deg_60),   0d0]
         else
             shift_mtx(2, :) =  self%lattice_constant * [2d0, 0d0,   0d0]
