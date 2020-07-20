@@ -441,6 +441,8 @@ contains
         conn_vec_1 = shift_mtx(1,:)
         conn_vec_2 = shift_mtx(2,:)
       endif
+      self%lattice(:,1) =  self%atom_per_dim * (conn_vec_1 + conn_vec_2)
+      self%lattice(:,2) =  matmul(transpose(shift_mtx),([1,1,1]-self%wavevector))
       allocate(line(self%num_atoms,3))
       allocate(site_type(self%num_atoms))
       pos = 0d0
@@ -472,15 +474,14 @@ contains
         shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
         shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
     
-        transl_mtx(1, :) =  apd/2 * (shift_mtx(1,:) + shift_mtx(2,:))
+        transl_mtx(1, :) =  apd * (shift_mtx(1,:) + shift_mtx(2,:))
         transl_mtx(2, :) =  self%lattice_constant * [0.5d0, sin(deg_60),   0d0]
         
         !if we want a molecule, ensure that no wrap-around is found
         if(self%molecule) transl_mtx = transl_mtx * 10d0
 
         ! this has to change
-        self%lattice(:,1) =  transl_mtx(1,1:2)
-        self%lattice(:,2) =  transl_mtx(2,1:2)
+
 
         allocate(self%atoms(self%num_atoms))
 
