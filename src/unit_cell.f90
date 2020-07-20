@@ -924,7 +924,7 @@ contains
         real(8), intent(in) :: center(3), radius
         real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), axis(3), wavevector(3), wavevector_len, phase_shift = PI
         integer             :: site_type, i
-        write(*,*) "Spiral:",wavevector,self%atoms(1)%neigh_conn
+        write(*,*) "Spiral:",self%atoms(1)%neigh_conn
         wavevector = self%wavevector(1)*self%atoms(1)%neigh_conn(1,:) + self%wavevector(2)*self%atoms(1)%neigh_conn(2,:)! + self%wavevector(2)*self%atoms(1)%neigh_conn(:,3)
         wavevector_len = my_norm2(wavevector)
         wavevector = wavevector/wavevector_len
