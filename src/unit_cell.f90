@@ -1264,7 +1264,7 @@ contains
         integer   , intent(in)   :: n
         integer                  :: n_atm
 
-        n_atm = 6+(n-1)*4
+        n_atm = n_atm!6+(n-1)*4
 
     end function calc_num_atoms_line_honey
 
