@@ -441,7 +441,7 @@ contains
         conn_vec_1 = shift_mtx(1,:)
         conn_vec_2 = shift_mtx(2,:)
       endif
-      lattice(1,:) = self%atom_per_dim * (conn_vec_1(1:2) + conn_vec_2(1:2))
+      lattice(1,:) = self%atom_per_dim * (conn_vec_1 + conn_vec_2)
       self%lattice(:,1) =  lattice(1,1:2)
       lattice(2,:) = matmul(transpose(shift_mtx),([1,1,1]-self%wavevector))
       self%lattice(:,2) =  lattice(2,1:2)
