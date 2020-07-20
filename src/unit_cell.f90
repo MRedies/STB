@@ -935,22 +935,22 @@ contains
             site_type = self%atoms(i)%site_type
             conn  = center - self%atoms(i)%pos
             x = dot_product(wavevector,conn)
-            write(*,*) "set_mag_linrot: ",conn,x*wavevector
-            if(my_norm2(conn-x*wavevector) < pos_eps * self%lattice_constant &
-                    .and. my_norm2(conn) <= radius + pos_eps) then
+            write(*,*) "set_mag_linrot: ",conn,neigh_conn,x*wavevector
+            !if(my_norm2(conn-x*wavevector) < pos_eps * self%lattice_constant &
+            !        .and. my_norm2(conn) <= radius + pos_eps) then
                 R = R_mtx(psi*x - phase_shift, axis)
                 if (site_type == 0) then 
                     m = matmul(R, self%m0_A)
                 elseif(site_type == 1) then
                     m = matmul(R, self%m0_B)
                 endif
-            else
-                if (site_type == 0) then 
-                    m = self%m0_A
-                elseif(site_type == 1) then
-                    m = self%m0_B
-                endif
-            endif
+            !else
+            !    if (site_type == 0) then 
+            !        m = self%m0_A
+            !    elseif(site_type == 1) then
+            !        m = self%m0_B
+            !    endif
+            !endif
             call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
         enddo
     end subroutine set_mag_linrot_1D_spiral
