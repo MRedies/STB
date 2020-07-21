@@ -1019,7 +1019,7 @@ contains
       endif
 
       ! check for convergence
-      write(*,*) "Flag k_space: " my_norm2(var),self%kpts_per_step, self%nProcs
+      write(*,*) "Flag k_space: ", my_norm2(var),self%kpts_per_step, self%nProcs
       rel_error = my_norm2(var - var_old) &
                   / (self%kpts_per_step * self%nProcs * my_norm2(var))!/ (1d0*size(var))
 
