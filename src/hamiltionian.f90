@@ -180,7 +180,6 @@ contains
       endif
 
       H =  0d0
-      !write(*,*) "Flag ham%setup_H"
       ! on-site eigenenergy
       has_E = (self%E_s /= 0) .or. (self%E_A /= 0) .or. (self%E_B /= 0)
       if(has_E) call self%set_EigenE(H)
