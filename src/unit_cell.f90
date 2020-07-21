@@ -432,8 +432,8 @@ contains
         shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
         shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
         conn_vec_1 = matmul(transpose(shift_mtx),self%wavevector)
-        write(*,*) "conn_vec_1: ",conn_vec_1
         conn_vec_2 = 2d0 * conn_vec_1
+        write(*,*) "conn_vec_1: ",conn_vec_1,conn_vec_2
       else
         shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
         shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
