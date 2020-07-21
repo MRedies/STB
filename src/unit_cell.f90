@@ -427,7 +427,7 @@ contains
 
       base_len_uc = self%lattice_constant * num_atoms
       !so far only spirals along connection vectors
-      if(trim(self%mag_type) == "1D_spiral") then
+      if(trim(self%mag_type) == "1Dspiral") then
         shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
         shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
         shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
@@ -500,7 +500,7 @@ contains
         write (*,*) "mag types still need some work for honeylines"
         if(trim(self%mag_type) == "ferro_uiaeuiaeuia") then
             call self%set_mag_ferro()
-        else if(trim(self%mag_type) == "1D_spiral") then
+        else if(trim(self%mag_type) == "1Dspiral") then
             call self%set_mag_linrot_1D_spiral_honey()
         else
             write (*,*) "Mag_type = ", trim(self%mag_type)
