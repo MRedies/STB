@@ -433,7 +433,6 @@ contains
         shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
         conn_vec_1 = matmul(transpose(shift_mtx),self%wavevector)
         conn_vec_2 = 2d0 * conn_vec_1
-        write(*,*) "conn_vec_1: ",conn_vec_1,conn_vec_2
       else
         shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
         shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
@@ -450,7 +449,6 @@ contains
       allocate(site_type(self%num_atoms))
       pos = 0d0
       do i = 1, self%num_atoms
-         write(*,*) "POS: ", pos,i
          line(i,:) = pos
          if(mod(i-1,2) == 0) then
             pos = pos + conn_vec_1
@@ -929,7 +927,6 @@ contains
         real(8), intent(in) :: center(3), radius
         real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), axis(3), wavevector(3), wavevector_len
         integer             :: site_type, i
-        write(*,*) "Spiral:",self%atoms(1)%neigh_conn
         wavevector = self%wavevector(1)*self%atoms(1)%neigh_conn(1,:) + self%wavevector(2)*self%atoms(1)%neigh_conn(2,:)! + self%wavevector(2)*self%atoms(1)%neigh_conn(:,3)
         wavevector_len = my_norm2(wavevector)
         wavevector = wavevector/wavevector_len
