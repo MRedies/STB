@@ -450,6 +450,7 @@ contains
       allocate(site_type(self%num_atoms))
       pos = 0d0
       do i = 1, num_atoms
+         write(*,*) "POS: ", pos,i
          line(i,:) = pos
          if(mod(i-1,2) == 0) then
             pos = pos + conn_vec_1
