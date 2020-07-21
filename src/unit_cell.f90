@@ -927,7 +927,7 @@ contains
         implicit none
         class(unit_cell)    :: self
         real(8), intent(in) :: center(3), radius
-        real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), axis(3), wavevector(3), wavevector_len, phase_shift = PI
+        real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), axis(3), wavevector(3), wavevector_len
         integer             :: site_type, i
         write(*,*) "Spiral:",self%atoms(1)%neigh_conn
         wavevector = self%wavevector(1)*self%atoms(1)%neigh_conn(1,:) + self%wavevector(2)*self%atoms(1)%neigh_conn(2,:)! + self%wavevector(2)*self%atoms(1)%neigh_conn(:,3)
@@ -943,7 +943,7 @@ contains
             !write(*,*) "set_mag_linrot: ",conn,self%atoms(1)%neigh_conn,x*wavevector
             !if(my_norm2(conn-x*wavevector) < pos_eps * self%lattice_constant &
             !        .and. my_norm2(conn) <= radius + pos_eps) then
-                R = R_mtx(psi*x - phase_shift, axis)
+                R = R_mtx(psi*x, axis)
                 if (site_type == 0) then 
                     m = matmul(R, self%m0_A)
                 elseif(site_type == 1) then
