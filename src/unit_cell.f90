@@ -442,7 +442,7 @@ contains
       endif
       lattice(1,:) = self%atom_per_dim * (conn_vec_1 + conn_vec_2)
       self%lattice(:,1) =  lattice(1,1:2)
-      lattice(2,:) = matmul(transpose(shift_mtx),([1,1,1]-self%wavevector))
+      lattice(2,:) = matmul(transpose(shift_mtx),[1,1,0])
       self%lattice(:,2) =  lattice(2,1:2)
       
       allocate(line(self%num_atoms,3))
