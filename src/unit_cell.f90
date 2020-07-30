@@ -476,7 +476,7 @@ contains
         shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
         shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
     
-        transl_mtx(1, :) =  apd * (shift_mtx(1,:) + shift_mtx(2,:))
+        transl_mtx(1, :) =  self%lattice_constant * [1d0,   0d0,           0d0]
         transl_mtx(2, :) =  self%lattice_constant * [0.5d0, sin(deg_60),   0d0]
         
         !if we want a molecule, ensure that no wrap-around is found
