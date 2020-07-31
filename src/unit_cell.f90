@@ -27,12 +27,12 @@ module Class_unit_cell
         integer    :: nProcs
         integer    :: me
         integer    :: n_wind !> winding number for lin_rot
-        integer    :: wavevector(3)
+        integer, allocatable    :: wavevector(:)
         real(8) :: lattice_constant !> lattice constant in atomic units
         real(8) :: eps !> threshold for positional accuracy
         real(8) :: ferro_phi, ferro_theta
         real(8) ,allocatable:: anticol_phi(:),anticol_theta(:),m0_A(:),m0_B(:) !> the angles for anticollinear setups, one
-        real(8) :: axis(3) !> the angles for anticollinear setups, one
+        real(8) ,allocatable:: axis(:) !> the angles for anticollinear setups, one
         real(8):: atan_factor !> how fast do we change the border wall
         real(8) :: dblatan_dist !> width of the atan plateau
         real(8) :: skyrm_middle !> position of inplane
