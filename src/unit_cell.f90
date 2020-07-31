@@ -112,7 +112,7 @@ contains
         integer   , dimension(2)        :: ipiv
         integer                         :: info
         integer                         :: ierr
-        integer                         :: anticol_size
+        integer                         :: anticol_size,wavevector_size
         logical                         :: tmp_log
         
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
@@ -142,7 +142,11 @@ contains
 
             call CFG_get(cfg, "grid%winding_number", self%n_wind)
             call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
+            call CFG_get_size(cfg,"grid%wavevector", wavevector_size)
+            allocate(self%wavevector(wavevector_size)) !allocate theta
             call CFG_get(cfg, "grid%wavevector", self%wavevector)
+            call CFG_get_size(cfg,"grid%axis", wavevector_size)
+            allocate(self%axis(wavevector_size)) !allocate theta
             call CFG_get(cfg, "grid%axis", self%axis)
             
             call CFG_get(cfg, "grid%lattice_constant", tmp)
