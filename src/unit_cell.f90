@@ -420,8 +420,18 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(8), allocatable              :: line(:,:)
       integer, allocatable              :: site_type(:)
-      real(8)                           :: shift_mtx(3,3), base_len_uc, pos(3), conn_vec_1(3),conn_vec_2(3),lattice(2,3)
+      real(8)                           :: shift_mtx(3,3), conn_mtx(3,3), base_len_uc, pos(3), conn_vec_1(3),conn_vec_2(3), base_len_uc, l
       integer                           :: num_atoms, i, ierr
+      base_len_uc = self%lattice_constant
+      l = 2 *  cos(deg_30) * base_len_uc
+      !conn to nearest neighbors
+      conn_mtx(2, :) =  self%lattice_constant * [0d0,          1d0,           0d0]!2
+      conn_mtx(3, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]!3
+      conn_mtx(1, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]!1
+      !conn to next honey unit cell
+      shift_mtx(1, :) =  l *  [1d0,   0d0,           0d0]!1
+      shift_mtx(2, :) =  l *  [0.5d0, sin(deg_60),   0d0]!2
+      shift_mtx(3, :) =  l *  [0.5d0, -sin(deg_60),   0d0]!3
 
       num_atoms   = self%atom_per_dim
       if(mod(self%num_atoms,2) /= 0) then
@@ -432,22 +442,12 @@ contains
       base_len_uc = self%lattice_constant * num_atoms
       !so far only spirals along connection vectors
       if(trim(self%mag_type) == "1Dspiral") then
-        shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
-        shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
-        shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
         conn_vec_1 = matmul(transpose(shift_mtx),self%wavevector)
-        conn_vec_2 = 2d0 * conn_vec_1
+        conn_vec_2 = matmul(transpose(conn_mtx),self%wavevector)
       else
-        shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
-        shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
-        shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
         conn_vec_1 = shift_mtx(1,:)
         conn_vec_2 = shift_mtx(2,:)
       endif
-      lattice(1,:) = self%atom_per_dim * (conn_vec_1 + conn_vec_2)
-      self%lattice(:,1) =  lattice(1,1:2)
-      lattice(2,:) = matmul(transpose(shift_mtx),[1,1,0])
-      self%lattice(:,2) =  lattice(2,1:2)
       
       allocate(line(self%num_atoms,3))
       allocate(site_type(self%num_atoms))
@@ -468,21 +468,27 @@ contains
     subroutine init_unit_honey_line(self)
         implicit none
         class(unit_cell), intent(inout)   :: self
-        real(8)                           :: transl_mtx(2,3),  base_len_uc, conn_mtx(3,3), shift_mtx(2,3)
+        real(8)                           :: transl_mtx(2,3),  base_len_uc, conn_mtx(3,3), shift_mtx(2,3),lattice(2,3), base_len_uc,l
         real(8), allocatable              :: line(:,:)
         integer, allocatable              :: site_type(:)
         integer                           :: apd       
-
         apd         = self%atom_per_dim
         self%num_atoms = calc_num_atoms_line_honey(apd)
         base_len_uc = self%lattice_constant * apd
       
         shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
         shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
-    
-        transl_mtx(1, :) =  self%lattice_constant * [1d0,   0d0,           0d0]
+        shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
+        !translates to neighboring unit cells
+        !transl_mtx(1, :) =  self%lattice_constant * [1d0,   0d0,           0d0]
+        !transl_mtx(2, :) =  self%lattice_constant * [0.5d0, sin(deg_60),   0d0]
+        transl_mtx(1, :) = l * [1d0,   0d0,           0d0]
         transl_mtx(2, :) =  self%lattice_constant * [0.5d0, sin(deg_60),   0d0]
         
+        lattice(1,:) = self%atom_per_dim * matmul(transpose(shift_mtx),self%wavevector)
+        self%lattice(:,1) =  lattice(1,1:2)
+        lattice(2,:) = matmul(transpose(shift_mtx),[1,1,0])
+        self%lattice(:,2) =  lattice(2,1:2)
         !if we want a molecule, ensure that no wrap-around is found
         if(self%molecule) transl_mtx = transl_mtx * 10d0
 
@@ -490,14 +496,15 @@ contains
 
 
         allocate(self%atoms(self%num_atoms))
-
-        call self%make_honeycomb_line(line, site_type)
-        call self%setup_honey(line, site_type)
         ! only one kind of atoms of the honey-comb unit cell needs
         ! the other comes through complex conjugate
+        !translates to neighboring atoms
         conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
         conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
         conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
+
+        call self%make_honeycomb_line(line, site_type)
+        call self%setup_honey(line, site_type)
         call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
 
         write (*,*) "mag types still need some work for honeylines"
