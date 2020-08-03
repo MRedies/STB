@@ -637,8 +637,8 @@ contains
                     enddo
                 else
                     do i = 1,self%num_atoms
-                        phi = phi_col - (-1)*phi_nc/2d0
-                        theta = theta_col - (-1)*theta_nc/2d0
+                        phi = phi_col - (-1)**i*phi_nc/2d0
+                        theta = theta_col - (-1)**i*theta_nc/2d0
                         call self%atoms(i)%set_sphere(phi,theta)
                     enddo
                 endif
