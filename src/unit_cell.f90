@@ -27,10 +27,12 @@ module Class_unit_cell
         integer    :: nProcs
         integer    :: me
         integer    :: n_wind !> winding number for lin_rot
+        integer, allocatable    :: wavevector(:)
         real(8) :: lattice_constant !> lattice constant in atomic units
         real(8) :: eps !> threshold for positional accuracy
         real(8) :: ferro_phi, ferro_theta
-        real(8) ,allocatable:: anticol_phi(:),anticol_theta(:) !> the angles for anticollinear setups, one
+        real(8) ,allocatable:: anticol_phi(:),anticol_theta(:),m0_A(:),m0_B(:) !> the angles for anticollinear setups, one
+        real(8) ,allocatable:: axis(:) !> the angles for anticollinear setups, one
         real(8):: atan_factor !> how fast do we change the border wall
         real(8) :: dblatan_dist !> width of the atan plateau
         real(8) :: skyrm_middle !> position of inplane
@@ -44,37 +46,40 @@ module Class_unit_cell
         logical         :: pert_log ! berry in first order pert.
     contains
     
-        procedure :: init_unit_honey_hexa        => init_unit_honey_hexa
-        procedure :: init_unit_square            => init_unit_square
-        procedure :: init_unit_honey_line        => init_unit_honey_line
-        procedure :: get_num_atoms               => get_num_atoms
-        procedure :: setup_square                => setup_square
-        procedure :: setup_single_hex            => setup_single_hex
-        procedure :: in_cell                     => in_cell
-        procedure :: setup_gen_conn              => setup_gen_conn
-        procedure :: get_atoms                   => get_atoms
-        procedure :: gen_find_neigh              => gen_find_neigh
-        procedure :: save_unit_cell              => save_unit_cell
-        procedure :: set_mag_ferro               => set_mag_ferro
-        procedure :: set_mag_anticol             => set_mag_anticol
-        procedure :: set_mag_random              => set_mag_random
-        procedure :: set_mag_x_spiral_square     => set_mag_x_spiral_square
-        procedure :: set_mag_linrot_skyrm        => set_mag_linrot_skyrm
-        procedure :: set_mag_atan_skyrm          => set_mag_atan_skyrm
-        procedure :: set_mag_atan_skyrm_honey    => set_mag_atan_skyrm_honey
-        procedure :: set_mag_dblatan_skyrm       => set_mag_dblatan_skyrm
-        procedure :: set_mag_dblatan_skyrm_honey => set_mag_dblatan_skyrm_honey
-        procedure :: set_mag_linrot_skrym_square => set_mag_linrot_skrym_square
-        procedure :: set_mag_linrot_skrym_honey  => set_mag_linrot_skrym_honey
-        procedure :: set_honey_snd_nearest       => set_honey_snd_nearest
-        procedure :: Bcast_UC                    => Bcast_UC
-        procedure :: setup_honey                 => setup_honey
-        procedure :: make_hexagon                => make_hexagon
-        procedure :: make_honeycomb_line         => make_honeycomb_line
-        procedure :: free_uc                     => free_uc
-        procedure :: init_file_square            => init_file_square
-        procedure :: run_tests                   => run_tests
-        procedure :: calc_area                   => calc_area
+        procedure :: init_unit_honey_hexa           => init_unit_honey_hexa
+        procedure :: init_unit_square               => init_unit_square
+        procedure :: init_unit_honey_line           => init_unit_honey_line
+        procedure :: get_num_atoms                  => get_num_atoms
+        procedure :: setup_square                   => setup_square
+        procedure :: setup_single_hex               => setup_single_hex
+        procedure :: in_cell                        => in_cell
+        procedure :: setup_gen_conn                 => setup_gen_conn
+        procedure :: get_atoms                      => get_atoms
+        procedure :: gen_find_neigh                 => gen_find_neigh
+        procedure :: save_unit_cell                 => save_unit_cell
+        procedure :: set_mag_ferro                  => set_mag_ferro
+        procedure :: set_mag_anticol                => set_mag_anticol
+        procedure :: set_mag_random                 => set_mag_random
+        procedure :: set_mag_x_spiral_square        => set_mag_x_spiral_square
+        procedure :: set_mag_linrot_1D_spiral       => set_mag_linrot_1D_spiral
+        procedure :: set_mag_linrot_1D_spiral_honey => set_mag_linrot_1D_spiral_honey
+        procedure :: set_mag_linrot_1D_spiral_m0 => set_mag_linrot_1D_spiral_m0
+        procedure :: set_mag_linrot_skyrm           => set_mag_linrot_skyrm
+        procedure :: set_mag_atan_skyrm             => set_mag_atan_skyrm
+        procedure :: set_mag_atan_skyrm_honey       => set_mag_atan_skyrm_honey
+        procedure :: set_mag_dblatan_skyrm          => set_mag_dblatan_skyrm
+        procedure :: set_mag_dblatan_skyrm_honey    => set_mag_dblatan_skyrm_honey
+        procedure :: set_mag_linrot_skrym_square    => set_mag_linrot_skrym_square
+        procedure :: set_mag_linrot_skrym_honey     => set_mag_linrot_skrym_honey
+        procedure :: set_honey_snd_nearest          => set_honey_snd_nearest
+        procedure :: Bcast_UC                       => Bcast_UC
+        procedure :: setup_honey                    => setup_honey
+        procedure :: make_hexagon                   => make_hexagon
+        procedure :: make_honeycomb_line            => make_honeycomb_line
+        procedure :: free_uc                        => free_uc
+        procedure :: init_file_square               => init_file_square
+        procedure :: run_tests                      => run_tests
+        procedure :: calc_area                      => calc_area
     end type unit_cell
 contains
     subroutine free_uc(self)
@@ -103,11 +108,11 @@ contains
         type(CFG_t)       :: cfg !> config file as read by m_config
         type(unit_cell)   :: self
         integer   , parameter           :: lwork =  20
-        real(8)                         :: work(lwork), tmp 
+        real(8)                         :: work(lwork), tmp
         integer   , dimension(2)        :: ipiv
         integer                         :: info
         integer                         :: ierr
-        integer                         :: anticol_size
+        integer                         :: anticol_size,wavevector_size
         logical                         :: tmp_log
         
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
@@ -137,7 +142,13 @@ contains
 
             call CFG_get(cfg, "grid%winding_number", self%n_wind)
             call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
-
+            call CFG_get_size(cfg,"grid%wavevector", wavevector_size)
+            allocate(self%wavevector(wavevector_size)) !allocate theta
+            call CFG_get(cfg, "grid%wavevector", self%wavevector)
+            call CFG_get_size(cfg,"grid%axis", wavevector_size)
+            allocate(self%axis(wavevector_size)) !allocate theta
+            call CFG_get(cfg, "grid%axis", self%axis)
+            
             call CFG_get(cfg, "grid%lattice_constant", tmp)
             self%lattice_constant = tmp * self%units%length
 
@@ -190,9 +201,10 @@ contains
     end function
 
     subroutine Bcast_UC(self)
+        use mpi
         implicit none
         class(unit_cell)              :: self
-        integer   , parameter         :: num_cast = 18
+        integer   , parameter         :: num_cast = 20
         integer                       :: ierr(num_cast)
         integer                       :: anticol_size_phi
         integer                       :: anticol_size_theta
@@ -246,6 +258,10 @@ contains
   
         call MPI_Bcast(self%pert_log, 1,              MPI_LOGICAL, &
                         root,         MPI_COMM_WORLD, ierr(18))
+        call MPI_Bcast(self%wavevector, 3 ,            MYPI_INT, &
+                        root,              MPI_COMM_WORLD, ierr(19))
+        call MPI_Bcast(self%axis, 3 ,            MPI_REAL8, &
+                        root,              MPI_COMM_WORLD, ierr(20))
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
@@ -292,6 +308,7 @@ contains
     end subroutine init_unit_square
 
     subroutine init_file_square(self)
+        use mpi
         implicit none
         class(unit_cell), intent(inout)   :: self
         real(8)                           :: conn_mtx(3,3)
@@ -403,31 +420,45 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(8), allocatable              :: line(:,:)
       integer, allocatable              :: site_type(:)
-      real(8)                           :: shift_mtx(2,3), base_len_uc, pos(3)
+      real(8)                           :: shift_mtx(3,3), conn_mtx(3,3), base_len_uc, pos(3), conn_vec_1(3),conn_vec_2(3), base_len_uc, l
       integer                           :: num_atoms, i, ierr
+      base_len_uc = self%lattice_constant
+      l = 2 *  cos(deg_30) * base_len_uc
+      !conn to nearest neighbors
+      conn_mtx(2, :) =  self%lattice_constant * [0d0,          1d0,           0d0]!2
+      conn_mtx(3, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]!3
+      conn_mtx(1, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]!1
+      !conn to next honey unit cell
+      shift_mtx(1, :) =  l *  [1d0,   0d0,           0d0]!1
+      shift_mtx(2, :) =  l *  [0.5d0, sin(deg_60),   0d0]!2
+      shift_mtx(3, :) =  l *  [0.5d0, -sin(deg_60),   0d0]!3
 
       num_atoms   = self%atom_per_dim
-      if(mod(num_atoms,2) /= 0) then
+      if(mod(self%num_atoms,2) /= 0) then
          write (*,*) "number of atoms in honey_comb line has to be even"
          call MPI_Abort(MPI_COMM_WORLD, 23, ierr)
       endif
 
       base_len_uc = self%lattice_constant * num_atoms
-
-      shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
-      shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
+      !so far only spirals along connection vectors
+      if(trim(self%mag_type) == "1Dspiral") then
+        conn_vec_1 = matmul(transpose(shift_mtx),self%wavevector)
+        conn_vec_2 = matmul(transpose(conn_mtx),self%wavevector)
+      else
+        conn_vec_1 = shift_mtx(1,:)
+        conn_vec_2 = shift_mtx(2,:)
+      endif
       
-      allocate(line(num_atoms,3))
-      allocate(site_type(num_atoms))
+      allocate(line(self%num_atoms,3))
+      allocate(site_type(self%num_atoms))
       pos = 0d0
-
-      do i = 1, num_atoms
+      do i = 1, self%num_atoms
          line(i,:) = pos
          if(mod(i-1,2) == 0) then
-            pos = pos + shift_mtx(1,:)
+            pos = pos + conn_vec_1
             site_type(i) = B_site
          else
-            pos = pos + shift_mtx(2,:)
+            pos = pos + conn_vec_2
             site_type(i) = A_site
          endif
       enddo
@@ -437,47 +468,55 @@ contains
     subroutine init_unit_honey_line(self)
         implicit none
         class(unit_cell), intent(inout)   :: self
-        real(8)                           :: transl_mtx(2,3),  base_len_uc, conn_mtx(3,3), shift_mtx(2,3)
+        real(8)                           :: transl_mtx(2,3),  base_len_uc, conn_mtx(3,3), shift_mtx(2,3),lattice(2,3), base_len_uc,l
         real(8), allocatable              :: line(:,:)
         integer, allocatable              :: site_type(:)
         integer                           :: apd       
-
         apd         = self%atom_per_dim
+        self%num_atoms = calc_num_atoms_line_honey(apd)
         base_len_uc = self%lattice_constant * apd
       
         shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
         shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
-    
-        transl_mtx(1, :) =  apd/2 * (shift_mtx(1,:) + shift_mtx(2,:))
+        shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
+        !translates to neighboring unit cells
+        !transl_mtx(1, :) =  self%lattice_constant * [1d0,   0d0,           0d0]
+        !transl_mtx(2, :) =  self%lattice_constant * [0.5d0, sin(deg_60),   0d0]
+        transl_mtx(1, :) = l * [1d0,   0d0,           0d0]
         transl_mtx(2, :) =  self%lattice_constant * [0.5d0, sin(deg_60),   0d0]
         
+        lattice(1,:) = self%atom_per_dim * matmul(transpose(shift_mtx),self%wavevector)
+        self%lattice(:,1) =  lattice(1,1:2)
+        lattice(2,:) = matmul(transpose(shift_mtx),[1,1,0])
+        self%lattice(:,2) =  lattice(2,1:2)
         !if we want a molecule, ensure that no wrap-around is found
         if(self%molecule) transl_mtx = transl_mtx * 10d0
 
         ! this has to change
-        self%lattice(:,1) =  transl_mtx(1,1:2)
-        self%lattice(:,2) =  transl_mtx(2,1:2)
 
-        allocate(self%atoms(apd))
+
+        allocate(self%atoms(self%num_atoms))
+        ! only one kind of atoms of the honey-comb unit cell needs
+        ! the other comes through complex conjugate
+        !translates to neighboring atoms
+        conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
+        conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
+        conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
 
         call self%make_honeycomb_line(line, site_type)
         call self%setup_honey(line, site_type)
-        
+        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
+
         write (*,*) "mag types still need some work for honeylines"
         if(trim(self%mag_type) == "ferro_uiaeuiaeuia") then
             call self%set_mag_ferro()
+        else if(trim(self%mag_type) == "1Dspiral") then
+            call self%set_mag_linrot_1D_spiral_honey()
         else
             write (*,*) "Mag_type = ", trim(self%mag_type)
             call error_msg("mag_type not known", abort=.True.)
         endif
 
-        ! only one kind of atoms of the honey-comb unit cell needs
-        ! the other comes through complex conjugate
-        conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
-        conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
-        conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
-        
-        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
     end subroutine init_unit_honey_line
 
     subroutine init_unit_honey_hexa(self)
@@ -508,6 +547,15 @@ contains
         call self%make_hexagon(hexagon, site_type)
         call self%setup_honey(hexagon, site_type)
         
+        ! only one kind of atom from honey-comb unit cell needed
+        ! the other comes through complex conjugate
+        conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
+        conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
+        conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
+        
+        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
+        call self%set_honey_snd_nearest()
+
         if(trim(self%mag_type) == "ferro") then
             call self%set_mag_ferro()
         else if(trim(self%mag_type) == "lin_skyrm") then
@@ -519,21 +567,16 @@ contains
         else if(trim(self%mag_type) == "random") then
             call self%set_mag_random()
         else if(trim(self%mag_type) == "anticol") then
-            call self%set_mag_anticol()        
+            call self%set_mag_anticol()
+        else if(trim(self%mag_type) == "1Dspiral") then
+            call self%set_mag_linrot_1D_spiral_honey()
         else
             write (*,*) "Mag_type = ", trim(self%mag_type)
             call error_msg("mag_type not known", abort=.True.)
         endif
+        
+        !setup_gen_conn block was here before!
 
-        ! only one kind of atom from honey-comb unit cell needed
-        ! the other comes through complex conjugate
-        conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
-        conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
-        conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
-        
-        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
-        call self%set_honey_snd_nearest()
-        
         deallocate(hexagon, site_type)
     end subroutine init_unit_honey_hexa
 
@@ -649,6 +692,38 @@ contains
             endif
         endif
     end subroutine set_mag_anticol    
+
+    subroutine set_mag_linrot_1D_spiral_m0(self)
+        implicit none
+        class(unit_cell)        :: self
+        real(8)                 :: phi_nc,phi_col,theta_nc,theta_col,thetaA,thetaB,phiA,phiB
+        integer                 :: i
+        if(      mod(self%num_atoms,size(self%anticol_phi)) == 0 &
+            .and. mod(self%num_atoms,size(self%anticol_theta)) == 0&
+            .and. size(self%anticol_theta) ==2 &
+            .and.   size(self%anticol_phi)   ==2) then
+                allocate(self%m0_A(3))
+                allocate(self%m0_B(3))
+                phi_col   = self%anticol_phi(1)
+                phi_nc    = self%anticol_phi(2)
+                theta_col = self%anticol_theta(1)
+                theta_nc  = self%anticol_theta(2)
+                phiA = phi_col + phi_nc/2d0
+                phiB = phi_col - phi_nc/2d0
+                thetaA = theta_col + theta_nc/2d0
+                thetaB = theta_col - theta_nc/2d0
+                self%m0_A(1) = sin(thetaA) *  cos(phiA)
+                self%m0_A(2) = sin(thetaA) *  sin(phiA)
+                self%m0_A(3) = cos(thetaA)
+                self%m0_B(1) = sin(thetaB) *  cos(phiB)
+                self%m0_B(2) = sin(thetaB) *  sin(phiB)
+                self%m0_B(3) = cos(thetaB)
+                !call self%atoms(i)%set_sphere(phi,theta)
+        else
+                call error_msg("sizes of anticol_phi and anticol_theta not consistent with num_atoms", abort=.True.)    
+        endif
+    end subroutine set_mag_linrot_1D_spiral_m0
+
 
     subroutine set_mag_x_spiral_square(self)
         implicit none
@@ -841,11 +916,58 @@ contains
 
     end subroutine set_mag_dblatan_skyrm
 
+    subroutine set_mag_linrot_1D_spiral_honey(self)
+        implicit none
+        class(unit_cell)      :: self
+        real(8), parameter    :: center(3) = [0d0, 0d0, 0d0]
+        real(8)               :: radius
+
+        radius = 0.5d0*my_norm2(self%lattice(:,1))
+        call self%set_mag_linrot_1D_spiral_m0()
+        call self%set_mag_linrot_1D_spiral(center, radius)
+    end subroutine set_mag_linrot_1D_spiral_honey
+
+    subroutine set_mag_linrot_1D_spiral(self, center, radius)
+        implicit none
+        class(unit_cell)    :: self
+        real(8), intent(in) :: center(3), radius
+        real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), axis(3), wavevector(3), wavevector_len
+        integer             :: site_type, i
+        wavevector = self%wavevector(1)*self%atoms(1)%neigh_conn(1,:) + self%wavevector(2)*self%atoms(1)%neigh_conn(2,:)! + self%wavevector(2)*self%atoms(1)%neigh_conn(:,3)
+        wavevector_len = my_norm2(wavevector)
+        wavevector = wavevector/wavevector_len
+        axis = self%axis
+        wavelength = 2d0*radius/self%n_wind
+        psi = 2d0*PI/wavelength
+        do i =  1,self%num_atoms
+            site_type = self%atoms(i)%site_type
+            conn  = center - self%atoms(i)%pos
+            x = my_norm2(conn)!dot_product(wavevector,conn)
+            !write(*,*) "set_mag_linrot: ",conn,self%atoms(1)%neigh_conn,x*wavevector
+            !if(my_norm2(conn-x*wavevector) < pos_eps * self%lattice_constant &
+            !        .and. my_norm2(conn) <= radius + pos_eps) then
+                R = R_mtx(psi*x, axis)
+                if (site_type == 0) then 
+                    m = matmul(R, self%m0_A)
+                elseif(site_type == 1) then
+                    m = matmul(R, self%m0_B)
+                endif
+            !else
+            !    if (site_type == 0) then 
+            !        m = self%m0_A
+            !    elseif(site_type == 1) then
+            !        m = self%m0_B
+            !    endif
+            !endif
+            call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
+        enddo
+    end subroutine set_mag_linrot_1D_spiral
+
     subroutine save_unit_cell(self, folder)
         implicit none
         class(unit_cell)        :: self
         character(len=*)        :: folder
-        real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
+        real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:), axis(:)
         integer                 :: i, n_neigh
         integer   , allocatable :: neigh(:,:)
         integer, allocatable    :: site_type(:), conn_type(:,:)
@@ -861,21 +983,19 @@ contains
 
         neigh     = - 1
         conn_type = - 1
-
         do i = 1,self%num_atoms
 
             x(i)               = self%atoms(i)%pos(1)
             y(i)               = self%atoms(i)%pos(2)
             z(i)               = self%atoms(i)%pos(3)
 
-            !if(self%pert_log) then
-            phi(i)             = self%anticol_phi(i)
-            theta(i)           = self%anticol_theta(i)
-            !else
-            !    phi(i)             = self%atoms(i)%m_phi
-            !    theta(i)           = self%atoms(i)%m_theta
-            !endif
-
+            if(trim(self%mag_type) == "anticol") then
+                phi(i)             = self%anticol_phi(i)
+                theta(i)           = self%anticol_theta(i)
+            else
+                phi(i)             = self%atoms(i)%m_phi
+                theta(i)           = self%atoms(i)%m_theta
+            endif
             site_type(i)       = self%atoms(i)%site_type
 
             n_neigh                = size(self%atoms(i)%neigh_idx)
@@ -891,6 +1011,16 @@ contains
         call save_npy(folder // "site_type.npy", site_type)
         call save_npy(folder // "neigh.npy", neigh)
         call save_npy(folder // "conn_type.npy", conn_type)
+        if(trim(self%mag_type) == "1Dspiral") then
+            call save_npy(folder // "1Dspiralaxis.npy", self%axis)
+        endif
+        if(trim(self%mag_type) == "1Dspiral") then
+            call save_npy(folder // "1Dspiralwavevector.npy", self%wavevector)
+        endif
+        call save_npy(folder //  "lattice.npy", &
+            self%lattice / self%units%length)
+        call save_npy(folder //  "rez_lattice.npy", &
+            self%rez_lattice / self%units%inv_length)
     end subroutine save_unit_cell
 
     subroutine setup_single_hex(self)
@@ -968,7 +1098,6 @@ contains
         real(8)  :: start_pos(3), conn(3)
         logical, allocatable :: found_conn(:)
 
-
         n_conn =  size(conn_mtx, 1)
         if(n_conn /= size(conn_type))then
             call error_msg("number of connections have to agree", abort=.True.)
@@ -976,7 +1105,6 @@ contains
 
         allocate(found_conn(n_conn))
         allocate(neigh(n_conn))
-        
         !$omp parallel do default(shared) schedule(dynamic)&
         !$omp& private(start_pos, n_found, found_conn, cnt, neigh, j, conn, &
         !$omp& candidate)
@@ -999,11 +1127,9 @@ contains
                     cnt     = cnt + 1 
                 endif
             enddo
-
             allocate(self%atoms(i)%neigh_idx(n_found))
             allocate(self%atoms(i)%neigh_conn(n_found, 3))
             allocate(self%atoms(i)%conn_type(n_found))
-            
             cnt =  1
             do j = 1,n_conn
                 if(found_conn(j)) then
@@ -1155,6 +1281,15 @@ contains
             n_atm =  inner +  3 * next_side - 4
         endif
     end function calc_num_atoms_non_red_honey
+
+    function calc_num_atoms_line_honey(n) result(n_atm)
+        implicit none
+        integer   , intent(in)   :: n
+        integer                  :: n_atm
+
+        n_atm = 2*n!6+(n-1)*4
+
+    end function calc_num_atoms_line_honey
 
     function in_hexagon(pos, a) result(inside)
         implicit none
@@ -1313,6 +1448,7 @@ contains
     end function n_times_phi
 
     subroutine run_tests(self)
+        use mpi
         implicit none
         class(unit_cell), intent(in)   :: self
         integer                        :: i,ierr

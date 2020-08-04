@@ -180,7 +180,6 @@ contains
       endif
 
       H =  0d0
-
       ! on-site eigenenergy
       has_E = (self%E_s /= 0) .or. (self%E_A /= 0) .or. (self%E_B /= 0)
       if(has_E) call self%set_EigenE(H)
@@ -275,6 +274,7 @@ contains
 
          call CFG_get(cfg, "hamil%t_so", tmp)
          self%t_so =  tmp * self%units%energy
+         !write(*,*) "Rasbha spin orbit:", self%t_so,tmp
 
          call CFG_get(cfg, "hamil%eta_soc", tmp)
          self%eta_soc =  tmp * self%units%energy
@@ -427,7 +427,6 @@ contains
       real(8)                  :: m(3), fac
 
       m = self%UC%atoms(i)%get_m_cart()
-      !write(*,*) "stoner m: ", m
       fac =  - 0.5d0 *  self%lambda
 
       S = fac * ( m(1) * sigma_x &
@@ -1150,7 +1149,8 @@ contains
       complex(8), allocatable         :: H_xc_1(:,:)
       complex(8), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
       real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE,fac,Efac
-      integer                         :: i,i_d,conn,j,j_d,n_dim
+      integer                         :: i,i_d,j,j_u,j_d,n_dim
+      logical                         :: full
       n_dim = 2 * self%num_up
       if(allocated(H_temp)) deallocate(H_temp)
       if(allocated(temp)) deallocate(temp)
@@ -1167,35 +1167,38 @@ contains
       theta_col = theta(1)
       phi_nc = phi(2)
       phi_col = phi(1)
-      fac = -0.5d0 * self%lambda
-      do i =  1, self%num_up
-         i_d =  i + self%num_up
-         do conn =  1,size(self%UC%atoms(i)%neigh_idx)
-            if(self%UC%atoms(i)%conn_type(conn) == nn_conn) then
-               j =  self%UC%atoms(i)%neigh_idx(conn)
-               j_d = j + self%num_up
-               ! H_xc_at = lambda * (H_1 * t_nc)
-               !this is exchange in first order (without zero order, thats already in the col case)
-               !temp(i,i)     = -self%lambda*sin(theta_col)*theta_nc/2d0
-               !temp(i_d,i_d) =  self%lambda*sin(theta_col)*theta_nc/2d0
-               !temp(j,j)     =  self%lambda*sin(theta_col)*theta_nc/2d0
-               !temp(j_d,j_d) = -self%lambda*sin(theta_col)*theta_nc/2d0
-               !temp(i,i_d)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
-               !temp(i_d,i)   =  self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
-               !temp(j,j_d)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
-               !temp(j_d,j)   = -self%lambda*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
-               ! H_xc_at = lambda * (H_1 * t_nc)
-               !this is full exchange (without zero order, thats already in the col case)
-               temp(i,i)     =  fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
-               temp(i_d,i_d) = -fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
-               temp(j,j)     =  fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
-               temp(j_d,j_d) = -fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
-               temp(i,i_d)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col+phi_nc/2d0))
-               temp(i_d,i)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col+phi_nc/2d0))
-               temp(j,j_d)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col-phi_nc/2d0))
-               temp(j_d,j)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col-phi_nc/2d0))
+      fac = 0.5d0 * self%lambda * PI/180d0
+      i = 1
+      i_d = i + self%num_up
+      j = i + self%num_orb
+      j_d = i_d + self%num_orb
+
+      full = .False.
+      do i =  1, self%num_up,self%num_orb
+        i_d =  i + self%num_up
+        do j = 0,self%num_orb-1
+            j_u =  i + j
+            j_d = i_d + j
+            if(full) then
+                temp(i,i)     =  fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
+                temp(i_d,i_d) = -fac*(cos(theta_col + theta_nc/2d0) - cos(theta_col))
+                temp(j_u,j_u)     =  fac*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
+                temp(j_d,j_d) = -fac*(cos(theta_col - theta_nc/2d0) - cos(theta_col))
+                temp(i,i_d)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col+phi_nc/2d0))
+                temp(i_d,i)   =  fac*(sin(theta_col + theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col+phi_nc/2d0))
+                temp(j_u,j_d)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp(-i_unit*(phi_col-phi_nc/2d0))
+                temp(j_d,j_u)   =  fac*(sin(theta_col - theta_nc/2d0) - sin(theta_col))*exp( i_unit*(phi_col-phi_nc/2d0))
+            else
+                temp(i,i)     = -fac*sin(theta_col)*theta_nc/2d0
+                temp(i_d,i_d) =  fac*sin(theta_col)*theta_nc/2d0
+                temp(j_u,j_u)     =  fac*sin(theta_col)*theta_nc/2d0
+                temp(j_d,j_d) = -fac*sin(theta_col)*theta_nc/2d0
+                temp(i,i_d)   =  fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col+phi_nc/2d0))
+                temp(i_d,i)   =  fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col+phi_nc/2d0))
+                temp(j_u,j_d)   = -fac*cos(theta_col)*theta_nc/2d0*exp(-i_unit*(phi_col-phi_nc/2d0))
+                temp(j_d,j_u)   = -fac*cos(theta_col)*theta_nc/2d0*exp( i_unit*(phi_col-phi_nc/2d0))
             endif
-         enddo
+        enddo
       enddo
       !rotate hxc into the eigenbasis of the hamiltonian with E_dagger H E
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
@@ -1211,7 +1214,9 @@ contains
       do i=1,n_dim
          do j=1,n_dim
             if(i /= j) then
-               dE = (eig_val(j)-eig_val(i))
+               !the sign here is tested, it is correct this way, 
+               !also the energy factor would scale the outcome by one order of magn.
+               dE = (eig_val(i)-eig_val(j))! + (H_temp(i,i)-H_temp(j,j))
                Efac =  dE/(dE + eta_sq)**2
                H_temp(i,j) = H_temp(i,j)*Efac
             else if(i==j) then
@@ -1407,7 +1412,6 @@ contains
       N =  2 * self%num_up
       allocate(eig_val(N, size(k_list, 2)))
       allocate(H(N,N))
-
       call calc_zheevd_size('N', H, eig_val(:,1), lwork, lrwork, liwork)
       allocate(RWORK(lrwork))
       allocate(IWORK(liwork))
@@ -1417,7 +1421,7 @@ contains
       do i = 1,size(k_list,2)
          k =  k_list(:,i)
          call self%setup_H(k, H)
-
+         
          call zheevd('N', 'U', N, H, N, eig_val(:,i), WORK, lwork, &
                      RWORK, lrwork, IWORK, liwork, info)
          if( info /= 0) then

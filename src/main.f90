@@ -36,6 +36,7 @@ program STB
    call MPI_Finalize(ierr)
 contains
    subroutine process_file(inp_file)
+      use mpi
       implicit none
       character(len=300), intent(in) :: inp_file
       real(8)                        :: start, halt
@@ -44,7 +45,6 @@ contains
                                         calc_orbmag, perform_ACA,plot_omega,pert_log,tmp,success
       type(CFG_t)                     :: cfg
       character(len=25)               :: fermi_type
-
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       start =  MPI_Wtime()
 
@@ -111,7 +111,7 @@ contains
       endif
 
       if(calc_hall .or. calc_orbmag) then
-         if(root == me) write (*,*) "started Berry"
+         if(root == me) write (*,*) "started Berry", pert_log
          call Ksp%calc_berry_quantities(pert_log)
       endif
 
@@ -135,6 +135,7 @@ contains
    end subroutine process_file
 
    subroutine get_inp_files(n_files, inp_files)
+      use mpi
       implicit none
       integer, intent(out)     :: n_files
       character(len=300), allocatable :: inp_files(:)
@@ -188,9 +189,11 @@ contains
    end subroutine get_inp_files
 
    Subroutine  add_full_cfg(cfg)
+      use mpi
       Implicit None
       type(CFG_t)            :: cfg
       real(8), allocatable   :: empty_array(:)
+      integer, allocatable   :: empty_int_array(:)
       allocate(empty_array(0))
 
       call CFG_add(cfg, "units%length",     "none", "unit of length")
@@ -237,6 +240,9 @@ contains
       call CFG_add(cfg, "grid%mag_file",         "",    "mag input file")
       call CFG_add(cfg, "grid%anticol_phi",empty_array, "anticollinear polar angle", dynamic_size=.True.)
       call CFG_add(cfg, "grid%anticol_theta",empty_array, "anticollinear azimutal angle", dynamic_size=.True.)
+      call CFG_add(cfg, "grid%wavevector",empty_int_array, "wavector of spinspiral", dynamic_size=.True.)
+      call CFG_add(cfg, "grid%axis", empty_array, "rotation axis of spinspiral", dynamic_size=.True.)
+      call CFG_add(cfg, "grid%m0", empty_array, "initial state of spinspiral", dynamic_size=.True.)
 
       call CFG_add(cfg, "band%perform_band",  .False., "")
       call CFG_add(cfg, "band%k_label",    (/ ""/),   "",&
@@ -285,6 +291,7 @@ contains
    End Subroutine add_full_cfg
 
    subroutine save_cfg(cfg)
+      use mpi
       Implicit None
       type(CFG_t)            :: cfg
       character(len=300)     :: prefix

@@ -121,6 +121,7 @@ contains
    end subroutine free_ksp
 
    Subroutine  calc_and_print_band(self)
+      use mpi
       Implicit None
       class(k_space)                :: self
       integer                       :: first, last, N
@@ -175,6 +176,7 @@ contains
    End Subroutine calc_and_print_band
 
    subroutine calc_pdos(self, E, PDOS)
+      use mpi
       implicit none
       class(k_space)          :: self
       real(8), intent(in)     :: E(:)
@@ -271,6 +273,8 @@ contains
          call self%setup_inte_grid_para(self%DOS_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
          call self%setup_inte_grid_hex(self%DOS_num_k_pts)
+      elseif(trim(self%ham%UC%uc_type) == "honey_line") then
+         call self%setup_inte_grid_para(self%berry_num_k_pts)
       else
          call error_msg("DOS k-grid not known", abort=.True.)
       endif
@@ -327,6 +331,7 @@ contains
    end subroutine calc_and_print_dos
 
    function init_k_space(cfg) result(self)
+      use mpi
       implicit none
       type(k_space)         :: self
       type(CFG_t)           :: cfg
@@ -400,6 +405,7 @@ contains
    end function init_k_space
 
    subroutine Bcast_k_space(self)
+      use mpi
       class(k_space)             :: self
       integer, parameter     :: num_cast =  26
       integer                :: ierr(num_cast)
@@ -763,6 +769,7 @@ contains
    end function vol_k_hex
 
    subroutine calc_berry_quantities(self,pert_log)
+      use mpi
       implicit none
       class(k_space)          :: self
       real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
@@ -771,7 +778,7 @@ contains
                                  Q_L_new(:,:), Q_IC_new(:,:), orbmag_L(:), orbmag_IC(:)
       real(8)                  :: start, factor
       integer   , allocatable  :: kidx_all(:), kidx_new(:)
-      integer     :: N_k, num_up, iter, n_ferm
+      integer     :: N_k, num_up, iter, n_ferm,nProcs
       integer     :: all_err(13), info
       character(len=300)       :: msg
       logical                  :: done_hall = .True., done_orbmag = .True.
@@ -780,6 +787,7 @@ contains
       N_k = size(self%new_k_pts, 2)
       num_up =  self%ham%num_up
       n_ferm = size(self%E_fermi)
+      nProcs = self%nProcs
       all_err = 0
 
       allocate(self%ham%del_H(2*num_up, 2*num_up), stat=all_err(1))
@@ -825,13 +833,11 @@ contains
             ! save current iteration and check if converged
             done_hall =  self%process_hall(hall, hall_old, iter, omega_z_all)
          endif
-
          if(done_hall .and. trim(self%chosen_weights) == "hall") then
             call error_msg("Switched to orbmag-weights", &
                            p_color=c_green, abort=.False.)
             self%chosen_weights = "orbmag"
          endif
-
          if(self%calc_orbmag) then
             orbmag_old = orbmag
             call self%integrate_orbmag(kidx_all, Q_L_all, Q_IC_all, orbmag, orbmag_L, orbmag_IC)
@@ -851,7 +857,6 @@ contains
 
          ! Stop if both converged
          if(done_hall .and. done_orbmag) exit
-
          if(trim(self%chosen_weights) == "hall")then
             if(.not.self%calc_hall) then
                call error_msg("Must calculate hall to use it as weights", abort=.True.)
@@ -867,11 +872,9 @@ contains
          else
             call error_msg("weights unknown", abort=.True.)
          endif
-
          call save_grid(self,iter)
          call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
       enddo
-
       if(self%calc_hall) then
          call self%finalize_hall(hall,omega_z_all)
       endif
@@ -905,10 +908,11 @@ contains
    end subroutine calc_new_kidx
 
    subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, Q_L_new, Q_IC_new,pert_log)
+      use mpi
       implicit none
       class(k_space)            :: self
       integer                   :: N_k, cnt, k_idx, num_up, n_ferm,pert_idx
-      integer                   :: first, last, err(3)
+      integer                   :: first, last, err(3), me, ierr
       real(8)                   :: tmp
       real(8)                   :: k(3)
       real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:),&
@@ -929,7 +933,7 @@ contains
       if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(3))
 
       call check_ierr(err, self%me, " new chunk alloc")
-
+      call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       ! calculate
       cnt =  1
       if(pert_log) then
@@ -944,6 +948,7 @@ contains
                omega_z_pert_new=0d0
                !allocation for omega_z_pert_new can be done here, since ham%calc_berry_z sets to zero
                do pert_idx=1,4
+                  !write (*,*) "calc_new_berrypoints", me, pert_log, pert_idx
                   if(allocated(del_kx)) deallocate(del_kx)
                   if(allocated(del_ky)) deallocate(del_ky)
                   call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,pert_idx)
@@ -1008,7 +1013,7 @@ contains
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
-         if (self%nProcs==1)then
+         if (self%ham%UC%num_atoms==2) then
             call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
          endif
       endif
@@ -1115,6 +1120,7 @@ contains
    end subroutine finalize_orbmag
 
    subroutine integrate_hall(self, kidx_all, omega_z_all, eig_val_all, hall)
+      use mpi
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: kidx_all(:)
@@ -1168,6 +1174,7 @@ contains
    end subroutine integrate_hall
 
    subroutine integrate_orbmag(self, Q_kidx_all, Q_L_all, Q_IC_all, orb_mag, orbmag_L, orbmag_IC)
+      use mpi
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: Q_kidx_all(:)
@@ -1237,6 +1244,7 @@ contains
    end subroutine integrate_orbmag
 
    subroutine set_hall_weights(self, omega_z_all, kidx_all)
+      use mpi
       implicit none
       class(k_space)         :: self
       integer   , intent(in) :: kidx_all(:)
@@ -1288,6 +1296,7 @@ contains
    end subroutine set_hall_weights
 
    subroutine set_orbmag_weights(self, Q_all, Q_kidx_all)
+      use mpi
       implicit none
       class(k_space)            :: self
       real(8), intent(in)       :: Q_all(:,:)
@@ -1484,6 +1493,8 @@ contains
          call self%setup_inte_grid_para(self%berry_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
          call self%setup_inte_grid_hex(self%berry_num_k_pts)
+      elseif(trim(self%ham%UC%uc_type) == "honey_line") then
+         call self%setup_inte_grid_para(self%berry_num_k_pts)
       else
          call error_msg("berry k-grid not known", abort=.True.)
       endif
@@ -1491,6 +1502,7 @@ contains
    end subroutine setup_berry_inte_grid
 
    subroutine set_fermi(self, cfg)
+      use mpi
       implicit none
       class(k_space)         :: self
       class(CFG_t)           :: cfg
@@ -1510,6 +1522,7 @@ contains
    end subroutine set_fermi
 
    subroutine find_fermi(self, cfg)
+      use mpi
       implicit none
       class(k_space)         :: self
       class(CFG_t)           :: cfg
@@ -1849,6 +1862,7 @@ contains
    end subroutine append_kpts
 
    subroutine calc_ACA(self)
+      use mpi
       implicit none
       class(k_space)              :: self
       real(8), allocatable    :: m(:), S(:), l_space(:), eig_val(:), RWORK(:)
@@ -2063,11 +2077,12 @@ contains
       character(len=300)      :: k_file, elem_file
 
       if(self%me == root) then
-         write (k_file,    "(A,I0.5,A)") trim(self%prefix) // "kpts_iter=", iter, ".npy"
-         write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "elem_iter=", iter, ".npy"
-
-         call save_npy(trim(k_file),    self%all_k_pts)
-         call save_npy(trim(elem_file), self%elem_nodes)
+        write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "elem_iter=", iter, ".npy"
+        call save_npy(trim(elem_file), self%elem_nodes) 
+        if (self%ham%UC%num_atoms==2) then
+            write (k_file,    "(A,I0.5,A)") trim(self%prefix) // "kpts_iter=", iter, ".npy"
+            call save_npy(trim(k_file),    self%all_k_pts)
+        endif
       endif
 
    end subroutine save_grid
