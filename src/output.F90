@@ -155,23 +155,13 @@ contains
       logical          :: already
       integer(4)       :: succ
 
-!#ifdef INTEL_USED
-      inquire(directory=folder, exist=already)
-!#endif
-!#ifdef GNU_USED
-      !already = .True.
-!#endif
-
-      if(already) then
-         call run_sys("rm " // trim(folder) // "*.npy", succ)
-         if(succ /= 0) then
-            call error_msg("Could not clear dir", abort=.False.)
-         endif
-      else
-         call run_sys("mkdir -p " // folder, succ)
-         if(succ /= 0) then
-            write (*,*) "Could not reate dir through cmd"
-         endif
+      call execute_command_line("rm " // trim(folder) // "*.npy", exitstat=succ)
+      if(succ /= 0) then
+         write (*,*) "Could not clear dir"
+      endif
+      call execute_command_line("mkdir -p " // folder, exitstat=succ)
+      if(succ /= 0) then
+         write (*,*) "Could not reate dir through cmd"
       endif
    end subroutine create_dir
 
