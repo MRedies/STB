@@ -420,8 +420,14 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(8), allocatable              :: line(:,:)
       integer, allocatable              :: site_type(:)
-      real(8)                           :: shift_mtx(3,3), conn_mtx(3,3), base_len_uc, pos(3), conn_vec_1(3),conn_vec_2(3), base_len_uc, l
+      real(8)                           :: shift_mtx(3,3), conn_mtx(3,3), transf_mtx(3,3),base_len_uc, pos(3),&
+                                           conn_vec_1(3),conn_vec_2(3), base_len_uc, l, wave_proj(3), conn_proj(3)
       integer                           :: num_atoms, i, ierr
+      
+      if(mod(self%num_atoms,2) /= 0) then
+        write (*,*) "number of atoms in honey_comb line has to be even"
+        call MPI_Abort(MPI_COMM_WORLD, 23, ierr)
+      endif
       base_len_uc = self%lattice_constant
       l = 2 *  cos(deg_30) * base_len_uc
       !conn to nearest neighbors
@@ -432,18 +438,33 @@ contains
       shift_mtx(1, :) =  l *  [1d0,   0d0,           0d0]!1
       shift_mtx(2, :) =  l *  [0.5d0, sin(deg_60),   0d0]!2
       shift_mtx(3, :) =  l *  [0.5d0, -sin(deg_60),   0d0]!3
-
-      num_atoms   = self%atom_per_dim
-      if(mod(self%num_atoms,2) /= 0) then
-         write (*,*) "number of atoms in honey_comb line has to be even"
-         call MPI_Abort(MPI_COMM_WORLD, 23, ierr)
-      endif
-
-      base_len_uc = self%lattice_constant * num_atoms
+      !change of coordinates, matmul(transpose(shift_mtx),wavevector) = matmul(transpose(conn_mtx),matmul(transf_mtx,wavevector)
+      !{{1, 2, -1}, {2, 1, 1}, {0, 0, 0}}
+      transf_mtx(1,:)=[1d0,2d0,-1d0]
+      transf_mtx(2,:)=[2d0,1d0,1d0]
+      transf_mtx(3,:)=[0d0,0d0,0d0]
       !so far only spirals along connection vectors
       if(trim(self%mag_type) == "1Dspiral") then
+        wave_proj = matmul(transpose(conn_mtx),matmul(trans_mtx,self%wavevector))-matmul(transpose(shift_mtx),self%wavevector)
+        if(my_norm2(wave_proj)>10**(-6)) then
+          write (*,*) "basis transformation not correct!"
+        endif
         conn_vec_1 = matmul(transpose(shift_mtx),self%wavevector)
-        conn_vec_2 = matmul(transpose(conn_mtx),self%wavevector)
+        conn_proj = matmul(conn_mtx,conn_vec_1)
+        if(abs(conn_proj(1)-conn_proj(2))>10**(-6)) then
+            conn_vec_2 = conn_mtx(3,:)
+        elseif(abs(conn_proj(3)-conn_proj(2))>10**(-6)) then
+            conn_vec_2 = conn_mtx(1,:)
+        elseif(abs(conn_proj(1)-conn_proj(3))>10**(-6)) then
+            conn_vec_2 = conn_mtx(2,:)
+        elseif(conn_proj(1)>conn_proj(2) .AND. conn_proj(1)>conn_proj(3)) then
+            conn_vec_2 = conn_mtx(1,:)
+        elseif(conn_proj(2)>conn_proj(1) .AND. conn_proj(2)>conn_proj(3)) then
+            conn_vec_2 = conn_mtx(2,:)
+        elseif(conn_proj(3)>conn_proj(2) .AND. conn_proj(3)>conn_proj(1)) then
+            conn_vec_2 = conn_mtx(3,:)
+        endif
+        !conn_vec_2 = matmul(transpose(conn_mtx),self%wavevector)
       else
         conn_vec_1 = shift_mtx(1,:)
         conn_vec_2 = shift_mtx(2,:)
@@ -453,13 +474,13 @@ contains
       allocate(site_type(self%num_atoms))
       pos = 0d0
       do i = 1, self%num_atoms
-         line(i,:) = pos
          if(mod(i-1,2) == 0) then
-            pos = pos + conn_vec_1
-            site_type(i) = B_site
-         else
-            pos = pos + conn_vec_2
+            line(i,:) = pos
             site_type(i) = A_site
+         else
+            line(i,:) = pos + conn_vec_2
+            site_type(i) = B_site
+            pos = pos + conn_vec_1
          endif
       enddo
     end subroutine make_honeycomb_line
@@ -468,32 +489,30 @@ contains
     subroutine init_unit_honey_line(self)
         implicit none
         class(unit_cell), intent(inout)   :: self
-        real(8)                           :: transl_mtx(2,3),  base_len_uc, conn_mtx(3,3), shift_mtx(2,3),lattice(2,3), base_len_uc,l
+        real(8)                           :: transl_mtx(2,3),  base_len_uc, conn_mtx(3,3), shift_mtx(3,3),lattice(2,3), base_len_uc,l,wave_proj
         real(8), allocatable              :: line(:,:)
         integer, allocatable              :: site_type(:)
         integer                           :: apd       
         apd         = self%atom_per_dim
         self%num_atoms = calc_num_atoms_line_honey(apd)
-        base_len_uc = self%lattice_constant * apd
-      
-        shift_mtx(1, :) =  self%lattice_constant *  [1d0,   0d0,           0d0]
-        shift_mtx(2, :) =  self%lattice_constant *  [0.5d0, sin(deg_60),   0d0]
-        shift_mtx(3, :) =  self%lattice_constant *  [0.5d0, -sin(deg_60),   0d0]
-        !translates to neighboring unit cells
-        !transl_mtx(1, :) =  self%lattice_constant * [1d0,   0d0,           0d0]
-        !transl_mtx(2, :) =  self%lattice_constant * [0.5d0, sin(deg_60),   0d0]
-        transl_mtx(1, :) = l * [1d0,   0d0,           0d0]
-        transl_mtx(2, :) =  self%lattice_constant * [0.5d0, sin(deg_60),   0d0]
-        
+        base_len_uc = self%lattice_constant
+        l = 2 *  cos(deg_30) * base_len_uc
+        !conn to next honey unit cell
+        shift_mtx(1, :) =  l *  [1d0,   0d0,           0d0]!1
+        shift_mtx(2, :) =  l *  [0.5d0, sin(deg_60),   0d0]!2
+        shift_mtx(3, :) =  l *  [0.5d0, -sin(deg_60),   0d0]!3
+        !spiral uc lat vecs
+
         lattice(1,:) = self%atom_per_dim * matmul(transpose(shift_mtx),self%wavevector)
         self%lattice(:,1) =  lattice(1,1:2)
-        lattice(2,:) = matmul(transpose(shift_mtx),[1,1,0])
-        self%lattice(:,2) =  lattice(2,1:2)
+        wave_proj=matmul([1,0,0],self%wavevector)/my_norm2(self%wavevector)
+        if(wave_proj-1d0<pos_eps) then
+            self%lattice(:,2) =  shift_mtx(2,1:2)
+        else
+            self%lattice(:,2) =  shift_mtx(1,1:2)
+        endif
         !if we want a molecule, ensure that no wrap-around is found
         if(self%molecule) transl_mtx = transl_mtx * 10d0
-
-        ! this has to change
-
 
         allocate(self%atoms(self%num_atoms))
         ! only one kind of atoms of the honey-comb unit cell needs
