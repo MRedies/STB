@@ -489,7 +489,7 @@ contains
     subroutine init_unit_honey_line(self)
         implicit none
         class(unit_cell), intent(inout)   :: self
-        real(8)                           :: transl_mtx(2,3),  base_len_uc, conn_mtx(3,3), shift_mtx(3,3),lattice(2,3), base_len_uc,l,wave_proj
+        real(8)                           :: transl_mtx(2,3), conn_mtx(3,3), shift_mtx(3,3),lattice(2,3), base_len_uc,l,wave_proj
         real(8), allocatable              :: line(:,:)
         integer, allocatable              :: site_type(:)
         integer                           :: apd       
