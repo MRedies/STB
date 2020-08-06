@@ -27,7 +27,7 @@ module Class_unit_cell
         integer    :: nProcs
         integer    :: me
         integer    :: n_wind !> winding number for lin_rot
-        integer, allocatable    :: wavevector(:)
+        real, allocatable    :: wavevector(:)
         real(8) :: lattice_constant !> lattice constant in atomic units
         real(8) :: eps !> threshold for positional accuracy
         real(8) :: ferro_phi, ferro_theta
@@ -143,10 +143,10 @@ contains
             call CFG_get(cfg, "grid%winding_number", self%n_wind)
             call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
             call CFG_get_size(cfg,"grid%wavevector", wavevector_size)
-            allocate(self%wavevector(wavevector_size)) !allocate theta
+            allocate(self%wavevector(wavevector_size))
             call CFG_get(cfg, "grid%wavevector", self%wavevector)
             call CFG_get_size(cfg,"grid%axis", wavevector_size)
-            allocate(self%axis(wavevector_size)) !allocate theta
+            allocate(self%axis(wavevector_size))
             call CFG_get(cfg, "grid%axis", self%axis)
             
             call CFG_get(cfg, "grid%lattice_constant", tmp)
@@ -258,7 +258,7 @@ contains
   
         call MPI_Bcast(self%pert_log, 1,              MPI_LOGICAL, &
                         root,         MPI_COMM_WORLD, ierr(18))
-        call MPI_Bcast(self%wavevector, 3 ,            MYPI_INT, &
+        call MPI_Bcast(self%wavevector, 3 ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(19))
         call MPI_Bcast(self%axis, 3 ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(20))
