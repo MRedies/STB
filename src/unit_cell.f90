@@ -505,7 +505,7 @@ contains
 
         lattice(1,:) = self%atom_per_dim * matmul(transpose(shift_mtx),self%wavevector)
         self%lattice(:,1) =  lattice(1,1:2)
-        wave_proj = dot_product([1d0,0d0,0d0],self%wavevector)/my_norm2(self%wavevector)
+        wave_proj = dot_product([1d0,0d0,0d0],self%wavevector)!/my_norm2(self%wavevector)
         if(wave_proj-1d0<pos_eps) then
             self%lattice(:,2) =  shift_mtx(2,1:2)
         else
