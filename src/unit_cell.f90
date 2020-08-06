@@ -445,7 +445,7 @@ contains
       transf_mtx(3,:)=[0d0,0d0,0d0]
       !so far only spirals along connection vectors
       if(trim(self%mag_type) == "1Dspiral") then
-        wave_proj = matmul(transpose(conn_mtx),matmul(trans_mtx,self%wavevector))-matmul(transpose(shift_mtx),self%wavevector)
+        wave_proj = matmul(transpose(conn_mtx),matmul(transf_mtx,self%wavevector))-matmul(transpose(shift_mtx),self%wavevector)
         if(my_norm2(wave_proj)>10**(-6)) then
           write (*,*) "basis transformation not correct!"
         endif
