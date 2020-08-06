@@ -206,7 +206,7 @@ contains
         class(unit_cell)              :: self
         integer   , parameter         :: num_cast = 20
         integer                       :: ierr(num_cast)
-        integer                       :: anticol_size_phi
+        integer                       :: anticol_size_phi, isize
         integer                       :: anticol_size_theta
 
         if(self%me == root) then
@@ -258,10 +258,14 @@ contains
   
         call MPI_Bcast(self%pert_log, 1,              MPI_LOGICAL, &
                         root,         MPI_COMM_WORLD, ierr(18))
-        call MPI_Bcast(self%wavevector, 3 ,            MYPI_INT, &
-                        root,              MPI_COMM_WORLD, ierr(19))
-        call MPI_Bcast(self%axis, 3 ,            MPI_REAL8, &
-                        root,              MPI_COMM_WORLD, ierr(20))
+
+        isize = size(self%wavevector)
+        call MPI_Bcast(isize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(19))
+        call MPI_Bcast(self%wavevector, isize, MYPI_INT, root, MPI_COMM_WORLD, ierr(19))
+
+        isize = size(self%axis)
+        call MPI_Bcast(isize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(20))
+        call MPI_Bcast(self%axis, isize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(20))
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
