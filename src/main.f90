@@ -195,6 +195,7 @@ contains
       real(8), allocatable   :: empty_array(:)
       integer, allocatable   :: empty_int_array(:)
       allocate(empty_array(0))
+      allocate(empty_int_array(0))
 
       call CFG_add(cfg, "units%length",     "none", "unit of length")
       call CFG_add(cfg, "units%energy",     "none", "unit of Ener")
