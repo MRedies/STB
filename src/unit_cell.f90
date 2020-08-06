@@ -455,11 +455,11 @@ contains
         endif
         conn_vec_1 = matmul(transpose(shift_mtx),self%wavevector)
         conn_proj = matmul(conn_mtx,conn_vec_1)
-        if(abs(conn_proj(1)-conn_proj(2))>10**(-6)) then
+        if(abs(conn_proj(1)-conn_proj(2))<10**(-6)) then
             conn_vec_2 = conn_mtx(3,:)
-        elseif(abs(conn_proj(3)-conn_proj(2))>10**(-6)) then
+        elseif(abs(conn_proj(3)-conn_proj(2))<10**(-6)) then
             conn_vec_2 = conn_mtx(1,:)
-        elseif(abs(conn_proj(1)-conn_proj(3))>10**(-6)) then
+        elseif(abs(conn_proj(1)-conn_proj(3))<10**(-6)) then
             conn_vec_2 = conn_mtx(2,:)
         elseif(conn_proj(1)>conn_proj(2) .AND. conn_proj(1)>conn_proj(3)) then
             conn_vec_2 = conn_mtx(1,:)
