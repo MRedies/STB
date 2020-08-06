@@ -7,7 +7,6 @@ file(GLOB_RECURSE sources  src/*.f90
                            src/*.F90
                            src/*.h
                            thirdparty/config_fortran/m_config.f90
-                           thirdparty/NPY-for-Fortran/src/endian_swap.f90
                            thirdparty/triangulation/tri_wrapper.f90
                            thirdparty/NPY-for-Fortran/src/npy.f90)
 
