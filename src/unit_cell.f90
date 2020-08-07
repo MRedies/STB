@@ -424,8 +424,8 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(8), allocatable              :: line(:,:)
       integer, allocatable              :: site_type(:)
-      real(8)                           :: shift_mtx(3,3), conn_mtx(3,3), transf_mtx(3,3),base_len_uc, pos(3),&
-                                           conn_vec_1(3),conn_vec_2(3), l, wave_proj(3), conn_proj(3)
+      real(8)                           :: shift_mtx(3,3), conn_mtx(3,3), transf_mtx(3,3),base_len_uc, posA(3),&
+                                           posB(3),pos(3),conn_vec_1(3),conn_vec_2(3), l, wave_proj(3), conn_proj(3)
       integer                           :: num_atoms, i, ierr
       
       if(mod(self%num_atoms,2) /= 0) then
@@ -475,13 +475,15 @@ contains
       
       allocate(line(self%num_atoms,3))
       allocate(site_type(self%num_atoms))
+      posA = [0d0,self%lattice_constant,0d0]
+      posB =-[0d0,self%lattice_constant,0d0]
       pos = 0d0
       do i = 1, self%num_atoms
          if(mod(i-1,2) == 0) then
-            line(i,:) = pos
+            line(i,:) = posA + pos
             site_type(i) = A_site
          else
-            line(i,:) = pos + conn_vec_2
+            line(i,:) = posB + pos! + conn_vec_2
             site_type(i) = B_site
             pos = pos + conn_vec_1
          endif
