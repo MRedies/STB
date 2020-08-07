@@ -461,14 +461,13 @@ contains
             conn_vec_2 = conn_mtx(1,:)
         elseif(abs(conn_proj(1)-conn_proj(3))<pos_eps) then
             conn_vec_2 = conn_mtx(2,:)
-        elseif(conn_proj(1)>conn_proj(2) .AND. conn_proj(1)>conn_proj(3)) then
-            conn_vec_2 = conn_mtx(1,:)
-        elseif(conn_proj(2)>conn_proj(1) .AND. conn_proj(2)>conn_proj(3)) then
-            conn_vec_2 = conn_mtx(2,:)
-        elseif(conn_proj(3)>conn_proj(2) .AND. conn_proj(3)>conn_proj(1)) then
-            conn_vec_2 = conn_mtx(3,:)
+        elseif(abs(conn_proj(1))>abs(conn_proj(2)) .AND. abs(conn_proj(1))>abs(conn_proj(3))) then
+            conn_vec_2 = conn_proj(1)/abs(conn_proj(1))*conn_mtx(1,:)
+        elseif(abs(conn_proj(2))>abs(conn_proj(1)) .AND. abs(conn_proj(2))>abs(conn_proj(3))) then
+            conn_vec_2 = conn_proj(2)/abs(conn_proj(2))*conn_mtx(2,:)
+        elseif(abs(conn_proj(3))>abs(conn_proj(2)) .AND. abs(conn_proj(3))>abs(conn_proj(1))) then
+            conn_vec_2 = conn_proj(3)/abs(conn_proj(3))*conn_mtx(3,:)
         endif
-        !conn_vec_2 = matmul(transpose(conn_mtx),self%wavevector)
       else
         conn_vec_1 = shift_mtx(1,:)
         conn_vec_2 = shift_mtx(2,:)
@@ -525,15 +524,15 @@ contains
         conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
         conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
         conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
-        if(norm2(1d0*self%wavevector)-1d0<pos_eps) then
+        if(norm2(abs(1d0*self%wavevector)-1d0)<pos_eps) then
             transl_mtx(1, :) =  lattice(1,:)
-            if(abs(self%wavevector(1)-1d0<pos_eps)) then
+            if(abs(self%wavevector(1)-1d0)<pos_eps) then
                 transl_mtx(2, :) =  shift_mtx(2, :)
                 transl_mtx(3, :) =  shift_mtx(3, :)
-            elseif(abs(self%wavevector(2)-1d0<pos_eps)) then
+            elseif(abs(self%wavevector(2)-1d0)<pos_eps) then
                 transl_mtx(2, :) =  shift_mtx(1, :)
                 transl_mtx(3, :) =  shift_mtx(3, :)
-            elseif(abs(self%wavevector(3)-1d0<pos_eps)) then
+            elseif(abs(self%wavevector(3)-1d0)<pos_eps) then
                 transl_mtx(2, :) =  shift_mtx(2, :)
                 transl_mtx(3, :) =  shift_mtx(1, :)
             endif
@@ -543,7 +542,7 @@ contains
         endif
         call self%make_honeycomb_line(line, site_type)
         call self%setup_honey(line, site_type)
-        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)  
+        call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
 
         write (*,*) "mag types still need some work for honeylines"
         if(trim(self%mag_type) == "ferro_uiaeuiaeuia") then
