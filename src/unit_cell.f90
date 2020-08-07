@@ -450,16 +450,16 @@ contains
       !so far only spirals along connection vectors
       if(trim(self%mag_type) == "1Dspiral") then
         wave_proj = matmul(transpose(conn_mtx),matmul(transf_mtx,self%wavevector))-matmul(transpose(shift_mtx),self%wavevector)
-        if(my_norm2(wave_proj)>10**(-6)) then
+        if(my_norm2(wave_proj)>pos_eps) then
           write (*,*) "basis transformation not correct!"
         endif
         conn_vec_1 = matmul(transpose(shift_mtx),self%wavevector)
         conn_proj = matmul(conn_mtx,conn_vec_1)
-        if(abs(conn_proj(1)-conn_proj(2))<10**(-6)) then
+        if(abs(conn_proj(1)-conn_proj(2))<pos_eps) then
             conn_vec_2 = conn_mtx(3,:)
-        elseif(abs(conn_proj(3)-conn_proj(2))<10**(-6)) then
+        elseif(abs(conn_proj(3)-conn_proj(2))<pos_eps) then
             conn_vec_2 = conn_mtx(1,:)
-        elseif(abs(conn_proj(1)-conn_proj(3))<10**(-6)) then
+        elseif(abs(conn_proj(1)-conn_proj(3))<pos_eps) then
             conn_vec_2 = conn_mtx(2,:)
         elseif(conn_proj(1)>conn_proj(2) .AND. conn_proj(1)>conn_proj(3)) then
             conn_vec_2 = conn_mtx(1,:)
@@ -542,21 +542,6 @@ contains
             transl_mtx(2, :) =  shift_mtx(2, :)
             transl_mtx(3, :) =  shift_mtx(3, :)
         endif
-        elseif(abs(conn_proj(3)-conn_proj(2))<10**(-6)) then
-            conn_vec_2 = conn_mtx(1,:)
-        elseif(abs(conn_proj(1)-conn_proj(3))<10**(-6)) then
-            conn_vec_2 = conn_mtx(2,:)
-        elseif(conn_proj(1)>conn_proj(2) .AND. conn_proj(1)>conn_proj(3)) then
-            conn_vec_2 = conn_mtx(1,:)
-        elseif(conn_proj(2)>conn_proj(1) .AND. conn_proj(2)>conn_proj(3)) then
-            conn_vec_2 = conn_mtx(2,:)
-        elseif(conn_proj(3)>conn_proj(2) .AND. conn_proj(3)>conn_proj(1)) then
-            conn_vec_2 = conn_mtx(3,:)
-        endif
-        transl_mtx(1, :) =  lattice(1,:)
-        transl_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
-        transl_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
-
         call self%make_honeycomb_line(line, site_type)
         call self%setup_honey(line, site_type)
         call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], self%lattice)  
