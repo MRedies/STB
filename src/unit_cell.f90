@@ -493,7 +493,8 @@ contains
     subroutine init_unit_honey_line(self)
         implicit none
         class(unit_cell), intent(inout)   :: self
-        real(8)                           :: transl_mtx(2,3), conn_mtx(3,3), shift_mtx(3,3),lattice(2,3), base_len_uc,l,wave_proj
+        real(8)                           :: transl_mtx(3,3), conn_mtx(3,3), shift_mtx(3,3),lattice(2,3), base_len_uc,l,wave_proj&
+                                             transl_proj(3)
         real(8), allocatable              :: line(:,:)
         integer, allocatable              :: site_type(:)
         integer                           :: apd       
@@ -525,6 +526,36 @@ contains
         conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
         conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
         conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
+        if(norm2(1d0*self%wavevector)-1d0<pos_eps) then
+            transl_mtx(1, :) =  lattice(1,:)
+            if(abs(self%wavevector(1)-1d0<pos_eps)) then
+                transl_mtx(2, :) =  shift_mtx(2, :)
+                transl_mtx(3, :) =  shift_mtx(3, :)
+            elseif(abs(self%wavevector(2)-1d0<pos_eps)) then
+                transl_mtx(2, :) =  shift_mtx(1, :)
+                transl_mtx(3, :) =  shift_mtx(3, :)
+            elseif(abs(self%wavevector(3)-1d0<pos_eps)) then
+                transl_mtx(2, :) =  shift_mtx(2, :)
+                transl_mtx(3, :) =  shift_mtx(1, :)
+            endif
+        else
+            transl_mtx(2, :) =  shift_mtx(2, :)
+            transl_mtx(3, :) =  shift_mtx(3, :)
+        endif
+        elseif(abs(conn_proj(3)-conn_proj(2))<10**(-6)) then
+            conn_vec_2 = conn_mtx(1,:)
+        elseif(abs(conn_proj(1)-conn_proj(3))<10**(-6)) then
+            conn_vec_2 = conn_mtx(2,:)
+        elseif(conn_proj(1)>conn_proj(2) .AND. conn_proj(1)>conn_proj(3)) then
+            conn_vec_2 = conn_mtx(1,:)
+        elseif(conn_proj(2)>conn_proj(1) .AND. conn_proj(2)>conn_proj(3)) then
+            conn_vec_2 = conn_mtx(2,:)
+        elseif(conn_proj(3)>conn_proj(2) .AND. conn_proj(3)>conn_proj(1)) then
+            conn_vec_2 = conn_mtx(3,:)
+        endif
+        transl_mtx(1, :) =  lattice(1,:)
+        transl_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
+        transl_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
 
         call self%make_honeycomb_line(line, site_type)
         call self%setup_honey(line, site_type)
