@@ -463,7 +463,7 @@ contains
             conn_vec_2 = conn_mtx(2,:)
         elseif(conn_proj(1)>conn_proj(2) .AND. conn_proj(1)>conn_proj(3)) then
             conn_vec_2 = conn_mtx(1,:)
-        elseif(conn_proj(2))>conn_proj(1) .AND. conn_proj(2)>conn_proj(3)) then
+        elseif(conn_proj(2)>conn_proj(1) .AND. conn_proj(2)>conn_proj(3)) then
             conn_vec_2 = conn_mtx(2,:)
         elseif(conn_proj(3)>conn_proj(2) .AND. conn_proj(3)>conn_proj(1)) then
             conn_vec_2 = conn_mtx(3,:)
