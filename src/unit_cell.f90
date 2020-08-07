@@ -524,7 +524,7 @@ contains
         conn_mtx(1, :) =  self%lattice_constant * [0d0,          1d0,           0d0]
         conn_mtx(2, :) =  self%lattice_constant * [cos(deg_30),  - sin(deg_30), 0d0]
         conn_mtx(3, :) =  self%lattice_constant * [-cos(deg_30), - sin(deg_30), 0d0]
-        if(norm2(abs(1d0*self%wavevector)-1d0)<pos_eps) then
+        if(abs(norm2(1d0*self%wavevector)-1d0)<pos_eps) then
             transl_mtx(1, :) =  lattice(1,:)
             if(abs(self%wavevector(1)-1d0)<pos_eps) then
                 transl_mtx(2, :) =  shift_mtx(2, :)
