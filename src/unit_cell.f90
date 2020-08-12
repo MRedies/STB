@@ -263,11 +263,11 @@ contains
         call MPI_Bcast(self%pert_log, 1,              MPI_LOGICAL, &
                         root,         MPI_COMM_WORLD, ierr(18))
 
-        call MPI_Bcast(isize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(19))
-        call MPI_Bcast(self%wavevector, isize, MYPI_INT, root, MPI_COMM_WORLD, ierr(19))
+        call MPI_Bcast(wsize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(19))
+        call MPI_Bcast(self%wavevector, wsize, MYPI_INT, root, MPI_COMM_WORLD, ierr(19))
 
-        call MPI_Bcast(isize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(20))
-        call MPI_Bcast(self%axis, isize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(20))
+        call MPI_Bcast(asize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(20))
+        call MPI_Bcast(self%axis, asize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(20))
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
