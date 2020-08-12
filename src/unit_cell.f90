@@ -206,12 +206,14 @@ contains
         class(unit_cell)              :: self
         integer   , parameter         :: num_cast = 20
         integer                       :: ierr(num_cast)
-        integer                       :: anticol_size_phi, isize
+        integer                       :: anticol_size_phi, wsize, asize
         integer                       :: anticol_size_theta
 
         if(self%me == root) then
             anticol_size_phi = size(self%anticol_phi)
             anticol_size_theta = size(self%anticol_theta)
+            wsize = size(self%wavevector)
+            asize = size(self%axis)
         endif
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
                        root,                  MPI_COMM_WORLD, ierr(1))
@@ -250,6 +252,8 @@ contains
         if(self%me /= root) then
             allocate(self%anticol_phi(anticol_size_phi))
             allocate(self%anticol_theta(anticol_size_theta))
+            allocate(self%wavevector(wsize))
+            allocate(self%axis(asize))
         endif
         call MPI_Bcast(self%anticol_theta, anticol_size_theta ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(16))
@@ -259,11 +263,9 @@ contains
         call MPI_Bcast(self%pert_log, 1,              MPI_LOGICAL, &
                         root,         MPI_COMM_WORLD, ierr(18))
 
-        isize = size(self%wavevector)
         call MPI_Bcast(isize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(19))
         call MPI_Bcast(self%wavevector, isize, MYPI_INT, root, MPI_COMM_WORLD, ierr(19))
 
-        isize = size(self%axis)
         call MPI_Bcast(isize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(20))
         call MPI_Bcast(self%axis, isize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(20))
         call check_ierr(ierr, self%me, "Unit cell check err")
