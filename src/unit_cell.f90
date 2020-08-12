@@ -183,6 +183,7 @@ contains
         endif
 
         ! calculate reciprocal grid
+        write(*,*) self,%me, "lattice",self%lattice
         self%rez_lattice =  transpose(self%lattice)
         call dgetrf(2,2, self%rez_lattice, 2, ipiv, info)
         if(info /= 0) then
