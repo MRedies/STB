@@ -969,14 +969,15 @@ contains
         implicit none
         class(unit_cell)    :: self
         real(8), intent(in) :: center(3), UC_l
-        real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), axis(3), wavevector(3), wavevector_len
+        real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), axis(3), wavevector(3), wavevector_len.phase_fac
         integer             :: site_type, i
         wavevector = self%wavevector(1)*self%atoms(1)%neigh_conn(1,:) + self%wavevector(2)*self%atoms(1)%neigh_conn(2,:)! + self%wavevector(2)*self%atoms(1)%neigh_conn(:,3)
         wavevector_len = my_norm2(wavevector)
         wavevector = wavevector/wavevector_len
         axis = self%axis
         wavelength = UC_l/self%n_wind
-        psi = 2d0*PI/wavelength
+        phase_fac = 2d0*PI/wavelength*self%atoms(1)%pos
+        psi = 2d0*PI/wavelength - phase_fac
         do i =  1,self%num_atoms
             site_type = self%atoms(i)%site_type
             conn  = center - self%atoms(i)%pos
