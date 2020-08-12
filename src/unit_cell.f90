@@ -427,7 +427,7 @@ contains
       real(8), allocatable              :: line(:,:)
       integer, allocatable              :: site_type(:)
       real(8)                           :: shift_mtx(3,3), conn_mtx(3,3), transf_mtx(3,3),base_len_uc, posA(3),&
-                                           posB(3),pos(3),conn_vec_1(3),conn_vec_2(3), l, wave_proj(3), conn_proj(3)
+                                           posB(3),pos(3),conn_vec_1(3),conn_vec_2(3), l, conn_proj(3)
       integer                           :: num_atoms, i, ierr
       
       if(mod(self%num_atoms,2) /= 0) then
@@ -450,10 +450,6 @@ contains
       transf_mtx(3,:)=[0d0,0d0,0d0]
       !so far only spirals along connection vectors
       if(trim(self%mag_type) == "1Dspiral") then
-        wave_proj = matmul(conn_mtx,matmul(transpose(transf_mtx),self%wavevector))-matmul(transpose(shift_mtx),self%wavevector)
-        if(my_norm2(wave_proj)>pos_eps) then
-          write (*,*) "basis transformation not correct!",wave_proj
-        endif
         conn_vec_1 = matmul(transpose(shift_mtx),self%wavevector)
         conn_proj = matmul(conn_mtx,conn_vec_1)
         if(abs(conn_proj(1)-conn_proj(2))<pos_eps) then
@@ -547,7 +543,6 @@ contains
         call self%setup_honey(line, site_type)
         call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
 
-        write (*,*) "mag types still need some work for honeylines"
         if(trim(self%mag_type) == "ferro_uiaeuiaeuia") then
             call self%set_mag_ferro()
         else if(trim(self%mag_type) == "1Dspiral") then
