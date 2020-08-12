@@ -482,7 +482,7 @@ contains
             line(i,:) = posA + pos
             site_type(i) = A_site
          else
-            line(i,:) = posB + pos! + conn_vec_2
+            line(i,:) = posB + pos + conn_vec_2
             site_type(i) = B_site
             pos = pos + conn_vec_1
          endif
