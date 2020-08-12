@@ -976,18 +976,19 @@ contains
         wavevector = wavevector/wavevector_len
         axis = self%axis
         wavelength = UC_l/self%n_wind
-        conn  = center - self%atoms(1)%pos
-        x = my_norm2(conn)
-        phase_fac = 2d0*PI/wavelength*x
-        psi = 2d0*PI/wavelength - phase_fac
+        psi = 2d0*PI/wavelength
         do i =  1,self%num_atoms
             site_type = self%atoms(i)%site_type
             conn  = center - self%atoms(i)%pos
-            x = 0d0!my_norm2(conn)
-                R = R_mtx(psi*x, axis)
                 if (site_type == 0) then 
+                    phase_fac = my_norm2(center - self%atoms(1)%pos)
+                    x = my_norm2(conn)-phase_fac
+                    R = R_mtx(psi*x, axis)
                     m = matmul(R, self%m0_A)
                 elseif(site_type == 1) then
+                    phase_fac = my_norm2(center - self%atoms(2)%pos)
+                    x = my_norm2(conn)-phase_fac
+                    R = R_mtx(psi*x, axis)
                     m = matmul(R, self%m0_B)
                 endif
             call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
