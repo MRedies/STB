@@ -976,7 +976,9 @@ contains
         wavevector = wavevector/wavevector_len
         axis = self%axis
         wavelength = UC_l/self%n_wind
-        phase_fac = 2d0*PI/wavelength*self%atoms(1)%pos
+        conn  = center - self%atoms(1)%pos
+        x = my_norm2(conn)
+        phase_fac = 2d0*PI/wavelength*x
         psi = 2d0*PI/wavelength - phase_fac
         do i =  1,self%num_atoms
             site_type = self%atoms(i)%site_type
