@@ -448,7 +448,7 @@ contains
       transf_mtx(3,:)=[0d0,0d0,0d0]
       !so far only spirals along connection vectors
       if(trim(self%mag_type) == "1Dspiral") then
-        wave_proj = matmul(conn_mtx,matmul(transf_mtx,self%wavevector))-matmul(transpose(shift_mtx),self%wavevector)
+        wave_proj = matmul(conn_mtx,matmul(transpose(transf_mtx),self%wavevector))-matmul(transpose(shift_mtx),self%wavevector)
         if(my_norm2(wave_proj)>pos_eps) then
           write (*,*) "basis transformation not correct!",wave_proj
         endif
@@ -474,8 +474,8 @@ contains
       
       allocate(line(self%num_atoms,3))
       allocate(site_type(self%num_atoms))
-      posA =-conn_vec_2/2d0
-      posB = conn_vec_2/2d0
+      posA =0d0!-conn_vec_2/2d0
+      posB =0d0! conn_vec_2/2d0
       pos = 0d0
       do i = 1, self%num_atoms
          if(mod(i-1,2) == 0) then
@@ -958,45 +958,35 @@ contains
         implicit none
         class(unit_cell)      :: self
         real(8), parameter    :: center(3) = [0d0, 0d0, 0d0]
-        real(8)               :: radius
+        real(8)               :: UC_l
 
-        radius = 0.5d0*my_norm2(self%lattice(:,1))
+        UC_l = my_norm2(self%lattice(:,1))
         call self%set_mag_linrot_1D_spiral_m0()
-        call self%set_mag_linrot_1D_spiral(center, radius)
+        call self%set_mag_linrot_1D_spiral(center, UC_l)
     end subroutine set_mag_linrot_1D_spiral_honey
 
-    subroutine set_mag_linrot_1D_spiral(self, center, radius)
+    subroutine set_mag_linrot_1D_spiral(self, center, UC_l)
         implicit none
         class(unit_cell)    :: self
-        real(8), intent(in) :: center(3), radius
+        real(8), intent(in) :: center(3), UC_l
         real(8)             :: psi, x, wavelength, R(3,3), m(3), conn(3), axis(3), wavevector(3), wavevector_len
         integer             :: site_type, i
         wavevector = self%wavevector(1)*self%atoms(1)%neigh_conn(1,:) + self%wavevector(2)*self%atoms(1)%neigh_conn(2,:)! + self%wavevector(2)*self%atoms(1)%neigh_conn(:,3)
         wavevector_len = my_norm2(wavevector)
         wavevector = wavevector/wavevector_len
         axis = self%axis
-        wavelength = 2d0*radius/self%n_wind
+        wavelength = UC_l/self%n_wind
         psi = 2d0*PI/wavelength
         do i =  1,self%num_atoms
             site_type = self%atoms(i)%site_type
             conn  = center - self%atoms(i)%pos
-            x = my_norm2(conn)!dot_product(wavevector,conn)
-            !write(*,*) "set_mag_linrot: ",conn,self%atoms(1)%neigh_conn,x*wavevector
-            !if(my_norm2(conn-x*wavevector) < pos_eps * self%lattice_constant &
-            !        .and. my_norm2(conn) <= radius + pos_eps) then
+            x = my_norm2(conn)
                 R = R_mtx(psi*x, axis)
                 if (site_type == 0) then 
                     m = matmul(R, self%m0_A)
                 elseif(site_type == 1) then
                     m = matmul(R, self%m0_B)
                 endif
-            !else
-            !    if (site_type == 0) then 
-            !        m = self%m0_A
-            !    elseif(site_type == 1) then
-            !        m = self%m0_B
-            !    endif
-            !endif
             call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
         enddo
     end subroutine set_mag_linrot_1D_spiral
