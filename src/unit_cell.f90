@@ -184,7 +184,6 @@ contains
 
         ! calculate reciprocal grid
         self%rez_lattice =  transpose(self%lattice)
-        !write(*,*) "lattice",self%rez_lattice
         call dgetrf(2,2, self%rez_lattice, 2, ipiv, info)
         if(info /= 0) then
             write (*,*) self%me, ": LU-decomp of lattice vectors failed", info
@@ -215,7 +214,6 @@ contains
             anticol_size_theta = size(self%anticol_theta)
             wsize = size(self%wavevector)
             asize = size(self%axis)
-            write(*,*) "sizes",wsize,asize,self%wavevector,self%axis
         endif
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
                        root,                  MPI_COMM_WORLD, ierr(1))
@@ -511,7 +509,6 @@ contains
         lattice(1,:) = self%atom_per_dim * matmul(transpose(shift_mtx),self%wavevector)
         self%lattice(:,1) =  lattice(1,1:2)
         wave_proj = dot_product([1d0,0d0,0d0],self%wavevector)/norm2(1d0*self%wavevector)
-        !write(*,*) "wave_proj", self%me, self%wavevector, wave_proj
         if(abs(wave_proj-1d0)<pos_eps) then
             self%lattice(:,2) =  shift_mtx(2,1:2)
         else
