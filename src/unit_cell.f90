@@ -473,8 +473,8 @@ contains
       
       allocate(line(self%num_atoms,3))
       allocate(site_type(self%num_atoms))
-      posA =conn_vec_2/2d0
-      posB =-conn_vec_2/2d0
+      posA = [0d0,self%lattice_constant,0d0]!#conn_vec_2/2d0
+      posB =-[0d0,self%lattice_constant,0d0]!-conn_vec_2/2d0
       pos = 0d0
       do i = 1, self%num_atoms
          if(mod(i-1,2) == 0) then
