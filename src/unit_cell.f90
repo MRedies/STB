@@ -205,7 +205,7 @@ contains
         use mpi
         implicit none
         class(unit_cell)              :: self
-        integer   , parameter         :: num_cast = 20
+        integer   , parameter         :: num_cast = 22
         integer                       :: ierr(num_cast)
         integer                       :: anticol_size_phi, wsize, asize
         integer                       :: anticol_size_theta
@@ -266,10 +266,15 @@ contains
                         root,         MPI_COMM_WORLD, ierr(18))
 
         call MPI_Bcast(wsize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(19))
-        call MPI_Bcast(self%wavevector, wsize, MYPI_INT, root, MPI_COMM_WORLD, ierr(19))
-
         call MPI_Bcast(asize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(20))
-        call MPI_Bcast(self%axis, asize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(20))
+        if(self%me /= root) then
+            allocate(self%anticol_phi(anticol_size_phi))
+            allocate(self%anticol_theta(anticol_size_theta))
+            allocate(self%wavevector(wsize))
+            allocate(self%axis(asize))
+        endif
+        call MPI_Bcast(self%wavevector, wsize, MYPI_INT, root, MPI_COMM_WORLD, ierr(21))
+        call MPI_Bcast(self%axis, asize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(22))
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
