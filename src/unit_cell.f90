@@ -184,7 +184,7 @@ contains
 
         ! calculate reciprocal grid
         self%rez_lattice =  transpose(self%lattice)
-        write(*,*) "lattice",self%rez_lattice
+        !write(*,*) "lattice",self%rez_lattice
         call dgetrf(2,2, self%rez_lattice, 2, ipiv, info)
         if(info /= 0) then
             write (*,*) self%me, ": LU-decomp of lattice vectors failed", info
@@ -253,6 +253,7 @@ contains
         if(self%me /= root) then
             allocate(self%anticol_phi(anticol_size_phi))
             allocate(self%anticol_theta(anticol_size_theta))
+            write(*,*) "sizes",wsize,asize
             allocate(self%wavevector(wsize))
             allocate(self%axis(asize))
         endif
@@ -509,7 +510,7 @@ contains
         lattice(1,:) = self%atom_per_dim * matmul(transpose(shift_mtx),self%wavevector)
         self%lattice(:,1) =  lattice(1,1:2)
         wave_proj = dot_product([1d0,0d0,0d0],self%wavevector)/norm2(1d0*self%wavevector)
-        write(*,*) "wave_proj", self%me, self%wavevector, wave_proj
+        !write(*,*) "wave_proj", self%me, self%wavevector, wave_proj
         if(abs(wave_proj-1d0)<pos_eps) then
             self%lattice(:,2) =  shift_mtx(2,1:2)
         else
