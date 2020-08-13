@@ -254,8 +254,6 @@ contains
         if(self%me /= root) then
             allocate(self%anticol_phi(anticol_size_phi))
             allocate(self%anticol_theta(anticol_size_theta))
-            allocate(self%wavevector(wsize))
-            allocate(self%axis(asize))
         endif
         call MPI_Bcast(self%anticol_theta, anticol_size_theta ,            MPI_REAL8, &
                         root,              MPI_COMM_WORLD, ierr(16))
@@ -268,8 +266,6 @@ contains
         call MPI_Bcast(wsize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(19))
         call MPI_Bcast(asize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(20))
         if(self%me /= root) then
-            allocate(self%anticol_phi(anticol_size_phi))
-            allocate(self%anticol_theta(anticol_size_theta))
             allocate(self%wavevector(wsize))
             allocate(self%axis(asize))
         endif
