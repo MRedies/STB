@@ -215,6 +215,7 @@ contains
             anticol_size_theta = size(self%anticol_theta)
             wsize = size(self%wavevector)
             asize = size(self%axis)
+            write(*,*) "sizes",wsize,asize,self%wavevector,self%axis
         endif
         call MPI_Bcast(self%eps,              1,              MPI_REAL8,     &
                        root,                  MPI_COMM_WORLD, ierr(1))
@@ -253,7 +254,6 @@ contains
         if(self%me /= root) then
             allocate(self%anticol_phi(anticol_size_phi))
             allocate(self%anticol_theta(anticol_size_theta))
-            write(*,*) "sizes",wsize,asize
             allocate(self%wavevector(wsize))
             allocate(self%axis(asize))
         endif
