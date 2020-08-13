@@ -184,6 +184,7 @@ contains
 
         ! calculate reciprocal grid
         self%rez_lattice =  transpose(self%lattice)
+        write(*,*) "lattice",self%rez_lattice
         call dgetrf(2,2, self%rez_lattice, 2, ipiv, info)
         if(info /= 0) then
             write (*,*) self%me, ": LU-decomp of lattice vectors failed", info
