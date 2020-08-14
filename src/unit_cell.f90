@@ -62,7 +62,7 @@ module Class_unit_cell
         procedure :: set_mag_anticol                => set_mag_anticol
         procedure :: set_mag_random                 => set_mag_random
         procedure :: set_mag_x_spiral_square        => set_mag_x_spiral_square
-        procedure :: set_mag_linrot_1D_spiral       => set_mag_linrot_1D_spiral
+        procedure :: set_mag_linrot_1D_spiral_from_anticol       => set_mag_linrot_1D_spiral_from_anticol
         procedure :: set_mag_linrot_1D_spiral_honey => set_mag_linrot_1D_spiral_honey
         procedure :: set_mag_linrot_1D_spiral_m0 => set_mag_linrot_1D_spiral_m0
         procedure :: set_mag_linrot_skyrm           => set_mag_linrot_skyrm
