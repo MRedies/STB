@@ -979,10 +979,10 @@ contains
         real(8)               :: UC_l
 
         UC_l = my_norm2(self%lattice(:,1))
-        if(self%spiral_type="anticol") then
+        if(self%spiral_type=="anticol") then
             call self%set_mag_linrot_1D_spiral_m0_anticol()
             call self%set_mag_linrot_1D_spiral(center, UC_l)
-        elseif(self%spiral_type="cone") then
+        elseif(self%spiral_type=="cone") then
             call self%set_mag_linrot_1D_spiral_m0_cone()
             call self%set_mag_linrot_1D_spiral(center, UC_l)
         endif
