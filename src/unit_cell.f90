@@ -970,7 +970,7 @@ contains
         class(unit_cell)    :: self
         real(8), intent(in) :: center(3), UC_l
         real(8)             :: psi, x, wavelength, R(3,3), shift_mtx(3,3), m(3), conn(3), axis(3), wavevector(3),&
-                               wavevector_len,phase_fac,l, perp_axis, G(3,3), m0(3)
+                               wavevector_len,phase_fac,l, perp_axis(3), G(3,3), m0(3)
         integer             :: site_type, i
         l = 2 *  cos(deg_30) * self%lattice_constant
         shift_mtx(1, :) =  l *  [1d0,   0d0,           0d0]!1
