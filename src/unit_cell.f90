@@ -41,6 +41,7 @@ module Class_unit_cell
         type(units)       :: units
         character(len=25) :: uc_type !> indicates shape of unitcell
         character(len=25) :: mag_type !> indicates type of magnetization
+        character(len=25) :: spiral_type !> indicates type of magnetization
         character(len=300):: mag_file
         logical :: molecule !> should we have a k-space or not?
         logical      :: test_run !> should unit tests be performed
@@ -62,9 +63,10 @@ module Class_unit_cell
         procedure :: set_mag_anticol                => set_mag_anticol
         procedure :: set_mag_random                 => set_mag_random
         procedure :: set_mag_x_spiral_square        => set_mag_x_spiral_square
-        procedure :: set_mag_linrot_1D_spiral_from_anticol       => set_mag_linrot_1D_spiral_from_anticol
+        procedure :: set_mag_linrot_1D_spiral      => set_mag_linrot_1D_spiral
         procedure :: set_mag_linrot_1D_spiral_honey => set_mag_linrot_1D_spiral_honey
-        procedure :: set_mag_linrot_1D_spiral_m0 => set_mag_linrot_1D_spiral_m0
+        procedure :: set_mag_linrot_1D_spiral_m0_anticol => set_mag_linrot_1D_spiral_m0_anticol
+        procedure :: set_mag_linrot_1D_spiral_m0_cone => set_mag_linrot_1D_spiral_m0_cone
         procedure :: set_mag_linrot_skyrm           => set_mag_linrot_skyrm
         procedure :: set_mag_atan_skyrm             => set_mag_atan_skyrm
         procedure :: set_mag_atan_skyrm_honey       => set_mag_atan_skyrm_honey
@@ -150,6 +152,7 @@ contains
             allocate(self%axis(wavevector_size))
             call CFG_get(cfg, "grid%axis", self%axis)
             call CFG_get(cfg, "grid%cone_angle", self%cone_angle)
+            call CFG_get(cfg, "grid%spiral_type", self%spiral_type)
             call CFG_get(cfg, "grid%lattice_constant", tmp)
             self%lattice_constant = tmp * self%units%length
 
@@ -205,7 +208,7 @@ contains
         use mpi
         implicit none
         class(unit_cell)              :: self
-        integer   , parameter         :: num_cast = 23
+        integer   , parameter         :: num_cast = 24
         integer                       :: ierr(num_cast)
         integer                       :: anticol_size_phi, wsize, asize
         integer                       :: anticol_size_theta
@@ -271,6 +274,7 @@ contains
         call MPI_Bcast(self%wavevector, wsize, MYPI_INT, root, MPI_COMM_WORLD, ierr(21))
         call MPI_Bcast(self%axis, asize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(22))
         call MPI_Bcast(self%cone_angle, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(23))
+        call MPI_Bcast(self%spiral_type, 25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr(23))
         call check_ierr(ierr, self%me, "Unit cell check err")
     end subroutine Bcast_UC
 
@@ -731,7 +735,7 @@ contains
         endif
     end subroutine set_mag_anticol    
 
-    subroutine set_mag_linrot_1D_spiral_m0(self)
+    subroutine set_mag_linrot_1D_spiral_m0_anticol(self)
         implicit none
         class(unit_cell)        :: self
         real(8)                 :: phi_nc,phi_col,theta_nc,theta_col,thetaA,thetaB,phiA,phiB
@@ -760,9 +764,23 @@ contains
         else
                 call error_msg("sizes of anticol_phi and anticol_theta not consistent with num_atoms", abort=.True.)    
         endif
-    end subroutine set_mag_linrot_1D_spiral_m0
+    end subroutine set_mag_linrot_1D_spiral_m0_anticol
 
-
+    subroutine set_mag_linrot_1D_spiral_m0_cone(self)
+        implicit none
+        class(unit_cell)        :: self
+        real(8)                 :: G(3,3), axis(3), perp_axis(3), m0(3)
+        axis = self%axis
+        perp_axis = cross_prod(axis,[0d0,0d0,1d0])
+        G = R_mtx(self%cone_angle,perp_axis)
+        m0 = matmul(G,axis)
+        self%m0_A(1) = m0(1)
+        self%m0_A(2) = m0(2)
+        self%m0_A(3) = m0(3)
+        self%m0_B(1) = m0(1)
+        self%m0_B(2) = m0(2)
+        self%m0_B(3) = m0(3)
+    end subroutine set_mag_linrot_1D_spiral_m0_cone
     subroutine set_mag_x_spiral_square(self)
         implicit none
         class(unit_cell)                 :: self 
@@ -961,11 +979,16 @@ contains
         real(8)               :: UC_l
 
         UC_l = my_norm2(self%lattice(:,1))
-        call self%set_mag_linrot_1D_spiral_m0()
-        call self%set_mag_linrot_1D_spiral_from_anticol(center, UC_l)
+        if(self%spiral_type="anticol") then
+            call self%set_mag_linrot_1D_spiral_m0_anticol()
+            call self%set_mag_linrot_1D_spiral(center, UC_l)
+        elseif(self%spiral_type="cone") then
+            call self%set_mag_linrot_1D_spiral_m0_cone()
+            call self%set_mag_linrot_1D_spiral(center, UC_l)
+        endif
     end subroutine set_mag_linrot_1D_spiral_honey
 
-    subroutine set_mag_linrot_1D_spiral_from_anticol(self, center, UC_l)
+    subroutine set_mag_linrot_1D_spiral(self, center, UC_l)
         implicit none
         class(unit_cell)    :: self
         real(8), intent(in) :: center(3), UC_l
@@ -992,62 +1015,17 @@ contains
                     phase_fac = my_norm2(center - self%atoms(1)%pos)
                     x = my_norm2(conn)-phase_fac
                     R = R_mtx(psi*x, axis)
-                    m = matmul(R, m0)!self%m0_A)
+                    m = matmul(R, self%m0_A)
                 elseif(site_type == 1) then
                     phase_fac = my_norm2(center - self%atoms(2)%pos)
                     x = my_norm2(conn)-phase_fac
                     R = R_mtx(psi*x, axis)
-                    m = matmul(R, m0)!self%m0_B)
+                    m = matmul(R, self%m0_B)
                 endif
             call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
         enddo
-    end subroutine set_mag_linrot_1D_spiral_from_anticol
+    end subroutine set_mag_linrot_1D_spiral
 
-!    subroutine set_mag_linrot_1D_spiral_from_cone(self, center, UC_l)
-!        implicit none
-!        class(unit_cell)    :: self
-!        real(8), intent(in) :: center(3), UC_l
-!        real(8)             :: psi, x, wavelength, R(3,3), shift_mtx(3,3), m(3), conn(3), axis(3), wavevector(3),&
-!                               wavevector_len,phase_fac,l, perp_axis, G(3,3), m0
-!        integer             :: site_type, i
-!        l = 2 *  cos(deg_30) * self%lattice_constant
-!        shift_mtx(1, :) =  l *  [1d0,   0d0,           0d0]!1
-!        shift_mtx(2, :) =  l *  [0.5d0, sin(deg_60),   0d0]!2
-!        shift_mtx(3, :) =  l *  [0.5d0, -sin(deg_60),   0d0]!3
-!        wavevector = matmul(transpose(shift_mtx),self%wavevector)
-!        wavevector_len = my_norm2(wavevector)
-!        wavevector = wavevector/wavevector_len
-!        axis = self%axis
-!        perp_axis = cross_prod(axis,[0d0,0d0,1d0])
-!        G = R_mtx(self%cone_angle,perp_axis)
-!        m0 = matmul(G,axis)
-!        wavelength = UC_l/self%n_wind
-!        psi = 2d0*PI/wavelength
-!        do i =  1,self%num_atoms
-!            site_type = self%atoms(i)%site_type
-!            conn  = center - self%atoms(i)%pos
-!                if (site_type == 0) then 
-!                    phase_fac = my_norm2(center - self%atoms(1)%pos)
-!                    x = my_norm2(conn)-phase_fac
-!                    R = R_mtx(psi*x, axis)
-!                    m = matmul(R, self%m0_A)
-!                elseif(site_type == 1) then
-!                    phase_fac = my_norm2(center - self%atoms(2)%pos)
-!                    x = my_norm2(conn)-phase_fac
-!                    R = R_mtx(psi*x, axis)
-!                    m = matmul(R, self%m0_B)
-!                endif
-!            call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
-!        enddo
-!    end subroutine set_mag_linrot_1D_spiral_from_cone
-!    subroutine set_mag_linrot_1D_spiral_cone_m0()
-!
-!        perp_axis = cross_prod(axis,[0d0,0d0,1d0])
-!        G = R_mtx(self%cone_angle,perp_axis)
-!        m0 = matmul(G,axis)
-!        self%m0_A = m0
-!        self%m0_B = m0
-!    end subroutine set_mag_linrot_1D_spiral_cone_m0
     subroutine save_unit_cell(self, folder)
         implicit none
         class(unit_cell)        :: self

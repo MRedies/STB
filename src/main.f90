@@ -244,6 +244,7 @@ contains
       call CFG_add(cfg, "grid%wavevector",empty_int_array, "wavector of spinspiral", dynamic_size=.True.)
       call CFG_add(cfg, "grid%axis", empty_array, "rotation axis of spinspiral", dynamic_size=.True.)
       call CFG_add(cfg, "grid%cone_angle", 0d0, "cone angle to rotation axis")
+      call CFG_add(cfg, "grid%spiral_type", "anticol", "cone angle to rotation axis")
       call CFG_add(cfg, "grid%m0", empty_array, "initial state of spinspiral", dynamic_size=.True.)
 
       call CFG_add(cfg, "band%perform_band",  .False., "")
