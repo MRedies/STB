@@ -34,8 +34,9 @@ module Class_unit_cell
       real(8) :: cone_angle
       real(8), allocatable:: anticol_phi(:), anticol_theta(:), m0_A(:), m0_B(:) !> the angles for anticollinear setups, one
       real(8), allocatable:: axis(:) !> the angles for anticollinear setups, one
-      real(8):: atan_factor !> how fast do we change the border wall
+      real(8) :: atan_factor !> how fast do we change the border wall
       real(8) :: dblatan_dist !> width of the atan plateau
+      real(8) :: dblatan_pref !> prefactor for angle turning
       real(8) :: skyrm_middle !> position of inplane
       type(atom), dimension(:), allocatable :: atoms !> array containing all atoms
       type(units)       :: units
@@ -162,9 +163,11 @@ contains
          call CFG_get(cfg, "grid%atan_fac", self%atan_factor)
          call CFG_get(cfg, "grid%skyrm_middle", self%skyrm_middle)
          call CFG_get(cfg, "grid%dblatan_width", self%dblatan_dist)
+         call CFG_get(cfg, "grid%dblatan_pref", self%dblatan_pref)
 
          call CFG_get(cfg, "grid%mag_file", self%mag_file)
          call CFG_get(cfg, "general%test_run", self%test_run)
+
 
       endif
 
@@ -205,7 +208,7 @@ contains
       use mpi
       implicit none
       class(unit_cell)              :: self
-      integer, parameter         :: num_cast = 24
+      integer, parameter         :: num_cast = 25
       integer                       :: ierr(num_cast)
       integer                       :: anticol_size_phi, wsize, asize
       integer                       :: anticol_size_theta
@@ -270,7 +273,10 @@ contains
       call MPI_Bcast(self%wavevector, wsize, MYPI_INT, root, MPI_COMM_WORLD, ierr(21))
       call MPI_Bcast(self%axis, asize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(22))
       call MPI_Bcast(self%cone_angle, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(23))
-      call MPI_Bcast(self%spiral_type, 25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr(23))
+      call MPI_Bcast(self%spiral_type, 25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr(24))
+
+      call MPI_Bcast(self%dblatan_pref, 1, MPI_REAL8, &
+                     root, MPI_COMM_WORLD, ierr(25))
       call check_ierr(ierr, self%me, "Unit cell check err")
    end subroutine Bcast_UC
 
@@ -493,7 +499,8 @@ contains
    subroutine init_unit_honey_line(self)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: transl_mtx(3, 3), conn_mtx(3, 3), shift_mtx(3, 3), lattice(2, 3), base_len_uc, l, wave_proj
+      real(8)                           :: transl_mtx(3, 3), conn_mtx(3, 3), shift_mtx(3, 3)
+      real(8)                           :: lattice(2, 3), base_len_uc, l, wave_proj
       real(8), allocatable              :: line(:, :)
       integer, allocatable              :: site_type(:)
       integer                           :: apd
@@ -952,7 +959,7 @@ contains
 
             alpha = alpha - alp_min
             alpha = alpha/(alp_max - alp_min)
-            alpha = PI*alpha
+            alpha = self%dblatan_pref*PI*alpha
 
             R = R_mtx(alpha, n)
             ! center of skyrmion point down
