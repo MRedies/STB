@@ -35,6 +35,7 @@ module Class_unit_cell
       real(8), allocatable:: anticol_phi(:), anticol_theta(:), m0_A(:), m0_B(:) !> the angles for anticollinear setups, one
       real(8), allocatable:: axis(:) !> the angles for anticollinear setups, one
       real(8) :: atan_factor !> how fast do we change the border wall
+      real(8) :: atan_pref !> prefactor for atan
       real(8) :: dblatan_dist !> width of the atan plateau
       real(8) :: dblatan_pref !> prefactor for angle turning
       real(8) :: skyrm_middle !> position of inplane
@@ -161,6 +162,7 @@ contains
          call CFG_get(cfg, "grid%ferro_phi", self%ferro_phi)
          call CFG_get(cfg, "grid%ferro_theta", self%ferro_theta)
          call CFG_get(cfg, "grid%atan_fac", self%atan_factor)
+         call CFG_get(cfg, "grid%atan_pref", self%atan_pref)
          call CFG_get(cfg, "grid%skyrm_middle", self%skyrm_middle)
          call CFG_get(cfg, "grid%dblatan_width", self%dblatan_dist)
          call CFG_get(cfg, "grid%dblatan_pref", self%dblatan_pref)
@@ -207,11 +209,11 @@ contains
    subroutine Bcast_UC(self)
       use mpi
       implicit none
-      class(unit_cell)              :: self
-      integer, parameter         :: num_cast = 25
-      integer                       :: ierr(num_cast)
-      integer                       :: anticol_size_phi, wsize, asize
-      integer                       :: anticol_size_theta
+      class(unit_cell)           :: self
+      integer, parameter         :: num_cast = 26
+      integer                    :: ierr(num_cast)
+      integer                    :: anticol_size_phi, wsize, asize
+      integer                    :: anticol_size_theta
 
       if (self%me == root) then
          anticol_size_phi = size(self%anticol_phi)
@@ -277,6 +279,7 @@ contains
 
       call MPI_Bcast(self%dblatan_pref, 1, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(25))
+      call MPI_Bcast(self%atan_pref, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(26))
       call check_ierr(ierr, self%me, "Unit cell check err")
    end subroutine Bcast_UC
 
@@ -916,6 +919,8 @@ contains
 
             x = my_norm2(conn)
             alpha = PI - scaling*(-atan(a*(x - x0)) + 0.5d0*PI - y_min)
+
+            alpha = self%atan_pref * alpha
 
             R = R_mtx(alpha, n)
             ! center of skyrmion point down

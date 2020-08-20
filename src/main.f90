@@ -236,6 +236,7 @@ contains
       call CFG_add(cfg, "grid%ferro_phi",        0d0,   "ferro mag polar angle")
       call CFG_add(cfg, "grid%ferro_theta",      0d0,   "ferro mag azimut angle")
       call CFG_add(cfg, "grid%atan_fac",         0d0,   "wall steepness")
+      call CFG_add(cfg, "grid%atan_pref",        1d0,    "turning direction for atan")
       call CFG_add(cfg, "grid%skyrm_middle",     0.5d0, "skyrm position")
       call CFG_add(cfg, "grid%dblatan_width",    0d0,   "plateau width")
       call CFG_add(cfg, "grid%dblatan_pref",     1d0,   "turning direction for plateau")
