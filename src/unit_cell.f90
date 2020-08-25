@@ -514,8 +514,8 @@ contains
 
         lattice(1,:) = self%atom_per_dim * matmul(transpose(shift_mtx),self%wavevector)
         self%lattice(:,1) =  lattice(1,1:2)
-        wave_proj = dot_product([1d0,0d0,0d0],self%wavevector)/norm2(1d0*self%wavevector)
-        if(abs(wave_proj-1d0)<pos_eps) then
+        wave_proj = abs(dot_product([1d0,0d0,0d0],self%wavevector)/norm2(1d0*self%wavevector))
+        if(wave_proj-1d0<pos_eps) then
             self%lattice(:,2) =  shift_mtx(2,1:2)
         else
             self%lattice(:,2) =  shift_mtx(1,1:2)
@@ -770,6 +770,8 @@ contains
         implicit none
         class(unit_cell)        :: self
         real(8)                 :: G(3,3), axis(3), perp_axis(3), m0(3)
+        allocate(self%m0_A(3))
+        allocate(self%m0_B(3))
         axis = self%axis
         perp_axis = cross_prod(axis,[0d0,0d0,1d0])
         G = R_mtx(self%cone_angle,perp_axis)
