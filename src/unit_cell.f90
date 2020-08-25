@@ -503,10 +503,10 @@ contains
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: transl_mtx(3, 3), conn_mtx(3, 3), shift_mtx(3, 3)
-      real(8)                           :: lattice(2, 3), base_len_uc, l, wave_proj
+      real(8)                           :: lattice(2, 3), base_len_uc, l, wave_proj, check
       real(8), allocatable              :: line(:, :)
       integer, allocatable              :: site_type(:)
-      integer                           :: apd
+      integer                           :: apd, i, check_idx, j
       apd = self%atom_per_dim
       self%num_atoms = calc_num_atoms_line_honey(apd)
       base_len_uc = self%lattice_constant
@@ -535,22 +535,17 @@ contains
       conn_mtx(1, :) = self%lattice_constant*[0d0, 1d0, 0d0]
       conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]
       conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]
-      if (abs(norm2(1d0*self%wavevector) - 1d0) < pos_eps) then
-         transl_mtx(1, :) = lattice(1, :)
-         if (abs(self%wavevector(1) - 1d0) < pos_eps) then
-            transl_mtx(2, :) = shift_mtx(2, :)
-            transl_mtx(3, :) = shift_mtx(3, :)
-         elseif (abs(self%wavevector(2) - 1d0) < pos_eps) then
-            transl_mtx(2, :) = shift_mtx(1, :)
-            transl_mtx(3, :) = shift_mtx(3, :)
-         elseif (abs(self%wavevector(3) - 1d0) < pos_eps) then
-            transl_mtx(2, :) = shift_mtx(2, :)
-            transl_mtx(3, :) = shift_mtx(1, :)
-         endif
-      else
-         transl_mtx(2, :) = shift_mtx(2, :)
-         transl_mtx(3, :) = shift_mtx(3, :)
-      endif
+      !translates to neighboring unit cells
+      check_idx = 0
+      do i = 1, 3
+        check = cross_prod(lattice(1, :),shift_mtx(i, :))
+        if (check > pos_eps .AND. check_idx < 2) then
+            transl_mtx(i, :) = shift_mtx(i, :)
+            check_idx = check_idx + 1
+        else
+            transl_mtx(i, :) = lattice(1, :)
+        endif
+      enddo
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
