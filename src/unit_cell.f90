@@ -538,7 +538,7 @@ contains
       !translates to neighboring unit cells
       check_idx = 0
       do i = 1, 3
-        check = cross_prod(lattice(1, :),shift_mtx(i, :))
+        check = norm2(cross_prod(lattice(1, :),shift_mtx(i, :)))
         if (check > pos_eps .AND. check_idx < 2) then
             transl_mtx(i, :) = shift_mtx(i, :)
             check_idx = check_idx + 1
