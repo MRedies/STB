@@ -503,7 +503,7 @@ contains
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: transl_mtx(3, 3), conn_mtx(3, 3), shift_mtx(3, 3)
-      real(8)                           :: lattice(2, 3), base_len_uc, l, wave_proj, check
+      real(8)                           :: lattice(2, 3), temp(3),base_len_uc, l, wave_proj, check
       real(8), allocatable              :: line(:, :)
       integer, allocatable              :: site_type(:)
       integer                           :: apd, i, check_idx, j
@@ -516,15 +516,13 @@ contains
       shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
       shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
       !spiral uc lat vecs
-
-      lattice(1, :) = self%atom_per_dim*matmul(transpose(shift_mtx), self%wavevector)
+      temp = matmul(transpose(shift_mtx), self%wavevector)
+      lattice(1, :) = self%atom_per_dim*temp
       self%lattice(:, 1) = lattice(1, 1:2)
-      wave_proj = abs(dot_product([1d0, 0d0, 0d0], self%wavevector)/norm2(1d0*self%wavevector))
-      if (wave_proj - 1d0 < pos_eps) then
-         self%lattice(:, 2) = shift_mtx(2, 1:2)
-      else
-         self%lattice(:, 2) = shift_mtx(1, 1:2)
-      endif
+      temp = cross_prod(temp,[0d0,0d0,1d0])
+      temp = temp/norm2(temp)
+      lattice(2, :) = 3d0*self%lattice_constant*temp
+      self%lattice(:, 1) = lattice(2, 1:2)
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
 
