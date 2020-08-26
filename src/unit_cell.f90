@@ -484,9 +484,9 @@ contains
 
       allocate (line(self%num_atoms, 3))
       allocate (site_type(self%num_atoms))
-      posA = conn_mtx(3, :)
-      posB = -conn_mtx(2, :)
-      pos = -1d0*(self%atom_per_dim-1)/2d0*conn_vec_1
+      posA = -0.5*self%lattice_constant*[0d0,1d0,0d0]!conn_mtx(3, :)
+      posB = 0.5*self%lattice_constant*[0d0,1d0,0d0]!-conn_mtx(2, :)
+      pos = -1d0*(self%atom_per_dim - 1)/2d0*conn_vec_1
       do i = 1, self%num_atoms
          if (mod(i - 1, 2) == 0) then
             line(i, :) = posA + pos
