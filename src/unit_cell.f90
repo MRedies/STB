@@ -463,6 +463,10 @@ contains
       !so far only spirals along connection vectors
       if (trim(self%mag_type) == "1Dspiral") then
          conn_vec_1 = matmul(transpose(shift_mtx), self%wavevector)
+         if (norm2(conn_vec_1) < pos_eps) then
+            write(*,*) "q-vector is zero!", conn_vec_1
+            call MPI_Abort(MPI_COMM_WORLD, 23, ierr)
+         endif
          conn_proj = matmul(conn_mtx, conn_vec_1)
          if (abs(conn_proj(1) - conn_proj(2)) < pos_eps) then
             conn_vec_2 = conn_mtx(3, :)
@@ -487,7 +491,7 @@ contains
       posA = -0.5*self%lattice_constant*[0d0,1d0,0d0]!conn_mtx(3, :)
       posB = 0.5*self%lattice_constant*[0d0,1d0,0d0]!-conn_mtx(2, :)
       posC = posA + conn_mtx(2, :)
-      posD = posB - conn_mtx(2, :)
+      posD = posB - conn_mtx(3, :)
       pos = -1d0*(self%atom_per_dim - 1)/2d0*conn_vec_1
       do i = 1, self%atom_per_dim
          ii = 4*(i - 1)
