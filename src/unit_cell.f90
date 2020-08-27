@@ -1064,7 +1064,7 @@ contains
       integer, intent(in) :: ii, j
       real(8), intent(in) :: psi
       integer             :: site_type, i
-      real(8)             :: conn(3), center(3), phase_fac, x, psi, R(3,3), m(3)
+      real(8)             :: conn(3), center(3), phase_fac, x, R(3,3), m(3)
       i = ii + j
       site_type = self%atoms(i)%site_type
       conn = center - self%atoms(i)%pos
