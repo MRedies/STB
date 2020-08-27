@@ -532,7 +532,7 @@ contains
       enddo
       wave_proj = wave_proj/check
       do i=1, 3
-         if (wave_proj(i)-int(wave_proj) > pos_eps) then
+         if (wave_proj(i)-int(wave_proj(i)) > pos_eps) then
             write(*,*) "Coefficients of 2nd lattice vector are not integer!", wave_proj
          endif
       enddo
