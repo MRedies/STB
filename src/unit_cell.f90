@@ -494,8 +494,9 @@ contains
    subroutine find_lattice_vectors(self,lattice)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: temp(3), shift_mtx(3, 3)
+      real(8)                           :: temp(3), shift_mtx(3, 3), wave_proj(3), proj, check
       real(8), allocatable              :: lattice(:,:)
+      integer                           :: i
 
       shift_mtx(1, :) = l*[1d0, 0d0, 0d0]!1
       shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
@@ -529,7 +530,6 @@ contains
          enddo
          lattice(2, :) = matmul(transpose(shift_mtx),wave_proj)
       endif
-      deallocate(temp,shift_mtx)
    end subroutine find_lattice_vectors
 
    subroutine find_conn_vecs(self,conn_vecs)
