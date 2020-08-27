@@ -503,7 +503,8 @@ contains
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: transl_mtx(3, 3), conn_mtx(3, 3), shift_mtx(3, 3)
-      real(8)                           :: lattice(2, 3), temp(3),base_len_uc, l, wave_proj, check
+      real(8)                           :: lattice(2, 3), temp(3),base_len_uc, l, wave_proj, check 
+      real(8)                           :: proj
       real(8), allocatable              :: line(:, :)
       integer, allocatable              :: site_type(:)
       integer                           :: apd, i, check_idx, j
@@ -519,9 +520,23 @@ contains
       temp = matmul(transpose(shift_mtx), self%wavevector)
       lattice(1, :) = self%atom_per_dim*temp
       self%lattice(:, 1) = lattice(1, 1:2)
+      !construct second perpendicular lattice vector of correct length
       temp = cross_prod(temp,[0d0,0d0,1d0])
-      temp = temp/norm2(temp)
-      lattice(2, :) = 3d0*self%lattice_constant*temp
+      wave_proj = matmul(shift_mtx,temp)
+      check = max(abs(wave_proj))
+      do i=1, 3
+         proj = abs(wave_proj(i))
+         if (proj < check .AND. proj > pos_eps) then
+            check = proj
+         endif
+      enddo
+      wave_proj = wave_proj/check
+      do i=1, 3
+         if (wave_proj(i)-int(wave_proj) > pos_eps) then
+            write(*,*) "Coefficients of 2nd lattice vector are not integer!", wave_proj
+         endif
+      enddo
+      lattice(2, :) = wave_proj
       self%lattice(:, 1) = lattice(2, 1:2)
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
