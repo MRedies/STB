@@ -537,7 +537,7 @@ contains
          endif
       enddo
       lattice(2, :) = matmul(transpose(shift_mtx),wave_proj)
-      self%lattice(:, 1) = lattice(2, 1:2)
+      self%lattice(:, 2) = lattice(2, 1:2)
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
 
