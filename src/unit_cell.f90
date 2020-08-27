@@ -579,8 +579,7 @@ contains
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: transl_mtx(3, 3), conn_mtx(3, 3), shift_mtx(3, 3)
-      real(8)                           :: temp(3),base_len_uc, l, wave_proj(3), check 
-      real(8)                           :: proj
+      real(8)                           :: temp(3),base_len_uc, l, wave_proj(3), check
       real(8), allocatable              :: lattice(:, :), line(:, :)
       integer, allocatable              :: site_type(:)
       integer                           :: apd, i, check_idx, j
@@ -1058,14 +1057,39 @@ contains
          call self%set_mag_linrot_1D_spiral(center, UC_l)
       endif
    end subroutine set_mag_linrot_1D_spiral_honey
+   subroutine set_mag_site(self, ii, j, psi)
+      implicit none
+      class(unit_cell)    :: self
+      integer, intent(in) :: ii, j
+      real(8), intent(in) :: psi
+      integer             :: site_type, i
+      real(8)             :: conn(3), center(3), phase_fac, x, psi, R(3,3), m(3)
+      i = ii + j
+      site_type = self%atoms(i)%site_type
+      conn = center - self%atoms(i)%pos
+      phase_fac = my_norm2(center - self%atoms(j)%pos)
+      if (self%atoms(i)%site_type /= self%atoms(j)%site_type) then
+         write(*,*) "Site types do not agree!"
+      endif
+      if (site_type == 0) then
+         x = my_norm2(conn) - phase_fac
+         R = R_mtx(psi*x, self%axis)
+         m = matmul(R, self%m0_A)
+      elseif (site_type == 1) then
+         x = my_norm2(conn) - phase_fac
+         R = R_mtx(psi*x, self%axis)
+         m = matmul(R, self%m0_B)
+      endif
+         call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
+   end subroutine set_mag_site
 
    subroutine set_mag_linrot_1D_spiral(self, center, UC_l)
       implicit none
       class(unit_cell)    :: self
       real(8), intent(in) :: center(3), UC_l
-      real(8)             :: psi, x, wavelength, R(3, 3), shift_mtx(3, 3), m(3), conn(3), axis(3), wavevector(3), &
-                             wavevector_len, phase_fac, l, perp_axis(3), G(3, 3), m0(3)
-      integer             :: site_type, i
+      real(8)             :: psi, x, wavelength, R(3, 3), shift_mtx(3, 3), conn(3), axis(3), wavevector(3), &
+                             wavevector_len, phase_fac, l
+      integer             :: site_type, i, ii, j
       l = 2*cos(deg_30)*self%lattice_constant
       shift_mtx(1, :) = l*[1d0, 0d0, 0d0]!1
       shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
@@ -1074,26 +1098,13 @@ contains
       wavevector_len = my_norm2(wavevector)
       wavevector = wavevector/wavevector_len
       axis = self%axis
-      perp_axis = cross_prod(axis, [0d0, 0d0, 1d0])
-      G = R_mtx(self%cone_angle, perp_axis)
-      m0 = matmul(G, axis)
       wavelength = UC_l/self%n_wind
       psi = 2d0*PI/wavelength
-      do i = 1, self%num_atoms
-         site_type = self%atoms(i)%site_type
-         conn = center - self%atoms(i)%pos
-         if (site_type == 0) then
-            phase_fac = my_norm2(center - self%atoms(1)%pos)
-            x = my_norm2(conn) - phase_fac
-            R = R_mtx(psi*x, axis)
-            m = matmul(R, self%m0_A)
-         elseif (site_type == 1) then
-            phase_fac = my_norm2(center - self%atoms(2)%pos)
-            x = my_norm2(conn) - phase_fac
-            R = R_mtx(psi*x, axis)
-            m = matmul(R, self%m0_B)
-         endif
-         call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
+      do i = 1, self%atom_per_dim
+         ii = 4*(i-1)
+         do j = 1, 4
+            call set_mag_site(ii, j, psi)
+         enddo
       enddo
    end subroutine set_mag_linrot_1D_spiral
 
