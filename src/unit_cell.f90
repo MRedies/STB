@@ -77,6 +77,7 @@ module Class_unit_cell
       procedure :: set_mag_linrot_skrym_square => set_mag_linrot_skrym_square
       procedure :: set_mag_linrot_skrym_honey => set_mag_linrot_skrym_honey
       procedure :: set_honey_snd_nearest => set_honey_snd_nearest
+      procedure :: find_lattice_vectors => find_lattice_vectors
       procedure :: Bcast_UC => Bcast_UC
       procedure :: setup_honey => setup_honey
       procedure :: make_hexagon => make_hexagon
@@ -436,7 +437,7 @@ contains
    subroutine make_honeycomb_line(self, line, site_type)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8), allocatable              :: line(:, :)
+      real(8), allocatable              :: line(:, :), conn_vecs(:, :)
       integer, allocatable              :: site_type(:)
       real(8)                           :: shift_mtx(3, 3), conn_mtx(3, 3), transf_mtx(3, 3), base_len_uc, posA(3), &
                                            posB(3), posC(3), posD(3),pos(3), conn_vec_1(3), conn_vec_2(3), l, conn_proj(3)
@@ -462,35 +463,18 @@ contains
       transf_mtx(3, :) = [0d0, 0d0, 0d0]
       !so far only spirals along connection vectors
       if (trim(self%mag_type) == "1Dspiral") then
-         conn_vec_1 = matmul(transpose(shift_mtx), self%wavevector)
-         if (norm2(conn_vec_1) < pos_eps) then
-            write(*,*) "q-vector is zero!", conn_vec_1
-            call MPI_Abort(MPI_COMM_WORLD, 23, ierr)
-         endif
-         conn_proj = matmul(conn_mtx, conn_vec_1)
-         if (abs(conn_proj(1) - conn_proj(2)) < pos_eps) then
-            conn_vec_2 = conn_mtx(3, :)
-         elseif (abs(conn_proj(3) - conn_proj(2)) < pos_eps) then
-            conn_vec_2 = conn_mtx(1, :)
-         elseif (abs(conn_proj(1) - conn_proj(3)) < pos_eps) then
-            conn_vec_2 = conn_mtx(2, :)
-         elseif (conn_proj(1) > conn_proj(2) .AND. conn_proj(1) > conn_proj(3)) then
-            conn_vec_2 = conn_mtx(1, :)
-         elseif (conn_proj(2) > conn_proj(1) .AND. conn_proj(2) > conn_proj(3)) then
-            conn_vec_2 = conn_mtx(2, :)
-         elseif (conn_proj(3) > conn_proj(2) .AND. conn_proj(3) > conn_proj(1)) then
-            conn_vec_2 = conn_mtx(3, :)
-         endif
+         call find_conn_vecs(self,conn_vecs)
+         conn_vec_1 = conn_vecs(1, :)
+         conn_vec_2 = conn_vecs(2, :)
       else
          conn_vec_1 = shift_mtx(1, :)
          conn_vec_2 = shift_mtx(2, :)
       endif
-
       allocate (line(self%num_atoms, 3))
       allocate (site_type(self%num_atoms))
       posA = -0.5*self%lattice_constant*[0d0,1d0,0d0]!conn_mtx(3, :)
       posB = 0.5*self%lattice_constant*[0d0,1d0,0d0]!-conn_mtx(2, :)
-      posC = posA + conn_mtx(2, :)
+      posC = posA + conn_mtx(3, :)
       posD = posB - conn_mtx(3, :)
       pos = -1d0*(self%atom_per_dim - 1)/2d0*conn_vec_1
       do i = 1, self%atom_per_dim
@@ -504,24 +488,94 @@ contains
          line(ii + 4, :) = posD + pos
          site_type(ii + 4) = A_site
          pos = pos + conn_vec_1
-         !if (mod(i - 1, 2) == 0) then
-         !   line(i, :) = posA + pos
-         !   site_type(i) = A_site
-         !else
-         !   line(i, :) = posB + pos! - conn_vec_2
-         !   site_type(i) = B_site
-         !   pos = pos + conn_vec_1
-         !endif
       enddo
    end subroutine make_honeycomb_line
+   subroutine find_lattice_vectors(self,wavevector,lattice)
+      implicit none
+      class(unit_cell), intent(inout)   :: self
+      real(8)                           :: temp(3), shift_mtx(3, 3)
+      real(8), allocatable              :: lattice(:,:)
+
+      shift_mtx(1, :) = l*[1d0, 0d0, 0d0]!1
+      shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
+      shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
+      allocate(lattice(2, 3))
+      temp = matmul(transpose(shift_mtx), wavevector)
+      lattice(1, :) = self%atom_per_dim*temp
+      !construct second perpendicular lattice vector of correct length
+      temp = cross_prod(temp,[0d0,0d0,1d0])
+      !check if temp is parallel to any of the shift_mtx
+      if (cross_prod(temp,shift_mtx(1, :)) < pos_eps) then
+         lattice(2, :) = shift_mtx(1, :)
+      elseif (cross_prod(temp,shift_mtx(2, :)) < pos_eps) then
+         lattice(2, :) = shift_mtx(2, :)
+      elseif (cross_prod(temp,shift_mtx(3, :)) < pos_eps) then
+         lattice(2, :) = shift_mtx(3, :)
+      else
+         wave_proj = matmul(shift_mtx,temp)
+         check = 100d0
+         do i=1, 3
+            proj = abs(wave_proj(i))
+            if (proj < check .AND. proj > pos_eps) then
+               check = proj
+            endif
+         enddo
+         wave_proj = wave_proj/check
+         do i=1, 3
+            if (wave_proj(i)-int(wave_proj(i)) > pos_eps) then
+               write(*,*) "Coefficients of 2nd lattice vector are not integer!", wave_proj
+            endif
+         enddo
+         lattice(2, :) = matmul(transpose(shift_mtx),wave_proj)
+      endif
+      deallocate(temp,shift_mtx)
+   end subroutine find_lattice_vectors
+
+   subroutine find_conn_vecs(self,conn_vecs)
+      implicit none
+      class(unit_cell), intent(inout)   :: self
+      real(8)                           :: temp(3), conn_mtx(3, 3), shift_mtx(3, 3), conn_vec_1(3), conn_vec_2(3)
+      real(8), allocatable              :: conn_vecs(:,:)
+      
+      !conn to next honey neighbor
+      conn_mtx(1, :) = self%lattice_constant*[0d0, 1d0, 0d0]!1
+      conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]!2
+      conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]!3
+      !conn to next honey unit cell
+      shift_mtx(1, :) = l*[1d0, 0d0, 0d0]!1
+      shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
+      shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
+      conn_vec_1 = matmul(transpose(shift_mtx), self%wavevector)
+      if (norm2(conn_vec_1) < pos_eps) then
+         write(*,*) "q-vector is zero!", conn_vec_1
+         call MPI_Abort(MPI_COMM_WORLD, 23, ierr)
+      endif
+      conn_proj = matmul(conn_mtx, conn_vec_1)
+      if (abs(conn_proj(1) - conn_proj(2)) < pos_eps) then
+         conn_vec_2 = conn_mtx(3, :)
+      elseif (abs(conn_proj(3) - conn_proj(2)) < pos_eps) then
+         conn_vec_2 = conn_mtx(1, :)
+      elseif (abs(conn_proj(1) - conn_proj(3)) < pos_eps) then
+         conn_vec_2 = conn_mtx(2, :)
+      elseif (conn_proj(1) > conn_proj(2) .AND. conn_proj(1) > conn_proj(3)) then
+         conn_vec_2 = conn_mtx(1, :)
+      elseif (conn_proj(2) > conn_proj(1) .AND. conn_proj(2) > conn_proj(3)) then
+         conn_vec_2 = conn_mtx(2, :)
+      elseif (conn_proj(3) > conn_proj(2) .AND. conn_proj(3) > conn_proj(1)) then
+         conn_vec_2 = conn_mtx(3, :)
+      endif
+      allocate(conn_vecs(2, 3))
+      conn_vecs(1, :) = conn_vec_1
+      conn_vecs(2, :) = conn_vec_2
+   end subroutine find_conn_vecs
 
    subroutine init_unit_honey_line(self)
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: transl_mtx(3, 3), conn_mtx(3, 3), shift_mtx(3, 3)
-      real(8)                           :: lattice(2, 3), temp(3),base_len_uc, l, wave_proj(3), check 
+      real(8)                           :: temp(3),base_len_uc, l, wave_proj(3), check 
       real(8)                           :: proj
-      real(8), allocatable              :: line(:, :)
+      real(8), allocatable              :: lattice(:, :), line(:, :)
       integer, allocatable              :: site_type(:)
       integer                           :: apd, i, check_idx, j
       apd = self%atom_per_dim
@@ -533,30 +587,10 @@ contains
       shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
       shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
       !spiral uc lat vecs
-      temp = matmul(transpose(shift_mtx), self%wavevector)
-      lattice(1, :) = self%atom_per_dim*temp
-      self%lattice(:, 1) = lattice(1, 1:2)
-      !construct second perpendicular lattice vector of correct length
-      temp = cross_prod(temp,[0d0,0d0,1d0])
-      wave_proj = matmul(shift_mtx,temp)
-      check = 100d0
-      do i=1, 3
-         proj = abs(wave_proj(i))
-         if (proj < check .AND. proj > pos_eps) then
-            check = proj
-         endif
-      enddo
-      wave_proj = wave_proj/check
-      do i=1, 3
-         if (wave_proj(i)-int(wave_proj(i)) > pos_eps) then
-            write(*,*) "Coefficients of 2nd lattice vector are not integer!", wave_proj
-         endif
-      enddo
-      lattice(2, :) = matmul(transpose(shift_mtx),wave_proj)
-      self%lattice(:, 2) = lattice(2, 1:2)
+      call find_lattice_vectors(self%wavevector,lattice)
+      self%lattice(:, :) = lattice(:, 1:2)
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
-
       allocate (self%atoms(self%num_atoms))
       ! only one kind of atoms of the honey-comb unit cell needs
       ! the other comes through complex conjugate
