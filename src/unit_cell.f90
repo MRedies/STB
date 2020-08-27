@@ -524,7 +524,7 @@ contains
       temp = cross_prod(temp,[0d0,0d0,1d0])
       wave_proj = matmul(shift_mtx,temp)
       check = 100d0
-      do i=2, 3
+      do i=1, 3
          proj = abs(wave_proj(i))
          if (proj < check .AND. proj > pos_eps) then
             check = proj
@@ -536,7 +536,7 @@ contains
             write(*,*) "Coefficients of 2nd lattice vector are not integer!", wave_proj
          endif
       enddo
-      lattice(2, :) = wave_proj
+      lattice(2, :) = matmul(transpose(shift_mtx),wave_proj)
       self%lattice(:, 1) = lattice(2, 1:2)
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
