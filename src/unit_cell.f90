@@ -494,10 +494,11 @@ contains
    subroutine find_lattice_vectors(self,lattice)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: temp(3), shift_mtx(3, 3), wave_proj(3), proj, check
+      real(8)                           :: temp(3), shift_mtx(3, 3), wave_proj(3), proj, check, l
       real(8), allocatable              :: lattice(:,:)
       integer                           :: i
 
+      l = 2*cos(deg_30)*self%lattice_constant
       shift_mtx(1, :) = l*[1d0, 0d0, 0d0]!1
       shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
       shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
@@ -535,10 +536,12 @@ contains
    subroutine find_conn_vecs(self,conn_vecs)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: temp(3), conn_mtx(3, 3), shift_mtx(3, 3), conn_proj(3) ,conn_vec_1(3), conn_vec_2(3)
+      real(8)                           :: temp(3), conn_mtx(3, 3), shift_mtx(3, 3), conn_proj(3) ,conn_vec_1(3), conn_vec_2(3) &
+                                           , l
       real(8), allocatable              :: conn_vecs(:,:)
       integer                           :: ierr
       
+      l = 2*cos(deg_30)*self%lattice_constant
       !conn to next honey neighbor
       conn_mtx(1, :) = self%lattice_constant*[0d0, 1d0, 0d0]!1
       conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]!2
