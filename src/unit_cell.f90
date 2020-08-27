@@ -1058,13 +1058,13 @@ contains
          call self%set_mag_linrot_1D_spiral(center, UC_l)
       endif
    end subroutine set_mag_linrot_1D_spiral_honey
-   subroutine set_mag_site(self, ii, j, psi)
+   subroutine set_mag_site(self, ii, j, center, psi)
       implicit none
       class(unit_cell)    :: self
       integer, intent(in) :: ii, j
-      real(8), intent(in) :: psi
+      real(8), intent(in) :: psi, center(3)
       integer             :: site_type, i
-      real(8)             :: conn(3), center(3), phase_fac, x, R(3,3), m(3)
+      real(8)             :: conn(3), phase_fac, x, R(3,3), m(3)
       i = ii + j
       site_type = self%atoms(i)%site_type
       conn = center - self%atoms(i)%pos
@@ -1104,7 +1104,7 @@ contains
       do i = 1, self%atom_per_dim
          ii = 4*(i-1)
          do j = 1, 4
-            call self%set_mag_site(ii, j, psi)
+            call self%set_mag_site(ii, j, center ,psi)
          enddo
       enddo
    end subroutine set_mag_linrot_1D_spiral
