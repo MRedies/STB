@@ -463,7 +463,7 @@ contains
       transf_mtx(3, :) = [0d0, 0d0, 0d0]
       !so far only spirals along connection vectors
       if (trim(self%mag_type) == "1Dspiral") then
-         call find_conn_vecs(self,conn_vecs)
+         call self%find_conn_vecs(conn_vecs)
          conn_vec_1 = conn_vecs(1, :)
          conn_vec_2 = conn_vecs(2, :)
       else
@@ -495,7 +495,7 @@ contains
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: temp(3), shift_mtx(3, 3), wave_proj(3), proj, check, l
-      real(8), allocatable              :: lattice(:,:)
+      real(8), allocatable              :: lattice(:, :)
       integer                           :: i
 
       l = 2*cos(deg_30)*self%lattice_constant
@@ -508,11 +508,11 @@ contains
       !construct second perpendicular lattice vector of correct length
       temp = cross_prod(temp,[0d0,0d0,1d0])
       !check if temp is parallel to any of the shift_mtx
-      if (cross_prod(temp,shift_mtx(1, :)) < pos_eps) then
+      if (norm2(cross_prod(temp,shift_mtx(1, :))) < pos_eps) then
          lattice(2, :) = shift_mtx(1, :)
-      elseif (cross_prod(temp,shift_mtx(2, :)) < pos_eps) then
+      elseif (norm2(cross_prod(temp,shift_mtx(2, :))) < pos_eps) then
          lattice(2, :) = shift_mtx(2, :)
-      elseif (cross_prod(temp,shift_mtx(3, :)) < pos_eps) then
+      elseif (norm2(cross_prod(temp,shift_mtx(3, :))) < pos_eps) then
          lattice(2, :) = shift_mtx(3, :)
       else
          wave_proj = matmul(shift_mtx,temp)
@@ -592,7 +592,7 @@ contains
       shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
       shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
       !spiral uc lat vecs
-      call find_lattice_vectors(lattice)
+      call self%find_lattice_vectors(lattice)
       self%lattice(:, :) = lattice(:, 1:2)
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
