@@ -523,7 +523,7 @@ contains
       !construct second perpendicular lattice vector of correct length
       temp = cross_prod(temp,[0d0,0d0,1d0])
       wave_proj = matmul(shift_mtx,temp)
-      check = max(abs(wave_proj))
+      check = max(abs(max(wave_proj)),abs(min(wave_proj)))
       do i=1, 3
          proj = abs(wave_proj(i))
          if (proj < check .AND. proj > pos_eps) then
