@@ -439,8 +439,8 @@ contains
       real(8), allocatable              :: line(:, :)
       integer, allocatable              :: site_type(:)
       real(8)                           :: shift_mtx(3, 3), conn_mtx(3, 3), transf_mtx(3, 3), base_len_uc, posA(3), &
-                                           posB(3), pos(3), conn_vec_1(3), conn_vec_2(3), l, conn_proj(3)
-      integer                           :: num_atoms, i, ierr
+                                           posB(3), posC(3), posD(3),pos(3), conn_vec_1(3), conn_vec_2(3), l, conn_proj(3)
+      integer                           :: num_atoms, i, ii, j, ierr
 
       if (mod(self%num_atoms, 2) /= 0) then
          write (*, *) "number of atoms in honey_comb line has to be even"
@@ -486,16 +486,28 @@ contains
       allocate (site_type(self%num_atoms))
       posA = -0.5*self%lattice_constant*[0d0,1d0,0d0]!conn_mtx(3, :)
       posB = 0.5*self%lattice_constant*[0d0,1d0,0d0]!-conn_mtx(2, :)
+      posC = posA + conn_mtx(2, :)
+      posD = posB - conn_mtx(2, :)
       pos = -1d0*(self%atom_per_dim - 1)/2d0*conn_vec_1
-      do i = 1, self%num_atoms
-         if (mod(i - 1, 2) == 0) then
-            line(i, :) = posA + pos
-            site_type(i) = A_site
-         else
-            line(i, :) = posB + pos! - conn_vec_2
-            site_type(i) = B_site
-            pos = pos + conn_vec_1
-         endif
+      do i = 1, self%atom_per_dim
+         ii = 4*(i - 1)
+         line(ii + 1, :) = posA + pos
+         site_type(ii + 1) = A_site
+         line(ii + 2, :) = posB + pos
+         site_type(ii + 2) = B_site
+         line(ii + 3, :) = posC + pos
+         site_type(ii + 3) = B_site
+         line(ii + 4, :) = posD + pos
+         site_type(ii + 4) = A_site
+         pos = pos + conn_vec_1
+         !if (mod(i - 1, 2) == 0) then
+         !   line(i, :) = posA + pos
+         !   site_type(i) = A_site
+         !else
+         !   line(i, :) = posB + pos! - conn_vec_2
+         !   site_type(i) = B_site
+         !   pos = pos + conn_vec_1
+         !endif
       enddo
    end subroutine make_honeycomb_line
 
@@ -1363,7 +1375,7 @@ contains
       integer, intent(in)   :: n
       integer                  :: n_atm
 
-      n_atm = 2*n!6+(n-1)*4
+      n_atm = 4*n
 
    end function calc_num_atoms_line_honey
 
