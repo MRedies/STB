@@ -490,7 +490,8 @@ contains
          pos = pos + conn_vec_1
       enddo
    end subroutine make_honeycomb_line
-   subroutine find_lattice_vectors(self,wavevector,lattice)
+
+   subroutine find_lattice_vectors(self,lattice)
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: temp(3), shift_mtx(3, 3)
@@ -500,7 +501,7 @@ contains
       shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
       shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
       allocate(lattice(2, 3))
-      temp = matmul(transpose(shift_mtx), wavevector)
+      temp = matmul(transpose(shift_mtx), self%wavevector)
       lattice(1, :) = self%atom_per_dim*temp
       !construct second perpendicular lattice vector of correct length
       temp = cross_prod(temp,[0d0,0d0,1d0])
@@ -536,6 +537,7 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: temp(3), conn_mtx(3, 3), shift_mtx(3, 3), conn_proj(3) ,conn_vec_1(3), conn_vec_2(3)
       real(8), allocatable              :: conn_vecs(:,:)
+      integer                           :: ierr
       
       !conn to next honey neighbor
       conn_mtx(1, :) = self%lattice_constant*[0d0, 1d0, 0d0]!1
@@ -587,7 +589,7 @@ contains
       shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
       shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
       !spiral uc lat vecs
-      call find_lattice_vectors(self%wavevector,lattice)
+      call find_lattice_vectors(lattice)
       self%lattice(:, :) = lattice(:, 1:2)
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
