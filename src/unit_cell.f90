@@ -534,7 +534,7 @@ contains
    subroutine find_conn_vecs(self,conn_vecs)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: temp(3), conn_mtx(3, 3), shift_mtx(3, 3), conn_vec_1(3), conn_vec_2(3)
+      real(8)                           :: temp(3), conn_mtx(3, 3), shift_mtx(3, 3), conn_proj(3) ,conn_vec_1(3), conn_vec_2(3)
       real(8), allocatable              :: conn_vecs(:,:)
       
       !conn to next honey neighbor
