@@ -79,6 +79,7 @@ module Class_unit_cell
       procedure :: set_honey_snd_nearest => set_honey_snd_nearest
       procedure :: find_lattice_vectors => find_lattice_vectors
       procedure :: find_conn_vectors => find_conn_vectors
+      procedure :: set_mag_site => set_mag_site
       procedure :: Bcast_UC => Bcast_UC
       procedure :: setup_honey => setup_honey
       procedure :: make_hexagon => make_hexagon
@@ -1103,7 +1104,7 @@ contains
       do i = 1, self%atom_per_dim
          ii = 4*(i-1)
          do j = 1, 4
-            call set_mag_site(ii, j, psi)
+            call self%set_mag_site(ii, j, psi)
          enddo
       enddo
    end subroutine set_mag_linrot_1D_spiral
