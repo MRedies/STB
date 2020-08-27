@@ -78,6 +78,7 @@ module Class_unit_cell
       procedure :: set_mag_linrot_skrym_honey => set_mag_linrot_skrym_honey
       procedure :: set_honey_snd_nearest => set_honey_snd_nearest
       procedure :: find_lattice_vectors => find_lattice_vectors
+      procedure :: find_conn_vectors => find_conn_vectors
       procedure :: Bcast_UC => Bcast_UC
       procedure :: setup_honey => setup_honey
       procedure :: make_hexagon => make_hexagon
@@ -463,7 +464,7 @@ contains
       transf_mtx(3, :) = [0d0, 0d0, 0d0]
       !so far only spirals along connection vectors
       if (trim(self%mag_type) == "1Dspiral") then
-         call self%find_conn_vecs(conn_vecs)
+         call self%find_conn_vectors(conn_vecs)
          conn_vec_1 = conn_vecs(1, :)
          conn_vec_2 = conn_vecs(2, :)
       else
@@ -533,7 +534,7 @@ contains
       endif
    end subroutine find_lattice_vectors
 
-   subroutine find_conn_vecs(self,conn_vecs)
+   subroutine find_conn_vectors(self,conn_vecs)
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: temp(3), conn_mtx(3, 3), shift_mtx(3, 3), conn_proj(3) ,conn_vec_1(3), conn_vec_2(3) &
@@ -572,7 +573,7 @@ contains
       allocate(conn_vecs(2, 3))
       conn_vecs(1, :) = conn_vec_1
       conn_vecs(2, :) = conn_vec_2
-   end subroutine find_conn_vecs
+   end subroutine find_conn_vectors
 
    subroutine init_unit_honey_line(self)
       implicit none
