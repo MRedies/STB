@@ -1079,12 +1079,12 @@ contains
       i = ii + j
       site_type = self%atoms(i)%site_type
       conn = center - self%atoms(i)%pos
-      phase_fac = 0d0!my_norm2((center) - self%atoms(j)%pos)
+      phase_fac = my_norm2((center) - self%atoms(j)%pos)
       if (self%atoms(i)%site_type /= self%atoms(j)%site_type) then
          write(*,*) "Site types do not agree!"
       endif
       if (site_type == 0) then
-         x = dot_product(wavevector,conn) - phase_fac
+         x = dot_product(wavevector,conn - phase_fac)
          R = R_mtx(psi*x, self%axis)
          m = matmul(R, self%m0_A)
       elseif (site_type == 1) then
