@@ -594,7 +594,7 @@ contains
       shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
       !spiral uc lat vecs
       call self%find_lattice_vectors(lattice)
-      self%lattice(:, :) = lattice(:, 1:2)
+      self%lattice(:, :) = transpose(lattice(:, 1:2))
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
       allocate (self%atoms(self%num_atoms))
