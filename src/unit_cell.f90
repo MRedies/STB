@@ -1135,8 +1135,10 @@ contains
          z(i) = self%atoms(i)%pos(3)
 
          if (trim(self%mag_type) == "anticol") then
-            phi(i) = self%anticol_phi(i)
-            theta(i) = self%anticol_theta(i)
+            phi(i) = self%atoms(i)%m_phi
+            theta(i) = self%atoms(i)%m_theta
+            !phi(i) = self%anticol_phi(i)
+            !theta(i) = self%anticol_theta(i)
          else
             phi(i) = self%atoms(i)%m_phi
             theta(i) = self%atoms(i)%m_theta
