@@ -1078,8 +1078,8 @@ contains
       psi = 2d0*PI/wavelength
       i = ii + j
       site_type = self%atoms(i)%site_type
-      conn = center - self%atoms(i)%pos
-      phase_fac = my_norm2((center) - self%atoms(j)%pos)
+      conn = self%atoms(ii)%pos! - self%atoms(j)%pos
+      phase_fac = 0d0!
       if (self%atoms(i)%site_type /= self%atoms(j)%site_type) then
          write(*,*) "Site types do not agree!"
       endif
@@ -1092,7 +1092,7 @@ contains
          R = R_mtx(psi*x, self%axis)
          m = matmul(R, self%m0_B)
       endif
-         call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
+      call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
    end subroutine set_mag_site
 
    subroutine set_mag_linrot_1D_spiral(self, center, UC_l)
