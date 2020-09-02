@@ -1064,20 +1064,31 @@ contains
       integer, intent(in) :: ii, j
       real(8), intent(in) :: psi, center(3)
       integer             :: site_type, i
-      real(8)             :: conn(3), phase_fac, x, R(3,3), m(3)
+      real(8)             :: conn(3), phase_fac, x, l, R(3,3), shift_mtx(3,3), m(3), wavevector(3) &
+                             , wavevector_len, wavelength
+      
+      l = 2*cos(deg_30)*self%lattice_constant
+      shift_mtx(1, :) = l*[1d0, 0d0, 0d0]!1
+      shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
+      shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
+      wavevector = matmul(transpose(shift_mtx), self%wavevector)
+      wavevector_len = my_norm2(wavevector)
+      wavevector = wavevector/wavevector_len
+      wavelength = UC_l/self%n_wind
+      psi = 2d0*PI/wavelength
       i = ii + j
       site_type = self%atoms(i)%site_type
       conn = center - self%atoms(i)%pos
-      phase_fac = my_norm2(center - self%atoms(j)%pos)
+      phase_fac = my_norm2((center) - self%atoms(j)%pos)
       if (self%atoms(i)%site_type /= self%atoms(j)%site_type) then
          write(*,*) "Site types do not agree!"
       endif
       if (site_type == 0) then
-         x = my_norm2(conn) - phase_fac
+         x = matmul(wavevector,conn) - phase_fac
          R = R_mtx(psi*x, self%axis)
          m = matmul(R, self%m0_A)
       elseif (site_type == 1) then
-         x = my_norm2(conn) - phase_fac
+         x = matmul(wavevector,conn) - phase_fac
          R = R_mtx(psi*x, self%axis)
          m = matmul(R, self%m0_B)
       endif
@@ -1091,20 +1102,10 @@ contains
       real(8)             :: psi, x, wavelength, R(3, 3), shift_mtx(3, 3), conn(3), axis(3), wavevector(3), &
                              wavevector_len, phase_fac, l
       integer             :: site_type, i, ii, j
-      l = 2*cos(deg_30)*self%lattice_constant
-      shift_mtx(1, :) = l*[1d0, 0d0, 0d0]!1
-      shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
-      shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
-      wavevector = matmul(transpose(shift_mtx), self%wavevector)
-      wavevector_len = my_norm2(wavevector)
-      wavevector = wavevector/wavevector_len
-      axis = self%axis
-      wavelength = UC_l/self%n_wind
-      psi = 2d0*PI/wavelength
       do i = 1, self%atom_per_dim
          ii = 4*(i-1)
          do j = 1, 4
-            call self%set_mag_site(ii, j, center ,psi)
+            call self%set_mag_site(ii, j, center)
          enddo
       enddo
    end subroutine set_mag_linrot_1D_spiral
