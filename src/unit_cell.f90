@@ -1058,14 +1058,14 @@ contains
          call self%set_mag_linrot_1D_spiral(center, UC_l)
       endif
    end subroutine set_mag_linrot_1D_spiral_honey
-   subroutine set_mag_site(self, ii, j, center, psi)
+   subroutine set_mag_site(self, ii, j, center)
       implicit none
       class(unit_cell)    :: self
-      integer, intent(in) :: ii, j
-      real(8), intent(in) :: psi, center(3)
+      integer, intent(in) :: ii, j, site_type
+      real(8), intent(in) :: center(3), UC_l
       integer             :: site_type, i
       real(8)             :: conn(3), phase_fac, x, l, R(3,3), shift_mtx(3,3), m(3), wavevector(3) &
-                             , wavevector_len, wavelength
+                             , wavevector_len, wavelength, psi
       
       l = 2*cos(deg_30)*self%lattice_constant
       shift_mtx(1, :) = l*[1d0, 0d0, 0d0]!1
@@ -1099,13 +1099,11 @@ contains
       implicit none
       class(unit_cell)    :: self
       real(8), intent(in) :: center(3), UC_l
-      real(8)             :: psi, x, wavelength, R(3, 3), shift_mtx(3, 3), conn(3), axis(3), wavevector(3), &
-                             wavevector_len, phase_fac, l
-      integer             :: site_type, i, ii, j
+      integer             :: i, ii, j
       do i = 1, self%atom_per_dim
          ii = 4*(i-1)
          do j = 1, 4
-            call self%set_mag_site(ii, j, center)
+            call self%set_mag_site(ii, j, center, UC_l)
          enddo
       enddo
    end subroutine set_mag_linrot_1D_spiral
