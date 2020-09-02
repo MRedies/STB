@@ -1088,7 +1088,7 @@ contains
          R = R_mtx(psi*x, self%axis)
          m = matmul(R, self%m0_A)
       elseif (site_type == 1) then
-         x = dot_product(wavevector,conn) - phase_fac
+         x = dot_product(wavevector,conn - phase_fac)
          R = R_mtx(psi*x, self%axis)
          m = matmul(R, self%m0_B)
       endif
