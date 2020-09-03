@@ -532,8 +532,8 @@ contains
             endif
          enddo
          lattice(2, :) = matmul(transpose(shift_mtx),wave_proj)
-         write(*,*) "Lattice vectors orthogonal:", dot_product(lattice(1,:),lattice(2,:))
       endif
+      write(*,*) "Lattice vectors orthogonal:", dot_product(lattice(1,:),lattice(2,:))
    end subroutine find_lattice_vectors
 
    subroutine find_conn_vectors(self,conn_vecs)
