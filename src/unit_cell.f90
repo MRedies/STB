@@ -607,7 +607,7 @@ contains
       conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]
       !translates to neighboring unit cells
       check_idx = 0
-      transl_mtx(1,:) = lattice(1,:)
+      transl_mtx(1,:) = matmul(shift_mtx,self%wavevector)!lattice(1,:)
       transl_mtx(2,:) = lattice(2,:)
       !do i = 1, 3
       !  check = norm2(cross_prod(lattice(1, :),shift_mtx(i, :)))
