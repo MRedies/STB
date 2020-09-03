@@ -595,7 +595,7 @@ contains
       shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
       !spiral uc lat vecs
       call self%find_lattice_vectors(lattice)
-      self%lattice(:, :) = transpose(lattice(:, 1:2))
+      self%lattice(:, :) = lattice(:, 1:2)
       write(*,*) "lattice vecs orthogonal", dot_product(self%lattice(1,:),self%lattice(2,:))
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
@@ -610,15 +610,6 @@ contains
       check_idx = 0
       transl_mtx(1,:) = matmul(shift_mtx,self%wavevector)!lattice(1,:)
       transl_mtx(2,:) = lattice(2,:)
-      !do i = 1, 3
-      !  check = norm2(cross_prod(lattice(1, :),shift_mtx(i, :)))
-      !  if (check > pos_eps .AND. check_idx < 2) then
-      !      transl_mtx(i, :) = shift_mtx(i, :)
-      !      check_idx = check_idx + 1
-      !  else
-      !      transl_mtx(i, :) = lattice(1, :)
-      !  endif
-      !enddo
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
