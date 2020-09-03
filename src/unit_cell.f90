@@ -596,6 +596,7 @@ contains
       !spiral uc lat vecs
       call self%find_lattice_vectors(lattice)
       self%lattice(:, :) = transpose(lattice(:, 1:2))
+      write(*,*) "lattice vecs orthogonal", dot_product(self%lattice(1,:),self%lattice(2,:))
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
       allocate (self%atoms(self%num_atoms))
