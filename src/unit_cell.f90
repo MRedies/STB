@@ -533,7 +533,6 @@ contains
          enddo
          lattice(2, :) = matmul(transpose(shift_mtx),wave_proj)
       endif
-      write(*,*) "Lattice vectors orthogonal:", dot_product(lattice(1,:),lattice(2,:))
    end subroutine find_lattice_vectors
 
    subroutine find_conn_vectors(self,conn_vecs)
@@ -596,7 +595,9 @@ contains
       !spiral uc lat vecs
       call self%find_lattice_vectors(lattice)
       self%lattice(:, :) = lattice(:, 1:2)
-      write(*,*) "lattice vecs orthogonal", dot_product(self%lattice(1,:),self%lattice(2,:))
+      if (dot_product(self%lattice(1, :),self%lattice(2, :)) > pos_eps) then
+         write(*,*) "Lattice vectors are not orthogonal!", dot_product(self%lattice(1, :),self%lattice(2, :))
+      endif
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
       allocate (self%atoms(self%num_atoms))
@@ -608,7 +609,7 @@ contains
       conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]
       !translates to neighboring unit cells
       check_idx = 0
-      transl_mtx(1,:) = matmul(shift_mtx,self%wavevector)!lattice(1,:)
+      transl_mtx(1,:) = matmul(transpose(shift_mtx),self%wavevector)!lattice(1,:)
       transl_mtx(2,:) = lattice(2,:)
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
