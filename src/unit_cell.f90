@@ -532,6 +532,7 @@ contains
             endif
          enddo
          lattice(2, :) = matmul(transpose(shift_mtx),wave_proj)
+         write(*,*) "Lattice vectors orthogonal:", dot_product(lattice(1,:),lattice(2,:))
       endif
    end subroutine find_lattice_vectors
 
@@ -579,7 +580,7 @@ contains
    subroutine init_unit_honey_line(self)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: transl_mtx(3, 3), conn_mtx(3, 3), shift_mtx(3, 3)
+      real(8)                           :: transl_mtx(2, 3), conn_mtx(3, 3), shift_mtx(3, 3)
       real(8)                           :: temp(3),base_len_uc, l, wave_proj(3), check
       real(8), allocatable              :: lattice(:, :), line(:, :)
       integer, allocatable              :: site_type(:)
@@ -606,14 +607,16 @@ contains
       conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]
       !translates to neighboring unit cells
       check_idx = 0
-      do i = 1, 3
-        check = norm2(cross_prod(lattice(1, :),shift_mtx(i, :)))
-        if (check > pos_eps .AND. check_idx < 2) then
-            transl_mtx(i, :) = shift_mtx(i, :)
-            check_idx = check_idx + 1
-        else
-            transl_mtx(i, :) = lattice(1, :)
-        endif
+      transl_mtx(1,:) = lattice(1,:)
+      transl_mtx(2,:) = lattice(2,:)
+      !do i = 1, 3
+      !  check = norm2(cross_prod(lattice(1, :),shift_mtx(i, :)))
+      !  if (check > pos_eps .AND. check_idx < 2) then
+      !      transl_mtx(i, :) = shift_mtx(i, :)
+      !      check_idx = check_idx + 1
+      !  else
+      !      transl_mtx(i, :) = lattice(1, :)
+      !  endif
       enddo
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
