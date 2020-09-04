@@ -613,7 +613,7 @@ contains
       transl_mtx(2,:) = lattice(2,:)
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
-      call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn]), transl_mtx)!, shift_mtx
+      call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn] transl_mtx)!, shift_mtx
       call self%set_honey_snd_nearest()
 
       if (trim(self%mag_type) == "ferro_uiaeuiaeuia") then
