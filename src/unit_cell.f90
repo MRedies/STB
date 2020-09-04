@@ -614,6 +614,7 @@ contains
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], shift_mtx)!transl_mtx)
+      call self%set_honey_snd_nearest()
 
       if (trim(self%mag_type) == "ferro_uiaeuiaeuia") then
          call self%set_mag_ferro()
