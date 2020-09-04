@@ -579,7 +579,7 @@ contains
    subroutine init_unit_honey_line(self)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: transl_mtx(2, 3), conn_mtx(3, 3), shift_mtx(3, 3)
+      real(8)                           :: transl_mtx(3, 3), conn_mtx(3, 3), shift_mtx(3, 3)
       real(8)                           :: temp(3),base_len_uc, l, wave_proj(3), check
       real(8), allocatable              :: lattice(:, :), line(:, :)
       integer, allocatable              :: site_type(:)
@@ -610,7 +610,8 @@ contains
       !translates to neighboring unit cells
       check_idx = 0
       transl_mtx(1,:) = matmul(transpose(shift_mtx),self%wavevector)!lattice(1,:)
-      transl_mtx(2,:) = lattice(2,:)
+      transl_mtx(2,:) = lattice(2, :)
+      transl_mtx(3,:) = lattice(1, :) + lattice(2, :)
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)!, shift_mtx)!
