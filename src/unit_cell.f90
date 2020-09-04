@@ -609,11 +609,11 @@ contains
       conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]
       !translates to neighboring unit cells
       check_idx = 0
-      !transl_mtx(1,:) = matmul(transpose(shift_mtx),self%wavevector)!lattice(1,:)
-      !transl_mtx(2,:) = lattice(2,:)
+      transl_mtx(1,:) = matmul(transpose(shift_mtx),self%wavevector)!lattice(1,:)
+      transl_mtx(2,:) = lattice(2,:)
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
-      call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], shift_mtx)!, transl_mtx)!
+      call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)!, shift_mtx)!
       call self%set_honey_snd_nearest()
 
       if (trim(self%mag_type) == "ferro_uiaeuiaeuia") then
