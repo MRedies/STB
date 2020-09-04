@@ -486,9 +486,9 @@ contains
          line(ii + 2, :) = posB + pos
          site_type(ii + 2) = B_site
          line(ii + 3, :) = posC + pos
-         site_type(ii + 3) = A_site
+         site_type(ii + 3) = B_site
          line(ii + 4, :) = posD + pos
-         site_type(ii + 4) = B_site
+         site_type(ii + 4) = A_site
          pos = pos + conn_vec_1
       enddo
    end subroutine make_honeycomb_line
