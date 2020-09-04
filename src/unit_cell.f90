@@ -611,7 +611,7 @@ contains
       check_idx = 0
       transl_mtx(1,:) = matmul(transpose(shift_mtx),self%wavevector)!lattice(1,:)
       transl_mtx(2,:) = lattice(2, :)
-      transl_mtx(3,:) = lattice(1, :) + lattice(2, :)
+      transl_mtx(3,:) = lattice(1, :) - lattice(2, :)
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)!, shift_mtx)!
