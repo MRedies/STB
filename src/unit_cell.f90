@@ -1158,7 +1158,7 @@ contains
       if (trim(self%mag_type) == "1Dspiral") then
          call save_npy(folder//"1Dspiralaxis.npy", self%axis)
          call save_npy(folder//"1Dspiralwavevector.npy", self%wavevector)
-         call save_npy(folder//"1Dspiralconeangle.npy", [self%cone_angle])
+         !call save_npy(folder//"1Dspiralconeangle.npy", [self%cone_angle])
       endif
       call save_npy(folder//"lattice.npy", &
                     self%lattice/self%units%length)
