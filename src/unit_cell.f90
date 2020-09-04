@@ -442,8 +442,8 @@ contains
       real(8), allocatable              :: line(:, :), conn_vecs(:, :)
       integer, allocatable              :: site_type(:)
       real(8)                           :: shift_mtx(3, 3), conn_mtx(3, 3), transf_mtx(3, 3), base_len_uc, posA(3), &
-                                           posB(3), posC(3), posD(3),pos(3), conn_vec_1(3), conn_vec_2(3), l, conn_proj(3)
-      integer                           :: num_atoms, i, ii, j, ierr
+                                           posB(3), posC(3), posD(3),pos(3), conn_vec_1(3), conn_vec_2(3), l
+      integer                           :: i, ii, ierr
 
       if (mod(self%num_atoms, 2) /= 0) then
          write (*, *) "number of atoms in honey_comb line has to be even"
@@ -538,7 +538,7 @@ contains
    subroutine find_conn_vectors(self,conn_vecs)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: temp(3), conn_mtx(3, 3), shift_mtx(3, 3), conn_proj(3) ,conn_vec_1(3), conn_vec_2(3) &
+      real(8)                           :: conn_mtx(3, 3), shift_mtx(3, 3), conn_proj(3) ,conn_vec_1(3), conn_vec_2(3) &
                                            , l
       real(8), allocatable              :: conn_vecs(:,:)
       integer                           :: ierr
@@ -580,10 +580,10 @@ contains
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: transl_mtx(3, 3), conn_mtx(3, 3), shift_mtx(3, 3)
-      real(8)                           :: temp(3),base_len_uc, l, wave_proj(3), check
+      real(8)                           :: base_len_uc, l
       real(8), allocatable              :: lattice(:, :), line(:, :)
       integer, allocatable              :: site_type(:)
-      integer                           :: apd, i, check_idx, j
+      integer                           :: apd, check_idx
       apd = self%atom_per_dim
       self%num_atoms = calc_num_atoms_line_honey(apd)
       base_len_uc = self%lattice_constant
@@ -806,7 +806,6 @@ contains
       implicit none
       class(unit_cell)        :: self
       real(8)                 :: phi_nc, phi_col, theta_nc, theta_col, thetaA, thetaB, phiA, phiB
-      integer                 :: i
       if (mod(self%num_atoms, size(self%anticol_phi)) == 0 &
           .and. mod(self%num_atoms, size(self%anticol_theta)) == 0 &
           .and. size(self%anticol_theta) == 2 &
@@ -1110,7 +1109,7 @@ contains
       implicit none
       class(unit_cell)        :: self
       character(len=*)        :: folder
-      real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:), axis(:)
+      real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
       integer                 :: i, n_neigh
       integer, allocatable :: neigh(:, :)
       integer, allocatable    :: site_type(:), conn_type(:, :)
