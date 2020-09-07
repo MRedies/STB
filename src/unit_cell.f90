@@ -1139,11 +1139,11 @@ contains
       endif
       if (site_type == 0) then
          x = dot_product(wavevector,conn) - phase_fac
-         R = R_mtx(psi*x, self%axis)
+         R = R_mtx(psi*x, 1d0*self%axis)
          m = matmul(R, self%m0_A)
       elseif (site_type == 1) then
          x = dot_product(wavevector,conn) - phase_fac
-         R = R_mtx(psi*x, self%axis)
+         R = R_mtx(psi*x, 1d0*self%axis)
          m = matmul(R, self%m0_B)
       endif
       call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
