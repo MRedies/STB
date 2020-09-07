@@ -77,6 +77,7 @@ module Class_unit_cell
       procedure :: set_mag_linrot_skrym_square => set_mag_linrot_skrym_square
       procedure :: set_mag_linrot_skrym_honey => set_mag_linrot_skrym_honey
       procedure :: set_honey_snd_nearest => set_honey_snd_nearest
+      procedure :: set_honey_snd_nearest_line => set_honey_snd_nearest_line
       procedure :: find_lattice_vectors => find_lattice_vectors
       procedure :: find_conn_vectors => find_conn_vectors
       procedure :: set_mag_site => set_mag_site
@@ -615,7 +616,7 @@ contains
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
-      call self%set_honey_snd_nearest()
+      call self%set_honey_snd_nearest_line(transl_mtx)
 
       if (trim(self%mag_type) == "ferro_uiaeuiaeuia") then
          call self%set_mag_ferro()
@@ -688,6 +689,62 @@ contains
 
       deallocate (hexagon, site_type)
    end subroutine init_unit_honey_hexa
+
+   subroutine set_honey_snd_nearest_line(self,transl_mtx)
+      implicit none
+      class(unit_cell)        :: self
+      integer                 :: i, j, cand, apd
+      real(8)                 :: l, conn_mtx_A(3, 3), conn_mtx_B(3, 3), start_pos(3), &
+                                 conn(3), conn_storage(3, 3)
+      real(8), allocatable    :: tmp(:, :)
+      real(8), intent(in)     :: transl_mtx(3, 3)
+      integer                 :: idx(3), curr_size
+      apd = self%atom_per_dim
+      l = 2d0*cos(deg_30)*self%lattice_constant
+      !transl_mtx(1, :) = apd*l*[1d0, 0d0, 0d0]
+      !transl_mtx(2, :) = apd*l*[0.5d0, sin(deg_60), 0d0]
+      !transl_mtx(3, :) = apd*l*[0.5d0, -sin(deg_60), 0d0]
+
+      !only clockwise connections
+      conn_mtx_A(1, :) = l*[-1d0, 0d0, 0d0]
+      conn_mtx_A(2, :) = l*[0.5d0, sin(deg_60), 0d0]
+      conn_mtx_A(3, :) = l*[0.5d0, -sin(deg_60), 0d0]
+
+      conn_mtx_B(1, :) = -l*[-1d0, 0d0, 0d0]
+      conn_mtx_B(2, :) = -l*[0.5d0, sin(deg_60), 0d0]
+      conn_mtx_B(3, :) = -l*[0.5d0, -sin(deg_60), 0d0]
+
+      do i = 1, self%num_atoms
+         start_pos = self%atoms(i)%pos
+
+         do j = 1, 3
+            if (self%atoms(i)%site_type == A_site) then
+               conn = conn_mtx_A(j, :)
+            elseif (self%atoms(i)%site_type == B_site) then
+               conn = conn_mtx_B(j, :)
+            else
+               call error_msg("2nd nearest only in honey", abort=.True.)
+            endif
+
+            cand = self%gen_find_neigh(start_pos, conn, transl_mtx)
+            if (cand /= -1) then
+               idx(j) = cand
+               conn_storage(j, :) = conn
+            else
+               if (self%me == root) write (*, *) "couldn't make a match"
+            endif
+         enddo
+         !append 1D-arrays
+         self%atoms(i)%neigh_idx = [self%atoms(i)%neigh_idx, idx]
+         self%atoms(i)%conn_type = [self%atoms(i)%conn_type, [snd_nn_conn, snd_nn_conn, snd_nn_conn]]
+         curr_size = size(self%atoms(i)%neigh_conn, 1)
+         allocate (tmp(curr_size + 3, 3))
+         tmp(1:curr_size, :) = self%atoms(i)%neigh_conn
+         tmp(curr_size + 1:curr_size + 3, :) = conn_storage
+         call move_alloc(tmp, self%atoms(i)%neigh_conn)
+      enddo
+
+   end subroutine set_honey_snd_nearest_line
 
    subroutine set_honey_snd_nearest(self)
       implicit none
