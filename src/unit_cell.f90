@@ -693,13 +693,12 @@ contains
    subroutine set_honey_snd_nearest_line(self,transl_mtx)
       implicit none
       class(unit_cell)        :: self
-      integer                 :: i, j, cand, apd
+      integer                 :: i, j, cand
       real(8)                 :: l, conn_mtx_A(3, 3), conn_mtx_B(3, 3), start_pos(3), &
                                  conn(3), conn_storage(3, 3)
       real(8), allocatable    :: tmp(:, :)
       real(8), intent(in)     :: transl_mtx(3, 3)
       integer                 :: idx(3), curr_size
-      apd = self%atom_per_dim
       l = 2d0*cos(deg_30)*self%lattice_constant
       !transl_mtx(1, :) = apd*l*[1d0, 0d0, 0d0]
       !transl_mtx(2, :) = apd*l*[0.5d0, sin(deg_60), 0d0]
@@ -1128,11 +1127,11 @@ contains
       wavevector = matmul(transpose(shift_mtx), self%wavevector)
       wavevector_len = my_norm2(wavevector)
       wavevector = wavevector/wavevector_len
-      wavelength = UC_l/self%n_wind
+      wavelength = UC_l/(1d0*self%n_wind)
       psi = 2d0*PI/wavelength
       i = ii + j
       site_type = self%atoms(i)%site_type
-      conn = self%atoms(ii)%pos! - self%atoms(j)%pos
+      conn = self%atoms(i)%pos! - self%atoms(j)%pos
       phase_fac = 0d0!
       if (self%atoms(i)%site_type /= self%atoms(j)%site_type) then
          write(*,*) "Site types do not agree!"
