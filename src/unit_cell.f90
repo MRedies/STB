@@ -1111,6 +1111,7 @@ contains
          call self%set_mag_linrot_1D_spiral(center, UC_l)
       endif
    end subroutine set_mag_linrot_1D_spiral_honey
+
    subroutine set_mag_site(self, ii, j, center, UC_l)
       implicit none
       class(unit_cell)    :: self
@@ -1137,11 +1138,11 @@ contains
          write(*,*) "Site types do not agree!"
       endif
       if (site_type == 0) then
-         x = dot_product(wavevector,conn - phase_fac)
+         x = dot_product(wavevector,conn) - phase_fac
          R = R_mtx(psi*x, self%axis)
          m = matmul(R, self%m0_A)
       elseif (site_type == 1) then
-         x = dot_product(wavevector,conn - phase_fac)
+         x = dot_product(wavevector,conn) - phase_fac
          R = R_mtx(psi*x, self%axis)
          m = matmul(R, self%m0_B)
       endif
