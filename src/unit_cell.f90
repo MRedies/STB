@@ -1125,7 +1125,7 @@ contains
       shift_mtx(1, :) = l*[1d0, 0d0, 0d0]!1
       shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
       shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
-      wavevector = matmul(transpose(shift_mtx), self%wavevector)
+      wavevector = matmul(transpose(shift_mtx), 1d0*self%wavevector)
       wavevector_len = my_norm2(wavevector)
       wavevector = wavevector/wavevector_len
       wavelength = UC_l/(1d0*self%n_wind)
