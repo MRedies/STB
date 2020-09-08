@@ -893,6 +893,8 @@ contains
       perp_axis = cross_prod(axis, [0d0, 0d0, 1d0])
       G = R_mtx(self%cone_angle, perp_axis)
       m0 = matmul(G, axis)
+      allocate (self%m0_A(3))
+      allocate (self%m0_B(3))
       self%m0_A(1) = m0(1)
       self%m0_A(2) = m0(2)
       self%m0_A(3) = m0(3)
