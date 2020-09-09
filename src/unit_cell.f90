@@ -497,7 +497,7 @@ contains
    subroutine find_lattice_vectors(self,lattice)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: temp(3), shift_mtx(3, 3), wave_proj(3), proj, check, l
+      real(8)                           :: temp(3), shift_mtx(3, 3), wave_proj(3), proj, check, l, fac
       real(8), allocatable              :: lattice(:, :)
       integer                           :: i
 
@@ -512,11 +512,14 @@ contains
       temp = cross_prod(temp,[0d0,0d0,1d0])
       !check if temp is parallel to any of the shift_mtx
       if (norm2(cross_prod(temp,shift_mtx(1, :))) < pos_eps) then
-         lattice(2, :) = shift_mtx(1, :)
+         fac = dot_product(temp,shift_mtx(1, :))/abs(dot_product(temp,shift_mtx(1, :)))
+         lattice(2, :) = fac*shift_mtx(1, :)
       elseif (norm2(cross_prod(temp,shift_mtx(2, :))) < pos_eps) then
-         lattice(2, :) = shift_mtx(2, :)
+         fac = dot_product(temp,shift_mtx(2, :))/abs(dot_product(temp,shift_mtx(2, :)))
+         lattice(2, :) = fac*shift_mtx(2, :)
       elseif (norm2(cross_prod(temp,shift_mtx(3, :))) < pos_eps) then
-         lattice(2, :) = shift_mtx(3, :)
+         fac = dot_product(temp,shift_mtx(3, :))/abs(dot_product(temp,shift_mtx(3, :)))
+         lattice(2, :) = fac*shift_mtx(3, :)
       else
          wave_proj = matmul(shift_mtx,temp)
          check = 100d0
@@ -1214,7 +1217,7 @@ contains
       if (trim(self%mag_type) == "1Dspiral") then
          call save_npy(folder//"1Dspiralaxis.npy", self%axis)
          call save_npy(folder//"1Dspiralwavevector.npy", self%wavevector)
-         !call save_npy(folder//"1Dspiralconeangle.npy", [self%cone_angle])
+         call save_npy(folder//"1Dspiralconeangle.npy", [self%cone_angle])
       endif
       call save_npy(folder//"lattice.npy", &
                     self%lattice/self%units%length)
