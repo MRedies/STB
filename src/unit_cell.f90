@@ -1130,8 +1130,13 @@ contains
       wavevector = matmul(transpose(shift_mtx), 1d0*self%wavevector)
       wavevector_len = my_norm2(wavevector)
       wavevector = wavevector/wavevector_len
-      wavelength = UC_l/(1d0*self%n_wind)
-      psi = 2d0*PI/wavelength
+      if (self%n_wind < pos_eps) then
+         wavelength = 0d0
+         psi = 0d0
+      else
+         wavelength = UC_l/(1d0*self%n_wind)
+         psi = 2d0*PI/wavelength
+      endif
       i = ii + j
       site_type = self%atoms(i)%site_type
       conn = self%atoms(i)%pos! - self%atoms(j)%pos
