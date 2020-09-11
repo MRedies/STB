@@ -207,7 +207,7 @@ contains
       endif
       if (trim(self%mag_type) == "1Dspiral") then
          self%rez_lattice = 2*PI*self%rez_lattice
-         write(*,*) "Rez lattice:" rez_lattice(:,1),rez_lattice(:,2),dot_product(rez_lattice(:, 1),rez_lattice(:, 2))
+         write(*,*) "Rez lattice:", rez_lattice(:,1),rez_lattice(:,2),dot_product(rez_lattice(:, 1),rez_lattice(:, 2))
          !self%rez_lattice(:, 1) = 2*PI*self%atom_per_dim*self%rez_lattice(:, 1)
          !self%rez_lattice(:, 2) = 2*PI*self%rez_lattice(:, 2)
       else
