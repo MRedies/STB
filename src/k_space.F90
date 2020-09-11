@@ -840,7 +840,7 @@ contains
 
             ! save current iteration and check if converged
             done_hall =  self%process_hall(hall, hall_old, iter, omega_z_all)
-            done_hall =  self%process_hall(hall_x, hall_x_old, iter, omega_xx_all)
+            done_hall =  self%process_hall_xx(hall_x, hall_x_old, iter, omega_xx_all)
          endif
          if(done_hall .and. trim(self%chosen_weights) == "hall") then
             call error_msg("Switched to orbmag-weights", &
@@ -1046,6 +1046,54 @@ contains
          cancel = .True.
       endif
    end function process_hall
+   function process_hall_xx(self, var, var_old, iter, varall) result(cancel)
+      implicit none
+      class(k_space)                 :: self
+      real(8), intent(in)            :: var(:), var_old(:), varall(:,:)
+      integer   , intent(in)         :: iter
+      character(len=*), parameter    :: var_name = "hall_cond_xx"
+      character(len=300)             :: filename
+      logical                        :: cancel
+      real(8)                        :: rel_error
+
+      cancel = .False.
+
+      if(self%me == root) then
+         if(any(ieee_is_nan(var))) then
+            write (*,*) "hall is nan"
+         endif
+         if(any(ieee_is_nan(var_old))) then
+            write (*,*) "hall_old is nan"
+         endif
+      endif
+
+      ! save current iteration data
+      if(self%me == root) then
+         write (filename, "(A,I0.5,A)") trim(var_name) // "_iter=", iter, ".npy"
+         call save_npy(trim(self%prefix) // trim(filename), var)
+
+         call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
+                       self%E_fermi / self%units%energy)
+         if (self%ham%UC%num_atoms==2) then
+            call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
+         endif
+      endif
+
+      ! check for convergence
+      rel_error = my_norm2(var - var_old) &
+                  / (self%kpts_per_step * self%nProcs * my_norm2(var))!/ (1d0*size(var))
+
+      if(self%me == root) then
+         write (*,"(I5,A,A,A,I7,A,ES10.3)") iter, " var: ", var_name, &
+            " nkpts ", size(self%all_k_pts,2),&
+            " err ", rel_error
+      endif
+
+      if(rel_error < self%berry_conv_crit) then
+         if(self%me == root) write (*,*) "Converged " // trim(var_name) //   " interation"
+         cancel = .True.
+      endif
+   end function process_hall_xx
 
    function process_orbmag(self, orbmag, orbmag_old, &
                            orbmag_L, orbmag_IC, iter) result(cancel)
