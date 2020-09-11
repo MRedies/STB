@@ -925,7 +925,7 @@ contains
       integer                   :: first, last, err(3), me, ierr
       real(8)                   :: tmp
       real(8)                   :: k(3)
-      real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), omega_xx_new(:,:)&
+      real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), omega_xx_new(:,:),&
                                    omega_z_pert_new(:), Q_L_new(:,:), Q_IC_new(:,:)
       complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
       logical, intent(in)       :: pert_log
