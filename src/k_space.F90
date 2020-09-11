@@ -542,7 +542,6 @@ contains
       k2 =  0d0
       k1(1:2) =  self%ham%UC%rez_lattice(:,1)
       k2(1:2) =  self%ham%UC%rez_lattice(:,2)
-      write(*,*) "K:", k1,k2,dot_product(k1,k2)
 
       call linspace(0d0, 1d0, n_k, ls)
 
