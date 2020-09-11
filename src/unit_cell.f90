@@ -206,8 +206,8 @@ contains
          stop
       endif
       if (trim(self%mag_type) == "1Dspiral") then
-         self%rez_lattice = 2*PI*transpose(self%rez_lattice)
-         self%rez_lattice(:, 1) = self%atom_per_dim*self%rez_lattice(:, 1)
+         self%rez_lattice = 2*PI*self%rez_lattice
+         !self%rez_lattice(:, 1) = self%atom_per_dim*self%rez_lattice(:, 1)
          write(*,*) "Rez lattice:", self%rez_lattice(:, 1),self%rez_lattice(:, 2),dot_product(self%rez_lattice(:, 1),self%rez_lattice(:, 2))
       else
          self%rez_lattice = 2*PI*self%rez_lattice
@@ -603,9 +603,9 @@ contains
       shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
       !spiral uc lat vecs
       call self%find_lattice_vectors(lattice)
-      self%lattice(:, :) = lattice(:, 1:2)
-      if (dot_product(self%lattice(1, :),self%lattice(2, :)) > pos_eps) then
-         write(*,*) "Lattice vectors are not orthogonal!", dot_product(self%lattice(1, :),self%lattice(2, :))
+      self%lattice(:, :) = transpose(lattice(:, 1:2))
+      if (dot_product(self%lattice(:, 1),self%lattice(:, 2)) > pos_eps) then
+         write(*,*) "Lattice vectors are not orthogonal!", dot_product(self%lattice(:, 1),self%lattice(:, 2))
       endif
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
