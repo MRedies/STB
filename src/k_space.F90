@@ -893,7 +893,7 @@ contains
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
       deallocate(self%ham%del_H, hall_old, eig_val_all, omega_z_all, &
                  omega_xx_all, kidx_all, self%all_k_pts, &
-                 hall, hall_x, hall_x_old stat=info, errmsg=msg)
+                 hall, hall_x, hall_x_old, stat=info, errmsg=msg)
 
    end subroutine calc_berry_quantities
 
