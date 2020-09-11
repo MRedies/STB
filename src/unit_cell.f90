@@ -206,10 +206,10 @@ contains
          stop
       endif
       if (trim(self%mag_type) == "1Dspiral") then
-         self%rez_lattice = 2*PI*self%rez_lattice
-         write(*,*) "Rez lattice:", self%rez_lattice(:,1),self%rez_lattice(:,2),dot_product(self%rez_lattice(:, 1),self%rez_lattice(:, 2))
-         !self%rez_lattice(:, 1) = 2*PI*self%atom_per_dim*self%rez_lattice(:, 1)
-         !self%rez_lattice(:, 2) = 2*PI*self%rez_lattice(:, 2)
+         !self%rez_lattice = 2*PI*self%rez_lattice
+         self%rez_lattice(:, 1) = 2*PI*self%atom_per_dim*self%rez_lattice(1, :)
+         self%rez_lattice(:, 2) = 2*PI*self%rez_lattice(2, :)
+         write(*,*) "Rez lattice:", self%rez_lattice(:, 1),self%rez_lattice(:, 2),dot_product(self%rez_lattice(:, 1),self%rez_lattice(:, 2))
       else
          self%rez_lattice = 2*PI*self%rez_lattice
       endif
@@ -656,7 +656,7 @@ contains
 
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
-
+      !caution
       self%lattice(:, 1) = transl_mtx(1, 1:2)
       self%lattice(:, 2) = transl_mtx(2, 1:2)
 
