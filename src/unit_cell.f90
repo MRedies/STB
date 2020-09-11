@@ -205,8 +205,12 @@ contains
          write (*, *) self%me, ": Inversion of lattice vectors failed"
          stop
       endif
-      self%rez_lattice = 2*PI*self%rez_lattice
-
+      if (trim(self%mag_type) == "1Dspiral") then
+         self%rez_lattice(:, 1) = 2*PI*self%atom_per_dim*self%rez_lattice(:, 1)
+         self%rez_lattice(:, 2) = 2*PI*self%rez_lattice(:, 2)
+      else
+         self%rez_lattice = 2*PI*self%rez_lattice
+      endif
       if (self%test_run) call self%run_tests()
    end function
 

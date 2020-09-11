@@ -84,6 +84,7 @@ module Class_k_space
       procedure :: integrate_hall         => integrate_hall
       procedure :: integrate_orbmag       => integrate_orbmag
       procedure :: finalize_hall          => finalize_hall
+      procedure :: finalize_hall_xx          => finalize_hall_xx
       procedure :: finalize_orbmag        => finalize_orbmag
       procedure :: process_hall           => process_hall
       procedure :: process_orbmag         => process_orbmag
@@ -274,7 +275,7 @@ contains
       elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
          call self%setup_inte_grid_hex(self%DOS_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_line") then
-         call self%setup_inte_grid_para(self%berry_num_k_pts)
+         call self%setup_inte_grid_para(self%DOS_num_k_pts)
       else
          call error_msg("DOS k-grid not known", abort=.True.)
       endif
@@ -774,6 +775,7 @@ contains
       class(k_space)          :: self
       real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
                                  hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:),&
+                                 hall_x(:), hall_x_old(:), omega_xx_all(:,:), omega_xx_new(:,:),&
                                  orbmag(:), orbmag_old(:), Q_L_all(:,:), Q_IC_all(:,:), &
                                  Q_L_new(:,:), Q_IC_new(:,:), orbmag_L(:), orbmag_IC(:)
       real(8)                  :: start, factor
@@ -793,12 +795,15 @@ contains
       allocate(self%ham%del_H(2*num_up, 2*num_up), stat=all_err(1))
       allocate(hall_old(size(self%E_fermi)),       stat=all_err(2))
       allocate(hall(size(self%E_fermi)),           stat=all_err(3))
+      allocate(hall_x_old(size(self%E_fermi)),       stat=all_err(2))
+      allocate(hall_x(size(self%E_fermi)),           stat=all_err(3))
       allocate(orbmag_old(size(self%E_fermi)),     stat=all_err(4))
       allocate(orbmag(size(self%E_fermi)),         stat=all_err(5))
       allocate(orbmag_L(size(self%E_fermi)),       stat=all_err(6))
       allocate(orbmag_IC(size(self%E_fermi)),      stat=all_err(7))
       allocate(eig_val_all(2*num_up, 0),           stat=all_err(8))
       allocate(omega_z_all(2*num_up, 0),           stat=all_err(9))
+      allocate(omega_xx_all(2*num_up, 0),           stat=all_err(9))
       allocate(Q_L_all(n_ferm, 0),                 stat=all_err(10))
       allocate(Q_IC_all(n_ferm, 0),                stat=all_err(11))
       allocate(kidx_all(0),                        stat=all_err(12))
@@ -812,7 +817,7 @@ contains
       start = MPI_Wtime()
       do iter =1,self%berry_iter
          if(self%me == root) write (*,*) "Time: ", MPI_Wtime() -  start
-         call self%calc_new_berry_points(eig_val_new, omega_z_new, Q_L_new, Q_IC_new,pert_log)
+         call self%calc_new_berry_points(eig_val_new, omega_z_new, omega_xx_new, Q_L_new, Q_IC_new,pert_log)
          call self%calc_new_kidx(kidx_new)
 
          ! concat to old ones
@@ -822,16 +827,20 @@ contains
          if(self%me ==  root) write (*,*) self%me, "post appending"
 
          if(self%calc_hall)   call append_quantitiy(omega_z_all, omega_z_new)
+         if(self%calc_hall)   call append_quantitiy(omega_xx_all, omega_xx_new)
          if(self%calc_orbmag) then
             call append_quantitiy(Q_L_all, Q_L_new)
             call append_quantitiy(Q_IC_all, Q_IC_new)
          endif
          if(self%calc_hall) then
             hall_old = hall
+            hall_x_old = hall_x
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
+            call self%integrate_hall(kidx_all, omega_xx_all, eig_val_all, hall_x)
 
             ! save current iteration and check if converged
             done_hall =  self%process_hall(hall, hall_old, iter, omega_z_all)
+            done_hall =  self%process_hall(hall_x, hall_x_old, iter, omega_xx_all)
          endif
          if(done_hall .and. trim(self%chosen_weights) == "hall") then
             call error_msg("Switched to orbmag-weights", &
@@ -877,13 +886,14 @@ contains
       enddo
       if(self%calc_hall) then
          call self%finalize_hall(hall,omega_z_all)
+         call self%finalize_hall_xx(hall_x,omega_xx_all)
       endif
       if(self%calc_orbmag) call self%finalize_orbmag(orbmag, orbmag_L, orbmag_IC)
 
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
       deallocate(self%ham%del_H, hall_old, eig_val_all, omega_z_all, &
-                 kidx_all, self%all_k_pts, &
-                 hall, stat=info, errmsg=msg)
+                 omega_xx_all, kidx_all, self%all_k_pts, &
+                 hall, hall_x, hall_x_old stat=info, errmsg=msg)
 
    end subroutine calc_berry_quantities
 
@@ -907,7 +917,7 @@ contains
       enddo
    end subroutine calc_new_kidx
 
-   subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, Q_L_new, Q_IC_new,pert_log)
+   subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, omega_xx_new, Q_L_new, Q_IC_new, pert_log)
       use mpi
       implicit none
       class(k_space)            :: self
@@ -915,7 +925,7 @@ contains
       integer                   :: first, last, err(3), me, ierr
       real(8)                   :: tmp
       real(8)                   :: k(3)
-      real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:),&
+      real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), omega_xx_new(:,:)&
                                    omega_z_pert_new(:), Q_L_new(:,:), Q_IC_new(:,:)
       complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
       logical, intent(in)       :: pert_log
@@ -929,6 +939,7 @@ contains
       err =  0
       allocate(eig_val_new(2*num_up, last-first+1), stat=err(1))
       if(self%calc_hall)   allocate(omega_z_new(2*num_up, last-first+1), stat=err(2))
+      if(self%calc_hall)   allocate(omega_xx_new(2*num_up, last-first+1), stat=err(2))
       if(self%calc_orbmag) allocate(Q_L_new(n_ferm,        last-first+1), stat=err(3))
       if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(3))
 
@@ -971,6 +982,8 @@ contains
             if(self%calc_hall) then
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
+               call self%ham%calc_berry_z(omega_xx_new(:,cnt),&
+                                       eig_val_new(:,cnt), del_kx, del_kx)
             endif
          
             if(self%calc_orbmag) then
@@ -1078,6 +1091,23 @@ contains
          cancel = .True.
       endif
    end function process_orbmag
+
+   subroutine finalize_hall_xx(self, var,varall)
+      implicit none
+      class(k_space)              :: self
+      real(8), intent(in)         :: var(:)
+      real(8), intent(in)         :: varall(:,:)
+
+      if(self%me == root) then
+         write (*,*) size(self%all_k_pts,2), &
+            "saving hall_cond with questionable unit"
+
+         call save_npy(trim(self%prefix) // "hall_cond_xx.npy", var)
+         call save_npy(trim(self%prefix) // "hall_cond_uc_xx.npy", varall)
+         call save_npy(trim(self%prefix) // "hall_cond_E_xx.npy", &
+                       self%E_fermi / self%units%energy)
+      endif
+   end subroutine finalize_hall_xx
 
    subroutine finalize_hall(self, var,varall)
       implicit none
