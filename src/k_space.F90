@@ -2120,7 +2120,7 @@ contains
    subroutine plot_omega_square(self)
       implicit none
       class(k_space)               :: self
-      real(8), allocatable     :: eig_val(:,:), omega_z(:,:), Q_L(:,:), Q_IC(:,:)
+      real(8), allocatable     :: eig_val(:,:), omega_z(:,:), omega_xx(:,:), Q_L(:,:), Q_IC(:,:)
       logical                  :: tmp_ch, tmp_co
 
       if(self%nProcs /= 1) call error_msg("Plot only for 1 process", abort=.True.)
@@ -2131,7 +2131,7 @@ contains
       self%calc_orbmag = .False.
 
       call self%setup_inte_grid_para(self%num_plot_pts, padding=.False.)
-      call self%calc_new_berry_points(eig_val, omega_z, Q_L, Q_IC,.False.)
+      call self%calc_new_berry_points(eig_val, omega_z, omega_xx, Q_L, Q_IC,.False.)
 
       call save_npy(trim(self%prefix) // "k_grid.npy", self%new_k_pts)
       call save_npy(trim(self%prefix) // "omega_z.npy", omega_z)
