@@ -87,6 +87,7 @@ module Class_k_space
       procedure :: finalize_hall_xx          => finalize_hall_xx
       procedure :: finalize_orbmag        => finalize_orbmag
       procedure :: process_hall           => process_hall
+      procedure :: process_hall_xx           => process_hall_xx
       procedure :: process_orbmag         => process_orbmag
       procedure :: calc_new_berry_points  => calc_new_berry_points
       procedure :: calc_new_kidx          => calc_new_kidx
