@@ -206,8 +206,8 @@ contains
          stop
       endif
       if (trim(self%mag_type) == "1Dspiral") then
-         self%rez_lattice = 2*PI*self%atom_per_dim*self%rez_lattice
-         !self%rez_lattice(:,1) = self%atom_per_dim*self%rez_lattice(:,1)
+         self%rez_lattice = 2*PI*self%rez_lattice
+         self%rez_lattice(:,1) = self%atom_per_dim*self%rez_lattice(:,1)
       else
          self%rez_lattice = 2*PI*self%rez_lattice
       endif
