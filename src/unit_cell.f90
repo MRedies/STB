@@ -485,15 +485,25 @@ contains
       posD = posB - conn_mtx(3, :)
       pos = -1d0*(self%atom_per_dim - 1)/2d0*conn_vec_1
       do i = 1, self%atom_per_dim
-         ii = 4*(i - 1)
+         ii = 2*(i - 1)
+         jj = 2*self%atom_per_dim + 2*(i - 1)
          line(ii + 1, :) = posA + pos
          site_type(ii + 1) = A_site
-         line(ii + 2, :) = posB + pos
-         site_type(ii + 2) = B_site
-         line(ii + 3, :) = posC + pos
-         site_type(ii + 3) = B_site
-         line(ii + 4, :) = posD + pos
-         site_type(ii + 4) = A_site
+         line(ii + 2, :) = posD + pos
+         site_type(ii + 2) = A_site
+         line(jj + 1, :) = posB + pos
+         site_type(jj + 1) = B_site
+         line(jj + 2, :) = posC + pos
+         site_type(jj + 2) = B_site
+
+         !line(ii + 1, :) = posA + pos
+         !site_type(ii + 1) = A_site
+         !line(ii + 2, :) = posB + pos
+         !site_type(ii + 2) = B_site
+         !line(ii + 3, :) = posC + pos
+         !site_type(ii + 3) = B_site
+         !line(ii + 4, :) = posD + pos
+         !site_type(ii + 4) = A_site
          pos = pos + conn_vec_1
       enddo
    end subroutine make_honeycomb_line
