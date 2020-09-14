@@ -448,7 +448,7 @@ contains
       integer, allocatable              :: site_type(:)
       real(8)                           :: shift_mtx(3, 3), conn_mtx(3, 3), transf_mtx(3, 3), base_len_uc, posA(3), &
                                            posB(3), posC(3), posD(3),pos(3), conn_vec_1(3), conn_vec_2(3), l
-      integer                           :: i, ii, ierr
+      integer                           :: i, ii, jj, ierr
 
       if (mod(self%num_atoms, 2) /= 0) then
          write (*, *) "number of atoms in honey_comb line has to be even"
