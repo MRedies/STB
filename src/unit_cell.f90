@@ -483,7 +483,7 @@ contains
       posB = 0.5*self%lattice_constant*[0d0,1d0,0d0]!-conn_mtx(2, :)
       posC = posA + conn_mtx(3, :)
       posD = posB - conn_mtx(3, :)
-      pos = -1d0*(self%atom_per_dim - 1)/2d0*conn_vec_1
+      pos = 0d0!-1d0*(self%atom_per_dim - 1)/2d0*conn_vec_1
       do i = 1, self%atom_per_dim
          ii = 4*(i - 1)
          line(ii + 1, :) = posA + pos
