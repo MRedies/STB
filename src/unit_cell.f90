@@ -620,7 +620,7 @@ contains
       transl_mtx(1,:) = matmul(transpose(shift_mtx),self%wavevector)
       transl_mtx(2,:) = lattice(2, :)
       transl_mtx(3,:) = transl_mtx(1, :) - lattice(2, :)
-      write(*,*) "Transl_mtx: ", transl_mtx(1,:), transl_mtx(2,:), transl_mtx(3,:)
+      !write(*,*) "Transl_mtx: ", transl_mtx(1,:), transl_mtx(2,:), transl_mtx(3,:)
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
