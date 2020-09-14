@@ -207,6 +207,7 @@ contains
       endif
       if (trim(self%mag_type) == "1Dspiral") then
          self%rez_lattice = 2*PI*self%rez_lattice
+         self%rez_lattice(:,1) = self%atom_per_dim*self%rez_lattice(:,1)
       else
          self%rez_lattice = 2*PI*self%rez_lattice
       endif
@@ -619,6 +620,7 @@ contains
       transl_mtx(1,:) = matmul(transpose(shift_mtx),self%wavevector)
       transl_mtx(2,:) = lattice(2, :)
       transl_mtx(3,:) = transl_mtx(1, :) - lattice(2, :)
+      write(*,*) "Transl_mtx: ", transl_mtx(1,:), transl_mtx(2,:), transl_mtx(3,:)
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
