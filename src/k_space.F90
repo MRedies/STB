@@ -655,7 +655,7 @@ contains
       do i = 1,size(self%elem_nodes,1)
          vec1 = self%all_k_pts(:,self%elem_nodes(i,1)) - self%all_k_pts(:,self%elem_nodes(i,2))
          vec2 = self%all_k_pts(:,self%elem_nodes(i,1)) - self%all_k_pts(:,self%elem_nodes(i,3))
-         A_proj =  0.1666666666666d0 * my_norm2(cross_prod(vec1, vec2))
+         A_proj =  0.1666666666666d0 * my_norm2(cross_prod(vec1, vec2))/(1d0*self%ham%UC%atom_per_dim)
          do j =  1,3
             k_idx = self%elem_nodes(i,j)
             self%weights(k_idx) = self%weights(k_idx) +  A_proj
