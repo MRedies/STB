@@ -896,8 +896,14 @@ contains
       implicit none
       class(unit_cell)        :: self
       real(8)                 :: G(3, 3), axis(3), perp_axis(3), m0(3)
-      axis = self%axis
-      perp_axis = cross_prod(axis, [0d0, 0d0, 1d0])
+      axis = 1d0*self%axis/norm2(self%axis)
+      if (abs(axis(3))<pos_eps) then
+         perp_axis = cross_prod(axis, [0d0, 0d0, 1d0])
+         perp_axis = perp/axis/norm2(perp_axis)
+      else
+         perp_axis = cross_prod(axis, [1d0, 0d0, 0d0])
+         perp_axis = perp/axis/norm2(perp_axis)
+      endif
       G = R_mtx(self%cone_angle, perp_axis)
       m0 = matmul(G, axis)
       allocate (self%m0_A(3))
