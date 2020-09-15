@@ -184,7 +184,8 @@ contains
       else if (trim(self%uc_type) == "honey_2d") then
          call self%init_unit_honey_hexa()
       else if (trim(self%uc_type) == "honey_line") then
-         call self%init_unit_honey_line()
+         call self%init_unit_honey_hexa()
+         !call self%init_unit_honey_line()
       else if (trim(self%uc_type) == "file_square") then
          call self%init_file_square()
       else
