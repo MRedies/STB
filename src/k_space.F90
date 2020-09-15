@@ -2158,7 +2158,8 @@ contains
       if(self%me == root) then
         write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "elem_iter=", iter, ".npy"
         call save_npy(trim(elem_file), self%elem_nodes) 
-        if (self%ham%UC%num_atoms==2) then
+        !if (self%ham%UC%num_atoms==2) then 
+        if (iter == self%berry_iter) then
             write (k_file,    "(A,I0.5,A)") trim(self%prefix) // "kpts_iter=", iter, ".npy"
             call save_npy(trim(k_file),    self%all_k_pts)
         endif
