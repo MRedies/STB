@@ -565,7 +565,7 @@ contains
       endif
 
       forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
-         self%new_k_pts(:,i) + my_norm2(k1) * self%k_shift
+         self%new_k_pts(:,i) + my_norm2(k1)/self%ham%UC%atom_per_dim * self%k_shift
    end subroutine setup_inte_grid_para
 
    subroutine setup_inte_grid_hex(self, n_k)
