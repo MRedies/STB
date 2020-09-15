@@ -1027,7 +1027,7 @@ contains
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
-         if (self%ham%UC%num_atoms==2) then
+         if (iter == self%berry_iter) then
             call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
          endif
       endif
