@@ -617,7 +617,7 @@ contains
       conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]
       !translates to neighboring unit cells
       check_idx = 0
-      transl_mtx(1,:) = matmul(transpose(shift_mtx),self%wavevector)
+      transl_mtx(1,:) = lattice(1, :)!matmul(transpose(shift_mtx),self%wavevector)
       transl_mtx(2,:) = lattice(2, :)
       transl_mtx(3,:) = transl_mtx(1, :) - lattice(2, :)
       !write(*,*) "Transl_mtx: ", transl_mtx(1,:), transl_mtx(2,:), transl_mtx(3,:)
