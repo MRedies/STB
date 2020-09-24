@@ -1340,6 +1340,7 @@ contains
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
       eig_vec = (0d0,0d0)
       call self%setup_H(k, eig_vec)
+      call save_npy(folder//"eig_vec_step.npy", eig_vec)
       call calc_zheevd_size('V', eig_vec, eig_val, lwork, lrwork, liwork)
 
       allocate(work(lwork), stat=ierr(1))
