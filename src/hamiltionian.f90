@@ -30,7 +30,6 @@ module Class_hamiltionian
       logical      :: test_run !> should unit tests be performed
       type(unit_cell) :: UC !> unit cell
       type(units)     :: units
-      type(k_space)   :: ksp
    contains
       procedure :: Bcast_hamil                    => Bcast_hamil
       procedure :: setup_H                        => setup_H
@@ -1341,7 +1340,6 @@ contains
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
       eig_vec = (0d0,0d0)
       call self%setup_H(k, eig_vec)
-      call save_npy(trim(self%ksp%prefix)//"eig_vec_step.npy", eig_vec)
       call calc_zheevd_size('V', eig_vec, eig_val, lwork, lrwork, liwork)
 
       allocate(work(lwork), stat=ierr(1))
