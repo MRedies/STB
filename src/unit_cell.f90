@@ -218,9 +218,9 @@ contains
       use mpi
       implicit none
       class(unit_cell)           :: self
-      integer, parameter         :: num_cast = 28
+      integer, parameter         :: num_cast = 26
       integer                    :: ierr(num_cast)
-      integer                    :: anticol_size_phi, wsize, asize, msize
+      integer                    :: anticol_size_phi, wsize, asize
       integer                    :: anticol_size_theta
 
       if (self%me == root) then
@@ -228,7 +228,6 @@ contains
          anticol_size_theta = size(self%anticol_theta)
          wsize = size(self%wavevector)
          asize = size(self%axis)
-         msize = size(self%m0_A)
       endif
       call MPI_Bcast(self%eps, 1, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(1))
@@ -288,8 +287,6 @@ contains
       call MPI_Bcast(self%dblatan_pref, 1, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(25))
       call MPI_Bcast(self%atan_pref, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(26))
-      call MPI_Bcast(self%m0_A, msize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(27))
-      call MPI_Bcast(self%m0_B, msize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(28))
       call check_ierr(ierr, self%me, "Unit cell check err")
    end subroutine Bcast_UC
 
