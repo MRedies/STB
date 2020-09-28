@@ -784,7 +784,7 @@ contains
       integer     :: N_k, num_up, iter, n_ferm,nProcs
       integer     :: all_err(13), info
       character(len=300)       :: msg
-      logical                  :: done_hall = .True., done_orbmag = .True.
+      logical                  :: done_hall = .True., done_orbmag = .True.,  done_hall_x = .True.
       logical, intent(in)      :: pert_log
       call self%setup_berry_inte_grid()
       N_k = size(self%new_k_pts, 2)
@@ -811,6 +811,7 @@ contains
       allocate(self%all_k_pts(3,0),                stat=all_err(13))
 
       hall    =  1e35
+      hall_x    =  1e35
       orbmag =  1e35
       call check_ierr(all_err, self%me, "allocate hall vars")
 
@@ -841,7 +842,7 @@ contains
 
             ! save current iteration and check if converged
             done_hall =  self%process_hall(hall, hall_old, iter, omega_z_all)
-            done_hall =  self%process_hall_xx(hall_x, hall_x_old, iter, omega_xx_all)
+            done_hall_x =  self%process_hall_xx(hall_x, hall_x_old, iter, omega_xx_all)
          endif
          if(done_hall .and. trim(self%chosen_weights) == "hall") then
             call error_msg("Switched to orbmag-weights", &
@@ -893,8 +894,8 @@ contains
 
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
       deallocate(self%ham%del_H, hall_old, eig_val_all, omega_z_all, &
-                 omega_xx_all, kidx_all, self%all_k_pts, &
-                 hall, hall_x, hall_x_old, stat=info, errmsg=msg)
+                 hall_x, hall_x_old, omega_xx_all, kidx_all, self%all_k_pts, &
+                 hall, stat=info, errmsg=msg)
 
    end subroutine calc_berry_quantities
 
@@ -2170,7 +2171,7 @@ contains
    subroutine plot_omega_square(self)
       implicit none
       class(k_space)               :: self
-      real(8), allocatable     :: eig_val(:,:), omega_z(:,:), omega_xx(:,:), Q_L(:,:), Q_IC(:,:)
+      real(8), allocatable     :: eig_val(:,:), omega_z(:,:), Q_L(:,:), Q_IC(:,:)!omega_xx(:,:),
       logical                  :: tmp_ch, tmp_co
 
       if(self%nProcs /= 1) call error_msg("Plot only for 1 process", abort=.True.)

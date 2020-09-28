@@ -769,10 +769,10 @@ contains
             endif
          enddo
       k_n = k/my_norm2(k)
-      if (my_norm2(a(:,2))>10**(-8)) then
+      if (my_norm2(a(:,2))>pos_eps) then
          a(:,2) = a(:,2)/my_norm2(a(:,2))
       endif
-      if (my_norm2(a(:,1))>10**(-8)) then
+      if (my_norm2(a(:,1))>pos_eps) then
          a(:,1) = a(:,1)/my_norm2(a(:,1))
       endif
       y = 0.5*dot_product(k_n,a(:,2) + a(:,1))
@@ -951,10 +951,10 @@ contains
             if(self%UC%atoms(i)%conn_type(conn) == snd_nn_conn) then
                a(:,size(self%UC%atoms(i)%neigh_idx) + 1 - conn) = self%UC%atoms(i)%neigh_conn(conn,:) ! connection vectors
                k_n = k/my_norm2(k)
-               if (my_norm2(a(:,2))>10**(-8)) then
+               if (my_norm2(a(:,2))>pos_eps) then
                   a(:,2) = a(:,2)/my_norm2(a(:,2))
                endif
-               if (my_norm2(a(:,1))>10**(-8)) then
+               if (my_norm2(a(:,1))>pos_eps) then
                   a(:,1) = a(:,1)/my_norm2(a(:,1))
                endif
                !write (*,*) "y: " ,y
