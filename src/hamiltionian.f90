@@ -1360,7 +1360,7 @@ contains
          if(self%me ==  0) then
             call save_npy(self%prefix//"hamiltonian.npy",eig_vec)
             call error_msg("Aborting now from berry calc", abort=.True.)
-            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
+            call MPI_Abort(MPI_COMM_WORLD, 0, 0)
          endif
 
       endif
