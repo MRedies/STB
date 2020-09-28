@@ -2,6 +2,7 @@ module Class_hamiltionian
    use m_config
    use output
    use Class_unit_cell
+   use Class_k_space
    use m_npy
    use mpi
    use MYPI
@@ -30,7 +31,7 @@ module Class_hamiltionian
       logical      :: test_run !> should unit tests be performed
       type(unit_cell) :: UC !> unit cell
       type(units)     :: units
-      type(k_space)     :: k_space
+      type(k_space)   :: k_space
    contains
       procedure :: Bcast_hamil                    => Bcast_hamil
       procedure :: setup_H                        => setup_H
