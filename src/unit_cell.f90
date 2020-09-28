@@ -218,9 +218,9 @@ contains
       use mpi
       implicit none
       class(unit_cell)           :: self
-      integer, parameter         :: num_cast = 26
+      integer, parameter         :: num_cast = 28
       integer                    :: ierr(num_cast)
-      integer                    :: anticol_size_phi, wsize, asize
+      integer                    :: anticol_size_phi, wsize, asize, msize
       integer                    :: anticol_size_theta
 
       if (self%me == root) then
@@ -228,6 +228,7 @@ contains
          anticol_size_theta = size(self%anticol_theta)
          wsize = size(self%wavevector)
          asize = size(self%axis)
+         msize = size(m0_A)
       endif
       call MPI_Bcast(self%eps, 1, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(1))
@@ -284,10 +285,11 @@ contains
       call MPI_Bcast(self%axis, asize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(22))
       call MPI_Bcast(self%cone_angle, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(23))
       call MPI_Bcast(self%spiral_type, 25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr(24))
-
       call MPI_Bcast(self%dblatan_pref, 1, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(25))
       call MPI_Bcast(self%atan_pref, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(26))
+      call MPI_Bcast(self%m0_A, msize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(27))
+      call MPI_Bcast(self%m0_B, msize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(28))
       call check_ierr(ierr, self%me, "Unit cell check err")
    end subroutine Bcast_UC
 
@@ -591,7 +593,7 @@ contains
       real(8)                           :: base_len_uc, l
       real(8), allocatable              :: lattice(:, :), line(:, :)
       integer, allocatable              :: site_type(:)
-      integer                           :: apd, check_idx
+      integer                           :: apd
       apd = self%atom_per_dim
       self%num_atoms = calc_num_atoms_line_honey(apd)
       base_len_uc = self%lattice_constant
@@ -616,11 +618,9 @@ contains
       conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]
       conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]
       !translates to neighboring unit cells
-      check_idx = 0
-      transl_mtx(1,:) = lattice(1, :)!matmul(transpose(shift_mtx),self%wavevector)
+      transl_mtx(1,:) = lattice(1, :)
       transl_mtx(2,:) = lattice(2, :)
       transl_mtx(3,:) = transl_mtx(1, :) - lattice(2, :)
-      !write(*,*) "Transl_mtx: ", transl_mtx(1,:), transl_mtx(2,:), transl_mtx(3,:)
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
