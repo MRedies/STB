@@ -318,6 +318,7 @@ contains
          allocate(self%drop_Vy_layers(n_arr))
          call CFG_get(cfg, "layer_dropout%Vy", self%drop_Vy_layers)
          call CFG_get(cfg, "output%band_prefix", self%prefix)
+         write(*,*) "Prefix:", self%prefix
          if(self%prefix(len_trim(self%prefix):len_trim(self%prefix)) /=  "/") then
             self%prefix =  trim(self%prefix) // "/"
          endif
@@ -1357,10 +1358,12 @@ contains
       call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
                   work, lwork, rwork, lrwork, iwork, liwork, info)
       if(info /= 0) then
-         write (*,*) "ZHEEVD in berry calculation failed"
-         write(*,*) "Folder:", folder
-         call save_npy(folder//"hamiltonian.npy",eig_vec)
-         call error_msg("Aborting now from berry calc", abort=.True.)
+         if(self%me ==  0) then
+            write (*,*) "ZHEEVD in berry calculation failed"
+            write(*,*) "Folder:", folder
+            call save_npy(folder//"hamiltonian.npy",eig_vec)
+            call error_msg("Aborting now from berry calc", abort=.True.)
+         endif
 
       endif
       deallocate(work, rwork, iwork)
