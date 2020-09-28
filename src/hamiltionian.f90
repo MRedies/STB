@@ -1336,6 +1336,9 @@ contains
       integer, intent(in)      :: pert_log
       integer      :: n_dim, lwork, lrwork, liwork, info
       integer      :: ierr(3)
+      character(len=300)        :: folder
+
+      folder = self%k_space%prefix
       n_dim = 2 * self%num_up
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
       eig_vec = (0d0,0d0)
@@ -1346,7 +1349,7 @@ contains
       allocate(rwork(lrwork), stat=ierr(2))
       allocate(iwork(liwork), stat=ierr(3))
       call check_ierr(ierr, me_in=self%me, msg=[" tried to allocate in zheevd"])
-
+      save_npy(folder//"hamiltonian.npy",eig_vec)
       call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
                   work, lwork, rwork, lrwork, iwork, liwork, info)
       if(info /= 0) then
