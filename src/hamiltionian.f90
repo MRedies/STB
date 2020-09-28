@@ -1342,9 +1342,7 @@ contains
       integer, intent(in)      :: pert_log
       integer      :: n_dim, lwork, lrwork, liwork, info
       integer      :: ierr(3)
-      character(len=300)        :: folder
 
-      folder = self%prefix
       n_dim = 2 * self%num_up
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
       eig_vec = (0d0,0d0)
@@ -1358,11 +1356,11 @@ contains
       call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
                   work, lwork, rwork, lrwork, iwork, liwork, info)
       if(info /= 0) then
+         write (*,*) "ZHEEVD in berry calculation failed", self%me
          if(self%me ==  0) then
-            write (*,*) "ZHEEVD in berry calculation failed"
-            write(*,*) "Folder:", folder
-            call save_npy(folder//"hamiltonian.npy",eig_vec)
+            call save_npy(self%prefix//"hamiltonian.npy",eig_vec)
             call error_msg("Aborting now from berry calc", abort=.True.)
+            call MPI_Abort(MPI_COMM_WORLD, 0, ierr)
          endif
 
       endif
