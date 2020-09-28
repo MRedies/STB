@@ -1360,8 +1360,10 @@ contains
       if(info /= 0) then
          write (*,*) "ZHEEVD in berry calculation failed", self%me
          !if(self%me ==  0) then
-         write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "ham", self%me,"k",k ,".npy"
+         write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "ham", self%me ,".npy"
          call save_npy(elem_file,temp)
+         write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "kpoint", self%me ,".npy"
+         call save_npy(elem_file,k)
          call error_msg("Aborting now from berry calc", abort=.True.)
          call MPI_Abort(MPI_COMM_WORLD, 0, 0)
          !endif
