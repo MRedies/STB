@@ -1340,6 +1340,7 @@ contains
       real(8), allocatable     :: rwork(:)
       integer   , allocatable  :: iwork(:)
       integer, intent(in)      :: pert_log
+      character (300)          :: elem_file
       integer      :: n_dim, lwork, lrwork, liwork, info
       integer      :: ierr(3)
 
@@ -1357,11 +1358,12 @@ contains
                   work, lwork, rwork, lrwork, iwork, liwork, info)
       if(info /= 0) then
          write (*,*) "ZHEEVD in berry calculation failed", self%me
-         if(self%me ==  0) then
-            call save_npy(self%prefix//"hamiltonian.npy",eig_vec)
+         !if(self%me ==  0) then
+            write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "hamiltonian", self%me, ".npy"
+            call save_npy(elem_file,eig_vec)
             call error_msg("Aborting now from berry calc", abort=.True.)
             call MPI_Abort(MPI_COMM_WORLD, 0, 0)
-         endif
+         !endif
 
       endif
       deallocate(work, rwork, iwork)
