@@ -1336,7 +1336,7 @@ contains
       class(hamil)             :: self
       real(8), intent(in)      :: k(3)
       real(8)                  :: eig_val(:)
-      complex(8), allocatable  :: eig_vec(:,:), del_kx(:,:), del_ky(:,:), work(:)
+      complex(8), allocatable  :: eig_vec(:,:), del_kx(:,:), del_ky(:,:), work(:), temp(:,:)
       real(8), allocatable     :: rwork(:)
       integer   , allocatable  :: iwork(:)
       integer, intent(in)      :: pert_log
@@ -1346,10 +1346,11 @@ contains
 
       n_dim = 2 * self%num_up
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
+      if(.not. allocated(temp)) allocate(temp(n_dim,n_dim))
       eig_vec = (0d0,0d0)
       call self%setup_H(k, eig_vec)
       call calc_zheevd_size('V', eig_vec, eig_val, lwork, lrwork, liwork)
-
+      temp = eig_vec
       allocate(work(lwork), stat=ierr(1))
       allocate(rwork(lrwork), stat=ierr(2))
       allocate(iwork(liwork), stat=ierr(3))
@@ -1359,8 +1360,8 @@ contains
       if(info /= 0) then
          write (*,*) "ZHEEVD in berry calculation failed", self%me
          !if(self%me ==  0) then
-            write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "hamiltonian", self%me, ".npy"
-            call save_npy(elem_file,eig_vec)
+            write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "ham", self%me,"k",k ,".npy"
+            call save_npy(elem_file,temp)
             call error_msg("Aborting now from berry calc", abort=.True.)
             call MPI_Abort(MPI_COMM_WORLD, 0, 0)
          !endif
