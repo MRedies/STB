@@ -2,7 +2,6 @@ module Class_hamiltionian
    use m_config
    use output
    use Class_unit_cell
-   use Class_k_space
    use m_npy
    use mpi
    use MYPI
@@ -25,13 +24,13 @@ module Class_hamiltionian
       real(8)         :: lambda_KM !> parameter for Kane Mele term
       real(8), allocatable       :: drop_Vx_layers(:), drop_Vy_layers(:)
       complex(8), allocatable    :: del_H(:,:)
+      character(len=300)   :: prefix
       integer         :: nProcs
       integer         :: me
       integer         :: num_orb, num_up
       logical      :: test_run !> should unit tests be performed
       type(unit_cell) :: UC !> unit cell
       type(units)     :: units
-      type(k_space)   :: k_space
    contains
       procedure :: Bcast_hamil                    => Bcast_hamil
       procedure :: setup_H                        => setup_H
@@ -318,6 +317,10 @@ contains
          call CFG_get_size(cfg, "layer_dropout%Vy", n_arr)
          allocate(self%drop_Vy_layers(n_arr))
          call CFG_get(cfg, "layer_dropout%Vy", self%drop_Vy_layers)
+         call CFG_get(cfg, "output%band_prefix", self%prefix)
+         if(self%prefix(len_trim(self%prefix):len_trim(self%prefix)) /=  "/") then
+            self%prefix =  trim(self%prefix) // "/"
+         endif
       endif
       call self%Bcast_hamil()
    end function init_hamil
@@ -1340,7 +1343,7 @@ contains
       integer      :: ierr(3)
       character(len=300)        :: folder
 
-      folder = self%k_space%prefix
+      folder = self%prefix
       n_dim = 2 * self%num_up
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
       eig_vec = (0d0,0d0)
