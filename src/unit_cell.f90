@@ -228,7 +228,7 @@ contains
          anticol_size_theta = size(self%anticol_theta)
          wsize = size(self%wavevector)
          asize = size(self%axis)
-         msize = size(m0_A)
+         msize = size(self%m0_A)
       endif
       call MPI_Bcast(self%eps, 1, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(1))
