@@ -1354,11 +1354,13 @@ contains
       allocate(rwork(lrwork), stat=ierr(2))
       allocate(iwork(liwork), stat=ierr(3))
       call check_ierr(ierr, me_in=self%me, msg=[" tried to allocate in zheevd"])
-      call save_npy(folder//"hamiltonian.npy",eig_vec)
       call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
                   work, lwork, rwork, lrwork, iwork, liwork, info)
       if(info /= 0) then
          write (*,*) "ZHEEVD in berry calculation failed"
+         call save_npy(folder//"hamiltonian.npy",eig_vec)
+         call error_msg("Aborting now from berry calc", abort=.True.)
+
       endif
       deallocate(work, rwork, iwork)
       if     (pert_log==0) then
