@@ -30,6 +30,7 @@ module Class_hamiltionian
       logical      :: test_run !> should unit tests be performed
       type(unit_cell) :: UC !> unit cell
       type(units)     :: units
+      type(k_space)     :: k_space
    contains
       procedure :: Bcast_hamil                    => Bcast_hamil
       procedure :: setup_H                        => setup_H
