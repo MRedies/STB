@@ -1363,7 +1363,7 @@ contains
          write (elem_file, "(A,I0.5,A)") trim(self%prefix) // "ham", self%me,"k",k ,".npy"
          call save_npy(elem_file,temp)
          call error_msg("Aborting now from berry calc", abort=.True.)
-         call MPI_Abort(MPI_COMM_WORLD,0)
+         call MPI_Abort(MPI_COMM_WORLD, 0, 0)
          !endif
 
       endif
