@@ -1358,6 +1358,7 @@ contains
                   work, lwork, rwork, lrwork, iwork, liwork, info)
       if(info /= 0) then
          write (*,*) "ZHEEVD in berry calculation failed"
+         write(*,*) "Folder:", folder
          call save_npy(folder//"hamiltonian.npy",eig_vec)
          call error_msg("Aborting now from berry calc", abort=.True.)
 
