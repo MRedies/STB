@@ -24,7 +24,7 @@ module Class_hamiltionian
       real(8)         :: lambda_KM !> parameter for Kane Mele term
       real(8), allocatable       :: drop_Vx_layers(:), drop_Vy_layers(:)
       complex(8), allocatable    :: del_H(:,:)
-      character(len=300)   :: prefix
+      !character(len=300)   :: prefix
       integer         :: nProcs
       integer         :: me
       integer         :: num_orb, num_up
@@ -317,11 +317,11 @@ contains
          call CFG_get_size(cfg, "layer_dropout%Vy", n_arr)
          allocate(self%drop_Vy_layers(n_arr))
          call CFG_get(cfg, "layer_dropout%Vy", self%drop_Vy_layers)
-         call CFG_get(cfg, "output%band_prefix", self%prefix)
-         write(*,*) "Prefix:", self%prefix
-         if(self%prefix(len_trim(self%prefix):len_trim(self%prefix)) /=  "/") then
-            self%prefix =  trim(self%prefix) // "/"
-         endif
+         !call CFG_get(cfg, "output%band_prefix", self%prefix)
+         !write(*,*) "Prefix:", self%prefix
+         !if(self%prefix(len_trim(self%prefix):len_trim(self%prefix)) /=  "/") then
+         !   self%prefix =  trim(self%prefix) // "/"
+         !endif
       endif
       call self%Bcast_hamil()
    end function init_hamil
@@ -329,7 +329,7 @@ contains
    subroutine Bcast_hamil(self)
       implicit none
       class(hamil)          :: self
-      integer   , parameter :: num_cast = 26
+      integer   , parameter :: num_cast = 25
       integer               :: ierr(num_cast), Vx_len, Vy_len
 
       call MPI_Bcast(self%E_s,      1,              MPI_REAL8,   &
@@ -393,8 +393,8 @@ contains
       if(self%me /= root) allocate(self%drop_Vy_layers(Vy_len))
       call MPI_Bcast(self%drop_Vy_layers, Vy_len, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(24))
-      call MPI_Bcast(self%prefix,  300,          MPI_CHARACTER, &
-                     root,                    MPI_COMM_WORLD, ierr(1))
+      !call MPI_Bcast(self%prefix,  300,          MPI_CHARACTER, &
+      !               root,                    MPI_COMM_WORLD, ierr(1))
       call check_ierr(ierr, self%me, "Hamiltionian check err")
    end subroutine
 
@@ -1341,10 +1341,9 @@ contains
       real(8), allocatable     :: rwork(:)
       integer   , allocatable  :: iwork(:)
       integer, intent(in)      :: pert_log
-      character (300)          :: elem_file
+      character (300)          :: elem_file, folder = "/p/project/cjiff40/kipp1/output/spinspiral/100QSpirals/100_SW_PiHalf_5/"
       integer      :: n_dim, lwork, lrwork, liwork, info
       integer      :: ierr(3)
-
       n_dim = 2 * self%num_up
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
       if(.not. allocated(temp)) allocate(temp(n_dim,n_dim))
@@ -1359,12 +1358,12 @@ contains
       call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
                   work, lwork, rwork, lrwork, iwork, liwork, info)
       if(info /= 0) then
-         write (*,*) "ZHEEVD in berry calculation failed", self%me, self%prefix
+         write (*,*) "ZHEEVD in berry calculation failed", self%me, folder!self%prefix
          !if(self%me ==  0) then
          write (elem_file, "(A,I0.5,A)") "ham", self%me ,".npy"
-         call save_npy(trim(self%prefix) //elem_file,temp)
+         call save_npy(trim(folder) //elem_file,temp)!trim(self%prefix)
          write (elem_file, "(A,I0.5,A)") "kpoint", self%me ,".npy"
-         call save_npy(trim(self%prefix) //elem_file,k)
+         call save_npy(trim(folder) //elem_file,k)!trim(self%prefix)
          call error_msg("Aborting now from berry calc", abort=.True.)
          call MPI_Abort(MPI_COMM_WORLD, 0, 0)
          !endif
