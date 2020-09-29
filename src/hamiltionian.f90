@@ -1355,7 +1355,7 @@ contains
       allocate(rwork(lrwork), stat=ierr(2))
       allocate(iwork(liwork), stat=ierr(3))
       call check_ierr(ierr, me_in=self%me, msg=[" tried to allocate in zheevd"])
-      call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
+      call zheev('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
                   work, lwork, rwork, lrwork, iwork, liwork, info)
       if(info /= 0) then
          write (*,*) "ZHEEVD in berry calculation failed", self%me, folder!self%prefix
@@ -1367,7 +1367,6 @@ contains
          call error_msg("Aborting now from berry calc", abort=.True.)
          call MPI_Abort(MPI_COMM_WORLD, 0, 0)
          !endif
-
       endif
       deallocate(work, rwork, iwork)
       if     (pert_log==0) then
