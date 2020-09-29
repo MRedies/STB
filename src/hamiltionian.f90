@@ -1358,7 +1358,7 @@ contains
       call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
                   work, lwork, rwork, lrwork, iwork, liwork, info)
       if(info /= 0) then
-         write (*,*) "ZHEEVD in berry calculation failed", self%me
+         write (*,*) "ZHEEVD in berry calculation failed", self%me, self%prefix
          !if(self%me ==  0) then
          write (elem_file, "(A,I0.5,A)") "ham", self%me ,".npy"
          call save_npy(trim(self%prefix) //elem_file,temp)
