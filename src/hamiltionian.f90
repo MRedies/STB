@@ -329,7 +329,7 @@ contains
    subroutine Bcast_hamil(self)
       implicit none
       class(hamil)          :: self
-      integer   , parameter :: num_cast = 25
+      integer   , parameter :: num_cast = 26
       integer               :: ierr(num_cast), Vx_len, Vy_len
 
       call MPI_Bcast(self%E_s,      1,              MPI_REAL8,   &
@@ -383,7 +383,7 @@ contains
       if(self%me /= root) allocate(self%drop_Vx_layers(Vx_len))
 
       call MPI_Bcast(self%drop_Vx_layers, Vx_len, MPI_REAL8, &
-                     root, MPI_COMM_WORLD, ierr(22))
+                     root, MPI_COMM_WORLD, ierr(26))
 
       ! allocate and share Vy_dropout
       if(self%me ==root) Vy_len = size(self%drop_Vy_layers)
@@ -393,7 +393,8 @@ contains
       if(self%me /= root) allocate(self%drop_Vy_layers(Vy_len))
       call MPI_Bcast(self%drop_Vy_layers, Vy_len, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(24))
-
+      call MPI_Bcast(self%prefix,  300,          MPI_CHARACTER, &
+                     root,                    MPI_COMM_WORLD, ierr(1))
       call check_ierr(ierr, self%me, "Hamiltionian check err")
    end subroutine
 
