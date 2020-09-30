@@ -901,7 +901,6 @@ contains
          perp_axis = cross_prod(axis, [1d0, 0d0, 0d0])
          perp_axis = perp_axis/norm2(perp_axis)
       endif
-      endif
       G = R_mtx(self%cone_angle, perp_axis)
       m0 = matmul(G, axis)
       allocate (self%m0_A(3))
