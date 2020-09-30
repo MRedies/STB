@@ -894,12 +894,13 @@ contains
       class(unit_cell)        :: self
       real(8)                 :: G(3, 3), axis(3), perp_axis(3), m0(3)
       axis = 1d0*self%axis/norm2(self%axis)
-      if (abs(axis(3))<pos_eps) then
-         perp_axis = cross_prod(axis, [0d0, 0d0, 1d0])
+      if (norm2(cross_prod(axis, [1d0, 0d0, 0d0])<pos_eps)) then
+         perp_axis = cross_prod(axis, [0d0, 1d0, 0d0])
          perp_axis = perp_axis/norm2(perp_axis)
       else
          perp_axis = cross_prod(axis, [1d0, 0d0, 0d0])
          perp_axis = perp_axis/norm2(perp_axis)
+      endif
       endif
       G = R_mtx(self%cone_angle, perp_axis)
       m0 = matmul(G, axis)
