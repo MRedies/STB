@@ -207,7 +207,7 @@ contains
       endif
       if (trim(self%mag_type) == "1Dspiral") then
          self%rez_lattice = 2*PI*self%rez_lattice
-         self%rez_lattice(:,1) = self%rez_lattice(:,1)!unit cell scales with 2*N_apd, since initial unitcell holds 4 atoms4*self%atom_per_dim*
+         write(*,*) "RLAT: ", self%rez_lattice
       else
          self%rez_lattice = 2*PI*self%rez_lattice
       endif
