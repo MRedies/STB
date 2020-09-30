@@ -329,7 +329,7 @@ contains
    subroutine Bcast_hamil(self)
       implicit none
       class(hamil)          :: self
-      integer   , parameter :: num_cast = 27
+      integer   , parameter :: num_cast = 26
       integer               :: ierr(num_cast), Vx_len, Vy_len
 
       call MPI_Bcast(self%E_s,      1,              MPI_REAL8,   &
@@ -373,18 +373,12 @@ contains
                      root,        MPI_COMM_WORLD, ierr(19))
       call MPI_Bcast(self%HB_eta, 1,              MPI_REAL8, &
                      root,        MPI_COMM_WORLD, ierr(20))
-      call MPI_Bcast(self%lambda_KM, 1,              MPI_REAL8, &
-                     root,        MPI_COMM_WORLD, ierr(25))
-
       ! allocate and share Vx_dropout
       if(self%me == root) Vx_len = size(self%drop_Vx_layers)
       call MPI_Bcast(Vx_len, 1, MPI_INTEGER, &
                      root, MPI_COMM_WORLD, ierr(21))
-      if(self%me /= root) allocate(self%drop_Vx_layers(Vx_len))
-
-      call MPI_Bcast(self%drop_Vx_layers, Vx_len, MPI_REAL8, &
-                     root, MPI_COMM_WORLD, ierr(26))
-
+      call MPI_Bcast(self%prefix,  300,          MPI_CHARACTER, &
+                     root,        MPI_COMM_WORLD, ierr(22))
       ! allocate and share Vy_dropout
       if(self%me ==root) Vy_len = size(self%drop_Vy_layers)
       call MPI_Bcast(Vy_len, 1, MPI_INTEGER, &
@@ -393,8 +387,11 @@ contains
       if(self%me /= root) allocate(self%drop_Vy_layers(Vy_len))
       call MPI_Bcast(self%drop_Vy_layers, Vy_len, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(24))
-      call MPI_Bcast(self%prefix,  300,          MPI_CHARACTER, &
-                     root,                    MPI_COMM_WORLD, ierr(27))
+      call MPI_Bcast(self%lambda_KM, 1,              MPI_REAL8, &
+                     root,        MPI_COMM_WORLD, ierr(25))
+      if(self%me /= root) allocate(self%drop_Vx_layers(Vx_len))
+      call MPI_Bcast(self%drop_Vx_layers, Vx_len, MPI_REAL8, &
+                     root, MPI_COMM_WORLD, ierr(26))
       call check_ierr(ierr, self%me, "Hamiltionian check err")
    end subroutine
 
