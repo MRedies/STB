@@ -22,6 +22,7 @@ module Class_hamiltionian
       real(8)         :: lambda !> local exchange
       real(8)         :: HB1, HB2, HB_eta !> parameters for hongbins model
       real(8)         :: lambda_KM !> parameter for Kane Mele term
+      real(8)         :: gamma !> broadening, Greens function, sigma_xx
       real(8), allocatable       :: drop_Vx_layers(:), drop_Vy_layers(:)
       complex(8), allocatable    :: del_H(:,:)
       character(len=300)   :: prefix
@@ -46,6 +47,8 @@ module Class_hamiltionian
       procedure :: set_rashba_SO                  => set_rashba_SO
       procedure :: set_deriv_FD                   => set_deriv_FD
       procedure :: calc_berry_z                   => calc_berry_z
+      procedure :: calc_berry_diag_sea            => calc_berry_diag_sea
+      procedure :: calc_berry_diag_surf           => calc_berry_diag_surf
       procedure :: calc_velo_mtx                  => calc_velo_mtx
       procedure :: calc_right_pert_velo_mtx       => calc_right_pert_velo_mtx
       procedure :: calc_left_pert_velo_mtx        => calc_left_pert_velo_mtx
@@ -308,6 +311,9 @@ contains
          call CFG_get(cfg, "hamil%lambda_KM", tmp)
          self%lambda_KM =  tmp * self%units%energy
 
+         call CFG_get(cfg, "hamil%gamma", tmp)
+         self%gamma =  tmp * self%units%energy
+
          call CFG_get(cfg, "general%test_run", self%test_run)
 
          call CFG_get_size(cfg, "layer_dropout%Vx", n_arr)
@@ -328,7 +334,7 @@ contains
    subroutine Bcast_hamil(self)
       implicit none
       class(hamil)          :: self
-      integer   , parameter :: num_cast = 26
+      integer   , parameter :: num_cast = 27
       integer               :: ierr(num_cast), Vx_len, Vy_len
 
       call MPI_Bcast(self%E_s,      1,              MPI_REAL8,   &
@@ -391,6 +397,8 @@ contains
       if(self%me /= root) allocate(self%drop_Vx_layers(Vx_len))
       call MPI_Bcast(self%drop_Vx_layers, Vx_len, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(26))
+      call MPI_Bcast(self%gamma,      1,              MPI_REAL8,   &
+                     root,          MPI_COMM_WORLD, ierr(2))
       call check_ierr(ierr, self%me, "Hamiltionian check err")
    end subroutine
 
@@ -1362,6 +1370,9 @@ contains
          eig_vec = temp
          call zheev('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
                      work, lwork, rwork, info)
+         if(info /= 0) then
+            write (*,*) "ZHEEV in berry calculation also failed", self%me
+         endif
       endif
       deallocate(work, rwork, iwork)
       if     (pert_log==0) then
@@ -1407,6 +1418,53 @@ contains
       enddo
 
    end subroutine calc_berry_z
+   subroutine calc_berry_diag_surf(self, z_comp, eig_val, x_mtx)
+      implicit none
+      class(hamil)             :: self
+      real(8)                  :: eig_val(:), dE
+      real(8)                  :: z_comp(:), gamma !> \f$ \Omega^n_z \f$
+      complex(8)               :: x_mtx(:,:)
+      complex(8) :: fac
+      integer    :: n_dim, n, m
+      gamma = self%gamma
+      n_dim = 2 * self%num_up
+      z_comp =  0d0
+      do n = 1,n_dim
+         do m = 1,n_dim
+            if(n /= m) then
+               dE =  eig_val(n) - eig_val(m)
+               fac =  dE*gamma/((eig_val(n)**2+gamma**2)*(eig_val(n)**2+gamma**2))
+               z_comp(n) = z_comp(n) - 1d0/(2d0*Pi) &
+                           * aimag(fac * x_mtx(n,m) * x_mtx(m,n))
+            endif
+         enddo
+      enddo
+
+   end subroutine calc_berry_diag_surf
+
+   subroutine calc_berry_diag_sea(self, z_comp, eig_val, x_mtx)
+      implicit none
+      class(hamil)             :: self
+      real(8)                  :: eig_val(:), dE
+      real(8)                  :: z_comp(:), gamma !> \f$ \Omega^n_z \f$
+      complex(8)               :: x_mtx(:,:)
+      complex(8) :: fac
+      integer    :: n_dim, n, m
+      gamma = self%gamma
+      n_dim = 2 * self%num_up
+      z_comp =  0d0
+      do n = 1,n_dim
+         do m = 1,n_dim
+            if(n /= m) then
+               dE =  eig_val(n) - eig_val(m)
+               fac =  gamma/(dE*eig_val(m)**2+gamma**2) - 1/(dE**2)*aimag(log((eig_val(m)+ i_unit*gamma)/(eig_val(n)+ i_unit*gamma)))
+               z_comp(n) = z_comp(n) - 1d0/(Pi) &
+                           * aimag(fac * x_mtx(n,m) * x_mtx(m,n))
+            endif
+         enddo
+      enddo
+
+   end subroutine calc_berry_diag_sea
 
    Subroutine  calc_eigenvalues(self, k_list, eig_val)
       Implicit None
