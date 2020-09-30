@@ -87,7 +87,7 @@ module Class_k_space
       procedure :: finalize_hall_xx          => finalize_hall_xx
       procedure :: finalize_orbmag        => finalize_orbmag
       procedure :: process_hall           => process_hall
-      procedure :: process_hall_xx           => process_hall_xx
+      procedure :: process_hall_surf           => process_hall_surf
       procedure :: process_orbmag         => process_orbmag
       procedure :: calc_new_berry_points  => calc_new_berry_points
       procedure :: calc_new_kidx          => calc_new_kidx
@@ -776,15 +776,16 @@ contains
       class(k_space)          :: self
       real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
                                  hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:),&
-                                 hall_x(:), hall_x_old(:), omega_xx_all(:,:), omega_xx_new(:,:),&
+                                 hall_surf(:), hall_surf_old(:), omega_surf_all(:,:), omega_surf_new(:,:),&
+                                 hall_sea(:), hall_sea_old(:), omega_sea_all(:,:), omega_sea_new(:,:),&
                                  orbmag(:), orbmag_old(:), Q_L_all(:,:), Q_IC_all(:,:), &
                                  Q_L_new(:,:), Q_IC_new(:,:), orbmag_L(:), orbmag_IC(:)
       real(8)                  :: start, factor
       integer   , allocatable  :: kidx_all(:), kidx_new(:)
       integer     :: N_k, num_up, iter, n_ferm,nProcs
       integer     :: all_err(13), info
-      character(len=300)       :: msg
-      logical                  :: done_hall = .True., done_orbmag = .True.,  done_hall_x = .True.
+      character(len=300)       :: msg, surf_name = "hall_cond_surf", sea_name = "hall_cond_sea"
+      logical                  :: done_hall = .True., done_orbmag = .True.,  done_hall_surf = .True.,  done_hall_sea = .True.
       logical, intent(in)      :: pert_log
       call self%setup_berry_inte_grid()
       N_k = size(self%new_k_pts, 2)
@@ -796,15 +797,15 @@ contains
       allocate(self%ham%del_H(2*num_up, 2*num_up), stat=all_err(1))
       allocate(hall_old(size(self%E_fermi)),       stat=all_err(2))
       allocate(hall(size(self%E_fermi)),           stat=all_err(3))
-      allocate(hall_x_old(size(self%E_fermi)),       stat=all_err(2))
-      allocate(hall_x(size(self%E_fermi)),           stat=all_err(3))
+      allocate(hall_surf_old(size(self%E_fermi)),       stat=all_err(2))
+      allocate(hall_surf(size(self%E_fermi)),           stat=all_err(3))
       allocate(orbmag_old(size(self%E_fermi)),     stat=all_err(4))
       allocate(orbmag(size(self%E_fermi)),         stat=all_err(5))
       allocate(orbmag_L(size(self%E_fermi)),       stat=all_err(6))
       allocate(orbmag_IC(size(self%E_fermi)),      stat=all_err(7))
       allocate(eig_val_all(2*num_up, 0),           stat=all_err(8))
       allocate(omega_z_all(2*num_up, 0),           stat=all_err(9))
-      allocate(omega_xx_all(2*num_up, 0),           stat=all_err(9))
+      allocate(omega_surf_all(2*num_up, 0),           stat=all_err(9))
       allocate(Q_L_all(n_ferm, 0),                 stat=all_err(10))
       allocate(Q_IC_all(n_ferm, 0),                stat=all_err(11))
       allocate(kidx_all(0),                        stat=all_err(12))
@@ -819,7 +820,7 @@ contains
       start = MPI_Wtime()
       do iter =1,self%berry_iter
          if(self%me == root) write (*,*) "Time: ", MPI_Wtime() -  start
-         call self%calc_new_berry_points(eig_val_new, omega_z_new, omega_xx_new, Q_L_new, Q_IC_new,pert_log)
+         call self%calc_new_berry_points(eig_val_new, omega_z_new, omega_surf_new, omega_sea_new, Q_L_new, Q_IC_new,pert_log)
          call self%calc_new_kidx(kidx_new)
 
          ! concat to old ones
@@ -829,20 +830,24 @@ contains
          if(self%me ==  root) write (*,*) self%me, "post appending"
 
          if(self%calc_hall)   call append_quantitiy(omega_z_all, omega_z_new)
-         if(self%calc_hall)   call append_quantitiy(omega_xx_all, omega_xx_new)
+         if(self%calc_hall)   call append_quantitiy(omega_surf_all, omega_surf_new)
+         if(self%calc_hall)   call append_quantitiy(omega_sea_all, omega_sea_new)
          if(self%calc_orbmag) then
             call append_quantitiy(Q_L_all, Q_L_new)
             call append_quantitiy(Q_IC_all, Q_IC_new)
          endif
          if(self%calc_hall) then
             hall_old = hall
-            hall_x_old = hall_x
+            hall_surf_old = hall_surf
+            hall_sea_old = hall_sea
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
-            call self%integrate_hall(kidx_all, omega_xx_all, eig_val_all, hall_x)
+            call self%integrate_hall(kidx_all, omega_surf_all, eig_val_all, hall_surf)
+            call self%integrate_hall(kidx_all, omega_sea_all, eig_val_all, hall_sea)
 
             ! save current iteration and check if converged
             done_hall =  self%process_hall(hall, hall_old, iter, omega_z_all)
-            done_hall_x =  self%process_hall_xx(hall_x, hall_x_old, iter, omega_xx_all)
+            done_hall_surf =  self%process_hall_surf(hall_surf, hall_surf_old, iter, omega_surf_all,surf_name)
+            done_hall_sea =  self%process_hall_surf(hall_sea, hall_sea_old, iter, omega_sea_all,sea_name)
          endif
          if(done_hall .and. trim(self%chosen_weights) == "hall") then
             call error_msg("Switched to orbmag-weights", &
@@ -919,7 +924,7 @@ contains
       enddo
    end subroutine calc_new_kidx
 
-   subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, omega_xx_new, Q_L_new, Q_IC_new, pert_log)
+   subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, omega_surf_new, omega_sea_new, Q_L_new, Q_IC_new, pert_log)
       use mpi
       implicit none
       class(k_space)            :: self
@@ -927,8 +932,9 @@ contains
       integer                   :: first, last, err(3), me, ierr
       real(8)                   :: tmp
       real(8)                   :: k(3)
-      real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), omega_xx_new(:,:),&
-                                   omega_z_pert_new(:), Q_L_new(:,:), Q_IC_new(:,:)
+      real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), omega_surf_new(:,:),&
+                                   omega_sea_new(:,:),omega_z_pert_new(:), Q_L_new(:,:),&
+                                   Q_IC_new(:,:)
       complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
       logical, intent(in)       :: pert_log
       tmp = 0d0
@@ -941,7 +947,8 @@ contains
       err =  0
       allocate(eig_val_new(2*num_up, last-first+1), stat=err(1))
       if(self%calc_hall)   allocate(omega_z_new(2*num_up, last-first+1), stat=err(2))
-      if(self%calc_hall)   allocate(omega_xx_new(2*num_up, last-first+1), stat=err(2))
+      if(self%calc_hall)   allocate(omega_surf_new(2*num_up, last-first+1), stat=err(2))
+      if(self%calc_hall)   allocate(omega_sea_new(2*num_up, last-first+1), stat=err(2))
       if(self%calc_orbmag) allocate(Q_L_new(n_ferm,        last-first+1), stat=err(3))
       if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(3))
 
@@ -984,8 +991,12 @@ contains
             if(self%calc_hall) then
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
-               call self%ham%calc_berry_z(omega_xx_new(:,cnt),&
+               call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_kx)
+               call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
+                                       eig_val_new(:,cnt), del_kx, del_kx)
+               !call self%ham%calc_berry_z(omega_xx_new(:,cnt),&
+               !                        eig_val_new(:,cnt), del_kx, del_kx)
             endif
          
             if(self%calc_orbmag) then
@@ -1048,12 +1059,12 @@ contains
          cancel = .True.
       endif
    end function process_hall
-   function process_hall_xx(self, var, var_old, iter, varall) result(cancel)
+   function process_hall_surf(self, var, var_old, iter, varall, var_name) result(cancel)
       implicit none
       class(k_space)                 :: self
       real(8), intent(in)            :: var(:), var_old(:), varall(:,:)
       integer   , intent(in)         :: iter
-      character(len=*), parameter    :: var_name = "hall_cond_xx"
+      character(len=*), intent(in)   :: var_name
       character(len=300)             :: filename
       logical                        :: cancel
       real(8)                        :: rel_error
@@ -1095,7 +1106,7 @@ contains
          if(self%me == root) write (*,*) "Converged " // trim(var_name) //   " interation"
          cancel = .True.
       endif
-   end function process_hall_xx
+   end function process_hall_surf
 
    function process_orbmag(self, orbmag, orbmag_old, &
                            orbmag_L, orbmag_IC, iter) result(cancel)
@@ -1142,22 +1153,26 @@ contains
       endif
    end function process_orbmag
 
-   subroutine finalize_hall_xx(self, var,varall)
+   subroutine finalize_hall_surf(self, var,varall,var_name)
       implicit none
       class(k_space)              :: self
       real(8), intent(in)         :: var(:)
       real(8), intent(in)         :: varall(:,:)
+      character(len=300), intent(in) :: var_name
+      character(len=300) :: elem_file
 
       if(self%me == root) then
          write (*,*) size(self%all_k_pts,2), &
             "saving hall_cond with questionable unit"
-
-         call save_npy(trim(self%prefix) // "hall_cond_xx.npy", var)
-         call save_npy(trim(self%prefix) // "hall_cond_uc_xx.npy", varall)
-         call save_npy(trim(self%prefix) // "hall_cond_E_xx.npy", &
+         write (elem_file, "(A,I0.5,A)") var_name ,".npy"
+         call save_npy(trim(self%prefix) // varname, var)
+         write (elem_file, "(A,I0.5,A)") var_name ,"_uc.npy"
+         call save_npy(trim(self%prefix) // var_name, varall)
+         write (elem_file, "(A,I0.5,A)") var_name ,"_E.npy"
+         call save_npy(trim(self%prefix) // var_name, &
                        self%E_fermi / self%units%energy)
       endif
-   end subroutine finalize_hall_xx
+   end subroutine finalize_hall_surf
 
    subroutine finalize_hall(self, var,varall)
       implicit none
