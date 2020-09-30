@@ -318,7 +318,6 @@ contains
          allocate(self%drop_Vy_layers(n_arr))
          call CFG_get(cfg, "layer_dropout%Vy", self%drop_Vy_layers)
          call CFG_get(cfg, "output%band_prefix", self%prefix)
-         write(*,*) "Prefix:", self%prefix
          if(self%prefix(len_trim(self%prefix):len_trim(self%prefix)) /=  "/") then
             self%prefix =  trim(self%prefix) // "/"
          endif
@@ -1354,17 +1353,18 @@ contains
       call check_ierr(ierr, me_in=self%me, msg=[" tried to allocate in zheevd"])
       call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
                   work, lwork, rwork, lrwork, iwork, liwork, info)
-      !call zheev('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
-      !            work, lwork, rwork, info)
       if(info /= 0) then
-         write (*,*) "ZHEEVD in berry calculation failed", self%me, self%prefix!folder
+         write (*,*) "ZHEEVD in berry calculation failed, trying ZHEEV", self%me
          !if(self%me ==  0) then
          write (elem_file, "(A,I0.5,A)") "ham", self%me ,".npy"
          call save_npy(trim(self%prefix) //elem_file,temp)!trim(folder)
          write (elem_file, "(A,I0.5,A)") "kpoint", self%me ,".npy"
          call save_npy(trim(self%prefix) //elem_file,k)!trim(folder)
-         call error_msg("Aborting now from berry calc", abort=.True.)
-         call MPI_Abort(MPI_COMM_WORLD, 0, 0)
+         eig_vec = temp
+         call zheev('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
+                     work, lwork, rwork, info)
+         !call error_msg("Aborting now from berry calc", abort=.True.)
+         !call MPI_Abort(MPI_COMM_WORLD, 0, 0)
          !endif
       endif
       deallocate(work, rwork, iwork)
