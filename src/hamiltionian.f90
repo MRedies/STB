@@ -1462,7 +1462,7 @@ contains
                       - dE**2/(dE**2 + eta_sq)**2*aimag(log(numer&
                                            /denom))
                z_comp(n) = z_comp(n) + 1d0/Pi &
-                           * aimag(fac * x_mtx(n,m) * y_mtx(m,n))
+                           * fac * aimag(x_mtx(n,m) * y_mtx(m,n))
             endif
          enddo
       enddo
