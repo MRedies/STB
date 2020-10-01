@@ -1169,13 +1169,13 @@ contains
       if(self%me == root) then
          write (*,*) size(self%all_k_pts,2), &
             "saving hall_cond with questionable unit"
-         write(*,*) var_name
-         write (elem_file, "(A,A)") var_name ,".npy"
-         call save_npy(trim(self%prefix) // elem_file, var)
-         write (elem_file, "(A,A)") var_name ,"_uc.npy"
-         call save_npy(trim(self%prefix) // elem_file, varall)
-         write (elem_file, "(A,A)") var_name ,"_E.npy"
-         call save_npy(trim(self%prefix) // elem_file, &
+         write(*,*) var_name, "end"
+         write (elem_file, "(A,A)") trim(var_name) ,".npy"
+         call save_npy(trim(self%prefix) // trim(elem_file), var)
+         write (elem_file, "(A,A)") trim(var_name) ,"_uc.npy"
+         call save_npy(trim(self%prefix) // trim(elem_file), varall)
+         write (elem_file, "(A,A)") trim(var_name) ,"_E.npy"
+         call save_npy(trim(self%prefix) // trim(elem_file), &
                        self%E_fermi / self%units%energy)
       endif
    end subroutine finalize_hall_surf
