@@ -330,7 +330,7 @@ contains
       endif
       call self%Bcast_hamil()
    end function init_hamil
-
+   
    subroutine Bcast_hamil(self)
       implicit none
       class(hamil)          :: self
@@ -398,7 +398,7 @@ contains
       call MPI_Bcast(self%drop_Vx_layers, Vx_len, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(26))
       call MPI_Bcast(self%gamma,      1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(2))
+                     root,          MPI_COMM_WORLD, ierr(27))
       call check_ierr(ierr, self%me, "Hamiltionian check err")
    end subroutine
 
