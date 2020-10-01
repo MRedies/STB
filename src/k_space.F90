@@ -1163,12 +1163,13 @@ contains
       class(k_space)              :: self
       real(8), intent(in)         :: var(:)
       real(8), intent(in)         :: varall(:,:)
-      character(len=300), intent(in) :: var_name
+      character(len=*), intent(in) :: var_name
       character(len=300) :: elem_file
 
       if(self%me == root) then
          write (*,*) size(self%all_k_pts,2), &
             "saving hall_cond with questionable unit"
+         write(*,*) var_name
          write (elem_file, "(A,A)") var_name ,".npy"
          call save_npy(trim(self%prefix) // elem_file, var)
          write (elem_file, "(A,A)") var_name ,"_uc.npy"
