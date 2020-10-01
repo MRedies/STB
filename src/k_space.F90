@@ -994,9 +994,9 @@ contains
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
                call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
-                                       eig_val_new(:,cnt), del_kx, del_kx)
+                                       eig_val_new(:,cnt), del_kx)
                call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
-                                       eig_val_new(:,cnt), del_kx, del_kx)
+                                       eig_val_new(:,cnt), del_kx)
                !call self%ham%calc_berry_z(omega_xx_new(:,cnt),&
                !                        eig_val_new(:,cnt), del_kx, del_kx)
             endif
