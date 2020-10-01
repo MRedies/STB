@@ -84,10 +84,11 @@ module Class_k_space
       procedure :: integrate_hall         => integrate_hall
       procedure :: integrate_orbmag       => integrate_orbmag
       procedure :: finalize_hall          => finalize_hall
-      procedure :: finalize_hall_xx          => finalize_hall_xx
+      procedure :: finalize_hall_surf     => finalize_hall_surf
       procedure :: finalize_orbmag        => finalize_orbmag
       procedure :: process_hall           => process_hall
-      procedure :: process_hall_surf           => process_hall_surf
+      procedure :: process_hall_surf      => process_hall_surf
+      procedure :: process_hall_sea       => process_hall_sea
       procedure :: process_orbmag         => process_orbmag
       procedure :: calc_new_berry_points  => calc_new_berry_points
       procedure :: calc_new_kidx          => calc_new_kidx
@@ -893,14 +894,15 @@ contains
       enddo
       if(self%calc_hall) then
          call self%finalize_hall(hall,omega_z_all)
-         call self%finalize_hall_xx(hall_x,omega_xx_all)
+         call self%finalize_hall_surf(hall_surf,omega_surf_all,surf_name)
+         call self%finalize_hall_surf(hall_sea,omega_sea_all,sea_name)
       endif
       if(self%calc_orbmag) call self%finalize_orbmag(orbmag, orbmag_L, orbmag_IC)
 
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
       deallocate(self%ham%del_H, hall_old, eig_val_all, omega_z_all, &
-                 hall_x, hall_x_old, omega_xx_all, kidx_all, self%all_k_pts, &
-                 hall, stat=info, errmsg=msg)
+                 hall_surf, hall_surf_old, omega_surf_all, kidx_all, self%all_k_pts, &
+                 hall_sea, hall_sea_old, omega_sea_all,hall, stat=info, errmsg=msg)
 
    end subroutine calc_berry_quantities
 
