@@ -1102,7 +1102,7 @@ contains
                   / (self%kpts_per_step * self%nProcs * my_norm2(var))!/ (1d0*size(var))
 
       if(self%me == root) then
-         write (*,"(I5,A,A,A,I7,A,ES10.3)") iter, " var: ", var_name, &
+         write (*,"(I5,A,A,A,I7,A,ES10.3)") iter, " var: ", trim(var_name), &
             " nkpts ", size(self%all_k_pts,2),&
             " err ", rel_error
       endif
@@ -1169,7 +1169,6 @@ contains
       if(self%me == root) then
          write (*,*) size(self%all_k_pts,2), &
             "saving hall_cond with questionable unit"
-         write(*,*) var_name, "end"
          write (elem_file, "(A,A)") trim(var_name) ,".npy"
          call save_npy(trim(self%prefix) // trim(elem_file), var)
          write (elem_file, "(A,A)") trim(var_name) ,"_uc.npy"
