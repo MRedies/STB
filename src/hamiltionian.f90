@@ -1457,7 +1457,9 @@ contains
          do m = 1,n_dim
             if(n /= m) then
                dE =  eig_val(n) - eig_val(m)
-               fac =  gamma/(dE*eig_val(m)**2+gamma**2) - 1/(dE**2)*aimag(log((eig_val(m)+ i_unit*gamma)/(eig_val(n)+ i_unit*gamma)))
+               fac =  gamma/(dE*eig_val(m)**2+gamma**2)&
+                      - 1/(dE**2)*aimag(log((eig_val(m)+ i_unit*gamma)&
+                                           /(eig_val(n)+ i_unit*gamma)))
                z_comp(n) = z_comp(n) - 1d0/(Pi) &
                            * aimag(fac * x_mtx(n,m) * x_mtx(m,n))
             endif
