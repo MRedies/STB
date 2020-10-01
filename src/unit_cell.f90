@@ -207,7 +207,6 @@ contains
       endif
       if (trim(self%mag_type) == "1Dspiral") then
          self%rez_lattice = 2*PI*self%rez_lattice
-         write(*,*) "RLAT: ", self%rez_lattice(:,1), self%rez_lattice(:,2)
       else
          self%rez_lattice = 2*PI*self%rez_lattice
       endif
@@ -911,7 +910,6 @@ contains
       self%m0_B(1) = m0(1)
       self%m0_B(2) = m0(2)
       self%m0_B(3) = m0(3)
-      write(*,*) "Ms:", self%m0_A,self%m0_B
    end subroutine set_mag_linrot_1D_spiral_m0_cone
    subroutine set_mag_x_spiral_square(self)
       implicit none
