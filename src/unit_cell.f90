@@ -894,11 +894,11 @@ contains
       class(unit_cell)        :: self
       real(8)                 :: G(3, 3), axis(3), perp_axis(3), m0(3)
       axis = 1d0*self%axis/norm2(self%axis)
-      if (norm2(cross_prod(axis, [1d0, 0d0, 0d0]))<pos_eps) then
-         perp_axis = cross_prod(axis, [0d0, 1d0, 0d0])
+      if (norm2(cross_prod(axis, [0d0, 0d0, 1d0]))<pos_eps) then
+         perp_axis = cross_prod(axis, [1d0, 0d0, 0d0])
          perp_axis = perp_axis/norm2(perp_axis)
       else
-         perp_axis = cross_prod(axis, [1d0, 0d0, 0d0])
+         perp_axis = cross_prod(axis, [0d0, 0d0, 1d0])
          perp_axis = perp_axis/norm2(perp_axis)
       endif
       G = R_mtx(self%cone_angle, perp_axis)
@@ -911,6 +911,7 @@ contains
       self%m0_B(1) = m0(1)
       self%m0_B(2) = m0(2)
       self%m0_B(3) = m0(3)
+      write(*,*) "Ms:", self%m0_A,self%m0_B
    end subroutine set_mag_linrot_1D_spiral_m0_cone
    subroutine set_mag_x_spiral_square(self)
       implicit none

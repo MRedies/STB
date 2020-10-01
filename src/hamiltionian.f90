@@ -1362,6 +1362,9 @@ contains
          eig_vec = temp
          call zheev('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
                      work, lwork, rwork, info)
+         if(info /= 0) then
+            write (*,*) "ZHEEVD in berry calculation failed, trying ZHEEV", self%me
+         endif
       endif
       deallocate(work, rwork, iwork)
       if     (pert_log==0) then
