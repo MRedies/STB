@@ -1159,7 +1159,7 @@ contains
       real(8),intent(in)              :: eig_val(:)
       complex(8), allocatable         :: H_xc_1(:,:)
       complex(8), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
-      real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE,fac,Efac
+      complex(8)                      :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE,fac,Efac
       integer                         :: i,i_d,j,j_u,j_d,n_dim
       logical                         :: full
       n_dim = 2 * self%num_up
@@ -1433,7 +1433,7 @@ contains
          do m = 1,n_dim
             if(n /= m) then
                dE =  eig_val(n) - eig_val(m)
-               fac =  dE*gamma/((eig_val(n)**2+gamma**2)*(eig_val(n)**2+gamma**2))
+               fac =  dE*gamma/((eig_val(n)**2+gamma**2)*(eig_val(m)**2+gamma**2))
                z_comp(n) = z_comp(n) - 1d0/(2d0*Pi) &
                            * aimag(fac * x_mtx(n,m) * x_mtx(m,n))
             endif
@@ -1446,8 +1446,8 @@ contains
       implicit none
       class(hamil)             :: self
       real(8)                  :: eig_val(:), dE
-      real(8)                  :: z_comp(:), gamma !> \f$ \Omega^n_z \f$
-      complex(8)               :: x_mtx(:,:)
+      real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
+      complex(8)               :: x_mtx(:,:), gamma
       complex(8) :: fac
       integer    :: n_dim, n, m
       gamma = self%gamma
@@ -1457,10 +1457,10 @@ contains
          do m = 1,n_dim
             if(n /= m) then
                dE =  eig_val(n) - eig_val(m)
-               fac =  gamma/(dE*eig_val(m)**2+gamma**2)&
-                      - 1/(dE**2)*aimag(log((eig_val(m)+ i_unit*gamma)&
+               fac =  gamma/(dE*(eig_val(m)**2+gamma**2))&
+                      - dE**2/(dE**2 + eta_sq)**2*aimag(log((eig_val(m)+ i_unit*gamma)&
                                            /(eig_val(n)+ i_unit*gamma)))
-               z_comp(n) = z_comp(n) - 1d0/(Pi) &
+               z_comp(n) = z_comp(n) - 1d0/Pi &
                            * aimag(fac * x_mtx(n,m) * x_mtx(m,n))
             endif
          enddo
