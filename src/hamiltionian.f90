@@ -1458,8 +1458,8 @@ contains
             if(n /= m) then
                dE =  eig_val(n) - eig_val(m)
                fac =  gamma/(dE*(eig_val(m)**2+gamma**2))&
-                      - dE**2/(dE**2 + eta_sq)**2*log((-eig_val(m)+ i_unit*gamma)&
-                                           /(-eig_val(n)+ i_unit*gamma))
+                      - dE**2/(dE**2 + eta_sq)**2*aimag(log((-eig_val(m)+ i_unit*gamma)&
+                                           /(-eig_val(n)+ i_unit*gamma)))
                z_comp(n) = z_comp(n) - 1d0/Pi &
                            * aimag(fac * x_mtx(n,m) * x_mtx(m,n))
             endif
