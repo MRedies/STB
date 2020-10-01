@@ -88,7 +88,6 @@ module Class_k_space
       procedure :: finalize_orbmag        => finalize_orbmag
       procedure :: process_hall           => process_hall
       procedure :: process_hall_surf      => process_hall_surf
-      procedure :: process_hall_sea       => process_hall_sea
       procedure :: process_orbmag         => process_orbmag
       procedure :: calc_new_berry_points  => calc_new_berry_points
       procedure :: calc_new_kidx          => calc_new_kidx
@@ -813,7 +812,8 @@ contains
       allocate(self%all_k_pts(3,0),                stat=all_err(13))
 
       hall    =  1e35
-      hall_x    =  1e35
+      hall_surf    =  1e35
+      hall_sea    =  1e35
       orbmag =  1e35
       call check_ierr(all_err, self%me, "allocate hall vars")
 
@@ -1167,7 +1167,7 @@ contains
          write (*,*) size(self%all_k_pts,2), &
             "saving hall_cond with questionable unit"
          write (elem_file, "(A,I0.5,A)") var_name ,".npy"
-         call save_npy(trim(self%prefix) // varname, var)
+         call save_npy(trim(self%prefix) // var_name, var)
          write (elem_file, "(A,I0.5,A)") var_name ,"_uc.npy"
          call save_npy(trim(self%prefix) // var_name, varall)
          write (elem_file, "(A,I0.5,A)") var_name ,"_E.npy"
@@ -2188,7 +2188,7 @@ contains
    subroutine plot_omega_square(self)
       implicit none
       class(k_space)               :: self
-      real(8), allocatable     :: eig_val(:,:), omega_z(:,:), omega_xx(:,:), Q_L(:,:), Q_IC(:,:)
+      real(8), allocatable     :: eig_val(:,:), omega_z(:,:), omega_surf(:,:), omega_sea(:,:), Q_L(:,:), Q_IC(:,:)
       logical                  :: tmp_ch, tmp_co
 
       if(self%nProcs /= 1) call error_msg("Plot only for 1 process", abort=.True.)
@@ -2199,7 +2199,7 @@ contains
       self%calc_orbmag = .False.
 
       call self%setup_inte_grid_para(self%num_plot_pts, padding=.False.)
-      call self%calc_new_berry_points(eig_val, omega_z, omega_xx, Q_L, Q_IC,.False.)
+      call self%calc_new_berry_points(eig_val, omega_z, omega_surf, omega_sea, Q_L, Q_IC,.False.)
 
       call save_npy(trim(self%prefix) // "k_grid.npy", self%new_k_pts)
       call save_npy(trim(self%prefix) // "omega_z.npy", omega_z)
