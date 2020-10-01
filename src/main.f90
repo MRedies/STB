@@ -226,6 +226,7 @@ contains
       call CFG_add(cfg, "hamil%HB2",    0d0, "Hongbin snd nearest neigh")
       call CFG_add(cfg, "hamil%HB_eta", 0d0, "Hongbin SOC")
       call CFG_add(cfg, "hamil%lambda_KM", 0d0, "Kane Mele parameter")
+      call CFG_add(cfg, "hamil%gamma", 1d-6, "Gamma for sigma_xx/yy")
 
       call CFG_add(cfg, "grid%atoms_per_dim",    -1,    "")
       call CFG_add(cfg, "grid%unit_cell_type",   "",    "")
