@@ -806,6 +806,7 @@ contains
       allocate(eig_val_all(2*num_up, 0),           stat=all_err(8))
       allocate(omega_z_all(2*num_up, 0),           stat=all_err(9))
       allocate(omega_surf_all(2*num_up, 0),           stat=all_err(9))
+      allocate(omega_sea_all(2*num_up, 0),           stat=all_err(9))
       allocate(Q_L_all(n_ferm, 0),                 stat=all_err(10))
       allocate(Q_IC_all(n_ferm, 0),                stat=all_err(11))
       allocate(kidx_all(0),                        stat=all_err(12))
