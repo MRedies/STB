@@ -1461,7 +1461,6 @@ contains
                fac =  gamma/(dE*(eig_val(m)**2+gamma**2))&
                       - dE**2/(dE**2 + eta_sq)**2*aimag(log(numer&
                                            /denom))
-               write(*,*) "Fac:", aimag(log(numer/denom))
                z_comp(n) = z_comp(n) + 1d0/Pi &
                            * aimag(fac * x_mtx(n,m) * y_mtx(m,n))
             endif
