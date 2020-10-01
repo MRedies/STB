@@ -1442,12 +1442,12 @@ contains
 
    end subroutine calc_berry_diag_surf
 
-   subroutine calc_berry_diag_sea(self, z_comp, eig_val, x_mtx)
+   subroutine calc_berry_diag_sea(self, z_comp, eig_val, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
       real(8)                  :: eig_val(:), dE
       real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
-      complex(8)               :: x_mtx(:,:), gamma, denom, numer
+      complex(8)               :: x_mtx(:,:), y_mtx(:,:),gamma, denom, numer
       complex(8) :: fac
       integer    :: n_dim, n, m
       gamma = self%gamma
@@ -1463,7 +1463,7 @@ contains
                       - dE**2/(dE**2 + eta_sq)**2*log(numer&
                                            /denom)
                z_comp(n) = z_comp(n) + 1d0/Pi &
-                           * aimag(fac * x_mtx(n,m) * x_mtx(m,n))
+                           * aimag(fac * x_mtx(n,m) * y_mtx(m,n))
             endif
          enddo
       enddo
