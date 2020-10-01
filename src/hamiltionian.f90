@@ -1447,7 +1447,7 @@ contains
       class(hamil)             :: self
       real(8)                  :: eig_val(:), dE
       real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
-      complex(8)               :: x_mtx(:,:), gamma
+      complex(8)               :: x_mtx(:,:), gamma, denom, numer
       complex(8) :: fac
       integer    :: n_dim, n, m
       gamma = self%gamma
@@ -1456,10 +1456,12 @@ contains
       do n = 1,n_dim
          do m = 1,n_dim
             if(n /= m) then
-               dE =  eig_val(n) - eig_val(m)
-               fac =  -gamma/(dE*(eig_val(m)**2+gamma**2))&
-                      - dE**2/(dE**2 + eta_sq)**2*log((-eig_val(m)+ i_unit*gamma)&
-                                           /(-eig_val(n)+ i_unit*gamma))
+               dE =  eig_val(m) - eig_val(n)
+               denom = -eig_val(n)+ i_unit*gamma
+               numer = -eig_val(m)+ i_unit*gamma
+               fac =  gamma/(dE*(eig_val(m)**2+gamma**2))&
+                      - dE**2/(dE**2 + eta_sq)**2*log(numer&
+                                           /denom)
                z_comp(n) = z_comp(n) - 1d0/Pi &
                            * aimag(fac * x_mtx(n,m) * x_mtx(m,n))
             endif
