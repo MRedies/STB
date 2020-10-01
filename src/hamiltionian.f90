@@ -1447,8 +1447,7 @@ contains
       class(hamil)             :: self
       real(8)                  :: eig_val(:), dE
       real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
-      complex(8)               :: x_mtx(:,:), y_mtx(:,:),gamma, denom, numer
-      complex(8) :: fac
+      complex(8)               :: x_mtx(:,:), y_mtx(:,:),gamma, denom, numer,fac
       integer    :: n_dim, n, m
       gamma = self%gamma
       n_dim = 2 * self%num_up
@@ -1459,6 +1458,9 @@ contains
                dE =  eig_val(m) - eig_val(n)
                denom = -eig_val(n)+ i_unit*gamma
                numer = -eig_val(m)+ i_unit*gamma
+               if (numer/denom<0) then
+                  write(*,*) "Log:", log(numer/denom)
+               endif
                fac =  gamma/(dE*(eig_val(m)**2+gamma**2))&
                       - dE**2/(dE**2 + eta_sq)**2*log(numer&
                                            /denom)
