@@ -1458,12 +1458,10 @@ contains
                dE =  eig_val(m) - eig_val(n)
                denom = -eig_val(n)+ i_unit*gamma
                numer = -eig_val(m)+ i_unit*gamma
-               if (eig_val(n)/eig_val(m)<0) then
-                  write(*,*) "Log:", log(numer/denom)
-               endif
                fac =  gamma/(dE*(eig_val(m)**2+gamma**2))&
-                      - dE**2/(dE**2 + eta_sq)**2*log(numer&
-                                           /denom)
+                      - dE**2/(dE**2 + eta_sq)**2*aimag(log(numer&
+                                           /denom))
+               write(*,*) "Fac:", aimag(log(numer/denom))
                z_comp(n) = z_comp(n) + 1d0/Pi &
                            * aimag(fac * x_mtx(n,m) * y_mtx(m,n))
             endif
