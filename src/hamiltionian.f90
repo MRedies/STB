@@ -1458,7 +1458,7 @@ contains
                dE =  eig_val(m) - eig_val(n)
                denom = -eig_val(n)+ i_unit*gamma
                numer = -eig_val(m)+ i_unit*gamma
-               if (numer/denom<0) then
+               if (eig_val(n)/eig_val(m)<0) then
                   write(*,*) "Log:", log(numer/denom)
                endif
                fac =  gamma/(dE*(eig_val(m)**2+gamma**2))&
