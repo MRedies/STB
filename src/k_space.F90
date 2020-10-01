@@ -799,6 +799,8 @@ contains
       allocate(hall(size(self%E_fermi)),           stat=all_err(3))
       allocate(hall_surf_old(size(self%E_fermi)),       stat=all_err(2))
       allocate(hall_surf(size(self%E_fermi)),           stat=all_err(3))
+      allocate(hall_sea_old(size(self%E_fermi)),       stat=all_err(2))
+      allocate(hall_sea(size(self%E_fermi)),           stat=all_err(3))
       allocate(orbmag_old(size(self%E_fermi)),     stat=all_err(4))
       allocate(orbmag(size(self%E_fermi)),         stat=all_err(5))
       allocate(orbmag_L(size(self%E_fermi)),       stat=all_err(6))
