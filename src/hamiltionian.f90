@@ -1456,8 +1456,10 @@ contains
          do m = 1,n_dim
             if(n /= m) then
                dE =  eig_val(m) - eig_val(n)
-               denom = -eig_val(n) + i_unit*gamma
-               numer = -eig_val(m) + i_unit*gamma
+               denom = i_unit*gamma
+               denom = denom - eig_val(n)
+               numer = i_unit*gamma
+               numer = numer - eig_val(m)
                fac =  gamma/(dE*(eig_val(m)**2+gamma**2))&
                       - dE**2/(dE**2 + eta_sq)**2*aimag(log(numer&
                                            /denom))
