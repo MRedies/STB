@@ -1247,13 +1247,13 @@ contains
          k_idx =  kidx_all(loc_idx)
          do n_hall =  1,size(hall)
             n_loop: do n = 1,size(omega_z_all,1)
-               !ferm  =  self%fermi_distr(eig_val_all(n, loc_idx), n_hall)
-               !if(ferm /=  0d0) then
+               ferm  =  self%fermi_distr(eig_val_all(n, loc_idx), n_hall)
+               if(ferm /=  0d0) then
                   hall(n_hall) = hall(n_hall) + &
                                  self%weights(k_idx) * omega_z_all(n, loc_idx)
                !else
                !   exit n_loop
-               !endif
+               endif
             enddo n_loop
          enddo
       enddo
