@@ -1252,8 +1252,8 @@ contains
                   hall(n_hall) = hall(n_hall) + &
                                  self%weights(k_idx) * omega_z_all(n, loc_idx)
                !else
-                  exit n_loop
-               endif
+               !   exit n_loop
+               !endif
             enddo n_loop
          enddo
       enddo
