@@ -1433,7 +1433,6 @@ contains
       do n = 1,n_dim
          do m = 1,n_dim
             if(n /= m) then
-               dE =  eig_val(n) - eig_val(m)
                z_comp(n,m) = z_comp(n,m) - 1d0/(2d0*Pi) &
                            * aimag(x_mtx(n,m) * y_mtx(m,n))
             endif
