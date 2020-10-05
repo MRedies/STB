@@ -1638,8 +1638,8 @@ contains
       integer                 :: vec_sz, num_k_old, num_k_new
       integer                 :: ierr(2)
 
-      num_k_old = size(quantity_all, 2)
-      num_k_new = size(quantity_new, 2)
+      num_k_old = size(quantity_all, 3)
+      num_k_new = size(quantity_new, 3)
       vec_sz    = size(quantity_new, 1)
       ierr      = 0
 
