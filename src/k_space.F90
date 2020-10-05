@@ -834,12 +834,12 @@ contains
          call append_eigval(eig_val_all, eig_val_new)
          if(self%me ==  root) write (*,*) self%me, "post appending"
 
-         if(self%calc_hall)   call append_quantitiy(omega_z_all, omega_z_new)
-         if(self%calc_hall)   call append_quantitiy(omega_surf_all, omega_surf_new)
-         if(self%calc_hall)   call append_quantitiy(omega_sea_all, omega_sea_new)
+         if(self%calc_hall)   call append_quantity(omega_z_all, omega_z_new)
+         if(self%calc_hall)   call append_quantity_3d(omega_surf_all, omega_surf_new)
+         if(self%calc_hall)   call append_quantity_3d(omega_sea_all, omega_sea_new)
          if(self%calc_orbmag) then
-            call append_quantitiy(Q_L_all, Q_L_new)
-            call append_quantitiy(Q_IC_all, Q_IC_new)
+            call append_quantity(Q_L_all, Q_L_new)
+            call append_quantity(Q_IC_all, Q_IC_new)
          endif
          if(self%calc_hall) then
             hall_old = hall
@@ -1609,7 +1609,7 @@ contains
       endif
    end subroutine append_kidx
 
-   subroutine append_quantitiy(quantity_all, quantity_new)
+   subroutine append_quantity(quantity_all, quantity_new)
       implicit none
       real(8), allocatable      :: quantity_new(:,:), quantity_all(:,:), tmp_z(:,:)
       integer                 :: vec_sz, num_k_old, num_k_new
@@ -1624,13 +1624,36 @@ contains
       tmp_z = quantity_all
       deallocate(quantity_all)
       allocate(quantity_all(vec_sz, num_k_old + num_k_new), stat=ierr(2))
-      call check_ierr(ierr, info=" append_quantitiy")
+      call check_ierr(ierr, info=" append_quantity")
 
       quantity_all(:,1:num_k_old) = tmp_z
       quantity_all(:,num_k_old+1:num_k_old+num_k_new) = quantity_new
       deallocate(tmp_z)
       deallocate(quantity_new)
-   end subroutine append_quantitiy
+   end subroutine append_quantity
+   
+   subroutine append_quantity_3d(quantity_all, quantity_new)
+      implicit none
+      real(8), allocatable      :: quantity_new(:,:,:), quantity_all(:,:,:), tmp_z(:,:,:)
+      integer                 :: vec_sz, num_k_old, num_k_new
+      integer                 :: ierr(2)
+
+      num_k_old = size(quantity_all, 2)
+      num_k_new = size(quantity_new, 2)
+      vec_sz    = size(quantity_new, 1)
+      ierr      = 0
+
+      allocate(tmp_z(vec_sz,vec_sz, num_k_old),stat=ierr(1))
+      tmp_z = quantity_all
+      deallocate(quantity_all)
+      allocate(quantity_all(vec_sz,vec_sz, num_k_old + num_k_new), stat=ierr(2))
+      call check_ierr(ierr, info=" append_quantity")
+
+      quantity_all(:,:,1:num_k_old) = tmp_z
+      quantity_all(:,:,num_k_old+1:num_k_old+num_k_new) = quantity_new
+      deallocate(tmp_z)
+      deallocate(quantity_new)
+   end subroutine append_quantity_3d
 
    subroutine setup_berry_inte_grid(self)
       implicit none
