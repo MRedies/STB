@@ -1426,8 +1426,7 @@ contains
       class(hamil)             :: self
       real(8)                  :: dE
       real(8)                  :: z_comp(:,:) !> \f$ \Omega^n_z \f$
-      complex(8)               :: x_mtx(:,:), y_mtx(:,:), gamma
-      complex(8) :: fac
+      complex(8)               :: x_mtx(:,:), y_mtx(:,:)
       integer    :: n_dim, n, m
       gamma = self%gamma
       n_dim = 2 * self%num_up
@@ -1448,7 +1447,7 @@ contains
       class(hamil)             :: self
       real(8)                  :: dE
       real(8)                  :: z_comp(:,:) !> \f$ \Omega^n_z \f$
-      complex(8)               :: x_mtx(:,:), y_mtx(:,:),gamma, denom, numer,fac
+      complex(8)               :: x_mtx(:,:), y_mtx(:,:)
       integer    :: n_dim, n, m
       gamma = self%gamma
       n_dim = 2 * self%num_up
