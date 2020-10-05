@@ -1228,7 +1228,7 @@ contains
       real(8), intent(in)     :: eig_val_all(:,:), omega_z_all(:,:,:)
       real(8), allocatable    :: hall(:)
       real(8)                 :: fac
-      integer                 :: loc_idx, n, n_hall, k_idx
+      integer                 :: loc_idx, n, m, n_hall, k_idx
       integer                 :: ierr(2), all_err(1)
 
       all_err = 0
