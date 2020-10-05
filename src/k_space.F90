@@ -777,8 +777,8 @@ contains
       class(k_space)          :: self
       real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
                                  hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:),&
-                                 hall_surf(:), hall_surf_old(:), omega_surf_all(:,:), omega_surf_new(:,:),&
-                                 hall_sea(:), hall_sea_old(:), omega_sea_all(:,:), omega_sea_new(:,:),&
+                                 hall_surf(:), hall_surf_old(:), omega_surf_all(:,:,:), omega_surf_new(:,:,:),&
+                                 hall_sea(:), hall_sea_old(:), omega_sea_all(:,:,:), omega_sea_new(:,:,:),&
                                  orbmag(:), orbmag_old(:), Q_L_all(:,:), Q_IC_all(:,:), &
                                  Q_L_new(:,:), Q_IC_new(:,:), orbmag_L(:), orbmag_IC(:)
       real(8)                  :: start, factor
@@ -808,8 +808,8 @@ contains
       allocate(orbmag_IC(size(self%E_fermi)),      stat=all_err(7))
       allocate(eig_val_all(2*num_up, 0),           stat=all_err(8))
       allocate(omega_z_all(2*num_up, 0),           stat=all_err(9))
-      allocate(omega_surf_all(2*num_up, 0),           stat=all_err(9))
-      allocate(omega_sea_all(2*num_up, 0),           stat=all_err(9))
+      allocate(omega_surf_all(2*num_up,2*num_up, 0),           stat=all_err(9))
+      allocate(omega_sea_all(2*num_up,2*num_up, 0),           stat=all_err(9))
       allocate(Q_L_all(n_ferm, 0),                 stat=all_err(10))
       allocate(Q_IC_all(n_ferm, 0),                stat=all_err(11))
       allocate(kidx_all(0),                        stat=all_err(12))
@@ -846,7 +846,7 @@ contains
             hall_surf_old = hall_surf
             hall_sea_old = hall_sea
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
-            call self%integrate_hall_sea(kidx_all, omega_surf_all, eig_val_all, hall_surf)
+            !call self%integrate_hall_sea(kidx_all, omega_surf_all, eig_val_all, hall_surf)
             call self%integrate_hall_sea(kidx_all, omega_sea_all, eig_val_all, hall_sea)
 
             ! save current iteration and check if converged
@@ -938,8 +938,8 @@ contains
       integer                   :: first, last, err(3), me, ierr
       real(8)                   :: tmp
       real(8)                   :: k(3)
-      real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), omega_surf_new(:,:),&
-                                   omega_sea_new(:,:),omega_z_pert_new(:), Q_L_new(:,:),&
+      real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), omega_surf_new(:,:,:),&
+                                   omega_sea_new(:,:,:),omega_z_pert_new(:), Q_L_new(:,:),&
                                    Q_IC_new(:,:)
       complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
       logical, intent(in)       :: pert_log
@@ -953,8 +953,8 @@ contains
       err =  0
       allocate(eig_val_new(2*num_up, last-first+1), stat=err(1))
       if(self%calc_hall)   allocate(omega_z_new(2*num_up, last-first+1), stat=err(2))
-      if(self%calc_hall)   allocate(omega_surf_new(2*num_up, last-first+1), stat=err(2))
-      if(self%calc_hall)   allocate(omega_sea_new(2*num_up, last-first+1), stat=err(2))
+      if(self%calc_hall)   allocate(omega_surf_new(2*num_up,2*num_up, last-first+1), stat=err(2))
+      if(self%calc_hall)   allocate(omega_sea_new(2*num_up,2*num_up, last-first+1), stat=err(2))
       if(self%calc_orbmag) allocate(Q_L_new(n_ferm,        last-first+1), stat=err(3))
       if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(3))
 
@@ -997,9 +997,9 @@ contains
             if(self%calc_hall) then
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
-               call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
+               call self%ham%calc_berry_diag_surf(omega_surf_new(:,:,cnt),&
                                        eig_val_new(:,cnt), del_kx)
-               call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
+               call self%ham%calc_berry_diag_sea(omega_sea_new(:,:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
                !call self%ham%calc_berry_z(omega_xx_new(:,cnt),&
                !                        eig_val_new(:,cnt), del_kx, del_kx)
@@ -1225,9 +1225,9 @@ contains
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: kidx_all(:)
-      real(8), intent(in)     :: eig_val_all(:,:), omega_z_all(:,:)
+      real(8), intent(in)     :: eig_val_all(:,:), omega_z_all(:,:,:)
       real(8), allocatable    :: hall(:)
-      real(8)                 :: ferm
+      real(8)                 :: fac
       integer                 :: loc_idx, n, n_hall, k_idx
       integer                 :: ierr(2), all_err(1)
 
@@ -1247,13 +1247,11 @@ contains
          k_idx =  kidx_all(loc_idx)
          do n_hall =  1,size(hall)
             n_loop: do n = 1,size(omega_z_all,1)
-               ferm  =  self%fermi_distr(eig_val_all(n, loc_idx), n_hall)
-               if(ferm /=  0d0) then
-                  hall(n_hall) = hall(n_hall) + &
-                                 self%weights(k_idx) * omega_z_all(n, loc_idx)
-               !else
-               !   exit n_loop
-               endif
+               m_loop: do m = 1,size(omega_z_all,2)
+                     fac = call self%ham%calc_fac_sea(eig_val_all(n), eig_val_all(m), self%E_fermi(n_hall))
+                     hall(n_hall) = hall(n_hall) + &
+                                 self%weights(k_idx) * fac * omega_z_all(n,m, loc_idx)
+               enddo m_loop
             enddo n_loop
          enddo
       enddo
@@ -1273,6 +1271,7 @@ contains
                      MPI_COMM_WORLD, ierr(2))
       call check_ierr(ierr, self%me, "Hall conductance")
    end subroutine integrate_hall_sea
+
    subroutine integrate_hall(self, kidx_all, omega_z_all, eig_val_all, hall)
       use mpi
       implicit none

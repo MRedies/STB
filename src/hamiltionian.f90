@@ -1418,11 +1418,12 @@ contains
       enddo
 
    end subroutine calc_berry_z
+
    subroutine calc_berry_diag_surf(self, z_comp, eig_val, x_mtx)
       implicit none
       class(hamil)             :: self
       real(8)                  :: eig_val(:), dE
-      real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
+      real(8)                  :: z_comp(:,:) !> \f$ \Omega^n_z \f$
       complex(8)               :: x_mtx(:,:), gamma
       complex(8) :: fac
       integer    :: n_dim, n, m
@@ -1433,9 +1434,8 @@ contains
          do m = 1,n_dim
             if(n /= m) then
                dE =  eig_val(n) - eig_val(m)
-               fac =  dE*gamma/((eig_val(n)**2+gamma**2)*(eig_val(m)**2+gamma**2))
-               z_comp(n) = z_comp(n) - 1d0/(2d0*Pi) &
-                           * aimag(fac * x_mtx(n,m) * x_mtx(m,n))
+               z_comp(n,m) = z_comp(n) - 1d0/(2d0*Pi) &
+                           * aimag(x_mtx(n,m) * x_mtx(m,n))
             endif
          enddo
       enddo
@@ -1446,7 +1446,7 @@ contains
       implicit none
       class(hamil)             :: self
       real(8)                  :: eig_val(:), dE
-      real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
+      real(8)                  :: z_comp(:,:) !> \f$ \Omega^n_z \f$
       complex(8)               :: x_mtx(:,:), y_mtx(:,:),gamma, denom, numer,fac
       integer    :: n_dim, n, m
       gamma = self%gamma
@@ -1455,21 +1455,65 @@ contains
       do n = 1,n_dim
          do m = 1,n_dim
             if(n /= m) then
-               dE =  eig_val(m) - eig_val(n)
-               denom = i_unit*gamma
-               denom = denom - eig_val(n)
-               numer = i_unit*gamma
-               numer = numer - eig_val(m)
-               fac =  gamma/(dE*(eig_val(m)**2+gamma**2))&
-                      - dE**2/(dE**2 + eta_sq)**2*aimag(log(numer&
-                                           /denom))
-               z_comp(n) = z_comp(n) + 1d0/Pi &
-                           * fac * aimag(x_mtx(n,m) * y_mtx(m,n))
+               z_comp(n,m) = z_comp(n) + 1d0/Pi &
+                           * aimag(x_mtx(n,m) * y_mtx(m,n))
             endif
          enddo
       enddo
 
    end subroutine calc_berry_diag_sea
+
+   subroutine calc_fac_surf(self, fac, eig_val, E_fermi)
+      implicit none
+      class(hamil)             :: self
+      real(8)                  :: eig_val(:), dE, E_fermi(:)
+      real(8)                  :: !> \f$ \Omega^n_z \f$
+      complex(8)               :: gamma,facc,fac(:,:)
+      complex(8) :: fac
+      integer    :: n_dim, n, m
+      gamma = self%gamma
+      n_dim = 2 * self%num_up
+      fac =  0d0
+      do n = 1,n_dim
+         do m = 1,n_dim
+            if(n /= m) then
+               dE =  eig_val(n) - eig_val(m)
+               facc =  dE*gamma/((eig_val(n)**2+gamma**2)*(eig_val(m)**2+gamma**2))
+               fac(n,m) = fac(n,m) - 1d0/(2d0*Pi) &
+                           * facc
+            endif
+         enddo
+      enddo
+
+   end subroutine calc_fac_surf
+
+   function calc_fac_sea(self, eig_val, E_fermi) result(fac)
+      implicit none
+      class(hamil)             :: self
+      real(8)                  :: e_n,e_m, dE, E_fermi(:)
+      real(8)                  :: fac
+      complex(8)               :: gamma, denom, numer
+      integer    :: n_dim, n, m
+      gamma = self%gamma
+      n_dim = 2 * self%num_up
+      fac =  (0d0,0d0)
+      do n = 1,n_dim
+         do m = 1,n_dim
+            if(n /= m) then
+               dE =  e_m - e_n
+               denom = i_unit*gamma
+               denom = denom - e_n
+               numer = i_unit*gamma
+               numer = numer - e_m
+               facc =  gamma/(dE*((E_fermi()-e_m)**2+gamma**2))&
+                      - dE**2/(dE**2 + eta_sq)**2*aimag(log(numer&
+                                           /denom))
+               fac = 1d0/Pi * fac
+            endif
+         enddo
+      enddo
+
+   end function calc_fac_sea
 
    Subroutine  calc_eigenvalues(self, k_list, eig_val)
       Implicit None
