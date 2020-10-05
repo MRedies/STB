@@ -1248,7 +1248,7 @@ contains
          do n_hall =  1,size(hall)
             n_loop: do n = 1,size(omega_z_all,1)
                m_loop: do m = 1,size(omega_z_all,2)
-                     fac = call self%ham%calc_fac_sea(eig_val_all(n), eig_val_all(m), self%E_fermi(n_hall))
+                     fac = self%ham%calc_fac_sea(eig_val_all(n), eig_val_all(m), self%E_fermi(n_hall))
                      hall(n_hall) = hall(n_hall) + &
                                  self%weights(k_idx) * fac * omega_z_all(n,m, loc_idx)
                enddo m_loop
@@ -1631,7 +1631,7 @@ contains
       deallocate(tmp_z)
       deallocate(quantity_new)
    end subroutine append_quantity
-   
+
    subroutine append_quantity_3d(quantity_all, quantity_new)
       implicit none
       real(8), allocatable      :: quantity_new(:,:,:), quantity_all(:,:,:), tmp_z(:,:,:)
