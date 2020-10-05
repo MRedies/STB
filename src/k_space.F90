@@ -846,7 +846,7 @@ contains
             hall_surf_old = hall_surf
             hall_sea_old = hall_sea
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
-            !call self%integrate_hall_sea(kidx_all, omega_surf_all, eig_val_all, hall_surf)
+            call self%integrate_hall_sea(kidx_all, omega_surf_all, eig_val_all, hall_surf)
             call self%integrate_hall_sea(kidx_all, omega_sea_all, eig_val_all, hall_sea)
 
             ! save current iteration and check if converged
