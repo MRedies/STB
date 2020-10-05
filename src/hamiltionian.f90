@@ -1463,37 +1463,35 @@ contains
 
    end subroutine calc_berry_diag_sea
 
-   subroutine calc_fac_surf(self, fac, eig_val, E_fermi)
+   function calc_fac_surf(self, e_n, e_m, E_f) result(fac)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: eig_val(:), dE, E_fermi(:)
+      real(8)                  :: e_n, e_m, dE, E_f, gamma
       real(8)                  :: fac!> \f$ \Omega^n_z \f$
-      complex(8)               :: gamma,facc,fac(:,:)
-      complex(8) :: fac
       integer    :: n_dim, n, m
+
       gamma = self%gamma
       n_dim = 2 * self%num_up
       fac =  0d0
       do n = 1,n_dim
          do m = 1,n_dim
             if(n /= m) then
-               dE =  eig_val(n) - eig_val(m)
-               facc =  dE*gamma/((eig_val(n)**2+gamma**2)*(eig_val(m)**2+gamma**2))
-               fac(n,m) = fac(n,m) - 1d0/(2d0*Pi) &
-                           * facc
+               dE =  e_m - e_n
+               fac =  dE*gamma/((eig_val(n)**2+gamma**2)*(eig_val(m)**2+gamma**2))
+               fac = - 1d0/(2d0*Pi) * fac
             endif
          enddo
       enddo
 
-   end subroutine calc_fac_surf
+   end function calc_fac_surf
 
    function calc_fac_sea(self, e_n, e_m, E_f) result(fac)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: e_n,e_m, dE, E_f
-      real(8)                  :: fac
+      real(8)                  :: e_n,e_m, dE, E_f, gamma, fac
       complex(8)               :: gamma, denom, numer
       integer    :: n_dim, n, m
+
       gamma = self%gamma
       n_dim = 2 * self%num_up
       fac =  0d0
