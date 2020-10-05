@@ -1419,12 +1419,12 @@ contains
 
    end subroutine calc_berry_z
 
-   subroutine calc_berry_diag_surf(self, z_comp, eig_val, x_mtx)
+   subroutine calc_berry_diag_surf(self, z_comp, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: eig_val(:), dE
+      real(8)                  :: dE
       real(8)                  :: z_comp(:,:) !> \f$ \Omega^n_z \f$
-      complex(8)               :: x_mtx(:,:), gamma
+      complex(8)               :: x_mtx(:,:), y_mtx(:,:), gamma
       complex(8) :: fac
       integer    :: n_dim, n, m
       gamma = self%gamma
@@ -1434,18 +1434,18 @@ contains
          do m = 1,n_dim
             if(n /= m) then
                dE =  eig_val(n) - eig_val(m)
-               z_comp(n,m) = z_comp(n) - 1d0/(2d0*Pi) &
-                           * aimag(x_mtx(n,m) * x_mtx(m,n))
+               z_comp(n,m) = z_comp(n,m) - 1d0/(2d0*Pi) &
+                           * aimag(x_mtx(n,m) * y_mtx(m,n))
             endif
          enddo
       enddo
 
    end subroutine calc_berry_diag_surf
 
-   subroutine calc_berry_diag_sea(self, z_comp, eig_val, x_mtx, y_mtx)
+   subroutine calc_berry_diag_sea(self, z_comp, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: eig_val(:), dE
+      real(8)                  :: dE
       real(8)                  :: z_comp(:,:) !> \f$ \Omega^n_z \f$
       complex(8)               :: x_mtx(:,:), y_mtx(:,:),gamma, denom, numer,fac
       integer    :: n_dim, n, m
@@ -1455,7 +1455,7 @@ contains
       do n = 1,n_dim
          do m = 1,n_dim
             if(n /= m) then
-               z_comp(n,m) = z_comp(n) + 1d0/Pi &
+               z_comp(n,m) = z_comp(n,m) + 1d0/Pi &
                            * aimag(x_mtx(n,m) * y_mtx(m,n))
             endif
          enddo
@@ -1467,7 +1467,7 @@ contains
       implicit none
       class(hamil)             :: self
       real(8)                  :: eig_val(:), dE, E_fermi(:)
-      real(8)                  :: !> \f$ \Omega^n_z \f$
+      real(8)                  :: fac!> \f$ \Omega^n_z \f$
       complex(8)               :: gamma,facc,fac(:,:)
       complex(8) :: fac
       integer    :: n_dim, n, m
@@ -1487,25 +1487,25 @@ contains
 
    end subroutine calc_fac_surf
 
-   function calc_fac_sea(self, eig_val, E_fermi) result(fac)
+   function calc_fac_sea(self, e_n, e_m, E_f) result(fac)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: e_n,e_m, dE, E_fermi(:)
+      real(8)                  :: e_n,e_m, dE, E_f
       real(8)                  :: fac
       complex(8)               :: gamma, denom, numer
       integer    :: n_dim, n, m
       gamma = self%gamma
       n_dim = 2 * self%num_up
-      fac =  (0d0,0d0)
+      fac =  0d0
       do n = 1,n_dim
          do m = 1,n_dim
             if(n /= m) then
                dE =  e_m - e_n
                denom = i_unit*gamma
-               denom = denom - e_n
+               denom = denom + E_f - e_n
                numer = i_unit*gamma
-               numer = numer - e_m
-               facc =  gamma/(dE*((E_fermi()-e_m)**2+gamma**2))&
+               numer = numer + E_f - e_m
+               fac =  gamma/(dE*((E_f-e_m)**2+gamma**2))&
                       - dE**2/(dE**2 + eta_sq)**2*aimag(log(numer&
                                            /denom))
                fac = 1d0/Pi * fac
