@@ -1477,7 +1477,7 @@ contains
          do m = 1,n_dim
             if(n /= m) then
                dE =  e_m - e_n
-               fac =  dE*gamma/((eig_val(n)**2+gamma**2)*(eig_val(m)**2+gamma**2))
+               fac =  dE*gamma/((e_n**2+gamma**2)*(e_m**2+gamma**2))
                fac = - 1d0/(2d0*Pi) * fac
             endif
          enddo
@@ -1489,7 +1489,7 @@ contains
       implicit none
       class(hamil)             :: self
       real(8)                  :: e_n,e_m, dE, E_f, gamma, fac
-      complex(8)               :: gamma, denom, numer
+      complex(8)               :: denom, numer
       integer    :: n_dim, n, m
 
       gamma = self%gamma
