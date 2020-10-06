@@ -786,7 +786,7 @@ contains
       integer   , allocatable  :: kidx_all(:), kidx_new(:)
       integer     :: N_k, num_up, iter, n_ferm,nProcs
       integer     :: all_err(13), info
-      character(len=300)       :: msg
+      character(len=300)       :: msg, surf_name = "hall_cond_surf", sea_name = "hall_cond_sea"
       logical                  :: done_hall = .True., done_orbmag = .True.,  done_hall_surf = .True.,  done_hall_sea = .True.
       logical, intent(in)      :: pert_log
       call self%setup_berry_inte_grid()
@@ -931,7 +931,7 @@ contains
       enddo
    end subroutine calc_new_kidx
 
-   subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, omega_xx_new, Q_L_new, Q_IC_new, pert_log)
+   subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, omega_surf_new, omega_sea_new, Q_L_new, Q_IC_new, pert_log)
       use mpi
       implicit none
       class(k_space)            :: self
