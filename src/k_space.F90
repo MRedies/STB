@@ -1250,7 +1250,6 @@ contains
                m_loop: do m = 1,size(omega_z_all,2)
                   if (n/=m) then
                         call self%ham%calc_fac_sea(eig_val_all(n,loc_idx), eig_val_all(m,loc_idx), self%E_fermi(n_hall),fac)
-                        write(*,*) "FAC:", fac
                         hall(n_hall) = hall(n_hall) + &
                                     self%weights(k_idx) * fac * omega_z_all(n,m, loc_idx)
                   endif
