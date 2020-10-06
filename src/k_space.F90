@@ -1227,7 +1227,7 @@ contains
       integer   , intent(in)  :: kidx_all(:)
       real(8), intent(in)     :: eig_val_all(:,:), omega_z_all(:,:,:)
       real(8), allocatable    :: hall(:)
-      real(8)                 :: fac
+      real(8)                 :: fac = 0d0
       integer                 :: loc_idx, n, m, n_hall, k_idx
       integer                 :: ierr(2), all_err(1)
 
@@ -1249,6 +1249,7 @@ contains
             n_loop: do n = 1,size(omega_z_all,1)
                m_loop: do m = 1,size(omega_z_all,2)
                      call self%ham%calc_fac_sea(eig_val_all(n,loc_idx), eig_val_all(m,loc_idx), self%E_fermi(n_hall),fac)
+                     write(*,*) "FAC:", fac
                      hall(n_hall) = hall(n_hall) + &
                                  self%weights(k_idx) * fac * omega_z_all(n,m, loc_idx)
                enddo m_loop
