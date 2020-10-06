@@ -1159,6 +1159,27 @@ contains
       endif
    end function process_orbmag
 
+   subroutine finalize_hall_surf(self, var,varall,var_name)
+      implicit none
+      class(k_space)              :: self
+      real(8), intent(in)         :: var(:)
+      real(8), intent(in)         :: varall(:,:,:)
+      character(len=*), intent(in) :: var_name
+      character(len=300) :: elem_file
+
+      if(self%me == root) then
+         write (*,*) size(self%all_k_pts,2), &
+            "saving hall_cond with questionable unit"
+         write (elem_file, "(A,A)") trim(var_name) ,".npy"
+         call save_npy(trim(self%prefix) // trim(elem_file), var)
+         write (elem_file, "(A,A)") trim(var_name) ,"_uc.npy"
+         call save_npy(trim(self%prefix) // trim(elem_file), varall)
+         write (elem_file, "(A,A)") trim(var_name) ,"_E.npy"
+         call save_npy(trim(self%prefix) // trim(elem_file), &
+                       self%E_fermi / self%units%energy)
+      endif
+   end subroutine finalize_hall_surf
+
    subroutine finalize_hall(self, var,varall)
       implicit none
       class(k_space)              :: self
