@@ -76,7 +76,7 @@ module Class_hamiltionian
    end type hamil
 
 contains
-   function calc_fac_surf(self, e_n, e_m, E_f) result(fac)
+   function calc_fac_surf(e_n, e_m, E_f) result(fac)
       implicit none
       class(hamil)             :: self
       real(8)                  :: e_n, e_m, dE, E_f, gamma
@@ -91,7 +91,7 @@ contains
       fac = - 1d0/(2d0*PI) * fac
    end function calc_fac_surf
    
-   function calc_fac_sea(self, e_n, e_m, E_f) result(fac)
+   function calc_fac_sea(e_n, e_m, E_f) result(fac)
       implicit none
       class(hamil)             :: self
       real(8)                  :: e_n,e_m, dE, E_f, gamma, fac
@@ -111,7 +111,7 @@ contains
                                   /denom))
       fac = 1d0/PI * fac
    end function calc_fac_sea
-   
+
    function z_layer_states(self) result(z)
       implicit none
       class(hamil), intent(in)      :: self
