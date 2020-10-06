@@ -22,6 +22,7 @@ module Class_hamiltionian
       real(8)         :: lambda !> local exchange
       real(8)         :: HB1, HB2, HB_eta !> parameters for hongbins model
       real(8)         :: lambda_KM !> parameter for Kane Mele term
+      real(8)         :: gamma !> broadening, Greens function, sigma_xx
       real(8), allocatable       :: drop_Vx_layers(:), drop_Vy_layers(:)
       complex(8), allocatable    :: del_H(:,:)
       character(len=300)   :: prefix
