@@ -271,6 +271,7 @@ contains
       call CFG_add(cfg, "dos%fermi_fill",       0.5d0,   "")
       call CFG_add(cfg, "berry%pert_log", .False., "")
       call CFG_add(cfg, "berry%calc_hall", .False., "")
+      call CFG_add(cfg, "berry%calc_hall_diag", .False., "")
       call CFG_add(cfg, "berry%calc_orbmag", .False., "")
       call CFG_add(cfg, "berry%k_pts_per_dim", 25, "inital density of k-grid")
       call CFG_add(cfg, "berry%temperature", 1d-5, "")

@@ -40,6 +40,7 @@ module Class_k_space
       character(len=6)     :: ada_mode
       logical              :: perform_pad !> should the k-grid be padded, to match cores
       logical              :: calc_hall !> should hall conductivity be calculated
+      logical              :: calc_hall_diag !> should diag hall conductivity be calculated
       logical              :: calc_orbmag !> should orbital magnetism be calculated
       logical              :: test_run !> should unit tests be performed
       !logical              :: pert_log !>should berry be calculated in first order perturbation theory
@@ -396,6 +397,7 @@ contains
          call CFG_get(cfg, "berry%conv_criterion", self%berry_conv_crit)
          call CFG_get(cfg, "berry%perform_pad", self%perform_pad)
          call CFG_get(cfg, "berry%calc_hall", self%calc_hall)
+         call CFG_get(cfg, "berry%calc_hall_diag", self%calc_hall_diag)
          call CFG_get(cfg, "berry%calc_orbmag", self%calc_orbmag)
          call CFG_get(cfg, "berry%weights", self%chosen_weights)
          call CFG_get(cfg, "berry%adaptive_mode", self%ada_mode)
@@ -468,6 +470,8 @@ contains
                      root,                            MPI_COMM_WORLD, ierr(18))
       call MPI_Bcast(self%calc_hall,       1,            MPI_LOGICAL,   &
                      root,                            MPI_COMM_WORLD, ierr(19))
+      call MPI_Bcast(self%calc_hall_diag,       1,            MPI_LOGICAL,   &
+                     root,                            MPI_COMM_WORLD, ierr(26))
       call MPI_Bcast(self%calc_orbmag,     1,            MPI_LOGICAL,   &
                      root,                            MPI_COMM_WORLD, ierr(20))
       call MPI_Bcast(self%chosen_weights,  300,          MPI_CHARACTER, &
@@ -836,22 +840,25 @@ contains
          if(self%me ==  root) write (*,*) self%me, "post appending"
 
          if(self%calc_hall)   call append_quantity(omega_z_all, omega_z_new)
-         if(self%calc_hall)   call append_quantity_3d(omega_surf_all, omega_surf_new)
-         if(self%calc_hall)   call append_quantity_3d(omega_sea_all, omega_sea_new)
+         if(self%calc_hall_diag) then
+               call append_quantity_3d(omega_surf_all, omega_surf_new)
+               call append_quantity_3d(omega_sea_all, omega_sea_new)
+         endif
          if(self%calc_orbmag) then
             call append_quantity(Q_L_all, Q_L_new)
             call append_quantity(Q_IC_all, Q_IC_new)
          endif
          if(self%calc_hall) then
             hall_old = hall
+            call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
+            done_hall =  self%process_hall(hall, hall_old, iter, omega_z_all)
+         endif
+         if(self%calc_hall_diag) then
             hall_surf_old = hall_surf
             hall_sea_old = hall_sea
-            call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
             call self%integrate_hall_surf(kidx_all, omega_surf_all, eig_val_all, hall_surf)
             call self%integrate_hall_sea(kidx_all, omega_sea_all, eig_val_all, hall_sea)
-
             ! save current iteration and check if converged
-            done_hall =  self%process_hall(hall, hall_old, iter, omega_z_all)
             done_hall_surf =  self%process_hall_surf(hall_surf, hall_surf_old, iter, omega_surf_all,surf_name)
             done_hall_sea =  self%process_hall_surf(hall_sea, hall_sea_old, iter, omega_sea_all,sea_name)
          endif
@@ -899,6 +906,8 @@ contains
       enddo
       if(self%calc_hall) then
          call self%finalize_hall(hall,omega_z_all)
+      endif
+      if(self%calc_hall_diag) then
          call self%finalize_hall_surf(hall_surf,omega_surf_all,surf_name)
          call self%finalize_hall_surf(hall_sea,omega_sea_all,sea_name)
       endif
@@ -954,8 +963,8 @@ contains
       err =  0
       allocate(eig_val_new(2*num_up, last-first+1), stat=err(1))
       if(self%calc_hall)   allocate(omega_z_new(2*num_up, last-first+1), stat=err(2))
-      if(self%calc_hall)   allocate(omega_surf_new(2*num_up,2*num_up, last-first+1), stat=err(2))
-      if(self%calc_hall)   allocate(omega_sea_new(2*num_up,2*num_up, last-first+1), stat=err(2))
+      if(self%calc_hall_diag)   allocate(omega_surf_new(2*num_up,2*num_up, last-first+1), stat=err(2))
+      if(self%calc_hall_diag)   allocate(omega_sea_new(2*num_up,2*num_up, last-first+1), stat=err(2))
       if(self%calc_orbmag) allocate(Q_L_new(n_ferm,        last-first+1), stat=err(3))
       if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(3))
 
@@ -998,6 +1007,8 @@ contains
             if(self%calc_hall) then
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
+            endif
+            if(self%calc_hall_diag) then
                call self%ham%calc_berry_diag_surf(omega_surf_new(:,:,cnt),&
                                        del_kx, del_kx)
                call self%ham%calc_berry_diag_sea(omega_sea_new(:,:,cnt),&
