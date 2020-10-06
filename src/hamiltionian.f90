@@ -49,8 +49,8 @@ module Class_hamiltionian
       procedure :: calc_berry_z                   => calc_berry_z
       procedure :: calc_berry_diag_sea            => calc_berry_diag_sea
       procedure :: calc_berry_diag_surf           => calc_berry_diag_surf
-      !procedure :: calc_fac_sea                   => calc_fac_sea
-      !procedure :: calc_fac_surf                  => calc_fac_surf
+      procedure :: calc_fac_sea                   => calc_fac_sea
+      procedure :: calc_fac_surf                  => calc_fac_surf
       procedure :: calc_velo_mtx                  => calc_velo_mtx
       procedure :: calc_right_pert_velo_mtx       => calc_right_pert_velo_mtx
       procedure :: calc_left_pert_velo_mtx        => calc_left_pert_velo_mtx
