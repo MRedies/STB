@@ -82,7 +82,8 @@ module Class_k_space
       procedure :: set_hall_weights       => set_hall_weights
       procedure :: set_orbmag_weights     => set_orbmag_weights
       procedure :: integrate_hall         => integrate_hall
-      procedure :: integrate_hall_sea         => integrate_hall_sea
+      procedure :: integrate_hall_sea     => integrate_hall_sea
+      procedure :: integrate_hall_surf    => integrate_hall_surf
       procedure :: integrate_orbmag       => integrate_orbmag
       procedure :: finalize_hall          => finalize_hall
       procedure :: finalize_hall_surf     => finalize_hall_surf
@@ -846,7 +847,7 @@ contains
             hall_surf_old = hall_surf
             hall_sea_old = hall_sea
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
-            call self%integrate_hall_sea(kidx_all, omega_surf_all, eig_val_all, hall_surf)
+            call self%integrate_hall_surf(kidx_all, omega_surf_all, eig_val_all, hall_surf)
             call self%integrate_hall_sea(kidx_all, omega_sea_all, eig_val_all, hall_sea)
 
             ! save current iteration and check if converged
@@ -1273,6 +1274,60 @@ contains
                      MPI_COMM_WORLD, ierr(2))
       call check_ierr(ierr, self%me, "Hall conductance")
    end subroutine integrate_hall_sea
+
+   subroutine integrate_hall_surf(self, kidx_all, omega_z_all, eig_val_all, hall)
+      use mpi
+      implicit none
+      class(k_space)          :: self
+      integer   , intent(in)  :: kidx_all(:)
+      real(8), intent(in)     :: eig_val_all(:,:), omega_z_all(:,:,:)
+      real(8), allocatable    :: hall(:)
+      real(8)                 :: fac = 0d0
+      integer                 :: loc_idx, n, m, n_hall, k_idx
+      integer                 :: ierr(2), all_err(1)
+
+      all_err = 0
+      if(allocated(hall)) deallocate(hall)
+      allocate(hall(size(self%E_fermi)), stat=all_err(1))
+      call check_ierr(all_err, self%me, "integrate hall allocation")
+
+      !run triangulation
+      call run_triang(self%all_k_pts, self%elem_nodes)
+      call self%set_weights_ksp()
+
+      !perform integration with all points
+      hall =  0d0
+
+      do loc_idx = 1,size(kidx_all)
+         k_idx =  kidx_all(loc_idx)
+         do n_hall =  1,size(hall)
+            n_loop: do n = 1,size(omega_z_all,1)
+               m_loop: do m = 1,size(omega_z_all,2)
+                  if (n/=m) then
+                        call self%ham%calc_fac_surf(eig_val_all(n,loc_idx), eig_val_all(m,loc_idx), self%E_fermi(n_hall),fac)
+                        hall(n_hall) = hall(n_hall) + &
+                                    self%weights(k_idx) * fac * omega_z_all(n,m, loc_idx)
+                  endif
+               enddo m_loop
+            enddo n_loop
+         enddo
+      enddo
+
+      hall = hall / (2d0*PI)
+
+      ! Allreduce is not suitable for convergence criteria
+      ierr = 0
+      if(self%me == root) then
+         call MPI_Reduce(MPI_IN_PLACE, hall, size(hall), MPI_REAL8, &
+                         MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+      else
+         call MPI_Reduce(hall, hall, size(hall), MPI_REAL8, &
+                         MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+      endif
+      call MPI_Bcast(hall, size(hall), MPI_REAL8, root, &
+                     MPI_COMM_WORLD, ierr(2))
+      call check_ierr(ierr, self%me, "Hall conductance")
+   end subroutine integrate_hall_surf
 
    subroutine integrate_hall(self, kidx_all, omega_z_all, eig_val_all, hall)
       use mpi
