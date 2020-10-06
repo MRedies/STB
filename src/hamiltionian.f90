@@ -313,6 +313,9 @@ contains
 
          call CFG_get(cfg, "hamil%lambda_KM", tmp)
          self%lambda_KM =  tmp * self%units%energy
+         
+         call CFG_get(cfg, "hamil%gamma", tmp)
+         self%gamma =  tmp * self%units%energy
 
          call CFG_get(cfg, "general%test_run", self%test_run)
 
