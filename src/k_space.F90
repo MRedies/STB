@@ -787,7 +787,7 @@ contains
       integer     :: N_k, num_up, iter, n_ferm,nProcs
       integer     :: all_err(13), info
       character(len=300)       :: msg
-      logical                  :: done_hall = .True., done_orbmag = .True.,  done_hall_x = .True.
+      logical                  :: done_hall = .True., done_orbmag = .True.,  done_hall_surf = .True.,  done_hall_sea = .True.
       logical, intent(in)      :: pert_log
       call self%setup_berry_inte_grid()
       N_k = size(self%new_k_pts, 2)
@@ -826,7 +826,7 @@ contains
       start = MPI_Wtime()
       do iter =1,self%berry_iter
          if(self%me == root) write (*,*) "Time: ", MPI_Wtime() -  start
-         call self%calc_new_berry_points(eig_val_new, omega_z_new, omega_xx_new, Q_L_new, Q_IC_new,pert_log)
+         call self%calc_new_berry_points(eig_val_new, omega_z_new, omega_surf_new, omega_sea_new, Q_L_new, Q_IC_new,pert_log)
          call self%calc_new_kidx(kidx_new)
 
          ! concat to old ones
@@ -844,14 +844,16 @@ contains
          endif
          if(self%calc_hall) then
             hall_old = hall
-            hall_x_old = hall_x
+            hall_surf_old = hall_surf
+            hall_sea_old = hall_sea
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
             call self%integrate_hall_surf(kidx_all, omega_surf_all, eig_val_all, hall_surf)
             call self%integrate_hall_sea(kidx_all, omega_sea_all, eig_val_all, hall_sea)
 
             ! save current iteration and check if converged
             done_hall =  self%process_hall(hall, hall_old, iter, omega_z_all)
-            done_hall_x =  self%process_hall_xx(hall_x, hall_x_old, iter, omega_xx_all)
+            done_hall_surf =  self%process_hall_surf(hall_surf, hall_surf_old, iter, omega_surf_all,surf_name)
+            done_hall_sea =  self%process_hall_surf(hall_sea, hall_sea_old, iter, omega_sea_all,sea_name)
          endif
          if(done_hall .and. trim(self%chosen_weights) == "hall") then
             call error_msg("Switched to orbmag-weights", &
