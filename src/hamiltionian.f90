@@ -76,6 +76,42 @@ module Class_hamiltionian
    end type hamil
 
 contains
+   function calc_fac_surf(self, e_n, e_m, E_f) result(fac)
+      implicit none
+      class(hamil)             :: self
+      real(8)                  :: e_n, e_m, dE, E_f, gamma
+      real(8)                  :: fac!> \f$ \Omega^n_z \f$
+      integer    :: n_dim, n, m
+   
+      gamma = self%gamma
+      n_dim = 2 * self%num_up
+      fac =  0d0
+      dE =  e_m - e_n
+      fac =  dE*gamma/((e_n**2+gamma**2)*(e_m**2+gamma**2))
+      fac = - 1d0/(2d0*PI) * fac
+   end function calc_fac_surf
+   
+   function calc_fac_sea(self, e_n, e_m, E_f) result(fac)
+      implicit none
+      class(hamil)             :: self
+      real(8)                  :: e_n,e_m, dE, E_f, gamma, fac
+      complex(8)               :: denom, numer
+      integer    :: n_dim, n, m
+   
+      gamma = self%gamma
+      n_dim = 2 * self%num_up
+      fac =  0d0
+      dE =  e_m - e_n
+      denom = i_unit*gamma
+      denom = denom + E_f - e_n
+      numer = i_unit*gamma
+      numer = numer + E_f - e_m
+      fac =  gamma/(dE*((E_f-e_m)**2+gamma**2))&
+             - dE**2/(dE**2 + eta_sq)**2*aimag(log(numer&
+                                  /denom))
+      fac = 1d0/PI * fac
+   end function calc_fac_sea
+   
    function z_layer_states(self) result(z)
       implicit none
       class(hamil), intent(in)      :: self
@@ -1459,53 +1495,7 @@ contains
 
    end subroutine calc_berry_diag_sea
 
-   function calc_fac_surf(self, e_n, e_m, E_f) result(fac)
-      implicit none
-      class(hamil)             :: self
-      real(8)                  :: e_n, e_m, dE, E_f, gamma
-      real(8)                  :: fac!> \f$ \Omega^n_z \f$
-      integer    :: n_dim, n, m
 
-      gamma = self%gamma
-      n_dim = 2 * self%num_up
-      fac =  0d0
-      do n = 1,n_dim
-         do m = 1,n_dim
-            if(n /= m) then
-               dE =  e_m - e_n
-               fac =  dE*gamma/((e_n**2+gamma**2)*(e_m**2+gamma**2))
-               fac = - 1d0/(2d0*Pi) * fac
-            endif
-         enddo
-      enddo
-   end function calc_fac_surf
-
-   function calc_fac_sea(self, e_n, e_m, E_f) result(fac)
-      implicit none
-      class(hamil)             :: self
-      real(8)                  :: e_n,e_m, dE, E_f, gamma, fac
-      complex(8)               :: denom, numer
-      integer    :: n_dim, n, m
-
-      gamma = self%gamma
-      n_dim = 2 * self%num_up
-      fac =  0d0
-      do n = 1,n_dim
-         do m = 1,n_dim
-            if(n /= m) then
-               dE =  e_m - e_n
-               denom = i_unit*gamma
-               denom = denom + E_f - e_n
-               numer = i_unit*gamma
-               numer = numer + E_f - e_m
-               fac =  gamma/(dE*((E_f-e_m)**2+gamma**2))&
-                      - dE**2/(dE**2 + eta_sq)**2*aimag(log(numer&
-                                           /denom))
-               fac = 1d0/Pi * fac
-            endif
-         enddo
-      enddo
-   end function calc_fac_sea
 
    Subroutine  calc_eigenvalues(self, k_list, eig_val)
       Implicit None
