@@ -1248,7 +1248,7 @@ contains
          do n_hall =  1,size(hall)
             n_loop: do n = 1,size(omega_z_all,1)
                m_loop: do m = 1,size(omega_z_all,2)
-                     fac = self%ham%calc_fac_sea(eig_val_all(n,loc_idx), eig_val_all(m,loc_idx), self%E_fermi(n_hall))
+                     fac = calc_fac_sea(eig_val_all(n,loc_idx), eig_val_all(m,loc_idx), self%E_fermi(n_hall))
                      hall(n_hall) = hall(n_hall) + &
                                  self%weights(k_idx) * fac * omega_z_all(n,m, loc_idx)
                enddo m_loop
