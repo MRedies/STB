@@ -46,6 +46,10 @@ module Class_hamiltionian
       procedure :: set_rashba_SO                  => set_rashba_SO
       procedure :: set_deriv_FD                   => set_deriv_FD
       procedure :: calc_berry_z                   => calc_berry_z
+      procedure :: calc_berry_diag_sea            => calc_berry_diag_sea
+      procedure :: calc_berry_diag_surf           => calc_berry_diag_surf
+      procedure :: calc_fac_sea                   => calc_fac_sea
+      procedure :: calc_fac_surf                  => calc_fac_surf
       procedure :: calc_velo_mtx                  => calc_velo_mtx
       procedure :: calc_right_pert_velo_mtx       => calc_right_pert_velo_mtx
       procedure :: calc_left_pert_velo_mtx        => calc_left_pert_velo_mtx
@@ -71,6 +75,7 @@ module Class_hamiltionian
    end type hamil
 
 contains
+
    function z_layer_states(self) result(z)
       implicit none
       class(hamil), intent(in)      :: self
@@ -324,7 +329,7 @@ contains
       endif
       call self%Bcast_hamil()
    end function init_hamil
-
+   
    subroutine Bcast_hamil(self)
       implicit none
       class(hamil)          :: self
@@ -391,6 +396,8 @@ contains
       if(self%me /= root) allocate(self%drop_Vx_layers(Vx_len))
       call MPI_Bcast(self%drop_Vx_layers, Vx_len, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(26))
+      call MPI_Bcast(self%gamma,      1,              MPI_REAL8,   &
+                     root,          MPI_COMM_WORLD, ierr(27))
       call check_ierr(ierr, self%me, "Hamiltionian check err")
    end subroutine
 
@@ -1151,7 +1158,7 @@ contains
       real(8),intent(in)              :: eig_val(:)
       complex(8), allocatable         :: H_xc_1(:,:)
       complex(8), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
-      real(8)                         :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE,fac,Efac
+      complex(8)                      :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE,fac,Efac
       integer                         :: i,i_d,j,j_u,j_d,n_dim
       logical                         :: full
       n_dim = 2 * self%num_up
@@ -1410,6 +1417,80 @@ contains
       enddo
 
    end subroutine calc_berry_z
+
+   subroutine calc_berry_diag_surf(self, z_comp, x_mtx, y_mtx)
+      implicit none
+      class(hamil)             :: self
+      real(8)                  :: z_comp(:,:) !> \f$ \Omega^n_z \f$
+      complex(8)               :: x_mtx(:,:), y_mtx(:,:)
+      integer    :: n_dim, n, m
+      n_dim = 2 * self%num_up
+      z_comp =  0d0
+      do n = 1,n_dim
+         do m = 1,n_dim
+            if(n /= m) then
+               z_comp(n,m) = z_comp(n,m) - 1d0/(2d0*Pi) &
+                           * aimag(x_mtx(n,m) * y_mtx(m,n))
+            endif
+         enddo
+      enddo
+
+   end subroutine calc_berry_diag_surf
+
+   subroutine calc_berry_diag_sea(self, z_comp, x_mtx, y_mtx)
+      implicit none
+      class(hamil)             :: self
+      real(8)                  :: z_comp(:,:) !> \f$ \Omega^n_z \f$
+      complex(8)               :: x_mtx(:,:), y_mtx(:,:)
+      integer    :: n_dim, n, m
+      n_dim = 2 * self%num_up
+      z_comp =  0d0
+      do n = 1,n_dim
+         do m = 1,n_dim
+            if(n /= m) then
+               z_comp(n,m) = z_comp(n,m) + 1d0/Pi &
+                           * aimag(x_mtx(n,m) * y_mtx(m,n))
+            endif
+         enddo
+      enddo
+
+   end subroutine calc_berry_diag_sea
+
+   subroutine calc_fac_surf(self, e_n, e_m, E_f, fac)
+      implicit none
+      class(hamil)             :: self
+      real(8)                  :: e_n, e_m, dE, E_f, gamma
+      real(8)                  :: fac!> \f$ \Omega^n_z \f$
+      integer    :: n_dim, n, m
+   
+      gamma = self%gamma
+      n_dim = 2 * self%num_up
+      fac =  0d0
+      dE =  e_m - e_n
+      fac =  dE*gamma/(((E_f-e_n)**2+gamma**2)*((E_f-e_m)**2+gamma**2))
+      fac = - 0.5d0 * fac
+      !fac = - 1d0/(2d0*PI) * fac
+   end subroutine calc_fac_surf
+   
+   subroutine calc_fac_sea(self, e_n, e_m, E_f, fac)
+      implicit none
+      class(hamil)             :: self
+      real(8)                  :: e_n,e_m, dE, E_f, gamma, fac
+      complex(8)               :: denom, numer
+      integer    :: n_dim, n, m
+   
+      gamma = self%gamma
+      n_dim = 2 * self%num_up
+      fac =  0d0
+      dE =  e_m - e_n
+      denom = i_unit*gamma + E_f - e_n
+      numer = i_unit*gamma + E_f - e_m
+      fac =  gamma/(dE*((E_f-e_m)**2+gamma**2))&
+             - dE**2/(dE**2 + eta_sq)**2*aimag(log(numer&
+                                  /denom))
+      !fac = 1d0/PI * fac
+   end subroutine calc_fac_sea
+   
 
    Subroutine  calc_eigenvalues(self, k_list, eig_val)
       Implicit None
