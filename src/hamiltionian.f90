@@ -1471,7 +1471,7 @@ contains
       n_dim = 2 * self%num_up
       fac =  0d0
       dE =  e_m - e_n
-      fac =  dE*gamma/((e_n**2+gamma**2)*(e_m**2+gamma**2))
+      fac =  dE*gamma/(((E_f-e_n)**2+gamma**2)*((E_f-e_m)**2+gamma**2))
       fac = - 0.5d0 * fac
       !fac = - 1d0/(2d0*PI) * fac
    end subroutine calc_fac_surf
