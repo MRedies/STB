@@ -1248,10 +1248,12 @@ contains
          do n_hall =  1,size(hall)
             n_loop: do n = 1,size(omega_z_all,1)
                m_loop: do m = 1,size(omega_z_all,2)
-                     call self%ham%calc_fac_sea(eig_val_all(n,loc_idx), eig_val_all(m,loc_idx), self%E_fermi(n_hall),fac)
-                     write(*,*) "FAC:", fac
-                     hall(n_hall) = hall(n_hall) + &
-                                 self%weights(k_idx) * fac * omega_z_all(n,m, loc_idx)
+                  if (n/=m) then
+                        call self%ham%calc_fac_sea(eig_val_all(n,loc_idx), eig_val_all(m,loc_idx), self%E_fermi(n_hall),fac)
+                        write(*,*) "FAC:", fac
+                        hall(n_hall) = hall(n_hall) + &
+                                    self%weights(k_idx) * fac * omega_z_all(n,m, loc_idx)
+                  endif
                enddo m_loop
             enddo n_loop
          enddo
