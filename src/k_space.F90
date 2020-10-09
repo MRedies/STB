@@ -840,7 +840,7 @@ contains
 
          if(self%calc_hall)   call append_quantity(omega_z_all, omega_z_new)
          if(self%calc_hall_diag) then
-               call append_quantity_(omega_surf_all, omega_surf_new)
+               call append_quantity(omega_surf_all, omega_surf_new)
                call append_quantity(omega_sea_all, omega_sea_new)
          endif
          if(self%calc_orbmag) then
@@ -1078,7 +1078,7 @@ contains
    function process_hall_surf(self, var, var_old, iter, varall, var_name) result(cancel)
       implicit none
       class(k_space)                 :: self
-      real(8), intent(in)            :: var(:), var_old(:), varall(:,:,:)
+      real(8), intent(in)            :: var(:), var_old(:), varall(:,:)
       integer   , intent(in)         :: iter
       character(len=*), intent(in)   :: var_name
       character(len=300)             :: filename
@@ -1173,7 +1173,7 @@ contains
       implicit none
       class(k_space)              :: self
       real(8), intent(in)         :: var(:)
-      real(8), intent(in)         :: varall(:,:,:)
+      real(8), intent(in)         :: varall(:,:)
       character(len=*), intent(in) :: var_name
       character(len=300) :: elem_file
 
