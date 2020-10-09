@@ -789,7 +789,7 @@ contains
       real(8)                  :: start, factor
       integer   , allocatable  :: kidx_all(:), kidx_new(:)
       integer     :: N_k, num_up, iter, n_ferm,nProcs
-      integer     :: all_err(13), info
+      integer     :: all_err(19), info
       character(len=300)       :: msg, surf_name = "hall_cond_surf", sea_name = "hall_cond_sea"
       logical                  :: done_hall = .True., done_orbmag = .True.,  done_hall_surf = .True.,  done_hall_sea = .True.
       logical, intent(in)      :: pert_log
@@ -803,22 +803,22 @@ contains
       allocate(self%ham%del_H(2*num_up, 2*num_up), stat=all_err(1))
       allocate(hall_old(size(self%E_fermi)),       stat=all_err(2))
       allocate(hall(size(self%E_fermi)),           stat=all_err(3))
-      allocate(hall_surf_old(size(self%E_fermi)),       stat=all_err(2))
-      allocate(hall_surf(size(self%E_fermi)),           stat=all_err(3))
-      allocate(hall_sea_old(size(self%E_fermi)),       stat=all_err(2))
-      allocate(hall_sea(size(self%E_fermi)),           stat=all_err(3))
-      allocate(orbmag_old(size(self%E_fermi)),     stat=all_err(4))
-      allocate(orbmag(size(self%E_fermi)),         stat=all_err(5))
-      allocate(orbmag_L(size(self%E_fermi)),       stat=all_err(6))
-      allocate(orbmag_IC(size(self%E_fermi)),      stat=all_err(7))
-      allocate(eig_val_all(2*num_up, 0),           stat=all_err(8))
-      allocate(omega_z_all(2*num_up, 0),           stat=all_err(9))
-      allocate(omega_surf_all(2*num_up,2*num_up, 0),           stat=all_err(9))
-      allocate(omega_sea_all(2*num_up,2*num_up, 0),           stat=all_err(9))
-      allocate(Q_L_all(n_ferm, 0),                 stat=all_err(10))
-      allocate(Q_IC_all(n_ferm, 0),                stat=all_err(11))
-      allocate(kidx_all(0),                        stat=all_err(12))
-      allocate(self%all_k_pts(3,0),                stat=all_err(13))
+      allocate(hall_surf_old(size(self%E_fermi)),       stat=all_err(4))
+      allocate(hall_surf(size(self%E_fermi)),           stat=all_err(5))
+      allocate(hall_sea_old(size(self%E_fermi)),       stat=all_err(6))
+      allocate(hall_sea(size(self%E_fermi)),           stat=all_err(7))
+      allocate(orbmag_old(size(self%E_fermi)),     stat=all_err(8))
+      allocate(orbmag(size(self%E_fermi)),         stat=all_err(9))
+      allocate(orbmag_L(size(self%E_fermi)),       stat=all_err(10))
+      allocate(orbmag_IC(size(self%E_fermi)),      stat=all_err(11))
+      allocate(eig_val_all(2*num_up, 0),           stat=all_err(12))
+      allocate(omega_z_all(2*num_up, 0),           stat=all_err(13))
+      allocate(omega_surf_all(2*num_up,2*num_up, 0),           stat=all_err(14))
+      allocate(omega_sea_all(2*num_up,2*num_up, 0),           stat=all_err(15))
+      allocate(Q_L_all(n_ferm, 0),                 stat=all_err(16))
+      allocate(Q_IC_all(n_ferm, 0),                stat=all_err(17))
+      allocate(kidx_all(0),                        stat=all_err(18))
+      allocate(self%all_k_pts(3,0),                stat=all_err(19))
 
       hall    =  1e35
       hall_surf    =  1e35
@@ -945,7 +945,7 @@ contains
       implicit none
       class(k_space)            :: self
       integer                   :: N_k, cnt, k_idx, num_up, n_ferm,pert_idx
-      integer                   :: first, last, err(3), me, ierr
+      integer                   :: first, last, err(6), me, ierr
       real(8)                   :: tmp
       real(8)                   :: k(3)
       real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), omega_surf_new(:,:,:),&
@@ -963,10 +963,10 @@ contains
       err =  0
       allocate(eig_val_new(2*num_up, last-first+1), stat=err(1))
       if(self%calc_hall)   allocate(omega_z_new(2*num_up, last-first+1), stat=err(2))
-      if(self%calc_hall_diag)   allocate(omega_surf_new(2*num_up,2*num_up, last-first+1), stat=err(2))
-      if(self%calc_hall_diag)   allocate(omega_sea_new(2*num_up,2*num_up, last-first+1), stat=err(2))
-      if(self%calc_orbmag) allocate(Q_L_new(n_ferm,        last-first+1), stat=err(3))
-      if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(3))
+      if(self%calc_hall_diag)   allocate(omega_surf_new(2*num_up,2*num_up, last-first+1), stat=err(3))
+      if(self%calc_hall_diag)   allocate(omega_sea_new(2*num_up,2*num_up, last-first+1), stat=err(4))
+      if(self%calc_orbmag) allocate(Q_L_new(n_ferm,        last-first+1), stat=err(5))
+      if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(6))
 
       call check_ierr(err, self%me, " new chunk alloc")
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
