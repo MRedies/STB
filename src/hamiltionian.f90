@@ -1433,7 +1433,7 @@ contains
       do n = 1,n_dim
          do m = 1,n_dim
             if(n /= m) then
-               call self%calc_fac_sea(eig_val(n), eig_val_all(m), fermi(n_fermi),fac)
+               call self%calc_fac_sea(eig_val(n), eig_val(m), fermi(n_fermi),fac)
                z_comp(n,m) = z_comp(n,m) - 1d0/(2d0*Pi) *&
                            fac * aimag(x_mtx(n,m) * y_mtx(m,n))
             endif
@@ -1454,7 +1454,7 @@ contains
          do n = 1,n_dim
             do m = 1,n_dim
                if(n /= m) then
-                  call self%calc_fac_sea(eig_val_all(n), eig_val_all(m), fermi(n_fermi),fac)
+                  call self%calc_fac_sea(eig_val(n), eig_val(m), fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/Pi *&
                               fac * aimag(x_mtx(n,m) * y_mtx(m,n))
                endif
