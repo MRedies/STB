@@ -1430,13 +1430,15 @@ contains
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
-      do n = 1,n_dim
-         do m = 1,n_dim
-            if(n /= m) then
-               call self%calc_fac_sea(eig_val(n), eig_val(m), fermi(n_fermi),fac)
-               z_comp(n_fermi) = z_comp(n_fermi) - 1d0/(2d0*Pi) *&
-                           fac * aimag(x_mtx(n,m) * y_mtx(m,n))
-            endif
+      do n_fermi = 1,size(fermi)
+         do n = 1,n_dim
+            do m = 1,n_dim
+               if(n /= m) then
+                  call self%calc_fac_surf(eig_val(n), eig_val(m), fermi(n_fermi),fac)
+                  z_comp(n_fermi) = z_comp(n_fermi) - 1d0/(2d0*Pi) *&
+                              fac * aimag(x_mtx(n,m) * y_mtx(m,n))
+               endif
+            enddo
          enddo
       enddo
 
