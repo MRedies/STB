@@ -1425,7 +1425,7 @@ contains
    subroutine calc_berry_diag_surf(self, z_comp, eig_val, fermi, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: z_comp(:,:),fac, fermi !> \f$ \Omega^n_z \f$
+      real(8)                  :: z_comp(:,:), eig_val(:), fac, fermi !> \f$ \Omega^n_z \f$
       complex(8)               :: x_mtx(:,:), y_mtx(:,:)
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
@@ -1445,7 +1445,7 @@ contains
    subroutine calc_berry_diag_sea(self, z_comp, eig_val, fermi, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: z_comp(:,:), fac, fermi !> \f$ \Omega^n_z \f$
+      real(8)                  :: z_comp(:,:), eig_val(:), fac, fermi !> \f$ \Omega^n_z \f$
       complex(8)               :: x_mtx(:,:), y_mtx(:,:)
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
