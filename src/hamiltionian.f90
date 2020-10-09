@@ -1422,42 +1422,46 @@ contains
 
    end subroutine calc_berry_z
 
-   subroutine calc_berry_diag_surf(self, z_comp, x_mtx, y_mtx)
+   subroutine calc_berry_diag_surf(self, z_comp, eig_val, fermi, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: z_comp(:,:) !> \f$ \Omega^n_z \f$
+      real(8)                  :: z_comp(:,:),fac, fermi !> \f$ \Omega^n_z \f$
       complex(8)               :: x_mtx(:,:), y_mtx(:,:)
-      integer    :: n_dim, n, m
+      integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
       do n = 1,n_dim
          do m = 1,n_dim
             if(n /= m) then
-               z_comp(n,m) = z_comp(n,m) - 1d0/(2d0*Pi) &
-                           * aimag(x_mtx(n,m) * y_mtx(m,n))
+               call self%calc_fac_sea(eig_val(n), eig_val_all(m), fermi(n_fermi),fac)
+               z_comp(n,m) = z_comp(n,m) - 1d0/(2d0*Pi) *&
+                           fac * aimag(x_mtx(n,m) * y_mtx(m,n))
             endif
          enddo
       enddo
 
    end subroutine calc_berry_diag_surf
 
-   subroutine calc_berry_diag_sea(self, z_comp, x_mtx, y_mtx)
+   subroutine calc_berry_diag_sea(self, z_comp, eig_val, fermi, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: z_comp(:,:) !> \f$ \Omega^n_z \f$
+      real(8)                  :: z_comp(:,:), fac, fermi !> \f$ \Omega^n_z \f$
       complex(8)               :: x_mtx(:,:), y_mtx(:,:)
-      integer    :: n_dim, n, m
+      integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
-      do n = 1,n_dim
-         do m = 1,n_dim
-            if(n /= m) then
-               z_comp(n,m) = z_comp(n,m) + 1d0/Pi &
-                           * aimag(x_mtx(n,m) * y_mtx(m,n))
-            endif
+      do n_fermi = 1,size(fermi)
+         do n = 1,n_dim
+            do m = 1,n_dim
+               if(n /= m) then
+                  call self%calc_fac_sea(eig_val_all(n), eig_val_all(m), fermi(n_fermi),fac)
+                  z_comp(n_fermi) = z_comp(n_fermi) + 1d0/Pi *&
+                              fac * aimag(x_mtx(n,m) * y_mtx(m,n))
+               endif
+            enddo
          enddo
       enddo
-
+   
    end subroutine calc_berry_diag_sea
 
    subroutine calc_fac_surf(self, e_n, e_m, E_f, fac)
