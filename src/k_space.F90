@@ -966,9 +966,6 @@ contains
       if(self%calc_hall_diag)   allocate(omega_sea_new(n_ferm,last-first+1), stat=err(4))
       if(self%calc_orbmag) allocate(Q_L_new(n_ferm,        last-first+1), stat=err(5))
       if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(6))
-      if (self%me==root) then
-         write(*,*) "FLAG ksp%calc_new_berry()"
-      endif
       call check_ierr(err, self%me, " new chunk alloc")
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       ! calculate
@@ -1003,6 +1000,9 @@ contains
       else if(.not. pert_log) then
          do k_idx = first, last
             k = self%new_k_pts(:,k_idx)
+            if (self%me==root) then
+               write(*,*) "FLAG ksp%calc_new_berry()"
+            endif
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,0)
             if (self%me==root) then
                write(*,*) "FLAG 2 ksp%calc_new_berry()"

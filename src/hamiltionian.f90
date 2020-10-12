@@ -1352,8 +1352,14 @@ contains
       integer      :: n_dim, lwork, lrwork, liwork, info
       integer      :: ierr(3)
       n_dim = 2 * self%num_up
+      if (self%me==root) then
+         write(*,*) "FLAG ham%calc_eig_and_velo()"
+      endif
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
       if(.not. allocated(temp)) allocate(temp(n_dim,n_dim))
+      if (self%me==root) then
+         write(*,*) "FLAG 2 ham%calc_eig_and_velo()"
+      endif
       eig_vec = (0d0,0d0)
       call self%setup_H(k, eig_vec)
       call calc_zheevd_size('V', eig_vec, eig_val, lwork, lrwork, liwork)
