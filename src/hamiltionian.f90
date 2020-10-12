@@ -1318,16 +1318,13 @@ contains
       tmp=(0d0,0d0)
       if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
       call self%set_derivative_k(k, derive_idx)
-      if (self%me==root) then
-         write(*,*) "FLAG ham%calc_velo()"
-      endif
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                  c_1, self%del_H, n_dim,&
                  eig_vec_mtx, n_dim,&
                  c_0, tmp, n_dim)
       deallocate(self%del_H)
       if (self%me==root) then
-         write(*,*) "FLAG 2 ham%calc_velo()"
+         write(*,*) "FLAG ham%calc_velo()"
       endif
       if(allocated(ret))then
          if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
@@ -1336,10 +1333,16 @@ contains
       endif
       if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
       ret=(0d0,0d0)
+      if (self%me==root) then
+         write(*,*) "FLAG 2 ham%calc_velo()"
+      endif
       call zgemm('C', 'N', n_dim, n_dim, n_dim, &
                  c_1, eig_vec_mtx, n_dim, &
                  tmp, n_dim, &
                  c_0, ret, n_dim)
+      if (self%me==root) then
+         write(*,*) "FLAG 3 ham%calc_velo()"
+      endif
       deallocate(tmp)
    end subroutine calc_velo_mtx
 
@@ -1387,10 +1390,10 @@ contains
             write(*,*) "FLAG 2 ham%calc_eig_and_velo()"
          endif
          call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
+         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
          if (self%me==root) then
             write(*,*) "FLAG 3 ham%calc_eig_and_velo()"
          endif
-         call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
       else if(pert_log==1) then
          call self%calc_left_pert_velo_mtx(k, 1, eig_vec, eig_val, del_kx)
          call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
