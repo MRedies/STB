@@ -1007,9 +1007,9 @@ contains
             endif
             if(self%calc_hall_diag) then
                call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
-                                       eig_val_new(:,cnt), self%E_fermi, del_kx, del_kx)
+                                       eig_val_new(:,cnt), self%E_fermi, del_kx, del_ky)
                call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
-                                       eig_val_new(:,cnt), self%E_fermi, del_kx, del_kx)
+                                       eig_val_new(:,cnt), self%E_fermi, del_kx, del_ky)
             endif
          
             if(self%calc_orbmag) then
