@@ -960,6 +960,9 @@ contains
       call my_section(self%me, self%nProcs, N_k, first, last)
 
       err =  0
+      if (self%me==root) then
+         write(*,*) "FLAG ksp%calc_new_berry()"
+      endif
       allocate(eig_val_new(2*num_up, last-first+1), stat=err(1))
       if(self%calc_hall)   allocate(omega_z_new(2*num_up, last-first+1), stat=err(2))
       if(self%calc_hall_diag)   allocate(omega_surf_new(n_ferm, last-first+1), stat=err(3))

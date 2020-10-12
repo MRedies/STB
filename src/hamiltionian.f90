@@ -1471,7 +1471,7 @@ contains
       class(hamil)             :: self
       real(8)                  :: e_n, e_m, dE, E_f, gamma
       real(8)                  :: fac!> \f$ \Omega^n_z \f$
-      integer    :: n_dim, n, m
+      integer    :: n_dim
    
       gamma = self%gamma
       n_dim = 2 * self%num_up
@@ -1487,7 +1487,7 @@ contains
       class(hamil)             :: self
       real(8)                  :: e_n,e_m, dE, E_f, gamma, fac
       complex(8)               :: denom, numer
-      integer    :: n_dim, n, m
+      integer    :: n_dim
    
       gamma = self%gamma
       n_dim = 2 * self%num_up
