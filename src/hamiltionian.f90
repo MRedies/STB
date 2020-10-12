@@ -1365,14 +1365,8 @@ contains
       allocate(rwork(lrwork), stat=ierr(2))
       allocate(iwork(liwork), stat=ierr(3))
       call check_ierr(ierr, me_in=self%me, msg=[" tried to allocate in zheevd"])
-      if (self%me==root) then
-         write(*,*) "FLAG 2 ham%calc_eig_and_velo()"
-      endif
       call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
                   work, lwork, rwork, lrwork, iwork, liwork, info)
-      if (self%me==root) then
-         write(*,*) "FLAG 3 ham%calc_eig_and_velo()"
-      endif
       if(info /= 0) then
          write (*,*) "ZHEEVD in berry calculation failed, trying ZHEEV", self%me
          write (elem_file, "(A,I0.5,A)") "ham", self%me ,".npy"
@@ -1388,7 +1382,13 @@ contains
       endif
       deallocate(work, rwork, iwork)
       if     (pert_log==0) then
+         if (self%me==root) then
+            write(*,*) "FLAG 2 ham%calc_eig_and_velo()"
+         endif
          call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
+         if (self%me==root) then
+            write(*,*) "FLAG 3 ham%calc_eig_and_velo()"
+         endif
          call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
       else if(pert_log==1) then
          call self%calc_left_pert_velo_mtx(k, 1, eig_vec, eig_val, del_kx)
