@@ -1312,37 +1312,30 @@ contains
       integer   , intent(in)          :: derive_idx
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
       complex(8), allocatable         :: ret(:,:), tmp(:,:)
-      integer                         :: n_dim
+      integer                         :: n_dim, ierr(3)
       n_dim = 2 * self%num_up
-      allocate(tmp(n_dim, n_dim))
+      allocate(tmp(n_dim, n_dim), stat=ierr(1))
       tmp=(0d0,0d0)
-      if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
+      if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim),stat=ierr(2))
       call self%set_derivative_k(k, derive_idx)
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                  c_1, self%del_H, n_dim,&
                  eig_vec_mtx, n_dim,&
                  c_0, tmp, n_dim)
       deallocate(self%del_H)
-      if (self%me==root) then
-         write(*,*) "FLAG ham%calc_velo()"
-      endif
       if(allocated(ret))then
          if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
             deallocate(ret)
          endif
       endif
-      if(.not. allocated(ret)) allocate(ret(n_dim, n_dim))
+      if(.not. allocated(ret)) allocate(ret(n_dim, n_dim),stat=ierr(3))
+      call check_ierr(ierr, me_in=self%me, msg=["failed alloc in calc_velo_mtx"])
       ret=(0d0,0d0)
-      if (self%me==root) then
-         write(*,*) "FLAG 2 ham%calc_velo()"
-      endif
       call zgemm('C', 'N', n_dim, n_dim, n_dim, &
                  c_1, eig_vec_mtx, n_dim, &
                  tmp, n_dim, &
                  c_0, ret, n_dim)
-      if (self%me==root) then
-         write(*,*) "FLAG 3 ham%calc_velo()"
-      endif
+
       deallocate(tmp)
    end subroutine calc_velo_mtx
 
@@ -1386,14 +1379,8 @@ contains
       endif
       deallocate(work, rwork, iwork)
       if     (pert_log==0) then
-         if (self%me==root) then
-            write(*,*) "FLAG 2 ham%calc_eig_and_velo()"
-         endif
          call self%calc_velo_mtx(k, 1, eig_vec, del_kx)
          call self%calc_velo_mtx(k, 2, eig_vec, del_ky)
-         if (self%me==root) then
-            write(*,*) "FLAG 3 ham%calc_eig_and_velo()"
-         endif
       else if(pert_log==1) then
          call self%calc_left_pert_velo_mtx(k, 1, eig_vec, eig_val, del_kx)
          call self%calc_velo_mtx(k, 2, eig_vec, del_ky)

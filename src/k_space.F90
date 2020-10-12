@@ -1000,13 +1000,7 @@ contains
       else if(.not. pert_log) then
          do k_idx = first, last
             k = self%new_k_pts(:,k_idx)
-            if (self%me==root) then
-               write(*,*) "FLAG ksp%calc_new_berry()"
-            endif
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,0)
-            if (self%me==root) then
-               write(*,*) "FLAG 2 ksp%calc_new_berry()"
-            endif
             if(self%calc_hall) then
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
