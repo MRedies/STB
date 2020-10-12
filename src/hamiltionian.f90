@@ -1352,13 +1352,10 @@ contains
       integer      :: n_dim, lwork, lrwork, liwork, info
       integer      :: ierr(3)
       n_dim = 2 * self%num_up
-      if (self%me==root) then
-         write(*,*) "FLAG ham%calc_eig_and_velo()"
-      endif
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
       if(.not. allocated(temp)) allocate(temp(n_dim,n_dim))
       if (self%me==root) then
-         write(*,*) "FLAG 2 ham%calc_eig_and_velo()"
+         write(*,*) "FLAG ham%calc_eig_and_velo()"
       endif
       eig_vec = (0d0,0d0)
       call self%setup_H(k, eig_vec)
@@ -1368,8 +1365,14 @@ contains
       allocate(rwork(lrwork), stat=ierr(2))
       allocate(iwork(liwork), stat=ierr(3))
       call check_ierr(ierr, me_in=self%me, msg=[" tried to allocate in zheevd"])
+      if (self%me==root) then
+         write(*,*) "FLAG 2 ham%calc_eig_and_velo()"
+      endif
       call zheevd('V', 'L', n_dim, eig_vec, n_dim, eig_val, &
                   work, lwork, rwork, lrwork, iwork, liwork, info)
+      if (self%me==root) then
+         write(*,*) "FLAG 3 ham%calc_eig_and_velo()"
+      endif
       if(info /= 0) then
          write (*,*) "ZHEEVD in berry calculation failed, trying ZHEEV", self%me
          write (elem_file, "(A,I0.5,A)") "ham", self%me ,".npy"
