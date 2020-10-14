@@ -1141,6 +1141,7 @@ contains
          psi = 0d0
       else
          wavelength = UC_l/(1d0*self%n_wind)
+         write(*,*) "Wavelength:", wavelength
          psi = 2d0*PI/wavelength
       endif
       i = ii + j
