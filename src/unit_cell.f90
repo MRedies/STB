@@ -153,7 +153,7 @@ contains
          call CFG_get_size(cfg, "grid%wavevector", wavevector_size)
          allocate (self%wavevector(wavevector_size))
          call CFG_get(cfg, "grid%wavevector", self%wavevector)
-         call CFG_get_size(cfg, "grid%axis", wavevector_size)
+         !call CFG_get_size(cfg, "grid%axis", wavevector_size)
          !allocate (self%axis(wavevector_size))
          call CFG_get(cfg, "grid%axis_phi", self%axis_phi)
          call CFG_get(cfg, "grid%axis_theta", self%axis_theta)
