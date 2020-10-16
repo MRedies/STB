@@ -1312,7 +1312,7 @@ contains
       integer   , intent(in)          :: derive_idx
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
       complex(8), allocatable         :: ret(:,:), tmp(:,:)
-      integer                         :: n_dim, ierr(3)
+      integer                         :: n_dim, ierr(3) = 0
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim), stat=ierr(1))
       tmp=(0d0,0d0)
