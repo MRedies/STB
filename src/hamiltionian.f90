@@ -1312,11 +1312,11 @@ contains
       integer   , intent(in)          :: derive_idx
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
       complex(8), allocatable         :: ret(:,:), tmp(:,:)
-      integer                         :: n_dim, ierr(2)
+      integer                         :: n_dim, ierr(3)
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim), stat=ierr(1))
       tmp=(0d0,0d0)
-      if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
+      if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim),stat=ierr(2))
       call self%set_derivative_k(k, derive_idx)
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                  c_1, self%del_H, n_dim,&
@@ -1328,7 +1328,7 @@ contains
             deallocate(ret)
          endif
       endif
-      if(.not. allocated(ret)) allocate(ret(n_dim, n_dim),stat=ierr(2))
+      if(.not. allocated(ret)) allocate(ret(n_dim, n_dim),stat=ierr(3))
       call check_ierr(ierr, me_in=self%me, msg=["failed alloc in calc_velo_mtx"])
       ret=(0d0,0d0)
       call zgemm('C', 'N', n_dim, n_dim, n_dim, &
