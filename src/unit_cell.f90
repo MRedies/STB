@@ -33,7 +33,7 @@ module Class_unit_cell
       real(8) :: ferro_phi, ferro_theta
       real(8) :: cone_angle
       real(8), allocatable:: anticol_phi(:), anticol_theta(:), m0_A(:), m0_B(:) !> the angles for anticollinear setups, one
-      real(8), allocatable:: axis(:) !> the angles for anticollinear setups, one
+      real(8), allocatable:: axis_theta,axis_phi !> the angles for anticollinear setups, one
       real(8) :: atan_factor !> how fast do we change the border wall
       real(8) :: atan_pref !> prefactor for atan
       real(8) :: dblatan_dist !> width of the atan plateau
@@ -154,8 +154,9 @@ contains
          allocate (self%wavevector(wavevector_size))
          call CFG_get(cfg, "grid%wavevector", self%wavevector)
          call CFG_get_size(cfg, "grid%axis", wavevector_size)
-         allocate (self%axis(wavevector_size))
-         call CFG_get(cfg, "grid%axis", self%axis)
+         !allocate (self%axis(wavevector_size))
+         call CFG_get(cfg, "grid%axis_phi", self%axis_phi)
+         call CFG_get(cfg, "grid%axis_theta", self%axis_theta)
          call CFG_get(cfg, "grid%cone_angle", self%cone_angle)
          call CFG_get(cfg, "grid%spiral_type", self%spiral_type)
          call CFG_get(cfg, "grid%lattice_constant", tmp)
@@ -217,7 +218,7 @@ contains
       use mpi
       implicit none
       class(unit_cell)           :: self
-      integer, parameter         :: num_cast = 26
+      integer, parameter         :: num_cast = 27
       integer                    :: ierr(num_cast)
       integer                    :: anticol_size_phi, wsize, asize
       integer                    :: anticol_size_theta
@@ -226,7 +227,7 @@ contains
          anticol_size_phi = size(self%anticol_phi)
          anticol_size_theta = size(self%anticol_theta)
          wsize = size(self%wavevector)
-         asize = size(self%axis)
+         !asize = size(self%axis)
       endif
       call MPI_Bcast(self%eps, 1, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(1))
@@ -277,10 +278,11 @@ contains
       call MPI_Bcast(asize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(20))
       if (self%me /= root) then
          allocate (self%wavevector(wsize))
-         allocate (self%axis(asize))
+         !allocate (self%axis(asize))
       endif
       call MPI_Bcast(self%wavevector, wsize, MYPI_INT, root, MPI_COMM_WORLD, ierr(21))
-      call MPI_Bcast(self%axis, asize, MPI_REAL8, root, MPI_COMM_WORLD, ierr(22))
+      call MPI_Bcast(self%axis_phi, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(22))
+      call MPI_Bcast(self%axis_theta, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(27))
       call MPI_Bcast(self%cone_angle, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(23))
       call MPI_Bcast(self%spiral_type, 25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr(24))
       call MPI_Bcast(self%dblatan_pref, 1, MPI_REAL8, &
@@ -892,7 +894,10 @@ contains
       implicit none
       class(unit_cell)        :: self
       real(8)                 :: G(3, 3), axis(3), perp_axis(3), m0(3)
-      axis = 1d0*self%axis/norm2(self%axis)
+      !axis = 1d0*self%axis/norm2(self%axis)
+      axis(1) = sin(self%axis_theta) *  cos(self%axis_phi)
+      axis(2) = sin(self%axis_theta) *  sin(self%axis_phi)
+      axis(3) = cos(self%axis_theta)
       if (norm2(cross_prod(axis, [0d0, 0d0, 1d0]))<pos_eps) then
          perp_axis = cross_prod(axis, [1d0, 0d0, 0d0])
          perp_axis = perp_axis/norm2(perp_axis)
@@ -1126,9 +1131,11 @@ contains
       integer, intent(in) :: ii, j
       real(8), intent(in) :: center(3), UC_l
       integer             :: site_type, i
-      real(8)             :: conn(3), phase_fac, x, l, R(3,3), shift_mtx(3,3), m(3), wavevector(3) &
+      real(8)             :: conn(3), phase_fac, x, l, R(3,3), shift_mtx(3,3), m(3), axis(3), wavevector(3) &
                              , wavevector_len, wavelength, psi
-      
+      axis(1) = sin(self%axis_theta) *  cos(self%axis_phi)
+      axis(2) = sin(self%axis_theta) *  sin(self%axis_phi)
+      axis(3) = cos(self%axis_theta)
       l = 2*cos(deg_30)*self%lattice_constant
       shift_mtx(1, :) = l*[1d0, 0d0, 0d0]!1
       shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
@@ -1152,11 +1159,11 @@ contains
       endif
       if (site_type == 0) then
          x = dot_product(wavevector,conn) - phase_fac
-         R = R_mtx(psi*x, 1d0*self%axis)
+         R = R_mtx(psi*x, 1d0*axis)
          m = matmul(R, self%m0_A)
       elseif (site_type == 1) then
          x = dot_product(wavevector,conn) - phase_fac
-         R = R_mtx(psi*x, 1d0*self%axis)
+         R = R_mtx(psi*x, 1d0*axis)
          m = matmul(R, self%m0_B)
       endif
       call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
@@ -1226,7 +1233,7 @@ contains
       call save_npy(folder//"neigh.npy", neigh)
       call save_npy(folder//"conn_type.npy", conn_type)
       if (trim(self%mag_type) == "1Dspiral") then
-         call save_npy(folder//"1Dspiralaxis.npy", self%axis)
+         call save_npy(folder//"1Dspiralaxis.npy", [self%axis_phi,self%axis_theta])
          call save_npy(folder//"1Dspiralwavevector.npy", self%wavevector)
          call save_npy(folder//"1Dspiralconeangle.npy", [self%cone_angle])
       endif
