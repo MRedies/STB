@@ -898,7 +898,6 @@ contains
       axis(1) = sin(self%axis_theta) *  cos(self%axis_phi)
       axis(2) = sin(self%axis_theta) *  sin(self%axis_phi)
       axis(3) = cos(self%axis_theta)
-      write(*,*) "Ax:", axis
       if (norm2(cross_prod(axis, [0d0, 0d0, 1d0]))<pos_eps) then
          perp_axis = cross_prod(axis, [1d0, 0d0, 0d0])
          perp_axis = perp_axis/norm2(perp_axis)
@@ -906,7 +905,7 @@ contains
          perp_axis = cross_prod(axis, [0d0, 0d0, 1d0])
          perp_axis = perp_axis/norm2(perp_axis)
       endif
-      G = R_mtx(self%cone_angle, perp_axis)
+      G = R_mtx(-self%cone_angle, perp_axis)
       m0 = matmul(G, axis)
       allocate (self%m0_A(3))
       allocate (self%m0_B(3))
