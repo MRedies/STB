@@ -1312,26 +1312,24 @@ contains
       integer   , intent(in)          :: derive_idx
       complex(8), intent(in)          :: eig_vec_mtx(:,:)
       complex(8), allocatable         :: ret(:,:), tmp(:,:)
-      integer                         :: n_dim, ierr(3)
+      integer                         :: n_dim, ierr(2)
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim), stat=ierr(1))
       tmp=(0d0,0d0)
-      if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim),stat=ierr(2))
+      if(.not. allocated(self%del_H)) allocate(self%del_H(n_dim, n_dim))
       call self%set_derivative_k(k, derive_idx)
-      if(allocated(ret))then
-         if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
-            deallocate(ret)
-         endif
-      endif
-      if(.not. allocated(ret)) allocate(ret(n_dim, n_dim),stat=ierr(3))
-
-      call check_ierr(ierr, me_in=self%me, msg=["failed alloc in calc_velo_mtx"])
-      
       call zgemm('N', 'N', n_dim, n_dim, n_dim, &
                  c_1, self%del_H, n_dim,&
                  eig_vec_mtx, n_dim,&
                  c_0, tmp, n_dim)
       deallocate(self%del_H)
+      if(allocated(ret))then
+         if(size(ret,1) /= n_dim .or. size(ret,2) /= n_dim) then
+            deallocate(ret)
+         endif
+      endif
+      if(.not. allocated(ret)) allocate(ret(n_dim, n_dim),stat=ierr(2))
+      call check_ierr(ierr, me_in=self%me, msg=["failed alloc in calc_velo_mtx"])
       ret=(0d0,0d0)
       call zgemm('C', 'N', n_dim, n_dim, n_dim, &
                  c_1, eig_vec_mtx, n_dim, &
