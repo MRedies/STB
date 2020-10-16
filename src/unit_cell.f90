@@ -33,7 +33,7 @@ module Class_unit_cell
       real(8) :: ferro_phi, ferro_theta
       real(8) :: cone_angle
       real(8), allocatable:: anticol_phi(:), anticol_theta(:), m0_A(:), m0_B(:) !> the angles for anticollinear setups, one
-      real(8), allocatable:: axis_theta,axis_phi !> the angles for anticollinear setups, one
+      real(8) :: axis_theta,axis_phi !> the angles for anticollinear setups, one
       real(8) :: atan_factor !> how fast do we change the border wall
       real(8) :: atan_pref !> prefactor for atan
       real(8) :: dblatan_dist !> width of the atan plateau
