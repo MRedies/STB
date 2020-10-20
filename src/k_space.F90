@@ -1059,10 +1059,10 @@ contains
             allocate(num_elems(self%nProcs))
             allocate(offsets(self%nProcs))
             call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
-            write(*,*) "varall size:", size(varall),size(var_all_all), N, self%nProcs, size(self%new_k_pts)
             send_count = size(varall)
             num_elems =  num_elems * N
             offsets   =  offsets   * N
+            write(*,*) "varall size:", size(varall),size(var_all_all), num_elems, self%nProcs, size(self%new_k_pts)
             call MPI_Gatherv(varall, send_count, MPI_REAL8, &
             var_all_all,     num_elems,  offsets,   MPI_REAL8,&
             root,        MPI_COMM_WORLD, ierr)
