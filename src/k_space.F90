@@ -1027,8 +1027,10 @@ contains
    function process_hall(self, var, var_old, iter, varall) result(cancel)
       implicit none
       class(k_space)                 :: self
-      real(8), intent(in)            :: var(:), var_old(:), varall(:,:)
+      real(8), intent(in)            :: var(:), var_old(:), varall(:,:), var_all_all(:,:)
       integer   , intent(in)         :: iter
+      integer                        :: send_count, ierr
+      integer   , allocatable        :: num_elems(:), offsets(:)
       character(len=*), parameter    :: var_name = "hall_cond"
       character(len=300)             :: filename
       logical                        :: cancel
@@ -1053,6 +1055,13 @@ contains
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
          if (iter == self%berry_iter) then
+
+            call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
+            send_count = size(var_all)
+            call MPI_Gatherv(var_all, send_count, MPI_REAL8, &
+            var_all_all,     num_elems,  offsets,   MPI_REAL8,&
+            root,        MPI_COMM_WORLD, ierr)
+            
             call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
          endif
       endif
