@@ -1027,14 +1027,14 @@ contains
    function process_hall(self, var, var_old, iter, varall) result(cancel)
       implicit none
       class(k_space)                 :: self
-      real(8), intent(in)            :: var(:), var_old(:), varall(:,:), var_all_all(:,:)
+      real(8), intent(in)            :: var(:), var_old(:), varall(:,:)
       integer   , intent(in)         :: iter
       integer                        :: send_count, ierr
       integer   , allocatable        :: num_elems(:), offsets(:)
       character(len=*), parameter    :: var_name = "hall_cond"
       character(len=300)             :: filename
       logical                        :: cancel
-      real(8)                        :: rel_error
+      real(8)                        :: rel_error, var_all_all(:,:)
 
       cancel = .False.
 
