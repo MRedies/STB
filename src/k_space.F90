@@ -1055,11 +1055,11 @@ contains
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
          if (iter == self%berry_iter) then
-            allocate(var_all_all(N, size(self%new_k_pts,2)))
+            send_count = size(varall)
+            allocate(var_all_all(N, send_count*self%nProcs))
             allocate(num_elems(self%nProcs))
             allocate(offsets(self%nProcs))
-            call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
-            send_count = size(varall)
+            call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
             num_elems =  num_elems * N
             offsets   =  offsets   * N
             write(*,*) "varall size:", size(varall),size(var_all_all), num_elems, self%nProcs, size(self%new_k_pts)
