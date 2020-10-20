@@ -1029,7 +1029,7 @@ contains
       class(k_space)                 :: self
       real(8), intent(in)            :: var(:), var_old(:), varall(:,:)
       integer   , intent(in)         :: iter
-      integer                        :: send_count, ierr
+      integer                        :: send_count, ierr, N
       integer   , allocatable        :: num_elems(:), offsets(:)
       character(len=*), parameter    :: var_name = "hall_cond"
       character(len=300)             :: filename
@@ -1038,7 +1038,7 @@ contains
       real(8), allocatable           :: var_all_all(:,:)
 
       cancel = .False.
-
+      N = 2 *  self%ham%num_up
       if(self%me == root) then
          if(any(ieee_is_nan(var))) then
             write (*,*) "hall is nan"
@@ -1059,6 +1059,8 @@ contains
 
             call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
             send_count = size(varall)
+            num_elems =  num_elems * N
+            offsets   =  offsets   * N
             call MPI_Gatherv(varall, send_count, MPI_REAL8, &
             var_all_all,     num_elems,  offsets,   MPI_REAL8,&
             root,        MPI_COMM_WORLD, ierr)
