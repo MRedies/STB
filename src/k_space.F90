@@ -1034,7 +1034,8 @@ contains
       character(len=*), parameter    :: var_name = "hall_cond"
       character(len=300)             :: filename
       logical                        :: cancel
-      real(8)                        :: rel_error, var_all_all(:,:)
+      real(8)                        :: rel_error
+      real(8), allocatable           :: var_all_all(:,:)
 
       cancel = .False.
 
