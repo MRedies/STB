@@ -1047,7 +1047,7 @@ contains
             write (*,*) "hall_old is nan"
          endif
       endif
-      write(*,*) "varall size:", size(varall), N, size(self%new_k_pts)
+      write(*,*) "varall size:", size(varall), N, self%nProcs, size(self%new_k_pts)
       ! save current iteration data
       if(self%me == root) then
          write (filename, "(A,I0.5,A)") trim(var_name) // "_iter=", iter, ".npy"
