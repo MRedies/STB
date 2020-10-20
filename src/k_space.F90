@@ -1057,7 +1057,7 @@ contains
          if (iter == self%berry_iter) then
 
             call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
-            send_count = size(var_all)
+            send_count = size(varall)
             call MPI_Gatherv(var_all, send_count, MPI_REAL8, &
             var_all_all,     num_elems,  offsets,   MPI_REAL8,&
             root,        MPI_COMM_WORLD, ierr)
