@@ -1047,7 +1047,6 @@ contains
             write (*,*) "hall_old is nan"
          endif
       endif
-      write(*,*) "varall size:", size(varall), N, self%nProcs, size(self%new_k_pts)
       ! save current iteration data
       if(self%me == root) then
          write (filename, "(A,I0.5,A)") trim(var_name) // "_iter=", iter, ".npy"
@@ -1060,6 +1059,7 @@ contains
             allocate(num_elems(self%nProcs))
             allocate(offsets(self%nProcs))
             call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
+            write(*,*) "varall size:", size(varall),size(var_all_all), N, self%nProcs, size(self%new_k_pts)
             send_count = size(varall)
             num_elems =  num_elems * N
             offsets   =  offsets   * N
