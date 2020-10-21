@@ -1054,21 +1054,21 @@ contains
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
-         if (iter == self%berry_iter) then
-            send_count = size(varall)
-            allocate(var_all_all(N, send_count*self%nProcs))
-            allocate(num_elems(self%nProcs))
-            allocate(offsets(self%nProcs))
-            call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
-            num_elems =  num_elems
-            offsets   =  offsets
-            write(*,*) "varall size:", size(varall),size(var_all_all), num_elems, self%nProcs, size(self%new_k_pts)
-            call MPI_Gatherv(varall, send_count, MPI_REAL8, &
-            var_all_all,     num_elems,  offsets,   MPI_REAL8,&
-            root,        MPI_COMM_WORLD, ierr)
-            
-            call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
-         endif
+         !if (iter == self%berry_iter) then
+         !   send_count = size(varall)
+         !   allocate(var_all_all(N, send_count*self%nProcs))
+         !   allocate(num_elems(self%nProcs))
+         !   allocate(offsets(self%nProcs))
+         !   call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
+         !   num_elems =  num_elems
+         !   offsets   =  offsets
+         !   write(*,*) "varall size:", size(varall),size(var_all_all), num_elems, self%nProcs, size(self%new_k_pts)
+         !  call MPI_Gatherv(varall, send_count, MPI_REAL8, &
+         !   var_all_all,     num_elems,  offsets,   MPI_REAL8,&
+         !   root,        MPI_COMM_WORLD, ierr)
+         !   
+         !   call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
+         !endif
       endif
 
       ! check for convergence
