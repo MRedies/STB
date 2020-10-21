@@ -1029,13 +1029,13 @@ contains
       class(k_space)                 :: self
       real(8), intent(in)            :: var(:), var_old(:), varall(:,:)
       integer   , intent(in)         :: iter
-      integer                        :: send_count, ierr, N
+      integer                        :: send_count, ierr, N, i
       integer   , allocatable        :: num_elems(:), offsets(:)
       character(len=*), parameter    :: var_name = "hall_cond"
       character(len=300)             :: filename
       logical                        :: cancel
       real(8)                        :: rel_error
-      real(8), allocatable           :: var_all_all(:,:)
+      real(8), allocatable           :: var_send(:,:), var_all_all(:,:)
 
       cancel = .False.
       N = 2 *  self%ham%num_up
@@ -1054,7 +1054,12 @@ contains
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
-         !if (iter == self%berry_iter) then
+         if (iter == self%berry_iter) then
+            allocate(var_send(size(varall,2)))
+            var_send = 0d0
+            do i = 1,N/2
+               var_send = var_send + varall(i,:)
+            enddo
          !   send_count = size(varall)
          !   allocate(var_all_all(N, send_count*self%nProcs))
          !   allocate(num_elems(self%nProcs))
@@ -1068,7 +1073,7 @@ contains
          !   root,        MPI_COMM_WORLD, ierr)
          !   
          !   call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
-         !endif
+         endif
       endif
 
       ! check for convergence
