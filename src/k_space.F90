@@ -1054,12 +1054,12 @@ contains
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
-         if (iter == self%berry_iter) then
-            allocate(var_send(size(varall,2)))
-            var_send = 0d0
-            do i = 1,N/2
-               var_send = var_send + varall(i,:)
-            enddo
+         !if (iter == self%berry_iter) then
+         !   allocate(var_send(size(varall,2)))
+         !   var_send = 0d0
+         !   do i = 1,N/2
+         !      var_send = var_send + varall(i,:)
+         !   enddo
          !   send_count = size(varall)
          !   allocate(var_all_all(N, send_count*self%nProcs))
          !   allocate(num_elems(self%nProcs))
@@ -1073,7 +1073,7 @@ contains
          !   root,        MPI_COMM_WORLD, ierr)
          !   
          !   call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
-         endif
+         !endif
       endif
 
       ! check for convergence
