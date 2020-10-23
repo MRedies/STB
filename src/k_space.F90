@@ -1056,7 +1056,7 @@ contains
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
-         if (iter == self%berry_safe) then
+         if (self%berry_safe) then
             write(*,*) "varall size:", size(varall,1), size(varall,2)
             allocate(var_send(size(varall,2)))
             var_send = 0d0
