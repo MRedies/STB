@@ -271,6 +271,7 @@ contains
       call CFG_add(cfg, "berry%E_fermi",          [-10d0, 10d0, 300d0],   "")
       call CFG_add(cfg, "dos%fermi_fill",       0.5d0,   "")
       call CFG_add(cfg, "berry%pert_log", .False., "")
+      call CFG_add(cfg, "berry%berry_safe", .False., "")
       call CFG_add(cfg, "berry%calc_hall", .False., "")
       call CFG_add(cfg, "berry%calc_hall_diag", .False., "")
       call CFG_add(cfg, "berry%calc_orbmag", .False., "")
