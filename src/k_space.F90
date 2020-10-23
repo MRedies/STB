@@ -1037,7 +1037,7 @@ contains
       character(len=300)             :: filename
       logical                        :: cancel
       real(8)                        :: rel_error
-      real(8), allocatable           :: var_send(:,:), var_all_all(:,:)
+      real(8), allocatable           :: var_send(:), var_all_all(:,:)
 
       cancel = .False.
       N = 2 *  self%ham%num_up
