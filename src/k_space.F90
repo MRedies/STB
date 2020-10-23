@@ -43,6 +43,7 @@ module Class_k_space
       logical              :: calc_hall_diag !> should diag hall conductivity be calculated
       logical              :: calc_orbmag !> should orbital magnetism be calculated
       logical              :: test_run !> should unit tests be performed
+      logical              :: berry_safe !> should berry curvature be saved to file
       !logical              :: pert_log !>should berry be calculated in first order perturbation theory
       type(hamil)          :: ham
       type(units)          :: units
@@ -398,6 +399,7 @@ contains
          call CFG_get(cfg, "berry%perform_pad", self%perform_pad)
          call CFG_get(cfg, "berry%calc_hall", self%calc_hall)
          call CFG_get(cfg, "berry%calc_hall_diag", self%calc_hall_diag)
+         call CFG_get(cfg, "berry%berry_safe", self%safe_berry)
          call CFG_get(cfg, "berry%calc_orbmag", self%calc_orbmag)
          call CFG_get(cfg, "berry%weights", self%chosen_weights)
          call CFG_get(cfg, "berry%adaptive_mode", self%ada_mode)
@@ -1054,26 +1056,27 @@ contains
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
-         !if (iter == self%berry_iter) then
-         !   allocate(var_send(size(varall,2)))
-         !   var_send = 0d0
-         !   do i = 1,N/2
-         !      var_send = var_send + varall(i,:)
-         !   enddo
-         !   send_count = size(varall)
-         !   allocate(var_all_all(N, send_count*self%nProcs))
-         !   allocate(num_elems(self%nProcs))
-         !   allocate(offsets(self%nProcs))
-         !   call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
-         !   num_elems =  num_elems
-         !   offsets   =  offsets
-         !   write(*,*) "varall size:", size(varall),size(var_all_all), num_elems, self%nProcs, size(self%new_k_pts)
-         !  call MPI_Gatherv(varall, send_count, MPI_REAL8, &
-         !   var_all_all,     num_elems,  offsets,   MPI_REAL8,&
-         !   root,        MPI_COMM_WORLD, ierr)
-         !   
-         !   call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
-         !endif
+         if (iter == self%berry_safe) then
+            write(*,*) "varall size:", size(varall,1), size(varall,2)
+            allocate(var_send(size(varall,2)))
+            var_send = 0d0
+            do i = 1,N/2
+               var_send = var_send + varall(i,:)
+            enddo
+            send_count = size(varall)
+            allocate(var_all_all(N, send_count*self%nProcs))
+            allocate(num_elems(self%nProcs))
+            allocate(offsets(self%nProcs))
+            call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
+            num_elems =  num_elems
+            offsets   =  offsets
+            write(*,*) "varall size:", size(varall),size(var_all_all), num_elems, self%nProcs, size(self%new_k_pts)
+            call MPI_Gatherv(varall, send_count, MPI_REAL8, &
+                           var_all_all,     num_elems,  offsets,   MPI_REAL8,&
+                           root,        MPI_COMM_WORLD, ierr)
+            
+            call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
+         endif
       endif
 
       ! check for convergence
