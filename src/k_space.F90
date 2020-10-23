@@ -1037,7 +1037,7 @@ contains
       character(len=300)             :: filename
       logical                        :: cancel
       real(8)                        :: rel_error
-      real(8), allocatable           :: var_send(:), var_all_all(:,:)
+      real(8), allocatable           :: var_send(:), var_all_all(:)
 
       cancel = .False.
       N = 2 *  self%ham%num_up
@@ -1063,15 +1063,15 @@ contains
             do i = 1,N/2
                var_send = var_send + varall(i,:)
             enddo
-            send_count = size(varall)
-            allocate(var_all_all(N, send_count*self%nProcs))
+            send_count = size(var_send)
+            allocate(var_all_all(send_count*self%nProcs))
             allocate(num_elems(self%nProcs))
             allocate(offsets(self%nProcs))
             call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
             num_elems =  num_elems
             offsets   =  offsets
             write(*,*) "varall size:", size(varall),size(var_all_all), num_elems, self%nProcs, size(self%new_k_pts)
-            call MPI_Gatherv(varall, send_count, MPI_REAL8, &
+            call MPI_Gatherv(var_send, send_count, MPI_REAL8, &
                            var_all_all,     num_elems,  offsets,   MPI_REAL8,&
                            root,        MPI_COMM_WORLD, ierr)
             
