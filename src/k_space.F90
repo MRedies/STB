@@ -160,7 +160,7 @@ contains
       offsets   =  offsets   * N
 
       send_count =  N *  size(k_pts_sec, 2)
-
+      write(*,*) "BANDS:" ,size(num_elems), size(offsets)
       call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
                        eig_val,     num_elems,  offsets,   MPI_REAL8,&
                        root,        MPI_COMM_WORLD, ierr)
@@ -1070,14 +1070,15 @@ contains
             call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
             num_elems =  num_elems
             offsets   =  offsets
+            write(*,*) "OMEGA: ", size(var_send), size(send_count), size(var_all_all), size(num_elems), size(offsets)
             call MPI_Gatherv(var_send, send_count, MPI_REAL8, &
                            var_all_all,     num_elems,  offsets,   MPI_REAL8,&
                            root,        MPI_COMM_WORLD, ierr)
             write(*,*) "Done GATHERV"
             call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), var_all_all)
+            deallocate(var_all_all,var_send,send_count,num_elems,offsets)
          endif
       endif
-
       ! check for convergence
       rel_error = my_norm2(var - var_old) &
                   / (self%kpts_per_step * self%nProcs * my_norm2(var))!/ (1d0*size(var))
