@@ -1076,7 +1076,7 @@ contains
                            root,        MPI_COMM_WORLD, ierr)
             write(*,*) "Done GATHERV"
             call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), var_all_all)
-            deallocate(var_all_all,var_send,send_count,num_elems,offsets)
+            deallocate(var_all_all,var_send,num_elems,offsets)
          endif
       endif
       ! check for convergence
