@@ -1070,7 +1070,6 @@ contains
             call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
             num_elems =  num_elems
             offsets   =  offsets
-            write(*,*) "varall size:", size(var_send),size(var_all_all), num_elems, self%nProcs, size(self%new_k_pts)
             call MPI_Gatherv(var_send, send_count, MPI_REAL8, &
                            var_all_all,     num_elems,  offsets,   MPI_REAL8,&
                            root,        MPI_COMM_WORLD, ierr)
