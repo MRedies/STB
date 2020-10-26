@@ -1050,37 +1050,38 @@ contains
          endif
       endif
       ! save current iteration data
+      if (self%berry_safe) then
+         write(*,*) "varall size:", size(varall,1), size(varall,2)
+         allocate(var_send(size(varall,2)))
+         var_send = 0d0
+         do i = 1,N/2
+            var_send = var_send + varall(i,:)
+         enddo
+         send_count = size(var_send)
+         allocate(var_all_all(send_count*self%nProcs))
+         allocate(num_elems(self%nProcs))
+         allocate(offsets(self%nProcs))
+         call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
+         num_elems =  num_elems
+         offsets   =  offsets
+         write(*,*) "OMEGA: ", size(var_send), send_count, size(var_all_all), size(num_elems), size(offsets), num_elems, offsets
+         !call MPI_Gatherv(var_send, send_count, MPI_REAL8, &
+         !               var_all_all,     num_elems,  offsets,   MPI_REAL8,&
+         !               root,        MPI_COMM_WORLD, ierr)
+         call MPI_Gather(var_send, send_count, MPI_REAL8, &
+                        var_all_all,     send_count,   MPI_REAL8,&
+                        root,        MPI_COMM_WORLD, ierr)
+         write(*,*) "Done GATHERV"
+         deallocate(var_send,num_elems,offsets)
+      endif
       if(self%me == root) then
          write (filename, "(A,I0.5,A)") trim(var_name) // "_iter=", iter, ".npy"
          call save_npy(trim(self%prefix) // trim(filename), var)
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
-         if (self%berry_safe) then
-            write(*,*) "varall size:", size(varall,1), size(varall,2)
-            allocate(var_send(size(varall,2)))
-            var_send = 0d0
-            do i = 1,N/2
-               var_send = var_send + varall(i,:)
-            enddo
-            send_count = size(var_send)
-            allocate(var_all_all(send_count*self%nProcs))
-            allocate(num_elems(self%nProcs))
-            allocate(offsets(self%nProcs))
-            call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
-            num_elems =  num_elems
-            offsets   =  offsets
-            write(*,*) "OMEGA: ", size(var_send), send_count, size(var_all_all), size(num_elems), size(offsets), num_elems, offsets
-            !call MPI_Gatherv(var_send, send_count, MPI_REAL8, &
-            !               var_all_all,     num_elems,  offsets,   MPI_REAL8,&
-            !               root,        MPI_COMM_WORLD, ierr)
-            call MPI_Gather(var_send, send_count, MPI_REAL8, &
-                           var_all_all,     send_count,   MPI_REAL8,&
-                           root,        MPI_COMM_WORLD, ierr)
-            write(*,*) "Done GATHERV"
-            call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), var_all_all)
-            deallocate(var_all_all,var_send,num_elems,offsets)
-         endif
+         call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), var_all_all)
+         deallocate(var_all_all)
       endif
       ! check for convergence
       rel_error = my_norm2(var - var_old) &
