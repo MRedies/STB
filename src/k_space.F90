@@ -415,7 +415,7 @@ contains
    subroutine Bcast_k_space(self)
       use mpi
       class(k_space)             :: self
-      integer, parameter     :: num_cast =  26
+      integer, parameter     :: num_cast =  27
       integer                :: ierr(num_cast)
       integer                :: sz(2)
       ierr =  0
@@ -474,6 +474,8 @@ contains
                      root,                            MPI_COMM_WORLD, ierr(19))
       call MPI_Bcast(self%calc_hall_diag,       1,            MPI_LOGICAL,   &
                      root,                            MPI_COMM_WORLD, ierr(26))
+      call MPI_Bcast(self%berry_safe,       1,            MPI_LOGICAL,   &
+                     root,                            MPI_COMM_WORLD, ierr(27))
       call MPI_Bcast(self%calc_orbmag,     1,            MPI_LOGICAL,   &
                      root,                            MPI_COMM_WORLD, ierr(20))
       call MPI_Bcast(self%chosen_weights,  300,          MPI_CHARACTER, &
