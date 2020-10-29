@@ -1064,12 +1064,12 @@ contains
          call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
          num_elems =  num_elems
          offsets   =  offsets
-         !call MPI_Gatherv(var_send, send_count, MPI_REAL8, &
-         !               var_all_all,     num_elems,  offsets,   MPI_REAL8,&
-         !               root,        MPI_COMM_WORLD, ierr)
-         call MPI_Gather(var_send, send_count, MPI_REAL8, &
-                        var_all_all,     send_count,   MPI_REAL8,&
+         call MPI_Gatherv(var_send, send_count, MPI_REAL8, &
+                        var_all_all,     num_elems,  offsets,   MPI_REAL8,&
                         root,        MPI_COMM_WORLD, ierr)
+         !call MPI_Gather(var_send, send_count, MPI_REAL8, &
+         !               var_all_all,     send_count,   MPI_REAL8,&
+         !               root,        MPI_COMM_WORLD, ierr)
          deallocate(var_send,num_elems,offsets)
       endif
       if(self%me == root) then
