@@ -1053,21 +1053,25 @@ contains
       endif
       ! save current iteration data
       if (self%berry_safe) then
-         allocate(var_send(size(varall,2)))
-         var_send = 0d0
-         do i = 1,N/2
-            var_send = var_send + varall(i,:)
-         enddo
-         send_count = size(var_send)
-         allocate(var_all_all(send_count*self%nProcs))
+         !allocate(var_send(size(varall,2)))
+         !var_send = 0d0
+         !do i = 1,N/2
+         !   var_send = var_send + varall(i,:)
+         !enddo
+         send_count = size(varall)!send_count = size(var_send)
+         allocate(var_all_all(size(varall,1),size(varall,2)*self%nProcs))!allocate(var_all_all(send_count*self%nProcs))
          allocate(num_elems(self%nProcs))
          allocate(offsets(self%nProcs))
          call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
          num_elems =  num_elems
          offsets   =  offsets
-         call MPI_Gatherv(var_send, send_count, MPI_REAL8, &
+         write(*,*) "OMEGA:", size(varall), sendcount, num_elems,offsets,size(var_all_all)
+         call MPI_Gatherv(varall, send_count, MPI_REAL8, &
                         var_all_all,     num_elems,  offsets,   MPI_REAL8,&
                         root,        MPI_COMM_WORLD, ierr)
+         !call MPI_Gatherv(var_send, send_count, MPI_REAL8, &
+         !               var_all_all,     num_elems,  offsets,   MPI_REAL8,&
+         !               root,        MPI_COMM_WORLD, ierr)
          !call MPI_Gather(var_send, send_count, MPI_REAL8, &
          !               var_all_all,     send_count,   MPI_REAL8,&
          !               root,        MPI_COMM_WORLD, ierr)
