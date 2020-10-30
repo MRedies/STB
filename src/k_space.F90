@@ -841,14 +841,14 @@ contains
          call append_eigval(eig_val_all, eig_val_new)
          if(self%me ==  root) write (*,*) self%me, "post appending"
 
-         if(self%calc_hall)   call append_quantity(omega_z_all, omega_z_new)
+         if(self%calc_hall)   call append_quantity(omega_z_all, omega_z_new, .True.)
          if(self%calc_hall_diag) then
-               call append_quantity(omega_surf_all, omega_surf_new)
-               call append_quantity(omega_sea_all, omega_sea_new)
+               call append_quantity(omega_surf_all, omega_surf_new, .False.)
+               call append_quantity(omega_sea_all, omega_sea_new, .False.)
          endif
          if(self%calc_orbmag) then
-            call append_quantity(Q_L_all, Q_L_new)
-            call append_quantity(Q_IC_all, Q_IC_new)
+            call append_quantity(Q_L_all, Q_L_new, .False.)
+            call append_quantity(Q_IC_all, Q_IC_new, .False.)
          endif
          if(self%calc_hall) then
             hall_old = hall
@@ -1682,11 +1682,12 @@ contains
       endif
    end subroutine append_kidx
 
-   subroutine append_quantity(quantity_all, quantity_new)
+   subroutine append_quantity(quantity_all, quantity_new, reuse)
       implicit none
       real(8), allocatable      :: quantity_new(:,:), quantity_all(:,:), tmp_z(:,:)
       integer                 :: vec_sz, num_k_old, num_k_new
       integer                 :: ierr(2)
+      logical, intent(in)     :: reuse
 
       num_k_old = size(quantity_all, 2)
       num_k_new = size(quantity_new, 2)
@@ -1702,7 +1703,7 @@ contains
       quantity_all(:,1:num_k_old) = tmp_z
       quantity_all(:,num_k_old+1:num_k_old+num_k_new) = quantity_new
       deallocate(tmp_z)
-      deallocate(quantity_new)
+      if (.not. reuse) deallocate(quantity_new)
    end subroutine append_quantity
 
    subroutine append_quantity_3d(quantity_all, quantity_new)
