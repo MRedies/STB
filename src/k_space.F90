@@ -854,6 +854,7 @@ contains
             hall_old = hall
             call self%integrate_hall(kidx_all, omega_z_all, eig_val_all, hall)
             done_hall =  self%process_hall(hall, hall_old, iter, omega_z_new)
+            deallocate(omega_z_new)
          endif
          if(self%calc_hall_diag) then
             hall_surf_old = hall_surf
