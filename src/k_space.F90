@@ -1053,7 +1053,7 @@ contains
       endif
       ! save current iteration data
       if (self%berry_safe) then
-         !allocate(var_send(size(varall,2)))
+         allocate(var_send(size(varall,2)))
          !var_send = 0d0
          !do i = 1,N/2
          !   var_send = var_send + varall(i,:)
