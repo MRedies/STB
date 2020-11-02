@@ -604,7 +604,9 @@ contains
       k2(1:2) =  self%ham%UC%rez_lattice(:,2)
       n1 = n_k/scale
       n2 = scale*n_k
-      write(*,*) "Ns:",n1,n2
+      if(self%me==root) then
+         write(*,*) "Ns:",n1,n2
+      endif
       call linspace(0d0, 1d0, n1, ls1)
       call linspace(0d0, 1d0, n2, ls2)
 
