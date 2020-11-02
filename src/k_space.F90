@@ -63,6 +63,7 @@ module Class_k_space
       procedure :: calc_and_print_dos     => calc_and_print_dos
       procedure :: calc_berry_quantities  => calc_berry_quantities
       procedure :: setup_inte_grid_para   => setup_inte_grid_para
+      procedure :: setup_inte_grid_para_spiral   => setup_inte_grid_para_spiral
       procedure :: setup_inte_grid_hex    => setup_inte_grid_hex
       procedure :: setup_berry_inte_grid  => setup_berry_inte_grid
       procedure :: set_weights_ksp        => set_weights_ksp
@@ -576,6 +577,58 @@ contains
       forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
          self%new_k_pts(:,i) + my_norm2(k1) * self%k_shift
    end subroutine setup_inte_grid_para
+
+   subroutine setup_inte_grid_para_spiral(self, n_k, padding)
+      implicit none
+      class(k_space)        :: self
+      integer, intent(in):: n_k
+      real(8), allocatable  :: ls1(:), ls2(:)
+      real(8)               :: k1(3), k2(3)
+      integer               :: i, j, cnt, NAPD, rat, n1, n2, scale
+      logical, optional     :: padding
+
+      if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
+      allocate(self%new_k_pts(3,n_k**2))
+      NAPD = self%ham%UC%atom_per_dim
+      rat = floor(sqrt(1d0*NAPD))
+      scale = 1d0
+      do i=1,rat
+         scale = rat - i + 1
+         if(mod(n_k,scale)==0) then
+            exit
+         endif
+      enddo
+      k1 =  0d0
+      k2 =  0d0
+      k1(1:2) =  self%ham%UC%rez_lattice(:,1)
+      k2(1:2) =  self%ham%UC%rez_lattice(:,2)
+      n1 = n_k/scale
+      n2 = scale*n_k
+      call linspace(0d0, 1d0, n1, ls1)
+      call linspace(0d0, 1d0, n2, ls2)
+
+      self%new_k_pts = 0d0
+
+      cnt        = 1
+      do i = 1,n1
+         do j =  1,n2
+            self%new_k_pts(:,cnt) = ls1(i) *  k1 +  ls2(j) *  k2
+            cnt =  cnt + 1
+         enddo
+      enddo
+      if(.not. present(padding) .and. self%perform_pad) then
+         call run_triang(self%new_k_pts, self%elem_nodes)
+         call self%pad_k_points_init()
+      elseif(present(padding)) then
+         if(padding) then
+            call self%pad_k_points_init()
+            call run_triang(self%new_k_pts, self%elem_nodes)
+         endif
+      endif
+
+      forall(i = 1:size(self%new_k_pts,2)) self%new_k_pts(:,i) = &
+         self%new_k_pts(:,i) + my_norm2(k1) * self%k_shift
+   end subroutine setup_inte_grid_para_spiral
 
    subroutine setup_inte_grid_hex(self, n_k)
       implicit none
