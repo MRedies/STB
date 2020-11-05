@@ -26,7 +26,7 @@ module Constants
 
    !<
    !real(8), parameter  :: small_imag = 1d-24
-   real(8), parameter  :: eta    =  1d-3
+   real(8), parameter  :: eta    =  1d0/3d0*1d-4!10 meV
    real(8), parameter  :: eta_sq =  eta**2
    real(8), parameter  :: pos_eps    = 1d-6
 
