@@ -1138,8 +1138,10 @@ contains
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%E_fermi / self%units%energy)
-         call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), var_all_all)
-         deallocate(var_all_all)
+         if (self%berry_safe) then
+            call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), var_all_all)
+            deallocate(var_all_all)
+         endif 
       endif
       ! check for convergence
       rel_error = my_norm2(var - var_old) &
