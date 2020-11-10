@@ -954,8 +954,14 @@ contains
             if(.not.self%calc_hall) then
                call error_msg("Must calculate hall to use it as weights", abort=.True.)
             endif
-
-            call self%set_hall_weights(omega_z_all, kidx_all)
+            if(self%calc_hall) then
+               call self%set_hall_weights(omega_z_all, kidx_all)
+            endif
+            if(self%calc_hall_diag) then
+               call self%set_hall_weights_surf(omega_surf_all , kidx_all)
+               call self%set_hall_weights_sea(omega_sea_all, kidx_all)
+            endif
+            
          elseif(trim(self%chosen_weights) == "orbmag")then
             if(.not.self%calc_orbmag) then
                call error_msg("Must calculate orbmag to use it as weights", abort=.True.)
@@ -1552,6 +1558,110 @@ contains
       orb_mag    = orbmag_L + orbmag_IC
       call check_ierr(ierr, me_in=self%me, info="orbmag")
    end subroutine integrate_orbmag
+
+   subroutine set_hall_weights_sea(self, omega_z_all, kidx_all)
+      use mpi
+      implicit none
+      class(k_space)         :: self
+      integer   , intent(in) :: kidx_all(:)
+      real(8)                :: omega_z_all(:,:)
+      integer                :: i, node, k_idx, loc_idx
+      integer                :: n_elem
+      integer                :: ierr(2), error(2) = [0,0]
+      character(len=300)     :: msg = ""
+
+      n_elem = size(self%elem_nodes,1)
+      error = 0
+      if(allocated(self%refine_weights_sea)) then
+         if(size(self%refine_weights_sea) /= n_elem) then
+            deallocate(self%refine_weights_sea, stat=error(1), errmsg=msg)
+         endif
+      endif
+      if(.not. allocated(self%refine_weights_sea)) then
+         allocate(self%refine_weights_sea(n_elem), stat=error(2))
+      endif
+      call check_ierr(error, self%me, "hall: set_refine_weights errors")
+
+      self%refine_weights_sea = 0d0
+
+      do i=1,n_elem
+         do node=1,3
+            k_idx = self%elem_nodes(i,node)
+            loc_idx =  find_list_idx(kidx_all, k_idx)
+
+            if(loc_idx > 0) then
+               self%refine_weights_sea(i) = self%refine_weights_sea(i) &
+                                        + self%weights(k_idx) &
+                                        * sum(abs(omega_z_all(:,loc_idx)))
+            endif
+         enddo
+      enddo
+
+      ierr = 0
+      if(self%me == root) then
+         call MPI_Reduce(MPI_IN_PLACE, self%refine_weights_sea, n_elem,&
+                         MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+      else
+         call MPI_Reduce(self%refine_weights_sea,self%refine_weights_sea, n_elem, &
+                         MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+      endif
+      call MPI_Bcast(self%refine_weights_sea, n_elem, MPI_REAL8, &
+                     root, MPI_COMM_WORLD, ierr(2))
+      call check_ierr(ierr, self%me, " hall: set_refine_weights_sea")
+
+   end subroutine set_hall_weights_sea
+
+   subroutine set_hall_weights_surf(self, omega_z_all, kidx_all)
+      use mpi
+      implicit none
+      class(k_space)         :: self
+      integer   , intent(in) :: kidx_all(:)
+      real(8)                :: omega_z_all(:,:)
+      integer                :: i, node, k_idx, loc_idx
+      integer                :: n_elem
+      integer                :: ierr(2), error(2) = [0,0]
+      character(len=300)     :: msg = ""
+
+      n_elem = size(self%elem_nodes,1)
+      error = 0
+      if(allocated(self%refine_weights_surf)) then
+         if(size(self%refine_weights_surf) /= n_elem) then
+            deallocate(self%refine_weights_surf, stat=error(1), errmsg=msg)
+         endif
+      endif
+      if(.not. allocated(self%refine_weights_surf)) then
+         allocate(self%refine_weights_surf(n_elem), stat=error(2))
+      endif
+      call check_ierr(error, self%me, "hall: set_refine_weights errors")
+
+      self%refine_weights_surf = 0d0
+
+      do i=1,n_elem
+         do node=1,3
+            k_idx = self%elem_nodes(i,node)
+            loc_idx =  find_list_idx(kidx_all, k_idx)
+
+            if(loc_idx > 0) then
+               self%refine_weights_surf(i) = self%refine_weights_surf(i) &
+                                        + self%weights(k_idx) &
+                                        * sum(abs(omega_z_all(:,loc_idx)))
+            endif
+         enddo
+      enddo
+
+      ierr = 0
+      if(self%me == root) then
+         call MPI_Reduce(MPI_IN_PLACE, self%refine_weights_surf, n_elem,&
+                         MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+      else
+         call MPI_Reduce(self%refine_weights_surf,self%refine_weights_surf, n_elem, &
+                         MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+      endif
+      call MPI_Bcast(self%refine_weights_surf, n_elem, MPI_REAL8, &
+                     root, MPI_COMM_WORLD, ierr(2))
+      call check_ierr(ierr, self%me, " hall: set_refine_weights_surf")
+
+   end subroutine set_hall_weights_surf
 
    subroutine set_hall_weights(self, omega_z_all, kidx_all)
       use mpi
