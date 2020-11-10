@@ -84,6 +84,8 @@ module Class_k_space
       procedure :: add_kpts_iter          => add_kpts_iter
       procedure :: random_pt_hex          => random_pt_hex
       procedure :: set_hall_weights       => set_hall_weights
+      procedure :: set_hall_weights_sea       => set_hall_weights_sea
+      procedure :: set_hall_weights_surf       => set_hall_weights_surf
       procedure :: set_orbmag_weights     => set_orbmag_weights
       procedure :: integrate_hall         => integrate_hall
       procedure :: integrate_hall_sea     => integrate_hall_sea
