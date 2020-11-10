@@ -1435,7 +1435,7 @@ contains
             do m = 1,n_dim
                if(n /= m) then
                   call self%calc_fac_surf(eig_val(n), eig_val(m), fermi(n_fermi),fac)
-                  z_comp(n_fermi) = z_comp(n_fermi) - 1d0/(2d0*Pi) *&
+                  z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(2d0*Pi) *&
                               fac * aimag(x_mtx(n,m) * y_mtx(m,n))
                endif
             enddo

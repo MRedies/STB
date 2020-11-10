@@ -283,6 +283,7 @@ contains
       call CFG_add(cfg, "berry%conv_criterion", 0d0, "")
       call CFG_add(cfg, "berry%perform_pad", .True., "padding to use all procs")
       call CFG_add(cfg, "berry%weights", "hall", "use this quantity for refinement")
+      call CFG_add(cfg, "berry%berry_component", "xy", "which component of sigma to calculate")
       call CFG_add(cfg, "berry%adaptive_mode", "area", "how to choose new points")
 
       call CFG_add(cfg, "output%band_prefix", "bar/foo","folder")

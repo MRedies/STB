@@ -38,6 +38,7 @@ module Class_k_space
       real(8), allocatable :: k2_param(:) !> 2nd k_space param
       character(len=300)   :: filling, prefix, chosen_weights
       character(len=6)     :: ada_mode
+      character(len=2)     :: berry_component
       logical              :: perform_pad !> should the k-grid be padded, to match cores
       logical              :: calc_hall !> should hall conductivity be calculated
       logical              :: calc_hall_diag !> should diag hall conductivity be calculated
@@ -400,6 +401,8 @@ contains
          call CFG_get(cfg, "berry%calc_hall", self%calc_hall)
          call CFG_get(cfg, "berry%calc_hall_diag", self%calc_hall_diag)
          call CFG_get(cfg, "berry%berry_safe", self%berry_safe)
+         call CFG_get(cfg, "berry%berry_component", self%berry_component)
+         write(*,*) "Berry component:", self%berry_component
          call CFG_get(cfg, "berry%calc_orbmag", self%calc_orbmag)
          call CFG_get(cfg, "berry%weights", self%chosen_weights)
          call CFG_get(cfg, "berry%adaptive_mode", self%ada_mode)
@@ -415,7 +418,7 @@ contains
    subroutine Bcast_k_space(self)
       use mpi
       class(k_space)             :: self
-      integer, parameter     :: num_cast =  27
+      integer, parameter     :: num_cast =  28
       integer                :: ierr(num_cast)
       integer                :: sz(2)
       ierr =  0
@@ -482,6 +485,8 @@ contains
                      root,                            MPI_COMM_WORLD, ierr(21))
       call MPI_Bcast(self%ada_mode,    6,          MPI_CHARACTER, &
                      root,                            MPI_COMM_WORLD, ierr(22))
+      call MPI_Bcast(self%berry_component,    2,          MPI_CHARACTER, &
+                     root,                            MPI_COMM_WORLD, ierr(28))
 
       call MPI_Bcast(self%test_run,      1,              MPI_LOGICAL, &
                      root,              MPI_COMM_WORLD, ierr(23))
@@ -1066,10 +1071,27 @@ contains
                                        eig_val_new(:,cnt), del_kx, del_ky)
             endif
             if(self%calc_hall_diag) then
-               call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
-                                       eig_val_new(:,cnt), self%E_fermi, del_kx, del_ky)
-               call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
-                                       eig_val_new(:,cnt), self%E_fermi, del_kx, del_ky)
+               if(trim(self%berry_component) == "xy") then
+                  call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
+                                          eig_val_new(:,cnt), self%E_fermi, del_kx, del_ky)
+                  call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
+                                          eig_val_new(:,cnt), self%E_fermi, del_kx, del_ky)
+               else if(trim(self%berry_component) == "yx") then
+                  call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
+                                          eig_val_new(:,cnt), self%E_fermi, del_ky, del_kx)
+                  call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
+                                          eig_val_new(:,cnt), self%E_fermi, del_ky, del_kx)
+               else if(trim(self%berry_component) == "xx") then
+                  call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
+                                          eig_val_new(:,cnt), self%E_fermi, del_kx, del_kx)
+                  call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
+                                          eig_val_new(:,cnt), self%E_fermi, del_kx, del_kx)
+               else if(trim(self%berry_component) == "yy") then
+                  call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
+                                          eig_val_new(:,cnt), self%E_fermi, del_ky, del_ky)
+                  call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
+                                          eig_val_new(:,cnt), self%E_fermi, del_ky, del_ky)
+               endif
             endif
          
             if(self%calc_orbmag) then
