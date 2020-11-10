@@ -926,7 +926,7 @@ contains
             done_hall_surf =  self%process_hall_surf(hall_surf, hall_surf_old, iter, omega_surf_all,surf_name)
             done_hall_sea =  self%process_hall_surf(hall_sea, hall_sea_old, iter, omega_sea_all,sea_name)
          endif
-         if(done_hall .and. trim(self%chosen_weights) == "hall") then
+         if(done_hall .and. done_hall_sea .and. done_hall_surf .and. trim(self%chosen_weights) == "hall") then
             call error_msg("Switched to orbmag-weights", &
                            p_color=c_green, abort=.False.)
             self%chosen_weights = "orbmag"
@@ -949,7 +949,7 @@ contains
          endif
 
          ! Stop if both converged
-         if(done_hall .and. done_orbmag) exit
+         if(done_hall .and. done_hall_sea .and. done_hall_surf .and. done_orbmag) exit
          if(trim(self%chosen_weights) == "hall")then
             if(.not.self%calc_hall) then
                call error_msg("Must calculate hall to use it as weights", abort=.True.)
