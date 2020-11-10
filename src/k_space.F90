@@ -33,7 +33,7 @@ module Class_k_space
       real(8)              :: berry_conv_crit !> convergance criterion for berry integration
       real(8), allocatable :: weights(:) !> weights for integration
       integer, allocatable :: elem_nodes(:,:) !> elements in triangulation
-      real(8), allocatable :: refine_weights(:)
+      real(8), allocatable :: refine_weights(:),refine_weights_surf(:),refine_weights_sea(:)
       real(8), allocatable :: k1_param(:) !> 1st k_space param
       real(8), allocatable :: k2_param(:) !> 2nd k_space param
       character(len=300)   :: filling, prefix, chosen_weights
