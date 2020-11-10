@@ -953,7 +953,7 @@ contains
          ! Stop if both converged
          if(done_hall .and. done_hall_sea .and. done_hall_surf .and. done_orbmag) exit
          if(trim(self%chosen_weights) == "hall")then
-            if(.not.self%calc_hall) then
+            if(.not.self%calc_hall .and. .not.self%calc_hall_diag) then
                call error_msg("Must calculate hall to use it as weights", abort=.True.)
             endif
             if(self%calc_hall) then
