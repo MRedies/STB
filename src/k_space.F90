@@ -960,8 +960,8 @@ contains
                call self%set_hall_weights(omega_z_all, kidx_all)
             endif
             if(self%calc_hall_diag) then
-               call self%set_hall_weights_surf(omega_surf_all , kidx_all)
-               call self%set_hall_weights_sea(omega_sea_all, kidx_all)
+               !call self%set_hall_weights(omega_surf_all , kidx_all)
+               call self%set_hall_weights(omega_sea_all, kidx_all)
             endif
             
          elseif(trim(self%chosen_weights) == "orbmag")then
