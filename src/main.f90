@@ -41,7 +41,7 @@ contains
       character(len=300), intent(in) :: inp_file
       real(8)                        :: start, halt
       integer                        :: me, ierr,ierr2
-      logical                        :: perform_band, perform_dos, calc_hall,&
+      logical                        :: perform_band, perform_dos, calc_hall, calc_hall_diag,&
                                         calc_orbmag, perform_ACA,plot_omega,pert_log,tmp,success
       type(CFG_t)                     :: cfg
       character(len=25)               :: fermi_type
@@ -59,6 +59,7 @@ contains
          call CFG_get(cfg, "berry%fermi_type",  fermi_type)
          call CFG_get(cfg, "berry%pert_log",  pert_log)
          call CFG_get(cfg, "berry%calc_hall",   calc_hall)
+         call CFG_get(cfg, "berry%calc_hall_diag",   calc_hall_diag)
          call CFG_get(cfg, "berry%calc_orbmag", calc_orbmag)
          call CFG_get(cfg, "ACA%perform_ACA",   perform_ACA)
          call CFG_get(cfg, "plot%plot_omega",   plot_omega)
@@ -68,6 +69,7 @@ contains
       call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(calc_hall_diag,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(calc_orbmag,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(perform_ACA,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(plot_omega,   1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
@@ -110,7 +112,7 @@ contains
 
       endif
 
-      if(calc_hall .or. calc_orbmag) then
+      if(calc_hall .or. calc_orbmag .or. calc_hall_diag) then
          if(root == me) write (*,*) "started Berry", pert_log
          call Ksp%calc_berry_quantities(pert_log)
       endif
