@@ -98,7 +98,7 @@ contains
       endif
 
       if(trim(fermi_type) == "fixed") then
-         call Ksp%hamil%set_fermi(cfg)
+         call Ksp%ham%set_fermi(cfg)
       endif
 
       if(perform_dos) then
