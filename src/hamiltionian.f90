@@ -315,7 +315,7 @@ contains
       if(self%me ==  0) then
          call CFG_get(cfg, "berry%temperature", tmp)
          self%temp = tmp * self%units%temperature
-         
+
          call CFG_get(cfg, "hamil%Vss_sig", tmp)
          self%Vss_sig =  tmp * self%units%energy
 
@@ -1491,7 +1491,7 @@ contains
          do n = 1,n_dim
             do m = 1,n_dim
                !if(n /= m) then
-                  ferm  =  self%fermi_distr(eig_val(n)), n_fermi)
+                  ferm  =  self%fermi_distr(eig_val(n), n_fermi)
                   call self%calc_fac_diag(eig_val(n), eig_val(m), fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(Pi) *&
                               ferm * fac * real(x_mtx(n,m) * x_mtx(m,n))
@@ -1514,7 +1514,7 @@ contains
          do n = 1,n_dim
             do m = 1,n_dim
                if(n /= m) then
-                  ferm  =  self%fermi_distr(eig_val(n)), n_fermi)
+                  ferm  =  self%fermi_distr(eig_val(n), n_fermi)
                   call self%calc_fac_surf(eig_val(n), eig_val(m), fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(2d0*Pi) *&
                               ferm * fac * aimag(x_mtx(n,m) * y_mtx(m,n))
@@ -1537,7 +1537,7 @@ contains
          do n = 1,n_dim
             do m = 1,n_dim
                if(n /= m) then
-                  ferm  =  self%fermi_distr(eig_val(n)), n_fermi)
+                  ferm  =  self%fermi_distr(eig_val(n), n_fermi)
                   call self%calc_fac_sea(eig_val(n), eig_val(m), fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/Pi *&
                               ferm * fac * aimag(x_mtx(n,m) * y_mtx(m,n))
