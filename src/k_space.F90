@@ -1941,26 +1941,6 @@ contains
 
    end subroutine setup_berry_inte_grid
 
-   subroutine set_fermi(self, cfg)
-      use mpi
-      implicit none
-      class(k_space)         :: self
-      class(CFG_t)           :: cfg
-      real(8)                :: tmp(3)
-      integer                :: ierr
-      integer                :: n_steps
-
-      if(root == self%me) then
-         call CFG_get(cfg, "berry%E_fermi", tmp)
-      endif
-      call MPI_Bcast(tmp, 3, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
-      n_steps = nint(tmp(3))
-      tmp =  tmp *  self%units%energy
-
-      call linspace(tmp(1), tmp(2), n_steps, self%E_fermi)
-      call self%write_fermi()
-   end subroutine set_fermi
-
    subroutine find_fermi(self, cfg)
       use mpi
       implicit none
@@ -1994,16 +1974,9 @@ contains
       enddo
 
       self%E_fermi = self%E_DOS(i)
-      call self%write_fermi()
+      call self%hamil%write_fermi()
    end subroutine find_fermi
 
-   subroutine write_fermi(self)
-      implicit none
-      class(k_space)         :: self
-      if(self%me ==  root) then
-         call save_npy(trim(self%prefix) //  "fermi.npy", self%E_fermi)
-      endif
-   end subroutine write_fermi
 
    function lorentzian(self, x) result(lor)
       implicit none

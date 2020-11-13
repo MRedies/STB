@@ -9,6 +9,7 @@ module Class_hamiltionian
    implicit none
 
    type hamil
+      real(8), allocatable :: E_fermi(:) !> Fermi lvl
       real(8)         :: E_s !> onsite eigenenergy
       real(8)         :: E_A, E_B !> onsite energies for A and B sites in honeycomb
       real(8)         :: E_p(3)
@@ -34,6 +35,8 @@ module Class_hamiltionian
       type(units)     :: units
    contains
       procedure :: fermi_distr                    => fermi_distr
+      procedure :: set_fermi                      => set_fermi
+      procedure :: write_fermi                    => write_fermi
       procedure :: Bcast_hamil                    => Bcast_hamil
       procedure :: setup_H                        => setup_H
       procedure :: calc_eigenvalues               => calc_eigenvalues
@@ -79,6 +82,34 @@ module Class_hamiltionian
    end type hamil
 
 contains
+   subroutine set_fermi(self, cfg)
+      use mpi
+      implicit none
+      class(k_space)         :: self
+      class(CFG_t)           :: cfg
+      real(8)                :: tmp(3)
+      integer                :: ierr
+      integer                :: n_steps
+   
+      if(root == self%me) then
+         call CFG_get(cfg, "berry%E_fermi", tmp)
+      endif
+      call MPI_Bcast(tmp, 3, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
+      n_steps = nint(tmp(3))
+      tmp =  tmp *  self%units%energy
+   
+      call linspace(tmp(1), tmp(2), n_steps, self%E_fermi)
+      call self%write_fermi()
+   end subroutine set_fermi
+
+   subroutine write_fermi(self)
+      implicit none
+      class(k_space)         :: self
+      if(self%me ==  root) then
+         call save_npy(trim(self%prefix) //  "fermi.npy", self%E_fermi)
+      endif
+   end subroutine write_fermi
+
    function fermi_distr(self, E, n_ferm) result(ferm)
       implicit none
       class(hamil), intent(in)    :: self
