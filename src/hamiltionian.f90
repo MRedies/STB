@@ -2,6 +2,7 @@ module Class_hamiltionian
    use m_config
    use output
    use Class_unit_cell
+   use Class_k_space
    use m_npy
    use mpi
    use MYPI
@@ -32,6 +33,7 @@ module Class_hamiltionian
       logical      :: test_run !> should unit tests be performed
       type(unit_cell) :: UC !> unit cell
       type(units)     :: units
+      type(k_space)   :: ksp
    contains
       procedure :: Bcast_hamil                    => Bcast_hamil
       procedure :: setup_H                        => setup_H
@@ -1427,7 +1429,7 @@ contains
    subroutine calc_berry_diag(self, z_comp, eig_val, fermi, x_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: z_comp(:), eig_val(:), fac, fermi(:) !> \f$ \Omega^n_z \f$
+      real(8)                  :: z_comp(:), eig_val(:), fac, fermi(:), ferm !> \f$ \Omega^n_z \f$
       complex(8)               :: x_mtx(:,:)
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
@@ -1436,9 +1438,10 @@ contains
          do n = 1,n_dim
             do m = 1,n_dim
                !if(n /= m) then
+                  ferm  =  self%ksp%fermi_distr(eig_val(n)), n_fermi)
                   call self%calc_fac_diag(eig_val(n), eig_val(m), fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(Pi) *&
-                              fac * real(x_mtx(n,m) * x_mtx(m,n))
+                              ferm * fac * real(x_mtx(n,m) * x_mtx(m,n))
                !endif
             enddo
          enddo
@@ -1449,7 +1452,7 @@ contains
    subroutine calc_berry_diag_surf(self, z_comp, eig_val, fermi, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: z_comp(:), eig_val(:), fac, fermi(:) !> \f$ \Omega^n_z \f$
+      real(8)                  :: z_comp(:), eig_val(:), fac, fermi(:), ferm !> \f$ \Omega^n_z \f$
       complex(8)               :: x_mtx(:,:), y_mtx(:,:)
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
@@ -1458,9 +1461,10 @@ contains
          do n = 1,n_dim
             do m = 1,n_dim
                if(n /= m) then
+                  ferm  =  self%ksp%fermi_distr(eig_val(n)), n_fermi)
                   call self%calc_fac_surf(eig_val(n), eig_val(m), fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(2d0*Pi) *&
-                              fac * aimag(x_mtx(n,m) * y_mtx(m,n))
+                              ferm * fac * aimag(x_mtx(n,m) * y_mtx(m,n))
                endif
             enddo
          enddo
@@ -1471,7 +1475,7 @@ contains
    subroutine calc_berry_diag_sea(self, z_comp, eig_val, fermi, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: z_comp(:), eig_val(:), fac, fermi(:) !> \f$ \Omega^n_z \f$
+      real(8)                  :: z_comp(:), eig_val(:), fac, fermi(:), ferm !> \f$ \Omega^n_z \f$
       complex(8)               :: x_mtx(:,:), y_mtx(:,:)
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
@@ -1480,9 +1484,10 @@ contains
          do n = 1,n_dim
             do m = 1,n_dim
                if(n /= m) then
+                  ferm  =  self%ksp%fermi_distr(eig_val(n)), n_fermi)
                   call self%calc_fac_sea(eig_val(n), eig_val(m), fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/Pi *&
-                              fac * aimag(x_mtx(n,m) * y_mtx(m,n))
+                              ferm * fac * aimag(x_mtx(n,m) * y_mtx(m,n))
                endif
             enddo
          enddo
@@ -1495,16 +1500,14 @@ contains
       class(hamil)             :: self
       real(8)                  :: e_n, e_m, dE, E_f, gamma
       real(8)                  :: fac!> \f$ \Omega^n_z \f$
-      integer    :: n_dim
    
       gamma = self%gamma
-      n_dim = 2 * self%num_up
       fac =  0d0
       dE =  e_m - e_n
       fac =  gamma**2/(((E_f-e_n)**2+gamma**2)*((E_f-e_m)**2+gamma**2))
       fac =  0.5d0 * fac
-      !fac = - 1d0/(2d0*PI) * fac
    end subroutine calc_fac_diag
+
    subroutine calc_fac_surf(self, e_n, e_m, E_f, fac)
       implicit none
       class(hamil)             :: self
