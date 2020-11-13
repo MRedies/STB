@@ -1435,11 +1435,11 @@ contains
       do n_fermi = 1,size(fermi)
          do n = 1,n_dim
             do m = 1,n_dim
-               if(n /= m) then
+               !if(n /= m) then
                   call self%calc_fac_diag(eig_val(n), eig_val(m), fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(Pi) *&
                               fac * real(x_mtx(n,m) * x_mtx(m,n))
-               endif
+               !endif
             enddo
          enddo
       enddo
