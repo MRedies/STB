@@ -1458,7 +1458,7 @@ contains
          k_idx =  kidx_all(loc_idx)
          do n_hall =  1,size(hall)
             n_loop: do n = 1,size(omega_z_all,1)
-               ferm  =  self%hamil%fermi_distr(eig_val_all(n, loc_idx), n_hall)
+               ferm  =  self%ham%fermi_distr(eig_val_all(n, loc_idx), n_hall)
                if(ferm /=  0d0) then
                   hall(n_hall) = hall(n_hall) + &
                                  self%weights(k_idx) * omega_z_all(n, loc_idx) * ferm
@@ -1799,7 +1799,7 @@ contains
       do n_ferm = 1, size(Q_L)
          n_loop: do n = 1, size(A_mtx,1)
             Ef =  self%E_fermi(n_ferm)
-            f_nk =  self%hamil%fermi_distr(eig_val(n), n_ferm)
+            f_nk =  self%ham%fermi_distr(eig_val(n), n_ferm)
 
             if(f_nk /= 0d0) then
                do m = 1, size(A_mtx,1)
@@ -1974,7 +1974,7 @@ contains
       enddo
 
       self%E_fermi = self%E_DOS(i)
-      call self%hamil%write_fermi()
+      call self%ham%write_fermi()
    end subroutine find_fermi
 
 
@@ -1999,17 +1999,17 @@ contains
       u = 25d0 * self%ham%Vss_sig
       Emax  = size(self%E_fermi)
 
-      if((self%hamil%fermi_distr(l, Emax) - tar) &
-         * (self%hamil%fermi_distr(u, Emax) - tar) > 0d0) then
+      if((self%ham%fermi_distr(l, Emax) - tar) &
+         * (self%ham%fermi_distr(u, Emax) - tar) > 0d0) then
          write (*,*) "Emax bisection failed. So crossing in window"
          stop
       endif
 
       c =  0.5 * (u + l)
       cnt =  0
-      do while(abs((self%hamil%fermi_distr(c, Emax) - tar)/tar) > tol)
-         if(sign(1d0,self%hamil%fermi_distr(c, Emax) - tar) ==&
-            sign(1d0,self%hamil%fermi_distr(l,Emax)- tar)) then
+      do while(abs((self%ham%fermi_distr(c, Emax) - tar)/tar) > tol)
+         if(sign(1d0,self%ham%fermi_distr(c, Emax) - tar) ==&
+            sign(1d0,self%ham%fermi_distr(l,Emax)- tar)) then
             l = c
          else
             u = c
@@ -2380,7 +2380,7 @@ contains
 !$OMP         parallel do default(shared) private(i, f)
       do n_ferm = 1,size(self%E_fermi)
          do i = 1,size(eig_val)
-            f = self%hamil%fermi_distr(eig_val(i), n_ferm)
+            f = self%ham%fermi_distr(eig_val(i), n_ferm)
             S(n_ferm) = S(n_ferm) &
                         + f * (  sum(abs(eig_vec(     1:  n_up, i))**2) &
                                - sum(abs(eig_vec(n_up+1:2*n_up, i))**2) )
@@ -2408,7 +2408,7 @@ contains
 
          do s = 1,n_stat
             ! get fermi_factor
-            f = self%hamil%fermi_distr(eig_val(s), n_ferm)
+            f = self%ham%fermi_distr(eig_val(s), n_ferm)
             loc_l(i) = loc_l(i) + f * calc_l(eig_vec(v_u:v_u+2, s))
             loc_l(i) = loc_l(i) + f * calc_l(eig_vec(v_d:v_d+2, s))
          enddo
