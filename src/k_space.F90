@@ -58,8 +58,6 @@ module Class_k_space
       procedure :: lorentzian             => lorentzian
       procedure :: calc_pdos              => calc_pdos
       procedure :: find_fermi             => find_fermi
-      procedure :: set_fermi              => set_fermi
-      procedure :: write_fermi            => write_fermi
       procedure :: calc_and_print_dos     => calc_and_print_dos
       procedure :: calc_berry_quantities  => calc_berry_quantities
       procedure :: setup_inte_grid_para   => setup_inte_grid_para
