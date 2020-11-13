@@ -1428,7 +1428,7 @@ contains
       implicit none
       class(hamil)             :: self
       real(8)                  :: z_comp(:), eig_val(:), fac, fermi(:) !> \f$ \Omega^n_z \f$
-      complex(8)               :: x_mtx(:,:), y_mtx(:,:)
+      complex(8)               :: x_mtx(:,:)
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
