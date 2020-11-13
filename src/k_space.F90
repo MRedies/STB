@@ -1089,15 +1089,11 @@ contains
                   call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
                                           eig_val_new(:,cnt), self%E_fermi, del_ky, del_kx)
                else if(trim(self%berry_component) == "xx") then
-                  call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
-                                          eig_val_new(:,cnt), self%E_fermi, del_kx, del_kx)
-                  call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
-                                          eig_val_new(:,cnt), self%E_fermi, del_kx, del_kx)
+                  call self%ham%calc_berry_diag(omega_surf_new(:,cnt),&
+                                          eig_val_new(:,cnt), self%E_fermi, del_kx)
                else if(trim(self%berry_component) == "yy") then
-                  call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
-                                          eig_val_new(:,cnt), self%E_fermi, del_ky, del_ky)
-                  call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
-                                          eig_val_new(:,cnt), self%E_fermi, del_ky, del_ky)
+                  call self%ham%calc_berry_diag(omega_surf_new(:,cnt),&
+                                          eig_val_new(:,cnt), self%E_fermi, del_ky)
                endif
             endif
          

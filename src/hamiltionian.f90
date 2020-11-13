@@ -47,10 +47,12 @@ module Class_hamiltionian
       procedure :: set_rashba_SO                  => set_rashba_SO
       procedure :: set_deriv_FD                   => set_deriv_FD
       procedure :: calc_berry_z                   => calc_berry_z
+      procedure :: calc_berry_diag                   => calc_berry_diag
       procedure :: calc_berry_diag_sea            => calc_berry_diag_sea
       procedure :: calc_berry_diag_surf           => calc_berry_diag_surf
       procedure :: calc_fac_sea                   => calc_fac_sea
       procedure :: calc_fac_surf                  => calc_fac_surf
+      procedure :: calc_fac_diag                  => calc_fac_diag
       procedure :: calc_velo_mtx                  => calc_velo_mtx
       procedure :: calc_right_pert_velo_mtx       => calc_right_pert_velo_mtx
       procedure :: calc_left_pert_velo_mtx        => calc_left_pert_velo_mtx
@@ -1422,6 +1424,28 @@ contains
 
    end subroutine calc_berry_z
 
+   subroutine calc_berry_diag(self, z_comp, eig_val, fermi, x_mtx)
+      implicit none
+      class(hamil)             :: self
+      real(8)                  :: z_comp(:), eig_val(:), fac, fermi(:) !> \f$ \Omega^n_z \f$
+      complex(8)               :: x_mtx(:,:), y_mtx(:,:)
+      integer    :: n_dim, n, m, n_fermi
+      n_dim = 2 * self%num_up
+      z_comp =  0d0
+      do n_fermi = 1,size(fermi)
+         do n = 1,n_dim
+            do m = 1,n_dim
+               if(n /= m) then
+                  call self%calc_fac_diag(eig_val(n), eig_val(m), fermi(n_fermi),fac)
+                  z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(Pi) *&
+                              fac * real(x_mtx(n,m) * x_mtx(m,n))
+               endif
+            enddo
+         enddo
+      enddo
+
+   end subroutine calc_berry_diag
+
    subroutine calc_berry_diag_surf(self, z_comp, eig_val, fermi, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
@@ -1466,6 +1490,21 @@ contains
    
    end subroutine calc_berry_diag_sea
 
+   subroutine calc_fac_diag(self, e_n, e_m, E_f, fac)
+      implicit none
+      class(hamil)             :: self
+      real(8)                  :: e_n, e_m, dE, E_f, gamma
+      real(8)                  :: fac!> \f$ \Omega^n_z \f$
+      integer    :: n_dim
+   
+      gamma = self%gamma
+      n_dim = 2 * self%num_up
+      fac =  0d0
+      dE =  e_m - e_n
+      fac =  gamma/(((E_f-e_n)**2+gamma**2)*((E_f-e_m)**2+gamma**2))
+      fac =  0.5d0 * fac
+      !fac = - 1d0/(2d0*PI) * fac
+   end subroutine calc_fac_diag
    subroutine calc_fac_surf(self, e_n, e_m, E_f, fac)
       implicit none
       class(hamil)             :: self
