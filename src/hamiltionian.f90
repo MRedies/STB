@@ -10,6 +10,7 @@ module Class_hamiltionian
 
    type hamil
       real(8), allocatable :: E_fermi(:) !> Fermi lvl
+      real(8)              :: temp !> temperature used in fermi-dirac
       real(8)         :: E_s !> onsite eigenenergy
       real(8)         :: E_A, E_B !> onsite energies for A and B sites in honeycomb
       real(8)         :: E_p(3)
@@ -312,6 +313,9 @@ contains
       self%UC    = init_unit(cfg)
 
       if(self%me ==  0) then
+         call CFG_get(cfg, "berry%temperature", tmp)
+         self%temp = tmp * self%units%temperature
+         
          call CFG_get(cfg, "hamil%Vss_sig", tmp)
          self%Vss_sig =  tmp * self%units%energy
 
