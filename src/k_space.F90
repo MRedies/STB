@@ -59,7 +59,6 @@ module Class_k_space
       procedure :: calc_pdos              => calc_pdos
       procedure :: find_fermi             => find_fermi
       procedure :: set_fermi              => set_fermi
-      procedure :: fermi_distr            => fermi_distr
       procedure :: write_fermi            => write_fermi
       procedure :: calc_and_print_dos     => calc_and_print_dos
       procedure :: calc_berry_quantities  => calc_berry_quantities
@@ -1459,7 +1458,7 @@ contains
          k_idx =  kidx_all(loc_idx)
          do n_hall =  1,size(hall)
             n_loop: do n = 1,size(omega_z_all,1)
-               ferm  =  self%fermi_distr(eig_val_all(n, loc_idx), n_hall)
+               ferm  =  self%hamil%fermi_distr(eig_val_all(n, loc_idx), n_hall)
                if(ferm /=  0d0) then
                   hall(n_hall) = hall(n_hall) + &
                                  self%weights(k_idx) * omega_z_all(n, loc_idx) * ferm
@@ -1800,7 +1799,7 @@ contains
       do n_ferm = 1, size(Q_L)
          n_loop: do n = 1, size(A_mtx,1)
             Ef =  self%E_fermi(n_ferm)
-            f_nk =  self%fermi_distr(eig_val(n), n_ferm)
+            f_nk =  self%hamil%fermi_distr(eig_val(n), n_ferm)
 
             if(f_nk /= 0d0) then
                do m = 1, size(A_mtx,1)
@@ -2016,26 +2015,6 @@ contains
             / (PI * (x**2 +  self%DOS_gamma**2))
    end function lorentzian
 
-   function fermi_distr(self, E, n_ferm) result(ferm)
-      implicit none
-      class(k_space), intent(in)    :: self
-      real(8), intent(in)           :: E
-      integer   , intent(in)        :: n_ferm
-      real(8)                       :: ferm, exp_term
-
-      exp_term =  (E - self%E_fermi(n_ferm)) /&
-                 (boltzmann_const * self%temp)
-      !cutting off at exp(x) =  10^16
-      ! which is at the machine eps
-      if(exp_term > 36d0) then
-         ferm = 0d0
-      elseif(exp_term < -36d0) then
-         ferm = 1d0
-      else
-         ferm = 1d0 / (exp(exp_term) + 1d0)
-      endif
-   end function fermi_distr
-
    function find_E_max(self) result(c)
       implicit none
       class(k_space), intent(in)   :: self
@@ -2047,17 +2026,17 @@ contains
       u = 25d0 * self%ham%Vss_sig
       Emax  = size(self%E_fermi)
 
-      if((self%fermi_distr(l, Emax) - tar) &
-         * (self%fermi_distr(u, Emax) - tar) > 0d0) then
+      if((self%hamil%fermi_distr(l, Emax) - tar) &
+         * (self%hamil%fermi_distr(u, Emax) - tar) > 0d0) then
          write (*,*) "Emax bisection failed. So crossing in window"
          stop
       endif
 
       c =  0.5 * (u + l)
       cnt =  0
-      do while(abs((self%fermi_distr(c, Emax) - tar)/tar) > tol)
-         if(sign(1d0,self%fermi_distr(c, Emax) - tar) ==&
-            sign(1d0,self%fermi_distr(l,Emax)- tar)) then
+      do while(abs((self%hamil%fermi_distr(c, Emax) - tar)/tar) > tol)
+         if(sign(1d0,self%hamil%fermi_distr(c, Emax) - tar) ==&
+            sign(1d0,self%hamil%fermi_distr(l,Emax)- tar)) then
             l = c
          else
             u = c
@@ -2428,7 +2407,7 @@ contains
 !$OMP         parallel do default(shared) private(i, f)
       do n_ferm = 1,size(self%E_fermi)
          do i = 1,size(eig_val)
-            f = self%fermi_distr(eig_val(i), n_ferm)
+            f = self%hamil%fermi_distr(eig_val(i), n_ferm)
             S(n_ferm) = S(n_ferm) &
                         + f * (  sum(abs(eig_vec(     1:  n_up, i))**2) &
                                - sum(abs(eig_vec(n_up+1:2*n_up, i))**2) )
@@ -2456,7 +2435,7 @@ contains
 
          do s = 1,n_stat
             ! get fermi_factor
-            f = self%fermi_distr(eig_val(s), n_ferm)
+            f = self%hamil%fermi_distr(eig_val(s), n_ferm)
             loc_l(i) = loc_l(i) + f * calc_l(eig_vec(v_u:v_u+2, s))
             loc_l(i) = loc_l(i) + f * calc_l(eig_vec(v_d:v_d+2, s))
          enddo

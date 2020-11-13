@@ -2,7 +2,6 @@ module Class_hamiltionian
    use m_config
    use output
    use Class_unit_cell
-   !use Class_k_space
    use m_npy
    use mpi
    use MYPI
@@ -33,8 +32,8 @@ module Class_hamiltionian
       logical      :: test_run !> should unit tests be performed
       type(unit_cell) :: UC !> unit cell
       type(units)     :: units
-      !type(k_space)   :: ksp
    contains
+      procedure :: fermi_distr                    => fermi_distr
       procedure :: Bcast_hamil                    => Bcast_hamil
       procedure :: setup_H                        => setup_H
       procedure :: calc_eigenvalues               => calc_eigenvalues
@@ -80,6 +79,25 @@ module Class_hamiltionian
    end type hamil
 
 contains
+   function fermi_distr(self, E, n_ferm) result(ferm)
+      implicit none
+      class(k_space), intent(in)    :: self
+      real(8), intent(in)           :: E
+      integer   , intent(in)        :: n_ferm
+      real(8)                       :: ferm, exp_term
+   
+      exp_term =  (E - self%E_fermi(n_ferm)) /&
+                 (boltzmann_const * self%temp)
+      !cutting off at exp(x) =  10^16
+      ! which is at the machine eps
+      if(exp_term > 36d0) then
+         ferm = 0d0
+      elseif(exp_term < -36d0) then
+         ferm = 1d0
+      else
+         ferm = 1d0 / (exp(exp_term) + 1d0)
+      endif
+   end function fermi_distr
 
    function z_layer_states(self) result(z)
       implicit none
@@ -1438,7 +1456,7 @@ contains
          do n = 1,n_dim
             do m = 1,n_dim
                !if(n /= m) then
-                  ferm  =  self%ksp%fermi_distr(eig_val(n)), n_fermi)
+                  ferm  =  self%fermi_distr(eig_val(n)), n_fermi)
                   call self%calc_fac_diag(eig_val(n), eig_val(m), fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(Pi) *&
                               ferm * fac * real(x_mtx(n,m) * x_mtx(m,n))
@@ -1461,7 +1479,7 @@ contains
          do n = 1,n_dim
             do m = 1,n_dim
                if(n /= m) then
-                  ferm  =  self%ksp%fermi_distr(eig_val(n)), n_fermi)
+                  ferm  =  self%fermi_distr(eig_val(n)), n_fermi)
                   call self%calc_fac_surf(eig_val(n), eig_val(m), fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(2d0*Pi) *&
                               ferm * fac * aimag(x_mtx(n,m) * y_mtx(m,n))
@@ -1484,7 +1502,7 @@ contains
          do n = 1,n_dim
             do m = 1,n_dim
                if(n /= m) then
-                  ferm  =  self%ksp%fermi_distr(eig_val(n)), n_fermi)
+                  ferm  =  self%fermi_distr(eig_val(n)), n_fermi)
                   call self%calc_fac_sea(eig_val(n), eig_val(m), fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/Pi *&
                               ferm * fac * aimag(x_mtx(n,m) * y_mtx(m,n))
