@@ -85,7 +85,7 @@ contains
    subroutine set_fermi(self, cfg)
       use mpi
       implicit none
-      class(k_space)         :: self
+      class(hamil)         :: self
       class(CFG_t)           :: cfg
       real(8)                :: tmp(3)
       integer                :: ierr
@@ -104,7 +104,7 @@ contains
 
    subroutine write_fermi(self)
       implicit none
-      class(k_space)         :: self
+      class(hamil)         :: self
       if(self%me ==  root) then
          call save_npy(trim(self%prefix) //  "fermi.npy", self%E_fermi)
       endif
