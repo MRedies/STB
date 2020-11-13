@@ -81,7 +81,7 @@ module Class_hamiltionian
 contains
    function fermi_distr(self, E, n_ferm) result(ferm)
       implicit none
-      class(k_space), intent(in)    :: self
+      class(hamil), intent(in)    :: self
       real(8), intent(in)           :: E
       integer   , intent(in)        :: n_ferm
       real(8)                       :: ferm, exp_term
