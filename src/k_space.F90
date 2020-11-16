@@ -121,7 +121,7 @@ contains
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
       if(allocated(self%int_DOS)) deallocate(self%int_DOS)
       if(allocated(self%E_DOS)) deallocate(self%E_DOS)
-      if(allocated(self%E_fermi)) deallocate(self%E_fermi)
+      if(allocated(self%ham%E_fermi)) deallocate(self%ham%E_fermi)
       if(allocated(self%k1_param)) deallocate(self%k1_param)
       if(allocated(self%k2_param)) deallocate(self%k2_param)
       call self%ham%free_ham()
@@ -859,7 +859,7 @@ contains
       call self%setup_berry_inte_grid()
       N_k = size(self%new_k_pts, 2)
       num_up =  self%ham%num_up
-      n_ferm = size(self%E_fermi)
+      n_ferm = size(self%ham%E_fermi)
       nProcs = self%nProcs
       all_err = 0
       allocate(self%ham%del_H(2*num_up, 2*num_up), stat=all_err(1))
@@ -1023,7 +1023,7 @@ contains
       logical, intent(in)       :: pert_log
       tmp = 0d0
       N_k = size(self%new_k_pts, 2)
-      n_ferm =  size(self%E_fermi)
+      n_ferm =  size(self%ham%E_fermi)
       num_up =  self%ham%num_up
 
       call my_section(self%me, self%nProcs, N_k, first, last)
@@ -1077,20 +1077,20 @@ contains
             if(self%calc_hall_diag) then
                if(trim(self%berry_component) == "xy") then
                   call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
-                                          eig_val_new(:,cnt), self%E_fermi, del_kx, del_ky)
+                                          eig_val_new(:,cnt), self%ham%E_fermi, del_kx, del_ky)
                   call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
-                                          eig_val_new(:,cnt), self%E_fermi, del_kx, del_ky)
+                                          eig_val_new(:,cnt), self%ham%E_fermi, del_kx, del_ky)
                else if(trim(self%berry_component) == "yx") then
                   call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
-                                          eig_val_new(:,cnt), self%E_fermi, del_ky, del_kx)
+                                          eig_val_new(:,cnt), self%ham%E_fermi, del_ky, del_kx)
                   call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
-                                          eig_val_new(:,cnt), self%E_fermi, del_ky, del_kx)
+                                          eig_val_new(:,cnt), self%ham%E_fermi, del_ky, del_kx)
                else if(trim(self%berry_component) == "xx") then
                   call self%ham%calc_berry_diag(omega_surf_new(:,cnt),&
-                                          eig_val_new(:,cnt), self%E_fermi, del_kx)
+                                          eig_val_new(:,cnt), self%ham%E_fermi, del_kx)
                else if(trim(self%berry_component) == "yy") then
                   call self%ham%calc_berry_diag(omega_surf_new(:,cnt),&
-                                          eig_val_new(:,cnt), self%E_fermi, del_ky)
+                                          eig_val_new(:,cnt), self%ham%E_fermi, del_ky)
                endif
             endif
          
@@ -1159,7 +1159,7 @@ contains
          call save_npy(trim(self%prefix) // trim(filename), var)
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
-                       self%E_fermi / self%units%energy)
+                       self%ham%E_fermi / self%units%energy)
          if (self%berry_safe) then
             call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), var_all_all)
             deallocate(var_all_all)
@@ -1208,7 +1208,7 @@ contains
          call save_npy(trim(self%prefix) // trim(filename), var)
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
-                       self%E_fermi / self%units%energy)
+                       self%ham%E_fermi / self%units%energy)
          if (self%ham%UC%num_atoms==2) then
             call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
          endif
@@ -1256,7 +1256,7 @@ contains
          call save_npy(trim(self%prefix) // trim(filename), orbmag_IC)
 
          call save_npy(trim(self%prefix) // "orbmag_E.npy", &
-                       self%E_fermi / self%units%energy)
+                       self%ham%E_fermi / self%units%energy)
       endif
 
       ! check for convergence
@@ -1292,7 +1292,7 @@ contains
          call save_npy(trim(self%prefix) // trim(elem_file), varall)
          write (elem_file, "(A,A)") trim(var_name) ,"_E.npy"
          call save_npy(trim(self%prefix) // trim(elem_file), &
-                       self%E_fermi / self%units%energy)
+                       self%ham%E_fermi / self%units%energy)
       endif
    end subroutine finalize_hall_surf
 
@@ -1309,7 +1309,7 @@ contains
          call save_npy(trim(self%prefix) // "hall_cond.npy", var)
          call save_npy(trim(self%prefix) // "hall_cond_uc.npy", varall)
          call save_npy(trim(self%prefix) // "hall_cond_E.npy", &
-                       self%E_fermi / self%units%energy)
+                       self%ham%E_fermi / self%units%energy)
       endif
    end subroutine finalize_hall
 
@@ -1332,7 +1332,7 @@ contains
                        orbmag_IC * area / self%units%mag_dipol)
 
          call save_npy(trim(self%prefix) // "orbmag_E.npy", &
-                       self%E_fermi / self%units%energy)
+                       self%ham%E_fermi / self%units%energy)
       endif
    end subroutine finalize_orbmag
 
@@ -1348,7 +1348,7 @@ contains
 
       all_err = 0
       if(allocated(hall)) deallocate(hall)
-      allocate(hall(size(self%E_fermi)), stat=all_err(1))
+      allocate(hall(size(self%ham%E_fermi)), stat=all_err(1))
       call check_ierr(all_err, self%me, "integrate hall allocation")
 
       !run triangulation
@@ -1395,7 +1395,7 @@ contains
 
       all_err = 0
       if(allocated(hall)) deallocate(hall)
-      allocate(hall(size(self%E_fermi)), stat=all_err(1))
+      allocate(hall(size(self%ham%E_fermi)), stat=all_err(1))
       call check_ierr(all_err, self%me, "integrate hall allocation")
 
       !run triangulation
@@ -1442,7 +1442,7 @@ contains
 
       all_err = 0
       if(allocated(hall)) deallocate(hall)
-      allocate(hall(size(self%E_fermi)), stat=all_err(1))
+      allocate(hall(size(self%ham%E_fermi)), stat=all_err(1))
       call check_ierr(all_err, self%me, "integrate hall allocation")
 
       !run triangulation
@@ -1494,17 +1494,17 @@ contains
       integer                 :: ierr(4)
 
       if(allocated(orb_mag))then
-         if(size(orb_mag) /= size(self%E_fermi)) deallocate(orb_mag)
+         if(size(orb_mag) /= size(self%ham%E_fermi)) deallocate(orb_mag)
       endif
-      if(.not. allocated(orb_mag)) allocate(orb_mag(size(self%E_fermi)))
+      if(.not. allocated(orb_mag)) allocate(orb_mag(size(self%ham%E_fermi)))
       if(allocated(orbmag_L))then
-         if(size(orbmag_L) /= size(self%E_fermi)) deallocate(orbmag_L)
+         if(size(orbmag_L) /= size(self%ham%E_fermi)) deallocate(orbmag_L)
       endif
-      if(.not. allocated(orbmag_L)) allocate(orbmag_L(size(self%E_fermi)))
+      if(.not. allocated(orbmag_L)) allocate(orbmag_L(size(self%ham%E_fermi)))
       if(allocated(orbmag_IC))then
-         if(size(orbmag_IC) /= size(self%E_fermi)) deallocate(orbmag_IC)
+         if(size(orbmag_IC) /= size(self%ham%E_fermi)) deallocate(orbmag_IC)
       endif
-      if(.not. allocated(orbmag_IC)) allocate(orbmag_IC(size(self%E_fermi)))
+      if(.not. allocated(orbmag_IC)) allocate(orbmag_IC(size(self%ham%E_fermi)))
 
       !run triangulation
       call run_triang(self%all_k_pts, self%elem_nodes)
@@ -1796,7 +1796,7 @@ contains
 !$OMP         parallel do private(n, m, Ef, f_nk, dE) collapse(2) default(shared)
       do n_ferm = 1, size(Q_L)
          n_loop: do n = 1, size(A_mtx,1)
-            Ef =  self%E_fermi(n_ferm)
+            Ef =  self%ham%E_fermi(n_ferm)
             f_nk =  self%ham%fermi_distr(eig_val(n), n_ferm)
 
             if(f_nk /= 0d0) then
@@ -1951,7 +1951,7 @@ contains
       if(self%me ==  root)then
          call CFG_get(cfg, "dos%fermi_fill", target)
       endif
-      call MPI_Bcast(self%E_fermi, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(self%ham%E_fermi, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
 
       target = target * self%int_DOS(size(self%int_DOS))
       i =  1
@@ -1971,7 +1971,7 @@ contains
          endif
       enddo
 
-      self%E_fermi = self%E_DOS(i)
+      self%ham%E_fermi = self%E_DOS(i)
       call self%ham%write_fermi()
    end subroutine find_fermi
 
@@ -1995,7 +1995,7 @@ contains
 
       l = - 25d0 * self%ham%Vss_sig
       u = 25d0 * self%ham%Vss_sig
-      Emax  = size(self%E_fermi)
+      Emax  = size(self%ham%E_fermi)
 
       if((self%ham%fermi_distr(l, Emax) - tar) &
          * (self%ham%fermi_distr(u, Emax) - tar) > 0d0) then
@@ -2270,8 +2270,8 @@ contains
 
       N = 2 * self%ham%num_up
       allocate(H(N,N))
-      allocate(m(size(self%E_fermi)))
-      allocate(S(size(self%E_fermi)))
+      allocate(m(size(self%ham%E_fermi)))
+      allocate(S(size(self%ham%E_fermi)))
       allocate(eig_val(N))
       call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
       allocate(WORK(lwork))
@@ -2330,11 +2330,11 @@ contains
                            p_color=c_green)
             call save_npy(trim(self%prefix) // "orbmag_ACA.npy", m)
             call save_npy(trim(self%prefix) // "orbmag_E.npy", &
-                          self%E_fermi / self%units%energy)
+                          self%ham%E_fermi / self%units%energy)
 
             call save_npy(trim(self%prefix) // "spinmag.npy", S)
             call save_npy(trim(self%prefix) // "spinmag_E.npy", &
-                          self%E_fermi / self%units%energy)
+                          self%ham%E_fermi / self%units%energy)
          endif
       else
          call error_msg("ACA implemented for square only.", abort=.True.)
@@ -2349,12 +2349,12 @@ contains
       class(k_space), intent(in)     :: self
       complex(8), intent(in)     :: eig_vec(:,:)
       real(8), intent(in)        :: eig_val(:)
-      real(8)                    :: m(size(self%E_fermi))
+      real(8)                    :: m(size(self%ham%E_fermi))
       integer                    :: n_ferm
 
       m        = 0d0
 !$OMP         parallel do default(shared)
-      do n_ferm = 1,size(self%E_fermi)
+      do n_ferm = 1,size(self%ham%E_fermi)
          m(n_ferm) = m(n_ferm) + sum(self%calc_local_l(eig_vec, eig_val, n_ferm))
       enddo
 !$OMP         end parallel do
@@ -2369,14 +2369,14 @@ contains
       class(k_space), intent(in)     :: self
       complex(8), intent(in)     :: eig_vec(:,:)
       real(8), intent(in)        :: eig_val(:)
-      real(8)                    :: S(size(self%E_fermi)), f
+      real(8)                    :: S(size(self%ham%E_fermi)), f
       integer                    :: n_up, n_ferm, i
 
       n_up = self%ham%num_up
       S    = 0d0
 
 !$OMP         parallel do default(shared) private(i, f)
-      do n_ferm = 1,size(self%E_fermi)
+      do n_ferm = 1,size(self%ham%E_fermi)
          do i = 1,size(eig_val)
             f = self%ham%fermi_distr(eig_val(i), n_ferm)
             S(n_ferm) = S(n_ferm) &
