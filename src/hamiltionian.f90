@@ -1551,14 +1551,12 @@ contains
    subroutine calc_fac_diag(self, e_n, e_m, E_f, fac)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: e_n, e_m, dE, E_f, gamma
+      real(8)                  :: e_n, e_m, E_f, gamma
       real(8)                  :: fac!> \f$ \Omega^n_z \f$
    
       gamma = self%gamma
       fac =  0d0
-      dE =  e_m - e_n
-      fac =  gamma**2/(((E_f-e_n)**2+gamma**2)*((E_f-e_m)**2+gamma**2))
-      fac =  0.5d0 * fac
+      fac =  gamma/((E_f-e_n)**2+gamma**2)*gamma/((E_f-e_m)**2+gamma**2)!gamma**2/(((E_f-e_n)**2+gamma**2)*((E_f-e_m)**2+gamma**2))
    end subroutine calc_fac_diag
 
    subroutine calc_fac_surf(self, e_n, e_m, E_f, fac)
