@@ -12,7 +12,6 @@ module Class_k_space
       real(8), allocatable :: new_k_pts(:,:), all_k_pts(:,:)
       real(8), allocatable :: int_DOS(:) !> integrated Density of states
       real(8), allocatable :: E_DOS(:)
-      real(8), allocatable :: E_fermi(:) !> Fermi lvl
       real(8)              :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
       !> DOS calculations
       real(8)              :: DOS_lower !> lower energy bound for DOS calc
