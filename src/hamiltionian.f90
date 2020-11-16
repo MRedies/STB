@@ -1558,7 +1558,7 @@ contains
       deln = E_f - e_n
       delm = E_f - e_m
       fac =  0d0
-      fac =  gamma/(deln**2+gamma**2)*gamma/(delm**2+gamma**2)!gamma**2/(((E_f-e_n)**2+gamma**2)*((E_f-e_m)**2+gamma**2))
+      fac =  gamma**2/((deln**2+gamma**2)*(delm**2+gamma**2))!gamma/(deln**2+gamma**2)*gamma/(delm**2+gamma**2)
    end subroutine calc_fac_diag
 
    subroutine calc_fac_surf(self, e_n, e_m, E_f, fac)
