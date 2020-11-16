@@ -1487,7 +1487,7 @@ contains
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
-      do n_fermi = 1,size(fermi)
+      do n_fermi = 1,size(self%E_fermi)
          do n = 1,n_dim
             do m = 1,n_dim
                !if(n /= m) then
@@ -1510,7 +1510,7 @@ contains
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
-      do n_fermi = 1,size(fermi)
+      do n_fermi = 1,size(self%E_fermi)
          do n = 1,n_dim
             do m = 1,n_dim
                if(n /= m) then
@@ -1533,7 +1533,7 @@ contains
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
-      do n_fermi = 1,size(fermi)
+      do n_fermi = 1,size(self%E_fermi)
          do n = 1,n_dim
             do m = 1,n_dim
                if(n /= m) then
