@@ -1479,10 +1479,10 @@ contains
 
    end subroutine calc_berry_z
 
-   subroutine calc_berry_diag(self, z_comp, eig_val, fermi, x_mtx)
+   subroutine calc_berry_diag(self, z_comp, eig_val, x_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: z_comp(:), eig_val(:), fac, fermi(:), ferm !> \f$ \Omega^n_z \f$
+      real(8)                  :: z_comp(:), eig_val(:), fac, ferm !> \f$ \Omega^n_z \f$
       complex(8)               :: x_mtx(:,:)
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
@@ -1492,7 +1492,7 @@ contains
             do m = 1,n_dim
                !if(n /= m) then
                   ferm  =  self%fermi_distr(eig_val(n), n_fermi)
-                  call self%calc_fac_diag(eig_val(n), eig_val(m), fermi(n_fermi),fac)
+                  call self%calc_fac_diag(eig_val(n), eig_val(m), self%E_fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(Pi) *&
                               ferm * fac * real(x_mtx(n,m) * x_mtx(m,n))
                !endif
@@ -1502,10 +1502,10 @@ contains
 
    end subroutine calc_berry_diag
 
-   subroutine calc_berry_diag_surf(self, z_comp, eig_val, fermi, x_mtx, y_mtx)
+   subroutine calc_berry_diag_surf(self, z_comp, eig_val, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: z_comp(:), eig_val(:), fac, fermi(:), ferm !> \f$ \Omega^n_z \f$
+      real(8)                  :: z_comp(:), eig_val(:), fac, ferm !> \f$ \Omega^n_z \f$
       complex(8)               :: x_mtx(:,:), y_mtx(:,:)
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
@@ -1515,7 +1515,7 @@ contains
             do m = 1,n_dim
                if(n /= m) then
                   ferm  =  self%fermi_distr(eig_val(n), n_fermi)
-                  call self%calc_fac_surf(eig_val(n), eig_val(m), fermi(n_fermi),fac)
+                  call self%calc_fac_surf(eig_val(n), eig_val(m), self%E_fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(2d0*Pi) *&
                               ferm * fac * aimag(x_mtx(n,m) * y_mtx(m,n))
                endif
@@ -1525,10 +1525,10 @@ contains
 
    end subroutine calc_berry_diag_surf
 
-   subroutine calc_berry_diag_sea(self, z_comp, eig_val, fermi, x_mtx, y_mtx)
+   subroutine calc_berry_diag_sea(self, z_comp, eig_val, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: z_comp(:), eig_val(:), fac, fermi(:), ferm !> \f$ \Omega^n_z \f$
+      real(8)                  :: z_comp(:), eig_val(:), fac, ferm !> \f$ \Omega^n_z \f$
       complex(8)               :: x_mtx(:,:), y_mtx(:,:)
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
@@ -1538,7 +1538,7 @@ contains
             do m = 1,n_dim
                if(n /= m) then
                   ferm  =  self%fermi_distr(eig_val(n), n_fermi)
-                  call self%calc_fac_sea(eig_val(n), eig_val(m), fermi(n_fermi),fac)
+                  call self%calc_fac_sea(eig_val(n), eig_val(m), self%E_fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/Pi *&
                               ferm * fac * aimag(x_mtx(n,m) * y_mtx(m,n))
                endif
