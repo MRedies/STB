@@ -1492,7 +1492,7 @@ contains
             do m = 1,n_dim
                !if(n /= m) then
                   ferm  =  1d0!self%fermi_distr(eig_val(n), n_fermi) * self%fermi_distr(eig_val(m), n_fermi)
-                  fac = 1d0!call self%calc_fac_diag(eig_val(n), eig_val(m), self%E_fermi(n_fermi),fac)
+                  call self%calc_fac_diag(eig_val(n), eig_val(m), self%E_fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(Pi) *&
                               ferm * fac * real(x_mtx(n,m) * x_mtx(m,n))
                !endif
@@ -1565,7 +1565,7 @@ contains
       implicit none
       class(hamil)             :: self
       real(8)                  :: e_n, e_m, dE, E_f, gamma
-      real(8)                  :: fac!> \f$ \Omega^n_z \f$
+      real(8), intent(out)     :: fac!> \f$ \Omega^n_z \f$
       integer    :: n_dim
    
       gamma = self%gamma
