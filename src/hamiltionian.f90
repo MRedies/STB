@@ -1492,7 +1492,7 @@ contains
             do m = 1,n_dim
                !if(n /= m) then
                   ferm  =  1d0!self%fermi_distr(eig_val(n), n_fermi) * self%fermi_distr(eig_val(m), n_fermi)
-                  call self%calc_fac_diag(eig_val(n), eig_val(m), self%E_fermi(n_fermi),fac)
+                  fac = 1d0!call self%calc_fac_diag(eig_val(n), eig_val(m), self%E_fermi(n_fermi),fac)
                   z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(Pi) *&
                               ferm * fac * real(x_mtx(n,m) * x_mtx(m,n))
                !endif
