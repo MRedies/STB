@@ -1580,7 +1580,7 @@ contains
    subroutine calc_fac_sea(self, e_n, e_m, E_f, fac)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: e_n,e_m, dE, E_f, gamma,
+      real(8)                  :: e_n,e_m, dE, E_f, gamma
       real(8), intent(out)     :: fac
       complex(8)               :: denom, numer
       integer    :: n_dim
