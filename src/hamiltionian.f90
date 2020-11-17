@@ -1551,8 +1551,9 @@ contains
    subroutine calc_fac_diag(self, e_n, e_m, E_f, fac)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: e_n, e_m, E_f, gamma, deln, delm
-      real(8), intent(out)     :: fac
+      real(8), intent(in)     :: e_n, e_m, E_f
+      real(8)                 :: gamma, deln, delm
+      real(8), intent(inout)     :: fac
    
       gamma = self%gamma
       deln = E_f - e_n
