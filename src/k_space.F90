@@ -400,7 +400,7 @@ contains
          call CFG_get(cfg, "berry%calc_hall_diag", self%calc_hall_diag)
          call CFG_get(cfg, "berry%berry_safe", self%berry_safe)
          call CFG_get(cfg, "berry%berry_component", self%berry_component)
-         write(*,*) "Berry component:", self%berry_component,"-------------"
+         write(*,*) "Berry component:", self%berry_component
          call CFG_get(cfg, "berry%calc_orbmag", self%calc_orbmag)
          call CFG_get(cfg, "berry%weights", self%chosen_weights)
          call CFG_get(cfg, "berry%adaptive_mode", self%ada_mode)
