@@ -902,7 +902,7 @@ contains
 
          if(self%calc_hall)   call append_quantity(omega_z_all, omega_z_new, .True.)
          if(self%calc_hall_diag) then
-               write(*,*) "NORM:", my_norm2(hall_surf_new)
+               write(*,*) "NORM:", my_norm2(omega_surf_new)
                call append_quantity(omega_surf_all, omega_surf_new, .False.)
                call append_quantity(omega_sea_all, omega_sea_new, .False.)
          endif
