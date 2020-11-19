@@ -956,7 +956,6 @@ contains
             if(self%calc_hall) then
                call self%set_hall_weights(omega_z_all, kidx_all)
             elseif(self%calc_hall_diag) then
-               write(*,*) "NORM:", my_norm2(omega_surf_all)
                call self%set_hall_weights(omega_surf_all , kidx_all)
                !call self%set_hall_weights(omega_sea_all, kidx_all)
             endif
