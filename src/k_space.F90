@@ -1407,6 +1407,7 @@ contains
 
       do loc_idx = 1,size(kidx_all)
          k_idx =  kidx_all(loc_idx)
+         write(*,*) "WEIGHT:",self%weights(k_idx)
          do n_hall =  1,size(hall)
             hall(n_hall) = hall(n_hall) + &
                            self%weights(k_idx) * omega_z_all(n_hall, loc_idx)
