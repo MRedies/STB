@@ -921,7 +921,7 @@ contains
             call self%integrate_hall_surf(kidx_all, omega_surf_all, hall_surf)
             call self%integrate_hall_sea(kidx_all, omega_sea_all, hall_sea)
             ! save current iteration and check if converged
-            write(*,*) "NORM:", my_norm2(omega_surf_all)
+            write(*,*) "NORM:", my_norm2(hall_surf)
             done_hall_surf =  self%process_hall_surf(hall_surf, hall_surf_old, iter, omega_surf_all,surf_name)
             done_hall_sea =  self%process_hall_surf(hall_sea, hall_sea_old, iter, omega_sea_all,sea_name)
          endif
