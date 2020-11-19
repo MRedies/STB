@@ -1212,7 +1212,6 @@ contains
             call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
          endif
       endif
-      write(*,*) "NORM:", my_norm2(var)
       ! check for convergence
       rel_error = my_norm2(var - var_old) &
                   / (self%kpts_per_step * self%nProcs * my_norm2(var))!/ (1d0*size(var))
