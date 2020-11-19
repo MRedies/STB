@@ -1087,7 +1087,6 @@ contains
                else if(trim(self%berry_component) == "xx") then
                   call self%ham%calc_berry_diag(omega_surf_new(:,cnt),&
                                           eig_val_new(:,cnt), del_kx)
-                  write(*,*) "NORM:", my_norm2(omega_surf_new(:,cnt))
                else if(trim(self%berry_component) == "yy") then
                   call self%ham%calc_berry_diag(omega_surf_new(:,cnt),&
                                           eig_val_new(:,cnt), del_ky)
