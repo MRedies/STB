@@ -902,6 +902,7 @@ contains
 
          if(self%calc_hall)   call append_quantity(omega_z_all, omega_z_new, .True.)
          if(self%calc_hall_diag) then
+               write(*,*) "NORM:", my_norm2(hall_surf_new)
                call append_quantity(omega_surf_all, omega_surf_new, .False.)
                call append_quantity(omega_sea_all, omega_sea_new, .False.)
          endif
@@ -921,7 +922,6 @@ contains
             call self%integrate_hall_surf(kidx_all, omega_surf_all, hall_surf)
             call self%integrate_hall_sea(kidx_all, omega_sea_all, hall_sea)
             ! save current iteration and check if converged
-            write(*,*) "NORM:", my_norm2(hall_surf)
             done_hall_surf =  self%process_hall_surf(hall_surf, hall_surf_old, iter, omega_surf_all,surf_name)
             done_hall_sea =  self%process_hall_surf(hall_sea, hall_sea_old, iter, omega_sea_all,sea_name)
          endif
@@ -1408,7 +1408,6 @@ contains
       do loc_idx = 1,size(kidx_all)
          k_idx =  kidx_all(loc_idx)
          do n_hall =  1,size(hall)
-            write(*,*) "WEIGHT:",self%weights(k_idx),omega_z_all(n_hall, loc_idx)
             hall(n_hall) = hall(n_hall) + &
                            self%weights(k_idx) * omega_z_all(n_hall, loc_idx)
          enddo
