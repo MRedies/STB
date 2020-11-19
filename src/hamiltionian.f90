@@ -1493,7 +1493,6 @@ contains
                call self%calc_fac_diag(eig_val(n), eig_val(m), self%E_fermi(n_fermi),fac)
                z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(Pi) *&
                            fac * real(x_mtx(n,m) * x_mtx(m,n))
-               write(*,*) "NORM:", z_comp(n_fermi),fac,real(x_mtx(n,m) * x_mtx(m,n))
             enddo
          enddo
       enddo
