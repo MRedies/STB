@@ -1069,7 +1069,7 @@ contains
          do k_idx = first, last
             k = self%new_k_pts(:,k_idx)
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,0)
-            if(self%calc_hall) then
+            if(self%calc_hall .or. self%calc_hall_diag) then
                call self%ham%calc_berry_z(omega_z_new(:,cnt),&
                                        eig_val_new(:,cnt), del_kx, del_ky)
             endif
