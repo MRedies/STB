@@ -902,7 +902,6 @@ contains
 
          if(self%calc_hall)   call append_quantity(omega_z_all, omega_z_new, .True.)
          if(self%calc_hall_diag) then
-               write(*,*) "NORM:", my_norm2(omega_surf_new(1,:))
                call append_quantity(omega_surf_all, omega_surf_new, .False.)
                call append_quantity(omega_sea_all, omega_sea_new, .False.)
          endif
@@ -1088,6 +1087,7 @@ contains
                else if(trim(self%berry_component) == "xx") then
                   call self%ham%calc_berry_diag(omega_surf_new(:,cnt),&
                                           eig_val_new(:,cnt), del_kx)
+                  write(*,*) "NORM:", my_norm2(omega_surf_new(:,cnt))
                else if(trim(self%berry_component) == "yy") then
                   call self%ham%calc_berry_diag(omega_surf_new(:,cnt),&
                                           eig_val_new(:,cnt), del_ky)
