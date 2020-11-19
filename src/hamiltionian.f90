@@ -1549,16 +1549,15 @@ contains
    subroutine calc_fac_diag(self, e_n, e_m, E_f, fac)
       implicit none
       class(hamil)             :: self
-      real(8), intent(in)     :: e_n, e_m, E_f
+      real(8),                 :: e_n, e_m, E_f
       real(8)                 :: gamma, deln, delm
-      real(8), intent(inout)     :: fac
+      real(8),                :: fac
    
       gamma = self%gamma
       deln = E_f - e_n
       delm = E_f - e_m
       fac =  0d0
       fac =  gamma**2/((deln**2+gamma**2)*(delm**2+gamma**2))!gamma/(deln**2+gamma**2)*gamma/(delm**2+gamma**2)
-      write(*,*) "FAC:", fac
    end subroutine calc_fac_diag
 
    subroutine calc_fac_surf(self, e_n, e_m, E_f, fac)
