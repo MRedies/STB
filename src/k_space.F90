@@ -1213,7 +1213,7 @@ contains
 
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%ham%E_fermi / self%units%energy)
-         if (self%ham%UC%num_atoms==2) then
+         if (self%berry_safe) then
             call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
          endif
       endif
@@ -1360,7 +1360,7 @@ contains
 
       !perform integration with all points
       hall =  0d0
-
+      write(:,:) "INTE:", norm2(omega_z_all(:,1))
       do loc_idx = 1,size(kidx_all)
          k_idx =  kidx_all(loc_idx)
          do n_hall =  1,size(hall)
