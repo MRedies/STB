@@ -1068,7 +1068,6 @@ contains
             cnt = cnt + 1
          enddo
       else if(.not. pert_log) then
-         write(*,*) "PROC:",self%me,self%berry_component,trim(self%berry_component) ,norm2(omega_sea_new(:,1)), self%calc_hall_diag
          do k_idx = first, last
             k = self%new_k_pts(:,k_idx)
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,0)
@@ -1104,6 +1103,7 @@ contains
             endif
             cnt = cnt + 1
          enddo
+         write(*,*) "PROC:",self%me,self%berry_component,trim(self%berry_component) ,norm2(omega_sea_new(:,1)), self%calc_hall_diag
       endif
       if(allocated(del_kx)) deallocate(del_kx)
       if(allocated(del_ky)) deallocate(del_ky)
