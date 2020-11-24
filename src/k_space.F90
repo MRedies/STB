@@ -1103,7 +1103,6 @@ contains
             endif
             cnt = cnt + 1
          enddo
-         write(*,*) "PROC:",self%me,self%berry_component,trim(self%berry_component) ,norm2(omega_sea_new(:,1)), self%calc_hall_diag
       endif
       if(allocated(del_kx)) deallocate(del_kx)
       if(allocated(del_ky)) deallocate(del_ky)
@@ -1360,7 +1359,6 @@ contains
 
       !perform integration with all points
       hall =  0d0
-      write(*,*) "INTE:", norm2(omega_z_all(:,1))
       do loc_idx = 1,size(kidx_all)
          k_idx =  kidx_all(loc_idx)
          do n_hall =  1,size(hall)
