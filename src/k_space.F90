@@ -1085,9 +1085,11 @@ contains
                   call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
                                           eig_val_new(:,cnt), del_ky, del_kx)
                else if(trim(self%berry_component) == "xx") then
+                  omega_sea_new(:,cnt) = 0d0
                   call self%ham%calc_berry_diag(omega_surf_new(:,cnt),&
                                           eig_val_new(:,cnt), del_kx)
                else if(trim(self%berry_component) == "yy") then
+                  omega_sea_new(:,cnt) = 0d0
                   call self%ham%calc_berry_diag(omega_surf_new(:,cnt),&
                                           eig_val_new(:,cnt), del_ky)
                endif
