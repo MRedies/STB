@@ -1405,7 +1405,7 @@ contains
       real(8), allocatable     :: rwork(:)
       integer   , allocatable  :: iwork(:)
       integer, intent(in)      :: pert_log
-      character (300)          :: elem_file!, folder = "/p/project/cjiff40/kipp1/output/spinspiral/100QSpirals/100_SW_PiHalf_5/"
+      character (300)          :: elem_file
       integer      :: n_dim, lwork, lrwork, liwork, info
       integer      :: ierr(3)
       n_dim = 2 * self%num_up
