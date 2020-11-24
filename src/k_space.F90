@@ -902,8 +902,8 @@ contains
 
          if(self%calc_hall)   call append_quantity(omega_z_all, omega_z_new, .True.)
          if(self%calc_hall_diag) then
-               call append_quantity(omega_surf_all, omega_surf_new, .False.)
-               call append_quantity(omega_sea_all, omega_sea_new, .False.)
+               call append_quantity(omega_surf_all, omega_surf_new, .True.)
+               call append_quantity(omega_sea_all, omega_sea_new, .True.)
          endif
          if(self%calc_orbmag) then
             call append_quantity(Q_L_all, Q_L_new, .False.)
@@ -921,8 +921,8 @@ contains
             call self%integrate_hall_surf(kidx_all, omega_surf_all, hall_surf)
             call self%integrate_hall_sea(kidx_all, omega_sea_all, hall_sea)
             ! save current iteration and check if converged
-            done_hall_surf =  self%process_hall_surf(hall_surf, hall_surf_old, iter, omega_surf_all,surf_name)
-            done_hall_sea =  self%process_hall_surf(hall_sea, hall_sea_old, iter, omega_sea_all,sea_name)
+            done_hall_surf =  self%process_hall_surf(hall_surf, hall_surf_old, iter, omega_surf_new,surf_name)
+            done_hall_sea =  self%process_hall_surf(hall_sea, hall_sea_old, iter, omega_sea_new,sea_name)
          endif
          if(done_hall .and. done_hall_sea .and. done_hall_surf .and. trim(self%chosen_weights) == "hall") then
             call error_msg("Switched to orbmag-weights", &
@@ -1066,6 +1066,7 @@ contains
             cnt = cnt + 1
          enddo
       else if(.not. pert_log) then
+         write(*,*) "PROC:",self%me,self%berry_component
          do k_idx = first, last
             k = self%new_k_pts(:,k_idx)
             call self%ham%calc_eig_and_velo(k, eig_val_new(:,cnt), del_kx, del_ky,0)
