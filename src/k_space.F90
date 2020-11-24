@@ -923,6 +923,8 @@ contains
             ! save current iteration and check if converged
             done_hall_surf =  self%process_hall_surf(hall_surf, hall_surf_old, iter, omega_surf_new,surf_name)
             done_hall_sea =  self%process_hall_surf(hall_sea, hall_sea_old, iter, omega_sea_new,sea_name)
+            deallocate(omega_surf_new)
+            deallocate(omega_sea_new)
          endif
          if(done_hall .and. done_hall_sea .and. done_hall_surf .and. trim(self%chosen_weights) == "hall") then
             call error_msg("Switched to orbmag-weights", &
