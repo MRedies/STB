@@ -53,6 +53,7 @@ module Class_unit_cell
       procedure :: init_unit_honey_hexa => init_unit_honey_hexa
       procedure :: init_unit_square => init_unit_square
       procedure :: init_unit_honey_line => init_unit_honey_line
+      procedure :: init_unit_kagome_line => init_unit_kagome_line
       procedure :: get_num_atoms => get_num_atoms
       procedure :: setup_square => setup_square
       procedure :: setup_single_hex => setup_single_hex
@@ -85,6 +86,7 @@ module Class_unit_cell
       procedure :: setup_honey => setup_honey
       procedure :: make_hexagon => make_hexagon
       procedure :: make_honeycomb_line => make_honeycomb_line
+      procedure :: make_kagome_line => make_kagome_line
       procedure :: free_uc => free_uc
       procedure :: init_file_square => init_file_square
       procedure :: run_tests => run_tests
@@ -171,7 +173,7 @@ contains
          call CFG_get(cfg, "grid%skyrm_middle", self%skyrm_middle)
          call CFG_get(cfg, "grid%dblatan_width", self%dblatan_dist)
          call CFG_get(cfg, "grid%dblatan_pref", self%dblatan_pref)
-
+         write(*,*) "FLAG A"
          call CFG_get(cfg, "grid%mag_file", self%mag_file)
          call CFG_get(cfg, "general%test_run", self%test_run)
 
@@ -186,6 +188,8 @@ contains
          call self%init_unit_honey_hexa()
       else if (trim(self%uc_type) == "honey_line") then
          call self%init_unit_honey_line()
+      else if (trim(self%uc_type) == "kagome") then
+         call self%init_unit_kagome()
       else if (trim(self%uc_type) == "file_square") then
          call self%init_file_square()
       else
@@ -498,6 +502,60 @@ contains
       enddo
    end subroutine make_honeycomb_line
 
+   subroutine make_kagome_line(self, line, site_type)
+      implicit none
+      class(unit_cell), intent(inout)   :: self
+      real(8), allocatable              :: line(:, :), conn_vecs(:, :)
+      integer, allocatable              :: site_type(:)
+      real(8)                           :: shift_mtx(3, 3), conn_mtx(3, 3), transf_mtx(3, 3), base_len_uc, posA(3), &
+                                           posB(3), posC(3),pos(3), conn_vec_1(3), conn_vec_2(3), l
+      integer                           :: i, ii, ierr
+
+      if (mod(self%num_atoms, 3) /= 0) then
+         write (*, *) "number of atoms in honey_comb line has to be mult of 3"
+         call MPI_Abort(MPI_COMM_WORLD, 23, ierr)
+      endif
+      base_len_uc = self%lattice_constant
+      l = 2*cos(deg_30)*base_len_uc
+      !conn to next honey unit cell
+      shift_mtx(1, :) = l*[1d0, 0d0, 0d0]!1
+      shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
+      shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
+      !conn to nearest neighbors
+      conn_mtx(1, :) = shift_mtx(1, :)*0.5d
+      conn_mtx(2, :) = shift_mtx(2, :)*0.5d
+      conn_mtx(3, :) = shift_mtx(3, :)*0.5d
+      !change of coordinates, matmul(transpose(shift_mtx),wavevector) = matmul(transpose(conn_mtx),matmul(transf_mtx,wavevector)
+      transf_mtx(1, :) = [1d0, 2d0, -1d0]
+      transf_mtx(2, :) = [2d0, 1d0, 1d0]
+      transf_mtx(3, :) = [0d0, 0d0, 0d0]
+      !so far only spirals along connection vectors
+      if (trim(self%mag_type) == "1Dspiral") then
+         call self%find_conn_vectors(conn_vecs)
+         conn_vec_1 = conn_vecs(1, :)
+         conn_vec_2 = conn_vecs(2, :)
+      else
+         conn_vec_1 = shift_mtx(1, :)
+         conn_vec_2 = shift_mtx(2, :)
+      endif
+      allocate (line(self%num_atoms, 3))
+      allocate (site_type(self%num_atoms))
+      posA = 0d0
+      posB = posA + conn_mtx(1, :)
+      posC = posA + conn_mtx(2, :)
+      pos = -1d0*(self%atom_per_dim - 1)/2d0*conn_vec_1
+      do i = 1, self%atom_per_dim
+         ii = 3*(i - 1)
+         line(ii + 1, :) = posA + pos
+         site_type(ii + 1) = A_site
+         line(ii + 2, :) = posB + pos
+         site_type(ii + 2) = B_site
+         line(ii + 3, :) = posC + pos
+         site_type(ii + 3) = C_site
+         pos = pos + conn_vec_1
+      enddo
+   end subroutine make_kagome_line
+
    subroutine find_lattice_vectors(self,lattice)
       implicit none
       class(unit_cell), intent(inout)   :: self
@@ -694,6 +752,69 @@ contains
 
       deallocate (hexagon, site_type)
    end subroutine init_unit_honey_hexa
+
+   subroutine init_unit_kagome_line(self)
+      implicit none
+      class(unit_cell), intent(inout)   :: self
+      real(8)  :: transl_mtx(3, 3), l, base_len_uc, conn_mtx(3, 3)
+      real(8), allocatable             :: hexagon(:, :)
+      integer, allocatable             :: site_type(:)
+      integer                          :: apd
+
+      apd = self%atom_per_dim
+      base_len_uc = self%lattice_constant*apd
+      l = 2*cos(deg_30)*base_len_uc
+
+      transl_mtx(1, :) = l*[1d0, 0d0, 0d0]
+      transl_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]
+      transl_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]
+
+      !if we want a molecule, ensure that no wrap-around is found
+      if (self%molecule) transl_mtx = transl_mtx*10d0
+      self%lattice(:, 1) = transl_mtx(1, 1:2)
+      self%lattice(:, 2) = transl_mtx(2, 1:2)
+
+      self%num_atoms = calc_num_atoms_non_red_honey(apd)
+      allocate (self%atoms(self%num_atoms))
+
+      ! only one kind of atom from honey-comb unit cell needed
+      ! the other comes through complex conjugate
+      conn_mtx(1, :) = self%lattice_constant*[0d0, 1d0, 0d0]
+      conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]
+      conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]
+
+      !translates to neighboring unit cells
+      transl_mtx(1,:) = lattice(1, :)
+      transl_mtx(2,:) = lattice(2, :)
+      transl_mtx(3,:) = transl_mtx(1, :) - lattice(2, :)
+      call self%make_kagome_line(line, site_type)
+      call self%setup_honey(line, site_type)
+      call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
+      call self%set_honey_snd_nearest_line(transl_mtx)
+
+      if (trim(self%mag_type) == "ferro") then
+         call self%set_mag_ferro()
+      else if (trim(self%mag_type) == "lin_skyrm") then
+         call self%set_mag_linrot_skrym_honey()
+      else if (trim(self%mag_type) == "atan_skyrm") then
+         call self%set_mag_atan_skyrm_honey()
+      else if (trim(self%mag_type) == "dblatan_skyrm") then
+         call self%set_mag_dblatan_skyrm_honey()
+      else if (trim(self%mag_type) == "random") then
+         call self%set_mag_random()
+      else if (trim(self%mag_type) == "anticol") then
+         call self%set_mag_anticol()
+      else if (trim(self%mag_type) == "1Dspiral") then
+         call self%set_mag_linrot_1D_spiral_honey()
+      else
+         write (*, *) "Mag_type = ", trim(self%mag_type)
+         call error_msg("mag_type not known", abort=.True.)
+      endif
+
+      !setup_gen_conn block was here before!
+
+      deallocate (hexagon, site_type)
+   end subroutine init_unit_kagome_line
 
    subroutine set_honey_snd_nearest_line(self,transl_mtx)
       implicit none
