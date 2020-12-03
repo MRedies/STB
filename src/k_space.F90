@@ -792,8 +792,6 @@ contains
       k2(1:2) =  self%ham%UC%rez_lattice(:,2)
       k2(3)   =  0d0
 
-      write (*,*) "k1 = ", k1
-      write (*,*) "k2 = ", k2
 
       start =  1
       do i =  1, n_sec
