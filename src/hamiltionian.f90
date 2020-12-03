@@ -1479,11 +1479,11 @@ contains
 
    end subroutine calc_berry_z
 
-   subroutine calc_berry_diag(self, z_comp, eig_val, x_mtx)
+   subroutine calc_berry_diag(self, z_comp, eig_val, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
       real(8)                  :: z_comp(:), eig_val(:), fac !> \f$ \Omega^n_z \f$
-      complex(8)               :: x_mtx(:,:)
+      complex(8)               :: x_mtx(:,:), y_mtx(:,:)
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
@@ -1492,7 +1492,7 @@ contains
             do m = 1,n_dim
                call self%calc_fac_diag(eig_val(n), eig_val(m), self%E_fermi(n_fermi),fac)
                z_comp(n_fermi) = z_comp(n_fermi) + 1d0/(Pi) *&
-                           fac * real(x_mtx(n,m) * x_mtx(m,n))
+                           fac * real(x_mtx(n,m) * y_mtx(m,n))
             enddo
          enddo
       enddo

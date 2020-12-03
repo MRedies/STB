@@ -37,7 +37,7 @@ module Class_k_space
       real(8), allocatable :: k2_param(:) !> 2nd k_space param
       character(len=300)   :: filling, prefix, chosen_weights
       character(len=6)     :: ada_mode
-      character(len=2)     :: berry_component
+      character(len=6)     :: berry_component
       logical              :: perform_pad !> should the k-grid be padded, to match cores
       logical              :: calc_hall !> should hall conductivity be calculated
       logical              :: calc_hall_diag !> should diag hall conductivity be calculated
@@ -483,7 +483,7 @@ contains
                      root,                            MPI_COMM_WORLD, ierr(21))
       call MPI_Bcast(self%ada_mode,    6,          MPI_CHARACTER, &
                      root,                            MPI_COMM_WORLD, ierr(22))
-      call MPI_Bcast(self%berry_component,    2,          MPI_CHARACTER, &
+      call MPI_Bcast(self%berry_component,    6,          MPI_CHARACTER, &
                      root,                            MPI_COMM_WORLD, ierr(28))
 
       call MPI_Bcast(self%test_run,      1,              MPI_LOGICAL, &
@@ -1076,12 +1076,12 @@ contains
                                        eig_val_new(:,cnt), del_kx, del_ky)
             endif
             if(self%calc_hall_diag) then
-               if(trim(self%berry_component) == "xy") then
+               if(trim(self%berry_component) == "xysurf") then
                   call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
                                           eig_val_new(:,cnt), del_kx, del_ky)
                   call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
                                           eig_val_new(:,cnt), del_kx, del_ky)
-               else if(trim(self%berry_component) == "yx") then
+               else if(trim(self%berry_component) == "yxsurf") then
                   call self%ham%calc_berry_diag_surf(omega_surf_new(:,cnt),&
                                           eig_val_new(:,cnt), del_ky, del_kx)
                   call self%ham%calc_berry_diag_sea(omega_sea_new(:,cnt),&
@@ -1089,11 +1089,16 @@ contains
                else if(trim(self%berry_component) == "xx") then
                   omega_sea_new(:,cnt) = 0d0
                   call self%ham%calc_berry_diag(omega_surf_new(:,cnt),&
-                                          eig_val_new(:,cnt), del_kx)
+                                          eig_val_new(:,cnt), del_kx, del_kx)
                else if(trim(self%berry_component) == "yy") then
                   omega_sea_new(:,cnt) = 0d0
                   call self%ham%calc_berry_diag(omega_surf_new(:,cnt),&
-                                          eig_val_new(:,cnt), del_ky)
+                                          eig_val_new(:,cnt), del_ky, del_ky)
+               else if(trim(self%berry_component) == "xysym") then
+                  call self%ham%calc_berry_diag(omega_sea_new(:,cnt),&
+                                          eig_val_new(:,cnt), del_ky, del_kx)
+                  call self%ham%calc_berry_diag(omega_surf_new(:,cnt),&
+                                          eig_val_new(:,cnt), del_kx, del_ky)
                endif
             endif
          
