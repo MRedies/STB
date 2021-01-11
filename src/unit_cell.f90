@@ -587,7 +587,7 @@ contains
    subroutine init_unit_honey_line(self)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: transl_mtx(3, 3), conn_mtx(3, 3), shift_mtx(3, 3)
+      real(8)                           :: transl_mtx(4, 3), conn_mtx(3, 3), shift_mtx(3, 3)
       real(8)                           :: base_len_uc, l
       real(8), allocatable              :: lattice(:, :), line(:, :)
       integer, allocatable              :: site_type(:)
@@ -619,6 +619,7 @@ contains
       transl_mtx(1,:) = lattice(1, :)
       transl_mtx(2,:) = lattice(2, :)
       transl_mtx(3,:) = transl_mtx(1, :) - lattice(2, :)
+      transl_mtx(4,:) = transl_mtx(1, :) + lattice(2, :)
       call self%make_honeycomb_line(line, site_type)
       call self%setup_honey(line, site_type)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
@@ -702,7 +703,7 @@ contains
       real(8)                 :: l, conn_mtx_A(3, 3), conn_mtx_B(3, 3), start_pos(3), &
                                  conn(3), conn_storage(3, 3)
       real(8), allocatable    :: tmp(:, :)
-      real(8), intent(in)     :: transl_mtx(3, 3)
+      real(8), intent(in)     :: transl_mtx(:, :)
       integer                 :: idx(3), curr_size
       l = 2d0*cos(deg_30)*self%lattice_constant
 
