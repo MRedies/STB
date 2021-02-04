@@ -890,6 +890,11 @@ contains
       do iter =1,self%berry_iter
          if(self%me == root) write (*,*) "Time: ", MPI_Wtime() -  start
          call self%calc_new_berry_points(eig_val_new, omega_z_new, omega_surf_new, omega_sea_new, Q_L_new, Q_IC_new,pert_log)
+         if(self%me == root) then
+            if(any(ieee_is_nan(omega_sea_new))) then
+               write (*,*) "omega_sea_new is nan"
+            endif
+         endif
          call self%calc_new_kidx(kidx_new)
 
          ! concat to old ones
@@ -1350,7 +1355,6 @@ contains
       real(8), allocatable    :: hall(:)
       integer                 :: loc_idx, n_hall, k_idx
       integer                 :: ierr(2), all_err(1)
-
       all_err = 0
       if(allocated(hall)) deallocate(hall)
       allocate(hall(size(self%ham%E_fermi)), stat=all_err(1))
