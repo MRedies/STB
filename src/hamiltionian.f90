@@ -1589,7 +1589,7 @@ contains
       dE =  e_m - e_n
       denom = i_unit*gamma + E_f - e_n
       numer = i_unit*gamma + E_f - e_m
-      fac =  gamma/(dE*((E_f-e_m)**2+gamma**2))&
+      fac =  dE*gamma/((dE**2+eta_sq)*((E_f-e_m)**2+gamma**2))&
              - dE**2/(dE**2 + eta_sq)**2*aimag(log(numer&
                                   /denom))
       !fac = 1d0/PI * fac
