@@ -913,9 +913,9 @@ contains
       self%m0_A(1) = m0(1)
       self%m0_A(2) = m0(2)
       self%m0_A(3) = m0(3)
-      self%m0_B(1) = m0(1)
-      self%m0_B(2) = m0(2)
-      self%m0_B(3) = m0(3)
+      self%m0_B(1) = -m0(1)
+      self%m0_B(2) = -m0(2)
+      self%m0_B(3) = -m0(3)
    end subroutine set_mag_linrot_1D_spiral_m0_cone
    subroutine set_mag_x_spiral_square(self)
       implicit none
@@ -1161,11 +1161,11 @@ contains
       if (site_type == 0) then
          x = dot_product(wavevector,conn) - phase_fac
          R = R_mtx(psi*x, 1d0*axis)
-         m = matmul(R, self%m0_A)
+         m = m0_A!matmul(R, self%m0_A)
       elseif (site_type == 1) then
          x = dot_product(wavevector,conn) - phase_fac
          R = R_mtx(psi*x, 1d0*axis)
-         m = matmul(R, self%m0_B)
+         m = m0_B!matmul(R, self%m0_B)
       endif
       call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
    end subroutine set_mag_site
