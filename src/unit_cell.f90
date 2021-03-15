@@ -1161,11 +1161,11 @@ contains
       if (site_type == 0) then
          x = dot_product(wavevector,conn) - phase_fac
          R = R_mtx(psi*x, 1d0*axis)
-         m = m0_A!matmul(R, self%m0_A)
+         m = self%m0_A!matmul(R, self%m0_A)
       elseif (site_type == 1) then
          x = dot_product(wavevector,conn) - phase_fac
          R = R_mtx(psi*x, 1d0*axis)
-         m = m0_B!matmul(R, self%m0_B)
+         m = self%m0_B!matmul(R, self%m0_B)
       endif
       call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
    end subroutine set_mag_site
