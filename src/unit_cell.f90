@@ -913,9 +913,9 @@ contains
       self%m0_A(1) = m0(1)
       self%m0_A(2) = m0(2)
       self%m0_A(3) = m0(3)
-      self%m0_B(1) = -m0(1)
-      self%m0_B(2) = -m0(2)
-      self%m0_B(3) = -m0(3)
+      self%m0_B(1) = m0(1)
+      self%m0_B(2) = m0(2)
+      self%m0_B(3) = m0(3)
    end subroutine set_mag_linrot_1D_spiral_m0_cone
    subroutine set_mag_x_spiral_square(self)
       implicit none
@@ -1153,7 +1153,7 @@ contains
       endif
       i = ii + j
       site_type = self%atoms(i)%site_type
-      conn = self%atoms(i)%pos! - self%atoms(j)%pos
+      conn = self%atoms(i)%pos - self%atoms(0)%pos
       phase_fac = 0d0!
       if (self%atoms(i)%site_type /= self%atoms(j)%site_type) then
          write(*,*) "Site types do not agree!"
