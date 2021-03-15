@@ -1165,7 +1165,7 @@ contains
       elseif (site_type == 1) then
          x = dot_product(wavevector,conn) - phase_fac
          R = R_mtx(psi*x, 1d0*axis)
-         m = matmul(R, self%m0_B)
+         m = matmul(R, self%m0_A)
       endif
       call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
    end subroutine set_mag_site
