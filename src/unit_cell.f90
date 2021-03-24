@@ -1153,7 +1153,7 @@ contains
       endif
       i = ii + j
       site_type = self%atoms(i)%site_type
-      conn = self%atoms(i)%pos! - self%atoms(0)%pos
+      conn = self%atoms(i)%pos - self%atoms(0)%pos
       phase_fac = 0d0!
       if (self%atoms(i)%site_type /= self%atoms(j)%site_type) then
          write(*,*) "Site types do not agree!"
