@@ -1153,16 +1153,18 @@ contains
       endif
       i = ii + j
       site_type = self%atoms(i)%site_type
-      conn = self%atoms(i)%pos - self%atoms(1)%pos
+      
       phase_fac = 0d0!
       if (self%atoms(i)%site_type /= self%atoms(j)%site_type) then
          write(*,*) "Site types do not agree!"
       endif
       if (site_type == 0) then
+         conn = self%atoms(i)%pos - self%atoms(1)%pos
          x = dot_product(wavevector,conn) - phase_fac
          R = R_mtx(psi*x, 1d0*axis)
          m = matmul(R, self%m0_A)
       elseif (site_type == 1) then
+         conn = self%atoms(i)%pos - self%atoms(3)%pos
          x = dot_product(wavevector,conn) - phase_fac
          R = R_mtx(psi*x, 1d0*axis)
          m = matmul(R, self%m0_B)
