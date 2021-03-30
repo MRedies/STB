@@ -1112,6 +1112,9 @@ contains
             cnt = cnt + 1
          enddo
       endif
+      if(self%me == root) then
+         write(*,*) "Berry size in calc_new_berry_points: ", shape(omega_surf_new)
+      endif
       if(allocated(del_kx)) deallocate(del_kx)
       if(allocated(del_ky)) deallocate(del_ky)
       if(allocated(omega_z_pert_new)) deallocate(omega_z_pert_new)
