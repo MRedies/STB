@@ -1221,6 +1221,7 @@ contains
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%ham%E_fermi / self%units%energy)
          if (self%berry_safe) then
+            write(*,*) "Berry size: ", shape(varall)
             call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
          endif
       endif
