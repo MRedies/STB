@@ -1196,7 +1196,7 @@ contains
       real(8), allocatable           :: var_all_all(:,:)
       integer   , intent(in)         :: iter
       integer, allocatable           :: num_elems(:), offsets(:)
-      integer                        :: send_count
+      integer                        :: send_count,ierr
       character(len=*), intent(in)   :: var_name
       character(len=300)             :: filename
       logical                        :: cancel
