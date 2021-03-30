@@ -1233,6 +1233,7 @@ contains
                            root,        MPI_COMM_WORLD, ierr)
             deallocate(num_elems,offsets)
             call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), var_all_all)
+            deallocate(var_all_all)
          endif
       endif
       ! check for convergence
