@@ -1044,6 +1044,7 @@ contains
       if(self%me == root) then
          write(*,*) "Berry size in calc_new_berry_points 0: ", shape(omega_surf_new)
          write(*,*) "Berry diag size in calc_new_berry_points 0: ", shape(omega_z_new)
+         write(*,*) "Berry diag size in calc_new_berry_points 0: ", shape(self%new_k_pts),shape(self%new_k_pts(:,1))
       endif
       ! calculate
       cnt =  1
