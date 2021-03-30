@@ -1150,13 +1150,8 @@ contains
       endif
       ! save current iteration data
       if (self%berry_safe) then
-         allocate(var_send(size(varall,2)))
-         !var_send = 0d0
-         !do i = 1,N/2
-         !   var_send = var_send + varall(i,:)
-         !enddo
-         send_count = size(varall)!send_count = size(var_send)
-         allocate(var_all_all(size(varall,1),size(varall,2)*self%nProcs))!allocate(var_all_all(send_count*self%nProcs))
+         send_count = size(varall)
+         allocate(var_all_all(size(varall,1),size(varall,2)*self%nProcs))
          allocate(num_elems(self%nProcs))
          allocate(offsets(self%nProcs))
          call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
@@ -1165,13 +1160,7 @@ contains
          call MPI_Gatherv(varall, send_count, MPI_REAL8, &
                         var_all_all,     num_elems,  offsets,   MPI_REAL8,&
                         root,        MPI_COMM_WORLD, ierr)
-         !call MPI_Gatherv(var_send, send_count, MPI_REAL8, &
-         !               var_all_all,     num_elems,  offsets,   MPI_REAL8,&
-         !               root,        MPI_COMM_WORLD, ierr)
-         !call MPI_Gather(var_send, send_count, MPI_REAL8, &
-         !               var_all_all,     send_count,   MPI_REAL8,&
-         !               root,        MPI_COMM_WORLD, ierr)
-         deallocate(var_send,num_elems,offsets)
+         deallocate(num_elems,offsets)
       endif
       if(self%me == root) then
          write (filename, "(A,I0.5,A)") trim(var_name) // "_iter=", iter, ".npy"
@@ -1204,7 +1193,10 @@ contains
       implicit none
       class(k_space)                 :: self
       real(8), intent(in)            :: var(:), var_old(:), varall(:,:)
+      real(8), allocatable           :: var_all_all(:,:)
       integer   , intent(in)         :: iter
+      integer, allocatable           :: num_elems(:), offsets(:)
+      integer                        :: send_count
       character(len=*), intent(in)   :: var_name
       character(len=300)             :: filename
       logical                        :: cancel
@@ -1229,8 +1221,18 @@ contains
          call save_npy(trim(self%prefix) // trim(var_name) //  "_E.npy", &
                        self%ham%E_fermi / self%units%energy)
          if (self%berry_safe) then
-            write(*,*) "Berry size: ", shape(varall)
-            call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), varall)
+            send_count = size(varall)
+            allocate(var_all_all(size(varall,1),size(varall,2)*self%nProcs))
+            allocate(num_elems(self%nProcs))
+            allocate(offsets(self%nProcs))
+            call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
+            num_elems =  num_elems
+            offsets   =  offsets
+            call MPI_Gatherv(varall, send_count, MPI_REAL8, &
+                           var_all_all,     num_elems,  offsets,   MPI_REAL8,&
+                           root,        MPI_COMM_WORLD, ierr)
+            deallocate(num_elems,offsets)
+            call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), var_all_all)
          endif
       endif
       ! check for convergence
