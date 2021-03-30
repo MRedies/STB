@@ -1041,6 +1041,9 @@ contains
       if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(6))
       call check_ierr(err, self%me, " new chunk alloc")
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
+      if(self%me == root) then
+         write(*,*) "Berry size in calc_new_berry_points 0: ", shape(omega_surf_new)
+      endif
       ! calculate
       cnt =  1
       if(pert_log) then
