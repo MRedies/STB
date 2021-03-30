@@ -1041,11 +1041,6 @@ contains
       if(self%calc_orbmag) allocate(Q_IC_new(n_ferm,        last-first+1), stat=err(6))
       call check_ierr(err, self%me, " new chunk alloc")
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
-      if(self%me == root) then
-         write(*,*) "Berry size in calc_new_berry_points 0: ", shape(omega_surf_new)
-         write(*,*) "Berry diag size in calc_new_berry_points 0: ", shape(omega_z_new)
-         write(*,*) "Berry diag size in calc_new_berry_points 0: ", shape(self%new_k_pts),shape(self%new_k_pts(:,1))
-      endif
       ! calculate
       cnt =  1
       if(pert_log) then
@@ -1118,7 +1113,6 @@ contains
          enddo
       endif
       if(self%me == root) then
-         write(*,*) "Berry size in calc_new_berry_points: ", shape(omega_surf_new)
       endif
       if(allocated(del_kx)) deallocate(del_kx)
       if(allocated(del_ky)) deallocate(del_ky)
@@ -1130,13 +1124,13 @@ contains
       class(k_space)                 :: self
       real(8), intent(in)            :: var(:), var_old(:), varall(:,:)
       integer   , intent(in)         :: iter
-      integer                        :: send_count, ierr, N, i
+      integer                        :: send_count, ierr, N
       integer   , allocatable        :: num_elems(:), offsets(:)
       character(len=*), parameter    :: var_name = "hall_cond"
       character(len=300)             :: filename
       logical                        :: cancel
       real(8)                        :: rel_error
-      real(8), allocatable           :: var_send(:), var_all_all(:,:)
+      real(8), allocatable           :: var_all_all(:,:)
 
       cancel = .False.
       N = 2 *  self%ham%num_up
