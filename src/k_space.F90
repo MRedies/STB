@@ -1043,6 +1043,7 @@ contains
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       if(self%me == root) then
          write(*,*) "Berry size in calc_new_berry_points 0: ", shape(omega_surf_new)
+         write(*,*) "Berry diag size in calc_new_berry_points 0: ", shape(omega_z_new)
       endif
       ! calculate
       cnt =  1
