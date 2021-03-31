@@ -1222,11 +1222,14 @@ contains
             call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
             num_elems =  num_elems
             offsets   =  offsets
+            write(*,*) "FLAG 1"
             call MPI_Gatherv(varall, send_count, MPI_REAL8, &
                            var_all_all,     num_elems,  offsets,   MPI_REAL8,&
                            root,        MPI_COMM_WORLD, ierr)
+            write(*,*) "FLAG 2"
             deallocate(num_elems,offsets)
             call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), var_all_all)
+            write(*,*) "FLAG 3"
             deallocate(var_all_all)
          endif
       endif
