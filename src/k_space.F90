@@ -1228,9 +1228,9 @@ contains
                            root,        MPI_COMM_WORLD, ierr)
             write(*,*) "FLAG 2"
             deallocate(num_elems,offsets)
-            call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), var_all_all)
-            write(*,*) "FLAG 3"
-            deallocate(var_all_all)
+            !call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), var_all_all)
+            !write(*,*) "FLAG 3"
+            !deallocate(var_all_all)
          endif
       endif
       ! check for convergence
@@ -1241,6 +1241,11 @@ contains
          write (*,"(I5,A,A,A,I7,A,ES10.3)") iter, " var: ", trim(var_name), &
             " nkpts ", size(self%all_k_pts,2),&
             " err ", rel_error
+         if (self%berry_safe) then
+            call save_npy(trim(self%prefix) // "unitcell_"// trim(filename), var_all_all)
+            write(*,*) "FLAG 3"
+            deallocate(var_all_all)
+         endif
       endif
 
       if(rel_error < self%berry_conv_crit) then
