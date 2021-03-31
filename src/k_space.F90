@@ -1222,7 +1222,7 @@ contains
             call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
             num_elems =  num_elems
             offsets   =  offsets
-            write(*,*) "FLAG 1", shape(varall), shape(var_all_all), send_count, num_elems, offsets
+            write(*,*) "varall", shape(varall), "var_all_all",shape(var_all_all),"send_count", send_count, "num_elem",num_elems, "offsets",offsets
             call MPI_Gatherv(varall, send_count, MPI_REAL8, &
                            var_all_all,     num_elems,  offsets,   MPI_REAL8,&
                            root,        MPI_COMM_WORLD, ierr)
