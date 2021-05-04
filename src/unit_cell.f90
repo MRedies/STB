@@ -81,6 +81,7 @@ module Class_unit_cell
       procedure :: find_lattice_vectors => find_lattice_vectors
       procedure :: find_conn_vectors => find_conn_vectors
       procedure :: set_mag_site => set_mag_site
+      procedure :: set_mag_site_A => set_mag_site_A
       procedure :: Bcast_UC => Bcast_UC
       procedure :: setup_honey => setup_honey
       procedure :: make_hexagon => make_hexagon
@@ -1172,6 +1173,45 @@ contains
       call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
    end subroutine set_mag_site
 
+   subroutine set_mag_site_A(self, ii, j, center, UC_l)
+      implicit none
+      class(unit_cell)    :: self
+      integer, intent(in) :: ii, j
+      real(8), intent(in) :: center(3), UC_l
+      integer             :: site_type, i
+      real(8)             :: conn(3), phase_fac, x, l, R(3,3), shift_mtx(3,3), m(3), axis(3), wavevector(3) &
+                             , wavevector_len, wavelength, psi
+      axis(1) = sin(self%axis_theta) *  cos(self%axis_phi)
+      axis(2) = sin(self%axis_theta) *  sin(self%axis_phi)
+      axis(3) = cos(self%axis_theta)
+      l = 2*cos(deg_30)*self%lattice_constant
+      shift_mtx(1, :) = l*[1d0, 0d0, 0d0]!1
+      shift_mtx(2, :) = l*[0.5d0, sin(deg_60), 0d0]!2
+      shift_mtx(3, :) = l*[0.5d0, -sin(deg_60), 0d0]!3
+      wavevector = matmul(transpose(shift_mtx), 1d0*self%wavevector)
+      wavevector_len = my_norm2(wavevector)
+      wavevector = wavevector/wavevector_len
+      if (self%n_wind < pos_eps) then
+         wavelength = 0d0
+         psi = 0d0
+      else
+         wavelength = UC_l/(1d0*self%n_wind)
+         psi = 2d0*PI/wavelength
+      endif
+      i = ii + j
+      site_type = self%atoms(i)%site_type
+      
+      phase_fac = 0d0!
+      if (self%atoms(i)%site_type /= self%atoms(j)%site_type) then
+         write(*,*) "Site types do not agree!"
+      endif
+      conn = self%atoms(i)%pos - self%atoms(1)%pos
+      x = dot_product(wavevector,conn) - phase_fac
+      R = R_mtx(psi*x, 1d0*axis)
+      m = matmul(R, self%m0_A)
+      call self%atoms(i)%set_m_cart(m(1), m(2), m(3))
+   end subroutine set_mag_site_A
+
    subroutine set_mag_linrot_1D_spiral(self, center, UC_l)
       implicit none
       class(unit_cell)    :: self
@@ -1180,7 +1220,8 @@ contains
       do i = 1, self%atom_per_dim
          ii = 4*(i-1)
          do j = 1, 4
-            call self%set_mag_site(ii, j, center, UC_l)
+            !call self%set_mag_site(ii, j, center, UC_l)
+            call self%set_mag_site_A(ii, j, center, UC_l)
          enddo
       enddo
    end subroutine set_mag_linrot_1D_spiral
