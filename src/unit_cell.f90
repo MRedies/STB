@@ -907,8 +907,12 @@ contains
          perp_axis = cross_prod(axis, [0d0, 0d0, 1d0])
          perp_axis = perp_axis/norm2(perp_axis)
       endif
-      G = R_mtx(-self%cone_angle, perp_axis)
+      G = R_mtx(self%cone_angle, perp_axis)
       m0 = matmul(G, axis)
+      if(abs(matmul(m0,[0d0,0d0,1d0])-1d0)>pos_eps) then
+         write(*,*) "m0 is not [0,0,1]"
+         m0 = [0d0,0d0,1d0]
+      endif
       allocate (self%m0_A(3))
       allocate (self%m0_B(3))
       self%m0_A(1) = m0(1)
