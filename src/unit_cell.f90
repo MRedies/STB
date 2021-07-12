@@ -909,7 +909,7 @@ contains
       endif
       G = R_mtx(self%cone_angle, perp_axis)
       m0 = matmul(G, axis)
-      if(abs(matmul(m0,[0d0,0d0,1d0]))-1d0>pos_eps) then
+      if(abs(dot_product(m0,[0d0,0d0,1d0]))-1d0)>pos_eps) then
          write(*,*) "m0 is not [0,0,1]"
          m0 = [0d0,0d0,1d0]
       endif
