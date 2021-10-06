@@ -43,7 +43,7 @@ contains
 
       call MPI_ERROR_STRING(error_code, error_str, str_len, ierr)
       write(*,*) "MPI failed with Error_code = " // int2str(error_code) // new_line("A") // &
-                        error_str(1:str_len))
+                        error_str(1:str_len)
        end subroutine judft_mpi_error_handler
 end module Class_mpi_wrapper
     
