@@ -5,6 +5,7 @@
 !--------------------------------------------------------------------------------
 
 module Class_mpi_wrapper
+    use m_config
     use mpi
 contains   
    subroutine judft_comm_split(comm, color, key, new_comm)
