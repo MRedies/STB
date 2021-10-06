@@ -341,7 +341,6 @@ contains
       implicit none
       type(k_space)         :: self
       type(CFG_t)           :: cfg
-      integer, intent(in) :: sample_comm
       real(8)               :: tmp
       !logical               :: logtmp
       integer               :: sz
