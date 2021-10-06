@@ -36,7 +36,7 @@ program STB
    call determine_color(n_sample_par,nProcs,me,color)
 
    key = me!sorting in new comm according to rank in world
-   call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, key, sample_comm)
+   call MPI_Comm_Split(MPI_COMM_WORLD, color, key, sample_comm)
    call MPI_Comm_rank(sample_comm, me_sample, ierr)
    if(me_sample==root) then
       call random_seed(size = seed_sz)
@@ -51,7 +51,7 @@ program STB
       do n_sample = 1,n_sample_par
          call process_file(inp_files(1))
       enddo
-   else if (n_sample_par == 1)
+   else if (n_sample_par == 1) then
       do n_inp = 1, n_files
          if(me == root) write (*,*) "started at ", date_time()
          call process_file(inp_files(n_inp))
@@ -60,7 +60,7 @@ program STB
       write (*, "(A,I3,A,I3,A)")  "[", me, "] Number of Samples:",n_sample_par&
                                 , "and Number of Files:", n_files&
                                 , "are both not equal to 1"
-      call MPI_Abort(MPI_COMM_WORLD)
+      !call MPI_Abort(MPI_COMM_WORLD)
    endif
    
    call MPI_Finalize(ierr)
