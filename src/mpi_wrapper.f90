@@ -42,6 +42,7 @@ contains
       character(len=3000) :: error_str
 
       call MPI_ERROR_STRING(error_code, error_str, str_len, ierr)
+      write ("MPI failed with Error_code = ", "(I2)") error_code,new_line("A"),error_str(1:str_len)
       write(*,*) "MPI failed with Error_code = " // int2str(error_code) // new_line("A") // &
                         error_str(1:str_len)
        end subroutine judft_mpi_error_handler
