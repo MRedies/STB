@@ -12,12 +12,15 @@ program STB
    type(k_space)                   :: Ksp
    character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt
+                                      ,sample_comm,color,key,n_sample_par,nProcs,n_sample
    integer   , allocatable         :: seed(:)
    integer                         :: ierr, me
+   type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
  
    call MPI_Init(ierr)
    call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
+   call MPI_Comm_size(MPI_COMM_WORLD, nProcs, ierr)
 
    call random_seed(size = seed_sz)
    allocate(seed(seed_sz))
@@ -25,14 +28,33 @@ program STB
    call random_seed(put=seed)
 
    call get_inp_files(n_files, inp_files)
-
    call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
    
-   do n_inp = 1, n_files
-      if(me == root) write (*,*) "started at ", date_time()
-      call process_file(inp_files(n_inp))
-   enddo
-
+   if(me ==  root)then
+      write (*,*) "Reading n_sample from: ", trim(inp_file)
+      call CFG_read_file(cfg, trim(inp_file))
+      call add_full_cfg(cfg)
+      call CFG_get(cfg, "berry%n_sample_par",  n_sample_par)
+      call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
+   endif
+   call determine_color(n_sample_par,nProcs,me,color)
+   key = 1!sorting in new comm according to rank in world
+   call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, key, sample_comm)
+   if (n_sample_par > 1 .AND. n_files == 1) then
+      do n_sample = 1,n_sample_par
+         call process_file(inp_files(1))
+      enddo
+   else if (n_sample_par == 1)
+      do n_inp = 1, n_files
+         if(me == root) write (*,*) "started at ", date_time()
+         call process_file(inp_files(n_inp))
+      enddo
+   else
+      write (*, "(A,I3,A,I3,A)")  "[", me, "] Number of Samples:",n_sample_par&
+                                , "and Number of Files:", n_files&
+                                , "are both not equal to 1"
+      call MPI_Abort(MPI_COMM_WORLD)
+   endif
    call MPI_Finalize(ierr)
 contains
    subroutine process_file(inp_file)
@@ -45,6 +67,7 @@ contains
                                         calc_orbmag, perform_ACA,plot_omega,pert_log,tmp,success
       type(CFG_t)                     :: cfg
       character(len=25)               :: fermi_type
+      
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       start =  MPI_Wtime()
 
@@ -64,7 +87,7 @@ contains
          call CFG_get(cfg, "ACA%perform_ACA",   perform_ACA)
          call CFG_get(cfg, "plot%plot_omega",   plot_omega)
       endif
-
+      
       call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
@@ -82,7 +105,8 @@ contains
           call error_msg("pert_log doesn't match in main", abort=.True.)
           success = .False.
       endif
-      Ksp =  init_k_space(cfg)
+
+      Ksp =  init_k_space(cfg,sample_comm)!set the comm here
       if(me == root) call save_cfg(cfg)
 
       if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
@@ -270,6 +294,7 @@ contains
       call CFG_add(cfg, "dos%lower_E_bound",    0d0,     "")
       call CFG_add(cfg, "dos%upper_E_bound",    0d0,     "")
       call CFG_add(cfg, "berry%fermi_type", "fixed",      "")
+      call CFG_add(cfg, "berry%n_sample_par", 1,      "")
       call CFG_add(cfg, "berry%E_fermi",          [-10d0, 10d0, 300d0],   "")
       call CFG_add(cfg, "dos%fermi_fill",       0.5d0,   "")
       call CFG_add(cfg, "berry%pert_log", .False., "")
@@ -313,4 +338,23 @@ contains
       call CFG_write(cfg, trim(prefix) // "setup.cfg")
 
    end subroutine save_cfg
+
+   subroutine determine_color(n_sample_par,nProcs,rank,color):
+      use mpi
+      implicit none
+      integer , intent(in)           :: n_sample_par,nProcs,rank
+      integer                        :: color,tmp
+      
+      color = 0
+      if (n_sample_par<nProcs) then
+         tmp = nProcs/n_sample_par
+         color = rank/tmp
+         if (rank>n_sample_par) then
+            color = mod(rank,n_sample_par)
+         endif
+      else
+         color = rank
+      endif
+      
+   end subroutine
 end program STB
