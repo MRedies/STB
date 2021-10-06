@@ -14,18 +14,13 @@ program STB
    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt
                                       ,sample_comm,color,key,n_sample_par,nProcs,n_sample
    integer   , allocatable         :: seed(:)
-   integer                         :: ierr, me
+   integer                         :: ierr, me, me_sample
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
  
    call MPI_Init(ierr)
    call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
    call MPI_Comm_size(MPI_COMM_WORLD, nProcs, ierr)
-
-   call random_seed(size = seed_sz)
-   allocate(seed(seed_sz))
-   seed =  7!this has to be te same not in world but within the comm after split!
-   call random_seed(put=seed)
 
    call get_inp_files(n_files, inp_files)
    call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
@@ -40,9 +35,18 @@ program STB
    
    call determine_color(n_sample_par,nProcs,me,color)
 
-   key = 1!sorting in new comm according to rank in world
+   key = me!sorting in new comm according to rank in world
    call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, key, sample_comm)
-   
+   call MPI_Comm_rank(sample_comm, me_sample, ierr)
+   if(me_sample==root) then
+      call random_seed(size = seed_sz)
+      allocate(seed(seed_sz))
+      !seed =  7!this has to be te same not in world but within the comm after split!
+      call random_seed(get=seed)
+      call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
+   endif
+   write(*,*) me,color,me_sub,seed
+
    if (n_sample_par > 1 .AND. n_files == 1) then
       do n_sample = 1,n_sample_par
          call process_file(inp_files(1))
