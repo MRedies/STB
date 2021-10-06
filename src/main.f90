@@ -24,7 +24,7 @@ program STB
 
    call get_inp_files(n_files, inp_files)
    call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
-
+   write(*,*) "root:", root
    if (n_files == 1) then
       if(me ==  root)then
          write (*,*) "Reading n_sample from: ", trim(inp_files(1))
