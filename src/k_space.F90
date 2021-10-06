@@ -28,6 +28,7 @@ module Class_k_space
       integer              :: me !> MPI rank
       integer              :: berry_iter !> number of grid refinements
       integer              :: kpts_per_step !> new kpts per step and Proc
+      integer              :: sample_comm ! the communicator after splitting world
       real(8)              :: k_shift(3) !> shift of brillouine-zone
       real(8)              :: berry_conv_crit !> convergance criterion for berry integration
       real(8), allocatable :: weights(:) !> weights for integration
@@ -335,7 +336,7 @@ contains
       endif
    end subroutine calc_and_print_dos
 
-   function init_k_space(cfg) result(self)
+   function init_k_space(cfg,sample_comm) result(self)
       use mpi
       implicit none
       type(k_space)         :: self
@@ -344,10 +345,12 @@ contains
       !logical               :: logtmp
       integer               :: sz
       integer               :: ierr
+      integer, intent(in)   :: sample_comm
 
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
 
+      self%sample_comm = sample_comm
       self%units = init_units(cfg, self%me)
       self%ham   = init_hamil(cfg)
 

@@ -24,7 +24,7 @@ program STB
 
    call random_seed(size = seed_sz)
    allocate(seed(seed_sz))
-   seed =  7
+   seed =  7!this has to be te same not in world but within the comm after split!
    call random_seed(put=seed)
 
    call get_inp_files(n_files, inp_files)
@@ -37,9 +37,12 @@ program STB
       call CFG_get(cfg, "berry%n_sample_par",  n_sample_par)
       call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
    endif
+   
    call determine_color(n_sample_par,nProcs,me,color)
+
    key = 1!sorting in new comm according to rank in world
    call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, key, sample_comm)
+   
    if (n_sample_par > 1 .AND. n_files == 1) then
       do n_sample = 1,n_sample_par
          call process_file(inp_files(1))
@@ -55,6 +58,7 @@ program STB
                                 , "are both not equal to 1"
       call MPI_Abort(MPI_COMM_WORLD)
    endif
+   
    call MPI_Finalize(ierr)
 contains
    subroutine process_file(inp_file)
