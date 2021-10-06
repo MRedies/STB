@@ -11,7 +11,7 @@ program STB
    implicit none
    type(k_space)                   :: Ksp
    character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
-   integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt
+   integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
                                       ,sample_comm,color,key,n_sample_par,nProcs,n_sample
    integer   , allocatable         :: seed(:)
    integer                         :: ierr, me, me_sample
@@ -45,7 +45,7 @@ program STB
       call random_seed(get=seed)
       call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
    endif
-   write(*,*) me,color,me_sub,seed
+   write(*,*) me,color,me_sample,seed
 
    if (n_sample_par > 1 .AND. n_files == 1) then
       do n_sample = 1,n_sample_par
