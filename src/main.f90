@@ -13,7 +13,7 @@ program STB
    type(k_space)                   :: Ksp
    character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
-                                      ,sample_comm,color,key,n_sample_par,nProcs,n_sample
+                                      ,sample_comm,color,n_sample_par,nProcs,n_sample
    integer   , allocatable         :: seed(:)
    integer                         :: ierr, me, me_sample
    type(CFG_t)                     :: cfg
