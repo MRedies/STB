@@ -24,43 +24,35 @@ program STB
 
    call get_inp_files(n_files, inp_files)
    call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
-   
-   if(me ==  root)then
-      write (*,*) "Reading n_sample from: ", trim(inp_file)
-      call CFG_read_file(cfg, trim(inp_file))
-      call add_full_cfg(cfg)
-      call CFG_get(cfg, "berry%n_sample_par",  n_sample_par)
-      call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
-   endif
-   
-   call determine_color(n_sample_par,nProcs,me,color)
 
-   key = me!sorting in new comm according to rank in world
-   call MPI_Comm_split(MPI_COMM_WORLD, color, key, sample_comm)
-   call MPI_Comm_rank(sample_comm, me_sample, ierr)
-   if(me_sample==root) then
-      call random_seed(size = seed_sz)
-      allocate(seed(seed_sz))
-      !seed =  7!this has to be te same not in world but within the comm after split!
-      call random_seed(get=seed)
-      call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
-   endif
-   write(*,*) me,color,me_sample,seed
+   if (n_files == 1) then
+      if(me ==  root)then
+         write (*,*) "Reading n_sample from: ", trim(inp_files(1))
+         call CFG_read_file(cfg, trim(inp_files(1)))
+         call add_full_cfg(cfg)
+         call CFG_get(cfg, "berry%n_sample_par",  n_sample_par)
+         call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
+      endif
+      call determine_color(n_sample_par,nProcs,me,color)
+      !sorting in new comm according to rank in world
+      call MPI_Comm_split(MPI_COMM_WORLD, color, me, sample_comm)
+      call MPI_Comm_rank(sample_comm, me_sample, ierr)
+      if(me_sample==root) then
+         call random_seed(size = seed_sz)
+         allocate(seed(seed_sz))
+         call random_seed(get=seed)
+         call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
+      endif
+      write(*,*) me,color,me_sample,seed
 
-   if (n_sample_par > 1 .AND. n_files == 1) then
       do n_sample = 1,n_sample_par
          call process_file(inp_files(1))
       enddo
-   else if (n_sample_par == 1) then
+   else 
       do n_inp = 1, n_files
          if(me == root) write (*,*) "started at ", date_time()
          call process_file(inp_files(n_inp))
       enddo
-   else
-      write (*, "(A,I3,A,I3,A)")  "[", me, "] Number of Samples:",n_sample_par&
-                                , "and Number of Files:", n_files&
-                                , "are both not equal to 1"
-      !call MPI_Abort(MPI_COMM_WORLD)
    endif
    
    call MPI_Finalize(ierr)
@@ -347,7 +339,7 @@ contains
 
    end subroutine save_cfg
 
-   subroutine determine_color(n_sample_par,nProcs,rank,color):
+   subroutine determine_color(n_sample_par,nProcs,rank,color)
       use mpi
       implicit none
       integer , intent(in)           :: n_sample_par,nProcs,rank
