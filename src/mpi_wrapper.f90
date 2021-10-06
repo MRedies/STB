@@ -7,7 +7,9 @@
 module Class_mpi_wrapper
     use m_config
     use mpi
-contains   
+    implicit none
+
+    contains   
    subroutine judft_comm_split(comm, color, key, new_comm)
       use m_judft
 #ifdef CPP_MPI
