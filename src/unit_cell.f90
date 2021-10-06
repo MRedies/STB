@@ -27,6 +27,9 @@ module Class_unit_cell
       integer    :: nProcs
       integer    :: me
       integer    :: n_wind !> winding number for lin_rot
+      integer    :: sample_comm ! the communicator after splitting world
+      integer    :: nProcs_sample ! number of procs in comm
+      integer    :: me_sample ! rank in comm
       integer, allocatable    :: wavevector(:)
       real(8) :: lattice_constant !> lattice constant in atomic units
       real(8) :: eps !> threshold for positional accuracy
@@ -113,7 +116,7 @@ contains
       ang = 180.0d0/PI*acos(ang)
    end function angle
 
-   function init_unit(cfg) result(self)
+   function init_unit(cfg,sample_comm) result(self)
       implicit none
       type(CFG_t)       :: cfg !> config file as read by m_config
       type(unit_cell)   :: self
@@ -127,6 +130,11 @@ contains
 
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
+      
+      self%sample_comm = sample_comm
+
+      call MPI_Comm_size(self%sample_comm, self%nProcs_sample, ierr)
+      call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
 
       self%units = init_units(cfg, self%me)
 
@@ -946,13 +954,19 @@ contains
       implicit none
       class(unit_cell)       :: self
       integer                :: i
-      real(8)                :: phi, theta, r(2)
+      real(8)                :: phi, theta
+      real(8) allocatable    :: u(:,:)
 
+      allocate(u(self%num_atoms,2))
+      if (self%me_sample==root) then
+         call random_number(u)
+      endif
+      call MPI_Bcast(u,     1,  MPI_REAL8,   root, self%sample_comm, ierr)
       do i = 1, self%num_atoms
-         call random_number(r)
-
-         phi = r(1)*2d0*PI
-         theta = r(2)*PI
+         !sphere point picking
+         phi = 2*Pi*u(i,1)
+         theta = acos(2*u(i,2)-1d0)
+         write(*,*) self%sample_comm,phi,theta
          call self%atoms(i)%set_sphere(phi, theta)
       enddo
    end subroutine set_mag_random

@@ -336,7 +336,7 @@ contains
       endif
    end subroutine calc_and_print_dos
 
-   function init_k_space(cfg,sample_comm) result(self)
+   function init_k_space(cfg) result(self)
       use mpi
       implicit none
       type(k_space)         :: self
@@ -350,7 +350,6 @@ contains
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
 
-      self%sample_comm = sample_comm
       self%units = init_units(cfg, self%me)
       self%ham   = init_hamil(cfg)
 
