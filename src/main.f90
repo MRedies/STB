@@ -32,6 +32,7 @@ program STB
          call CFG_read_file(cfg, trim(inp_files(1)))
          call add_full_cfg(cfg)
          call CFG_get(cfg, "berry%n_sample_par",  n_sample_par)
+         write(*,*) "N_sample:",n_sample_par
          call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
       endif
       call determine_color(n_sample_par,nProcs,me,color)
@@ -347,8 +348,8 @@ contains
       integer                        :: color,tmp
       
       color = 0
+      write(*,*) "Numbers:",nProcs,n_sample_par,rank
       if (n_sample_par<nProcs) then
-         write(*,*) "Numbers:",nProcs,n_sample_par,rank
          tmp = nProcs/n_sample_par
          color = rank/tmp
          if (rank>n_sample_par) then
