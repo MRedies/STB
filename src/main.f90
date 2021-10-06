@@ -38,14 +38,14 @@ program STB
       call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
       call determine_color(n_sample_par,nProcs,me,color)
       !sorting in new comm according to rank in world
-      call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm, ierr)
+      call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       if(me_sample==root) then
          call random_seed(size = seed_sz)
          call random_seed(get=seed)
       endif
       !call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
-      write(*,*) "MAIN: ",me,color,me_sample,sample_comm
+      write(*,*) "MAIN: ",me,color,me_sample,*sample_comm
 
       do n_sample = 1,n_sample_par
          call process_file(inp_files(1))
