@@ -121,6 +121,7 @@ contains
       type(CFG_t)       :: cfg !> config file as read by m_config
       type(unit_cell)   :: self
       integer, parameter           :: lwork = 20
+      integer, intent(in)             :: sample_comm
       real(8)                         :: work(lwork), tmp
       integer, dimension(2)        :: ipiv
       integer                         :: info
@@ -953,11 +954,11 @@ contains
    subroutine set_mag_random(self)
       implicit none
       class(unit_cell)       :: self
-      integer                :: i
+      integer                :: i,ierr
       real(8)                :: phi, theta
-      real(8) allocatable    :: u(:,:)
+      real(8), allocatable   :: u(:,:)
 
-      allocate(u(self%num_atoms,2))
+      allocate (u(self%num_atoms,2))
       if (self%me_sample==root) then
          call random_number(u)
       endif
