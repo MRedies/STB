@@ -348,6 +348,7 @@ contains
       
       color = 0
       if (n_sample_par<nProcs) then
+         write(*,*) "Numbers:",nProcs,n_sample_par,rank
          tmp = nProcs/n_sample_par
          color = rank/tmp
          if (rank>n_sample_par) then
