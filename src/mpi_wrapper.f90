@@ -11,7 +11,7 @@ module Class_mpi_wrapper
 
 contains
    subroutine judft_comm_split(comm, color, key, new_comm)
-      use m_judft
+      use mpi
       implicit none
       integer, intent(in)    :: comm, color, key
       integer, intent(inout) :: new_comm
