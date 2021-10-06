@@ -32,9 +32,8 @@ program STB
          call CFG_read_file(cfg, trim(inp_files(1)))
          call add_full_cfg(cfg)
          call CFG_get(cfg, "berry%n_sample_par",  n_sample_par)
-         write(*,*) "N_sample:",n_sample_par
-         call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
       endif
+      call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
       call determine_color(n_sample_par,nProcs,me,color)
       !sorting in new comm according to rank in world
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
