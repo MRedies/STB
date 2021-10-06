@@ -45,7 +45,6 @@ program STB
          call random_seed(get=seed)
       endif
       !call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
-      write(*,*) "MAIN: ",me,color,me_sample,*sample_comm
 
       do n_sample = 1,n_sample_par
          call process_file(inp_files(1))

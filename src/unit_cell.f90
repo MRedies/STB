@@ -968,7 +968,7 @@ contains
          !sphere point picking
          phi = 2*Pi*u(i,1)
          theta = acos(2*u(i,2)-1d0)
-         write(*,*) self%sample_comm,phi,theta
+         write(*,*) self%me_sample,phi,theta
          call self%atoms(i)%set_sphere(phi, theta)
       enddo
    end subroutine set_mag_random
