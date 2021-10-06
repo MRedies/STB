@@ -298,19 +298,20 @@ contains
       endif
    end subroutine test_herm
 
-   function init_hamil(cfg) result(self)
+   function init_hamil(cfg,sample_comm) result(self)
       implicit none
-      type(CFG_t)    :: cfg
-      type(hamil)    :: self
-      real(8)        :: tmp
-      integer        :: ierr
-      integer        :: n, n_arr
+      type(CFG_t)         :: cfg
+      type(hamil)         :: self
+      integer, intent(in) :: sample_comm
+      real(8)             :: tmp
+      integer             :: ierr
+      integer             :: n, n_arr
 
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
 
       self%units = init_units(cfg, self%me)
-      self%UC    = init_unit(cfg)
+      self%UC    = init_unit(cfg,sample_comm)
 
       if(self%me ==  0) then
          call CFG_get(cfg, "berry%temperature", tmp)
