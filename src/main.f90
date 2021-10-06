@@ -1,5 +1,6 @@
 program STB
    use Class_k_space
+   use Class_mpi_wrapper! wrapper around MPI_COMM_SPLIT for error documentation
    use m_config
    use m_npy
    use output
@@ -35,8 +36,8 @@ program STB
       endif
       call determine_color(n_sample_par,nProcs,me,color)
       !sorting in new comm according to rank in world
-      !call MPI_Comm_split(MPI_COMM_WORLD, color, me, sample_comm)
-      !call MPI_Comm_rank(sample_comm, me_sample, ierr)
+      call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
+      call MPI_Comm_rank(sample_comm, me_sample, ierr)
       if(me_sample==root) then
          call random_seed(size = seed_sz)
          allocate(seed(seed_sz))
