@@ -954,15 +954,16 @@ contains
    subroutine set_mag_random(self)
       implicit none
       class(unit_cell)       :: self
-      integer                :: i,ierr
+      integer                :: i,ierr,send_size
       real(8)                :: phi, theta
       real(8), allocatable   :: u(:,:)
 
       allocate (u(self%num_atoms,2))
+      send_size = size(u)
       if (self%me_sample==root) then
          call random_number(u)
       endif
-      call MPI_Bcast(u,     1,  MPI_REAL8,   root, self%sample_comm, ierr)
+      call MPI_Bcast(u,     send_size,  MPI_REAL8,   root, self%sample_comm, ierr)
       do i = 1, self%num_atoms
          !sphere point picking
          phi = 2*Pi*u(i,1)
