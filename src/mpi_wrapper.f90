@@ -17,7 +17,7 @@ contains
       integer, intent(inout) :: new_comm
       integer                :: ierr, err_handler
 
-      call MPI_COMM_SPLIT(comm,color,key,new_comm,ierr)
+      call MPI_Comm_Split(comm,color,key,new_comm,ierr)
       if(ierr /= 0) then
             write(*,*) "Can't split comm"
             stop
