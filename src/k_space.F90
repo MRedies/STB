@@ -146,7 +146,7 @@ contains
          call error_msg("Filling not known", abort=.True.)
       endif
 
-      call my_section(self%me, self%nProcs, size(self%new_k_pts, 2), first, last)
+      call my_section(self%me, self%nProcs_sample, size(self%new_k_pts, 2), first, last)
       allocate(k_pts_sec(3, last - first + 1))
       k_pts_sec = self%new_k_pts(:,first:last)
 
@@ -154,9 +154,9 @@ contains
 
       N = 2 *  self%ham%num_up
       allocate(eig_val(N, size(self%new_k_pts,2)))
-      allocate(num_elems(self%nProcs))
-      allocate(offsets(self%nProcs))
-      call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
+      allocate(num_elems(self%nProcs_sample))
+      allocate(offsets(self%nProcs_sample))
+      call sections(self%nProcs_sample, size(self%new_k_pts, 2), num_elems, offsets)
       num_elems =  num_elems * N
       offsets   =  offsets   * N
 
