@@ -40,7 +40,7 @@ program STB
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       call MPI_Comm_size(sample_comm, nProcs_sample, ierr)
-      write(*,*) "Color: ",me,me_sample,color,sample_comm,nProcs_sample
+      write(*,*) "Color: ",me,me_sample,color,sample_comm%MPI_VAL,nProcs_sample
       if(me_sample==root) then
          call random_seed(size = seed_sz)
          !call system_clock(count=clock)
@@ -48,9 +48,7 @@ program STB
          allocate(seed(seed_sz))
          seed = clock
          call random_seed(put=seed)
-         !write(*,*) "Main: ", me,me_sample,seed
       endif
-      !call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
       samples_per_comm = calc_samples_per_comm(n_sample_par,nProcs)
       do n_sample = 1,samples_per_comm
          call process_file(inp_files(1),sample_comm)
