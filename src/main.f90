@@ -41,7 +41,8 @@ program STB
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       if(me_sample==root) then
          call random_seed(size = seed_sz)
-         call system_clock(count=clock)
+         !call system_clock(count=clock)
+         clock = 10 + me
          allocate(seed(seed_sz))
          seed = clock
          call random_seed(put=seed)
