@@ -63,10 +63,11 @@ program STB
    
    call MPI_Finalize(ierr)
 contains
-   subroutine process_file(inp_file)
+   subroutine process_file(inp_file,sample_comm)
       use mpi
       implicit none
       character(len=300), intent(in) :: inp_file
+      integer, intent(in)            :: sample_comm
       real(8)                        :: start, halt
       integer                        :: me, ierr,ierr2
       logical                        :: perform_band, perform_dos, calc_hall, calc_hall_diag,&
