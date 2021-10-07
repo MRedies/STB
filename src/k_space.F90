@@ -137,7 +137,6 @@ contains
       integer                       :: send_count, ierr
       integer   , allocatable       :: num_elems(:), offsets(:)
       real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
-      write(*,*) self%me,self%me_sample,"FLAG 1"
       if(trim(self%filling) ==  "path_rel") then
          call self%setup_k_path_rel()
       else if(trim(self%filling) == "path_abs") then
@@ -151,9 +150,9 @@ contains
       call my_section(self%me_sample, self%nProcs_sample, size(self%new_k_pts, 2), first, last)
       allocate(k_pts_sec(3, last - first + 1))
       k_pts_sec = self%new_k_pts(:,first:last)
-
+      write(*,*) self%me,self%me_sample,"FLAG 1"
       call self%ham%calc_eigenvalues(k_pts_sec, sec_eig_val)
-
+      write(*,*) "FLAG 2"
       N = 2 *  self%ham%num_up
       allocate(eig_val(N, size(self%new_k_pts,2)))
       allocate(num_elems(self%nProcs_sample))
@@ -163,7 +162,6 @@ contains
       offsets   =  offsets   * N
 
       send_count =  N *  size(k_pts_sec, 2)
-      write(*,*) "FLAG 2"
       !call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
       !                 eig_val,     num_elems,  offsets,   MPI_REAL8,&
       !                 root,        MPI_COMM_WORLD, ierr)
