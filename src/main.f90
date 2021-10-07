@@ -38,8 +38,8 @@ program STB
       call calc_color(n_sample_par,nProcs,me,color)
       !sorting in new comm according to rank in world
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
-      write(*,*) "Color: ",me,me_sample,color
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
+      write(*,*) "Color: ",me,me_sample,color
       if(me_sample==root) then
          call random_seed(size = seed_sz)
          !call system_clock(count=clock)
