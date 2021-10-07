@@ -26,7 +26,6 @@ program STB
    call get_inp_files(n_files, inp_files)
    call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
    
-   allocate(seed(seed_sz))
    n_sample_par = 0
    if (n_files == 1) then
       if(me ==  root)then
@@ -42,6 +41,7 @@ program STB
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       if(me_sample==root) then
          call random_seed(size = seed_sz)
+         allocate(seed(seed_sz))
          call random_seed(get=seed)
       endif
       !call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
