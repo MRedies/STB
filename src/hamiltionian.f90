@@ -1617,7 +1617,8 @@ contains
       allocate(IWORK(liwork))
       allocate(WORK(lwork))
 
-      call MPI_Barrier(MPI_COMM_WORLD, info)
+      !call MPI_Barrier(MPI_COMM_WORLD, info)
+      call MPI_Barrier(self%sample_comm, info)
       do i = 1,size(k_list,2)
          k =  k_list(:,i)
          call self%setup_H(k, H)

@@ -167,7 +167,7 @@ contains
       !                 root,        MPI_COMM_WORLD, ierr)
       call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
                        eig_val,     num_elems,  offsets,   MPI_REAL8,&
-                       root,        sample_comm, ierr)
+                       root,        self%sample_comm, ierr)
 
       if(self%me == root) then
          call save_npy(trim(self%prefix) //  "band_k.npy", self%new_k_pts / self%units%inv_length)
