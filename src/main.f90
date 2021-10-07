@@ -47,7 +47,7 @@ program STB
          allocate(seed(seed_sz))
          seed = clock
          call random_seed(put=seed)
-         write(*,*) "Main: ", me,me_sample,seed
+         !write(*,*) "Main: ", me,me_sample,seed
       endif
       !call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
       samples_per_comm = calc_samples_per_comm(n_sample_par,nProcs)
@@ -69,13 +69,14 @@ contains
       character(len=300), intent(in) :: inp_file
       integer, intent(in)            :: sample_comm
       real(8)                        :: start, halt
-      integer                        :: me, ierr,ierr2
+      integer                        :: me, ierr,ierr2,me_sample
       logical                        :: perform_band, perform_dos, calc_hall, calc_hall_diag,&
                                         calc_orbmag, perform_ACA,plot_omega,pert_log,tmp,success
       type(CFG_t)                     :: cfg
       character(len=25)               :: fermi_type
       
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
+      call MPI_Comm_rank(sample_comm, me_sample, ierr)
       start =  MPI_Wtime()
 
       if(me ==  root)then
@@ -121,7 +122,7 @@ contains
       if(root ==  me) then
          write (*,time_fmt) "Init: ", halt-start, "s"
       endif
-      write(*,*) "FLAG MAIN"
+      write(*,*) "FLAG MAIN",me,me_sample
       if(perform_band) then
          if(root == me) write (*,*) "started Band"
          call Ksp%calc_and_print_band()
