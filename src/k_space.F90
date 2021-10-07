@@ -135,7 +135,7 @@ contains
       integer                       :: send_count, ierr
       integer   , allocatable       :: num_elems(:), offsets(:)
       real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
-
+      write(*,*) "FLAG 1"
       if(trim(self%filling) ==  "path_rel") then
          call self%setup_k_path_rel()
       else if(trim(self%filling) == "path_abs") then
@@ -161,7 +161,7 @@ contains
       offsets   =  offsets   * N
 
       send_count =  N *  size(k_pts_sec, 2)
-      write(*,*) "FLAG 1"
+      write(*,*) "FLAG 2"
       !call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
       !                 eig_val,     num_elems,  offsets,   MPI_REAL8,&
       !                 root,        MPI_COMM_WORLD, ierr)
