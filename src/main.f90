@@ -52,7 +52,7 @@ program STB
       !call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
       samples_per_comm = calc_samples_per_comm(n_sample_par,nProcs)
       do n_sample = 1,samples_per_comm
-         call process_file(inp_files(1))
+         call process_file(inp_files(1),sample_comm)
       enddo
    else 
       do n_inp = 1, n_files
