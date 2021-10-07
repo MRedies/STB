@@ -965,7 +965,7 @@ contains
          call random_seed(size = seed_sz)
          allocate(seed(seed_sz))
          call random_seed(get=seed)
-         write("Seed: ",self%me,self%me_sample,seed)
+         write(*,*) "Seed: ",self%me,self%me_sample,seed
          call random_number(u)
       endif
       call MPI_Bcast(u,     send_size,  MPI_REAL8,   root, self%sample_comm, ierr)
