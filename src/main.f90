@@ -14,7 +14,7 @@ program STB
    character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
                                       ,sample_comm,color,n_sample_par,nProcs,n_sample&
-                                      ,ierr, me, me_sample,samples_per_comm, clock
+                                      ,ierr, me, me_sample,samples_per_comm, clock,nProcs_sample
    integer   , allocatable         :: seed(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
@@ -39,7 +39,8 @@ program STB
       !sorting in new comm according to rank in world
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
-      write(*,*) "Color: ",me,me_sample,color
+      call MPI_Comm_size(sample_comm, nProcs_sample, ierr)
+      write(*,*) "Color: ",me,me_sample,color,nProcs_sample
       if(me_sample==root) then
          call random_seed(size = seed_sz)
          !call system_clock(count=clock)
