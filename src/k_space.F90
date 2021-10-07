@@ -357,6 +357,8 @@ contains
       self%units = init_units(cfg, self%me)
       self%ham   = init_hamil(cfg,sample_comm)
 
+      self%sample_comm = sample_comm
+
       if(self%me ==  0) then
          call CFG_get(cfg, "grid%k_shift", self%k_shift)
 
@@ -1162,7 +1164,7 @@ contains
          !               root,        MPI_COMM_WORLD, ierr)
          call MPI_Gatherv(varall, send_count, MPI_REAL8, &
                         var_all_all,     num_elems,  offsets,   MPI_REAL8,&
-                        root,        sample_comm, ierr)
+                        root,        self%sample_comm, ierr)
          deallocate(num_elems,offsets)
       endif
       if(self%me == root) then
@@ -1230,7 +1232,7 @@ contains
          !               root,        MPI_COMM_WORLD, ierr)
          call MPI_Gatherv(varall, send_count, MPI_REAL8, &
                         var_all_all,     num_elems,  offsets,   MPI_REAL8,&
-                        root,        sample_comm, ierr)
+                        root,        self%sample_comm, ierr)
          deallocate(num_elems,offsets)
       endif
       if(self%me == root) then
