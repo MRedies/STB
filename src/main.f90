@@ -36,7 +36,7 @@ program STB
          call CFG_get(cfg, "berry%n_sample_par",  n_sample_par)
       endif
       call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
-      call determine_color(n_sample_par,nProcs,me,color)
+      call calc_color(n_sample_par,nProcs,me,color)
       !sorting in new comm according to rank in world
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
@@ -45,7 +45,7 @@ program STB
          call random_seed(get=seed)
       endif
       !call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
-      samples_per_comm = samples_per_comm(n_sample_par,nProcs)
+      samples_per_comm = calc_samples_per_comm(n_sample_par,nProcs)
       do n_sample = 1,samples_per_comm!divide by number of comms!
          call process_file(inp_files(1))
       enddo
@@ -339,7 +339,7 @@ contains
 
    end subroutine save_cfg
 
-   subroutine determine_color(n_sample_par,nProcs,rank,color)
+   subroutine calc_color(n_sample_par,nProcs,rank,color)
       use mpi
       implicit none
       integer , intent(in)           :: n_sample_par,nProcs,rank
@@ -358,7 +358,7 @@ contains
       
    end subroutine
    
-   function samples_per_comm(n_sample_par,nProcs) result(samples_per_comm)
+   function calc_samples_per_comm(n_sample_par,nProcs) result(samples_per_comm)
       use mpi
       implicit none
       integer , intent(in)           :: n_sample_par,nProcs
