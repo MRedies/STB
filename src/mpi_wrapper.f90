@@ -37,7 +37,7 @@ contains
    subroutine judft_mpi_error_handler(comm, error_code)
       use mpi
       implicit none
-      integer  :: error_code
+      integer  :: comm, error_code
       integer             :: str_len, ierr
       character(len=3000) :: error_str
 
