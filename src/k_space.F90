@@ -162,9 +162,12 @@ contains
 
       send_count =  N *  size(k_pts_sec, 2)
       write(*,*) "FLAG 1"
+      !call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
+      !                 eig_val,     num_elems,  offsets,   MPI_REAL8,&
+      !                 root,        MPI_COMM_WORLD, ierr)
       call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
                        eig_val,     num_elems,  offsets,   MPI_REAL8,&
-                       root,        MPI_COMM_WORLD, ierr)
+                       root,        sample_comm, ierr)
 
       if(self%me == root) then
          call save_npy(trim(self%prefix) //  "band_k.npy", self%new_k_pts / self%units%inv_length)
@@ -1154,9 +1157,12 @@ contains
          call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
          num_elems =  num_elems
          offsets   =  offsets
+         !call MPI_Gatherv(varall, send_count, MPI_REAL8, &
+         !               var_all_all,     num_elems,  offsets,   MPI_REAL8,&
+         !               root,        MPI_COMM_WORLD, ierr)
          call MPI_Gatherv(varall, send_count, MPI_REAL8, &
                         var_all_all,     num_elems,  offsets,   MPI_REAL8,&
-                        root,        MPI_COMM_WORLD, ierr)
+                        root,        sample_comm, ierr)
          deallocate(num_elems,offsets)
       endif
       if(self%me == root) then
@@ -1219,9 +1225,12 @@ contains
          call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
          num_elems =  num_elems
          offsets   =  offsets
+         !call MPI_Gatherv(varall, send_count, MPI_REAL8, &
+         !               var_all_all,     num_elems,  offsets,   MPI_REAL8,&
+         !               root,        MPI_COMM_WORLD, ierr)
          call MPI_Gatherv(varall, send_count, MPI_REAL8, &
                         var_all_all,     num_elems,  offsets,   MPI_REAL8,&
-                        root,        MPI_COMM_WORLD, ierr)
+                        root,        sample_comm, ierr)
          deallocate(num_elems,offsets)
       endif
       if(self%me == root) then
