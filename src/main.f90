@@ -348,13 +348,14 @@ contains
       use mpi
       implicit none
       integer , intent(in)           :: n_sample_par,nProcs,rank
-      integer                        :: color,tmp
+      integer                        :: color,divide,high
       
       color = 0
       if (n_sample_par<nProcs) then
-         tmp = nProcs/n_sample_par
-         color = rank/tmp
-         if (rank>n_sample_par) then
+         divide = nProcs/n_sample_par
+         high = divide*n_sample_par
+         color = rank/divide
+         if (rank>high) then
             color = mod(rank,n_sample_par)
          endif
       else
