@@ -15,7 +15,7 @@ program STB
    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
                                       ,sample_comm,color,n_sample_par,nProcs,n_sample&
                                       ,ierr, me, me_sample,samples_per_comm
-   integer   , allocatable         :: seed(:)
+   integer   , allocatable         :: seed(:), clock,clock_seed(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
  
@@ -41,8 +41,10 @@ program STB
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       if(me_sample==root) then
          call random_seed(size = seed_sz)
+         call system_clock(count=clock)
          allocate(seed(seed_sz))
-         call random_seed(get=seed)
+         seed = clock
+         call random_seed(put=seed)
       endif
       !call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
       samples_per_comm = calc_samples_per_comm(n_sample_par,nProcs)
