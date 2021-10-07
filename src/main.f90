@@ -40,7 +40,7 @@ program STB
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       call MPI_Comm_size(sample_comm, nProcs_sample, ierr)
-      write(*,*) "Color: ",me,me_sample,color,sample_comm%MPI_VAL,nProcs_sample
+      write(*,*) "Color: ",me,me_sample,color,sample_comm,nProcs_sample,MPI_COMM_WORLD
       if(me_sample==root) then
          call random_seed(size = seed_sz)
          !call system_clock(count=clock)
