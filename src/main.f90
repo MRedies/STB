@@ -45,7 +45,7 @@ program STB
          allocate(seed(seed_sz))
          seed = clock
          call random_seed(put=seed)
-         write(*,*) "Main: ", self%me,self%me_sample,seed
+         write(*,*) "Main: ", me,me_sample,seed
       endif
       !call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
       samples_per_comm = calc_samples_per_comm(n_sample_par,nProcs)
