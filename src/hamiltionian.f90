@@ -32,6 +32,8 @@ module Class_hamiltionian
       integer         :: me
       integer         :: num_orb, num_up
       integer         :: sample_comm! the comm after splitting world
+      integer         :: me_sample
+      integer         :: nProcs_sample
       logical      :: test_run !> should unit tests be performed
       type(unit_cell) :: UC !> unit cell
       type(units)     :: units
@@ -308,12 +310,17 @@ contains
       integer             :: ierr
       integer             :: n, n_arr
 
+      self%sample_comm = sample_comm
+      
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
+      
+      call MPI_Comm_size(self%sample_comm, self%nProcs_sample, ierr)
+      call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
 
       self%units = init_units(cfg, self%me)
       self%UC    = init_unit(cfg,sample_comm)
-      self%sample_comm = sample_comm
+
 
       if(self%me ==  0) then
          call CFG_get(cfg, "berry%temperature", tmp)
@@ -1618,7 +1625,7 @@ contains
       allocate(RWORK(lrwork))
       allocate(IWORK(liwork))
       allocate(WORK(lwork))
-
+      write(*,*) self%me,self%me_sample,"FLAG HAM"
       !call MPI_Barrier(MPI_COMM_WORLD, info)
       call MPI_Barrier(self%sample_comm, info)
       do i = 1,size(k_list,2)
