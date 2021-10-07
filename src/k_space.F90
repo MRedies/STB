@@ -137,7 +137,7 @@ contains
       integer                       :: send_count, ierr
       integer   , allocatable       :: num_elems(:), offsets(:)
       real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
-      write(*,*) "FLAG 1"
+      write(*,*) self%me,self%me_sample,"FLAG 1"
       if(trim(self%filling) ==  "path_rel") then
          call self%setup_k_path_rel()
       else if(trim(self%filling) == "path_abs") then

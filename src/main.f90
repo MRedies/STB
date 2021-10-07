@@ -119,7 +119,7 @@ contains
       if(root ==  me) then
          write (*,time_fmt) "Init: ", halt-start, "s"
       endif
-
+      write(*,*) "FLAG MAIN"
       if(perform_band) then
          if(root == me) write (*,*) "started Band"
          call Ksp%calc_and_print_band()
