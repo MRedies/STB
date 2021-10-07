@@ -31,6 +31,7 @@ module Class_hamiltionian
       integer         :: nProcs
       integer         :: me
       integer         :: num_orb, num_up
+      integer         :: sample_comm! the comm after splitting world
       logical      :: test_run !> should unit tests be performed
       type(unit_cell) :: UC !> unit cell
       type(units)     :: units
@@ -312,6 +313,7 @@ contains
 
       self%units = init_units(cfg, self%me)
       self%UC    = init_unit(cfg,sample_comm)
+      self%sample_comm = sample_comm
 
       if(self%me ==  0) then
          call CFG_get(cfg, "berry%temperature", tmp)
