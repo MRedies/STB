@@ -13,9 +13,9 @@ program STB
    type(k_space)                   :: Ksp
    character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
-                                      ,sample_comm,color,n_sample_par,nProcs,n_sample
+                                      ,sample_comm,color,n_sample_par,nProcs,n_sample&
+                                      ,ierr, me, me_sample,samples_per_comm
    integer   , allocatable         :: seed(:)
-   integer                         :: ierr, me, me_sample
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
  
@@ -45,8 +45,8 @@ program STB
          call random_seed(get=seed)
       endif
       !call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
-
-      do n_sample = 1,n_sample_par
+      samples_per_comm = samples_per_comm(n_sample_par,nProcs)
+      do n_sample = 1,samples_per_comm!divide by number of comms!
          call process_file(inp_files(1))
       enddo
    else 
@@ -357,4 +357,19 @@ contains
       endif
       
    end subroutine
+   
+   function samples_per_comm(n_sample_par,nProcs) result(samples_per_comm)
+      use mpi
+      implicit none
+      integer , intent(in)           :: n_sample_par,nProcs
+      integer                        :: samples_per_comm, rest
+
+      if (n_sample_par>nProcs) then
+         samples_per_comm = n_sample_par/nProcs
+         rest = mod(n_sample_par,nProcs)
+      else
+         samples_per_comm = 1
+      endif
+
+   end function
 end program STB
