@@ -28,6 +28,8 @@ module Class_k_space
       integer              :: me !> MPI rank
       integer              :: berry_iter !> number of grid refinements
       integer              :: kpts_per_step !> new kpts per step and Proc
+      integer              :: me_sample
+      integer              :: nProcs_sample
       integer              :: sample_comm ! the communicator after splitting world
       real(8)              :: k_shift(3) !> shift of brillouine-zone
       real(8)              :: berry_conv_crit !> convergance criterion for berry integration
@@ -146,7 +148,7 @@ contains
          call error_msg("Filling not known", abort=.True.)
       endif
 
-      call my_section(self%me, self%nProcs_sample, size(self%new_k_pts, 2), first, last)
+      call my_section(self%me_sample, self%nProcs_sample, size(self%new_k_pts, 2), first, last)
       allocate(k_pts_sec(3, last - first + 1))
       k_pts_sec = self%new_k_pts(:,first:last)
 
@@ -169,7 +171,7 @@ contains
                        eig_val,     num_elems,  offsets,   MPI_REAL8,&
                        root,        self%sample_comm, ierr)
 
-      if(self%me == root) then
+      if(self%me_sample == root) then
          call save_npy(trim(self%prefix) //  "band_k.npy", self%new_k_pts / self%units%inv_length)
          call save_npy(trim(self%prefix) //  "band_E.npy", eig_val / self%units%energy)
          call save_npy(trim(self%prefix) //  "lattice.npy", &
@@ -351,13 +353,16 @@ contains
       integer               :: ierr
       integer, intent(in)   :: sample_comm
 
+      self%sample_comm = sample_comm
+
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
 
-      self%units = init_units(cfg, self%me)
-      self%ham   = init_hamil(cfg,sample_comm)
+      call MPI_Comm_size(self%sample_comm, self%nProcs_sample, ierr)
+      call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
 
-      self%sample_comm = sample_comm
+      self%units = init_units(cfg, self%me)
+      self%ham   = init_hamil(cfg,sample_comm)    
 
       if(self%me ==  0) then
          call CFG_get(cfg, "grid%k_shift", self%k_shift)
