@@ -50,7 +50,7 @@ program STB
       endif
       !call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
       samples_per_comm = calc_samples_per_comm(n_sample_par,nProcs)
-      do n_sample = 1,samples_per_comm!divide by number of comms!
+      do n_sample = 1,samples_per_comm
          call process_file(inp_files(1))
       enddo
    else 
@@ -110,7 +110,7 @@ contains
           call error_msg("pert_log doesn't match in main", abort=.True.)
           success = .False.
       endif
-      Ksp =  init_k_space(cfg,sample_comm)!set the comm here
+      Ksp =  init_k_space(cfg,sample_comm)
       if(me == root) call save_cfg(cfg)
 
       if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
