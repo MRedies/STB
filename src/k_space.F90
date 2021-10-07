@@ -152,7 +152,7 @@ contains
       k_pts_sec = self%new_k_pts(:,first:last)
       write(*,*) self%me,self%me_sample,"FLAG 1"
       call self%ham%calc_eigenvalues(k_pts_sec, sec_eig_val)
-      write(*,*) "FLAG 2"
+      write(*,*) self%me,self%me_sample,"FLAG 2"
       N = 2 *  self%ham%num_up
       allocate(eig_val(N, size(self%new_k_pts,2)))
       allocate(num_elems(self%nProcs_sample))
