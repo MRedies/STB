@@ -15,7 +15,7 @@ program STB
    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
                                       ,sample_comm,color,n_sample_par,nProcs,n_sample&
                                       ,ierr, me, me_sample,samples_per_comm, clock
-   integer   , allocatable         :: seed(:),clock_seed(:)
+   integer   , allocatable         :: seed(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
  
@@ -45,7 +45,7 @@ program STB
          allocate(seed(seed_sz))
          seed = clock
          call random_seed(put=seed)
-         write(*,*) "Main: ", self%me,self%me_samle,seed
+         write(*,*) "Main: ", self%me,self%me_sample,seed
       endif
       !call MPI_Bcast(seed, seed_sz,  MYPI_INT,   root, sample_comm, ierr)
       samples_per_comm = calc_samples_per_comm(n_sample_par,nProcs)
