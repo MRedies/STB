@@ -36,6 +36,7 @@ program STB
       endif
       call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
       call calc_color(n_sample_par,nProcs,me,color)
+      write(*,*) "Color: ",me,me_sample,color
       !sorting in new comm according to rank in world
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
