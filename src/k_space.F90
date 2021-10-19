@@ -134,7 +134,7 @@ contains
       Implicit None
       class(k_space)                :: self
       integer                       :: first, last, N
-      integer                       :: send_count, ierr
+      integer                       :: send_count, ierr, istat(4)=0
       integer   , allocatable       :: num_elems(:), offsets(:)
       real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
       if(trim(self%filling) ==  "path_rel") then
@@ -148,13 +148,14 @@ contains
       endif
 
       call my_section(self%me_sample, self%nProcs_sample, size(self%new_k_pts, 2), first, last)
-      allocate(k_pts_sec(3, last - first + 1))
+      allocate(k_pts_sec(3, last - first + 1),stat = istat(1))
       k_pts_sec = self%new_k_pts(:,first:last)
       call self%ham%calc_eigenvalues(k_pts_sec, sec_eig_val)
       N = 2 *  self%ham%num_up
-      allocate(eig_val(N, size(self%new_k_pts,2)))
-      allocate(num_elems(self%nProcs_sample))
-      allocate(offsets(self%nProcs_sample))
+      allocate(eig_val(N, size(self%new_k_pts,2)),stat = istat(2))
+      allocate(num_elems(self%nProcs_sample),stat = istat(3))
+      allocate(offsets(self%nProcs_sample),stat = istat(4))
+      call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%calc_and_print_band"])
       call sections(self%nProcs_sample, size(self%new_k_pts, 2), num_elems, offsets)
       num_elems =  num_elems * N
       offsets   =  offsets   * N
