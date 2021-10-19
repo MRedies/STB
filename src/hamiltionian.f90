@@ -1620,6 +1620,7 @@ contains
       integer   , allocatable           :: IWORK(:)
 
       N =  2 * self%num_up
+      write (*,*) "BEFORE ALLOC"
       allocate(eig_val(N, size(k_list, 2)),stat = istat(1))
       call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ham%calc_eig for eig_val"])
       allocate(H(N,N),stat = istat(2))
