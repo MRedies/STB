@@ -1613,20 +1613,21 @@ contains
       real(8), allocatable,intent(out)  :: eig_val(:,:)
       real(8)                           :: k(3)
       complex(8), allocatable           :: H(:,:)
-      integer    :: i, N, lwork, lrwork, liwork, info
+      integer                           :: i, N, lwork, lrwork, liwork, info&
+                                          , istat(5)=0
       real(8), allocatable              :: RWORK(:)
       complex(8), allocatable           :: WORK(:)
       integer   , allocatable           :: IWORK(:)
 
       N =  2 * self%num_up
       allocate(eig_val(N, size(k_list, 2)))
-      allocate(H(N,N))
+      allocate(H(N,N),stat = istat)
       call calc_zheevd_size('N', H, eig_val(:,1), lwork, lrwork, liwork)
       allocate(RWORK(lrwork))
       allocate(IWORK(liwork))
       allocate(WORK(lwork))
+      call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ham%calc_eig"])
       !call MPI_Barrier(MPI_COMM_WORLD, info)
-      write(*,*) self%me,self%me_sample,"FLAG HAM"
       call MPI_Barrier(self%sample_comm, info)
       do i = 1,size(k_list,2)
          k =  k_list(:,i)

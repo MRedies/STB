@@ -25,7 +25,6 @@ program STB
 
    call get_inp_files(n_files, inp_files)
    call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
-   sample_comm = 0
    n_sample_par = 0
    if (n_files == 1) then
       if(me ==  root)then
@@ -40,7 +39,7 @@ program STB
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       call MPI_Comm_size(sample_comm, nProcs_sample, ierr)
-      write(*,*) "Color: ",me,me_sample,color,sample_comm,nProcs_sample,MPI_COMM_WORLD
+      write(*,*) "Color: ",me,me_sample,color,sample_comm,nProcs_sample
       if(me_sample==root) then
          call random_seed(size = seed_sz)
          !call system_clock(count=clock)
