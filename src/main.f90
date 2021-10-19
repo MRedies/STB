@@ -111,8 +111,8 @@ contains
           call error_msg("pert_log doesn't match in main", abort=.True.)
           success = .False.
       endif
-      Ksp =  init_k_space(cfg,sample_comm)
       write(*,*) "FLAG MAIN",me,me_sample
+      Ksp =  init_k_space(cfg,sample_comm)
       if(me == root) call save_cfg(cfg)
 
       if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
