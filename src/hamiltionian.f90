@@ -1620,12 +1620,12 @@ contains
       integer   , allocatable           :: IWORK(:)
 
       N =  2 * self%num_up
-      allocate(eig_val(N, size(k_list, 2)))
-      allocate(H(N,N),stat = istat)
+      allocate(eig_val(N, size(k_list, 2)),stat = istat(1))
+      allocate(H(N,N),stat = istat(2))
       call calc_zheevd_size('N', H, eig_val(:,1), lwork, lrwork, liwork)
-      allocate(RWORK(lrwork))
-      allocate(IWORK(liwork))
-      allocate(WORK(lwork))
+      allocate(RWORK(lrwork),stat = istat(3))
+      allocate(IWORK(liwork),stat = istat(4))
+      allocate(WORK(lwork),stat = istat(5))
       call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ham%calc_eig"])
       !call MPI_Barrier(MPI_COMM_WORLD, info)
       call MPI_Barrier(self%sample_comm, info)
