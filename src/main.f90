@@ -92,7 +92,6 @@ contains
          call CFG_get(cfg, "ACA%perform_ACA",   perform_ACA)
          call CFG_get(cfg, "plot%plot_omega",   plot_omega)
       endif
-      write(*,*) "FLAG MAIN",me,me_sample
       call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
@@ -102,7 +101,7 @@ contains
       call MPI_Bcast(perform_ACA,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(plot_omega,   1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(pert_log,     1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-
+      write(*,*) "FLAG MAIN",me,me_sample
       !compare perturbation logical
       if(me == root) tmp = pert_log
       call MPI_Bcast(tmp, 1, MPI_LOGICAL, root, MPI_COMM_WORLD,ierr2)
