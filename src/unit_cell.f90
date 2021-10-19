@@ -954,7 +954,7 @@ contains
    subroutine set_mag_random(self)
       implicit none
       class(unit_cell)       :: self
-      integer                :: i,ierr,send_size,seed_sz
+      integer                :: i,ierr(1),send_size,seed_sz
       integer, allocatable   :: seed(:)
       real(8)                :: phi, theta
       real(8), allocatable   :: u(:,:)
@@ -968,7 +968,7 @@ contains
          write(*,*) "Seed: ",self%me,self%sample_comm,self%me_sample,seed
          call random_number(u)
       endif
-      call MPI_Bcast(u,     send_size,  MPI_REAL8,   root, self%sample_comm, ierr)
+      call MPI_Bcast(u,     send_size,  MPI_REAL8,   root, self%sample_comm, ierr(1))
       call check_ierr(ierr, self%me, "Mag rand check err")
       do i = 1, self%num_atoms
          !sphere point picking
