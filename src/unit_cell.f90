@@ -969,6 +969,7 @@ contains
          call random_number(u)
       endif
       call MPI_Bcast(u,     send_size,  MPI_REAL8,   root, self%sample_comm, ierr)
+      call check_ierr(ierr, self%me, "Mag rand check err")
       do i = 1, self%num_atoms
          !sphere point picking
          phi = 2*Pi*u(i,1)
