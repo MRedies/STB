@@ -76,7 +76,6 @@ contains
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       start =  MPI_Wtime()
-      write(*,*) "FLAG MAIN",me,me_sample
       if(me ==  root)then
          write (*,*) "running: ", trim(inp_file)
          call CFG_read_file(cfg, trim(inp_file))
@@ -93,7 +92,7 @@ contains
          call CFG_get(cfg, "ACA%perform_ACA",   perform_ACA)
          call CFG_get(cfg, "plot%plot_omega",   plot_omega)
       endif
-      
+      write(*,*) "FLAG MAIN",me,me_sample
       call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
