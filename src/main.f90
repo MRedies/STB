@@ -76,7 +76,7 @@ contains
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       start =  MPI_Wtime()
-
+      write(*,*) "FLAG MAIN",me,me_sample
       if(me ==  root)then
          write (*,*) "running: ", trim(inp_file)
          call CFG_read_file(cfg, trim(inp_file))
@@ -111,7 +111,6 @@ contains
           call error_msg("pert_log doesn't match in main", abort=.True.)
           success = .False.
       endif
-      write(*,*) "FLAG MAIN",me,me_sample
       Ksp =  init_k_space(cfg,sample_comm)
       if(me == root) call save_cfg(cfg)
 
