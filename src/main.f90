@@ -75,7 +75,6 @@ contains
       
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
-      write(*,*) "FLAG MAIN",me,me_sample
       start =  MPI_Wtime()
 
       if(me ==  root)then
@@ -113,6 +112,7 @@ contains
           success = .False.
       endif
       Ksp =  init_k_space(cfg,sample_comm)
+      write(*,*) "FLAG MAIN",me,me_sample
       if(me == root) call save_cfg(cfg)
 
       if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
