@@ -101,7 +101,6 @@ contains
       call MPI_Bcast(perform_ACA,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(plot_omega,   1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(pert_log,     1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-      write(*,*) "FLAG MAIN",me,me_sample
       !compare perturbation logical
       if(me == root) tmp = pert_log
       call MPI_Bcast(tmp, 1, MPI_LOGICAL, root, MPI_COMM_WORLD,ierr2)
@@ -109,6 +108,7 @@ contains
           call error_msg("pert_log doesn't match in main", abort=.True.)
           success = .False.
       endif
+      write(*,*) "FLAG MAIN",me,me_sample
       Ksp =  init_k_space(cfg,sample_comm)
       if(me == root) call save_cfg(cfg)
 
