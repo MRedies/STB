@@ -75,6 +75,7 @@ contains
       
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
+      write(*,*) "FLAG MAIN",me,me_sample
       start =  MPI_Wtime()
 
       if(me ==  root)then
@@ -117,10 +118,9 @@ contains
       if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
 
       halt =  MPI_Wtime()
-      if(root ==  me) then
+      if(root ==  me_sample) then
          write (*,time_fmt) "Init: ", halt-start, "s"
       endif
-      write(*,*) "FLAG MAIN",me,me_sample
       if(perform_band) then
          if(root == me) write (*,*) "started Band"
          call Ksp%calc_and_print_band()
