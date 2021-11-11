@@ -1620,9 +1620,7 @@ contains
       integer   , allocatable           :: IWORK(:)
 
       N =  2 * self%num_up
-      write (*,*) "BEFORE ALLOC" ,self%me,self%me_sample, istat(1)
       allocate(eig_val(N, size(k_list, 2)),stat = istat(1))
-      write (*,*) "AFTER ALLOC" ,self%me,self%me_sample, istat(1)
       allocate(H(N,N),stat = istat(2))
       call calc_zheevd_size('N', H, eig_val(:,1), lwork, lrwork, liwork)
       allocate(RWORK(lrwork),stat = istat(3))
