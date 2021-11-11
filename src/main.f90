@@ -39,7 +39,6 @@ program STB
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       call MPI_Comm_size(sample_comm, nProcs_sample, ierr)
-      write(*,*) "Color: ",me,me_sample,color,sample_comm,nProcs_sample
       if(me_sample==root) then
          call random_seed(size = seed_sz)
          !call system_clock(count=clock)
@@ -108,7 +107,6 @@ contains
           call error_msg("pert_log doesn't match in main", abort=.True.)
           success = .False.
       endif
-      write(*,*) "FLAG MAIN",me,me_sample
       Ksp =  init_k_space(cfg,sample_comm)
       if(me == root) call save_cfg(cfg)
 
