@@ -466,6 +466,7 @@ contains
             read (21, *) transl_mtx(i, 1), transl_mtx(i, 2), transl_mtx(i, 3)
          enddo
          close (21)
+         write(*,*) "Trans: ",transl_mtx
       endif
 
       !if we want a molecule, ensure that no wrap-around is found
