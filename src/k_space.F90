@@ -280,6 +280,8 @@ contains
          call self%setup_inte_grid_para(self%DOS_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "file_square") then
          call self%setup_inte_grid_para(self%DOS_num_k_pts)
+      elseif(trim(self%ham%UC%uc_type) == "file_honey") then
+            call self%setup_inte_grid_hex(self%DOS_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
          call self%setup_inte_grid_hex(self%DOS_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_line") then
@@ -1857,6 +1859,8 @@ contains
          call self%setup_inte_grid_para(self%berry_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "file_square") then
          call self%setup_inte_grid_para(self%berry_num_k_pts)
+         elseif(trim(self%ham%UC%uc_type) == "file_honey") then
+            call self%setup_inte_grid_hex(self%berry_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
          call self%setup_inte_grid_hex(self%berry_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_line") then
