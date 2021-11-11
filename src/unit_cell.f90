@@ -91,6 +91,7 @@ module Class_unit_cell
       procedure :: make_honeycomb_line => make_honeycomb_line
       procedure :: free_uc => free_uc
       procedure :: init_file_square => init_file_square
+      procedure :: init_file_honey => init_file_honey
       procedure :: run_tests => run_tests
       procedure :: calc_area => calc_area
    end type unit_cell
@@ -198,6 +199,8 @@ contains
          call self%init_unit_honey_line()
       else if (trim(self%uc_type) == "file_square") then
          call self%init_file_square()
+      else if (trim(self%uc_type) == "file_honey") then
+         call self%init_file_honey()
       else
          write (*, *) self%me, ": Cell type unknown"
          stop
@@ -410,6 +413,75 @@ contains
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
       deallocate (m, pos)
    end subroutine init_file_square
+
+   subroutine init_file_honey(self)
+      use mpi
+      implicit none
+      class(unit_cell), intent(inout)   :: self
+      real(8)                           :: conn_mtx(3, 3)
+      real(8), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :)
+      integer                           :: n(3), i, n_transl
+      integer                           :: info
+      character(len=300)                :: garb
+
+      if (self%me == root) then
+         write (*, *) "file =  ", trim(self%mag_file)
+         open (unit=21, file=trim(self%mag_file))
+         read (21, *) garb, n(1), n(2), n(3)
+         write (*, *) n
+      endif
+      call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
+      self%num_atoms = n(1)*n(2)*n(3)
+
+      allocate (self%atoms(self%num_atoms))
+      allocate (m(3, self%num_atoms))
+      allocate (pos(3, self%num_atoms))
+
+      do i = 1, self%num_atoms
+         if (self%me == root) then
+            read (21, *) pos(1, i), pos(2, i), pos(3, i), m(1, i), m(2, i), m(3, i)
+         endif
+      enddo
+
+      call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
+                     root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
+                     root, MPI_COMM_WORLD, info)
+
+      pos = pos*self%lattice_constant
+
+      do i = 1, self%num_atoms
+         self%atoms(i) = init_ferro_z(pos(:, i))
+         call self%atoms(i)%set_m_cart(m(1, i), m(2, i), m(3, i))
+      enddo
+
+      if (self%me == root) read (21, *) garb, n_transl
+      call MPI_Bcast(n_transl, 1, MYPI_INT, root, MPI_COMM_WORLD, info)
+      allocate (transl_mtx(n_transl, 3))
+
+      if (self%me == root) then
+         do i = 1, n_transl
+            read (21, *) transl_mtx(i, 1), transl_mtx(i, 2), transl_mtx(i, 3)
+         enddo
+         close (21)
+      endif
+
+      !if we want a molecule, ensure that no wrap-around is found
+      if (self%molecule) transl_mtx = transl_mtx*10d0
+
+      call MPI_Bcast(transl_mtx, int(3*n_transl, 4), MPI_REAL8, root, MPI_COMM_WORLD, info)
+
+      conn_mtx(1, :) = (/self%lattice_constant, 0d0, 0d0/)
+      conn_mtx(2, :) = (/0d0, self%lattice_constant, 0d0/)
+      conn_mtx(3, :) = (/0d0, 0d0, self%lattice_constant/)
+
+      self%lattice(:, 1) = self%lattice_constant*transl_mtx(:, 1)
+      self%lattice(:, 2) = self%lattice_constant*transl_mtx(:, 2)
+
+      call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
+      deallocate (m, pos)
+   end subroutine init_file_honey
+
 
    subroutine make_hexagon(self, hexagon, site_type)
       implicit none
