@@ -466,8 +466,6 @@ contains
             read (21, *) transl_mtx(i, 1), transl_mtx(i, 2), transl_mtx(i, 3)
          enddo
          close (21)
-         write(*,*) "Trans1 : ",transl_mtx(:,1)
-         write(*,*) "Trans2 : ",transl_mtx(:,2)
       endif
 
       !if we want a molecule, ensure that no wrap-around is found
@@ -479,8 +477,8 @@ contains
       conn_mtx(2, :) = (/0d0, self%lattice_constant, 0d0/)
       conn_mtx(3, :) = (/0d0, 0d0, self%lattice_constant/)
 
-      self%lattice(:, 1) = self%lattice_constant*transl_mtx(:, 1)
-      self%lattice(:, 2) = self%lattice_constant*transl_mtx(:, 2)
+      self%lattice(:, 1) = self%lattice_constant*transl_mtx(1:2, 1)
+      self%lattice(:, 2) = self%lattice_constant*transl_mtx(1:2, 2)
 
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
       deallocate (m, pos)
