@@ -433,7 +433,7 @@ contains
          write (*, *) n
       endif
       call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
-      self%num_atoms = n(1)*n(2)*n(3)
+      self%num_atoms = 2*n(1)*n(2)*n(3)
 
       allocate (self%atoms(self%num_atoms))
       allocate (m(3, self%num_atoms))
