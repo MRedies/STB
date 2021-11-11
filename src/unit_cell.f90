@@ -205,7 +205,9 @@ contains
          write (*, *) self%me, ": Cell type unknown"
          stop
       endif
-
+      if (self%me == 0) then
+         write(*,*) self%lattice
+      endif
       ! calculate reciprocal grid
       self%rez_lattice = transpose(self%lattice)
       call dgetrf(2, 2, self%rez_lattice, 2, ipiv, info)
