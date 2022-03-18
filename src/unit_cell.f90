@@ -454,7 +454,7 @@ contains
       call MPI_Bcast(site_type, int(self%num_atoms, 4), MYPI_INT, &
                      root, MPI_COMM_WORLD, info)
 
-      pos = pos*self%lattice_constant
+      pos = transpose(pos)*self%lattice_constant
 
       call self%setup_honey(pos,site_type)
 
