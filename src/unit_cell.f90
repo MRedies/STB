@@ -421,7 +421,7 @@ contains
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)
-      real(8), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :)
+      real(8), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :), site_type(:)
       integer                           :: n(3), i, n_transl
       integer                           :: info
       character(len=300)                :: garb
@@ -438,10 +438,11 @@ contains
       allocate (self%atoms(self%num_atoms))
       allocate (m(3, self%num_atoms))
       allocate (pos(3, self%num_atoms))
+      allocate (site_type(self%num_atoms))
 
       do i = 1, self%num_atoms
          if (self%me == root) then
-            read (21, *) pos(1, i), pos(2, i), pos(3, i), m(1, i), m(2, i), m(3, i)
+            read (21, *) pos(1, i), pos(2, i), pos(3, i), m(1, i), m(2, i), m(3, i), site_type(i)
          endif
       enddo
 
@@ -452,10 +453,7 @@ contains
 
       pos = pos*self%lattice_constant
 
-      do i = 1, self%num_atoms
-         self%atoms(i) = init_ferro_z(pos(:, i))
-         call self%atoms(i)%set_m_cart(m(1, i), m(2, i), m(3, i))
-      enddo
+      call self%setup_honey(pos,site_type)
 
       if (self%me == root) read (21, *) garb, n_transl
       call MPI_Bcast(n_transl, 1, MYPI_INT, root, MPI_COMM_WORLD, info)
