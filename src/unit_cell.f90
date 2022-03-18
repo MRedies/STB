@@ -451,6 +451,8 @@ contains
                      root, MPI_COMM_WORLD, info)
       call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(site_type, int(self%num_atoms, 4), MPI_REAL8, &
+                     root, MPI_COMM_WORLD, info)
 
       pos = pos*self%lattice_constant
 
