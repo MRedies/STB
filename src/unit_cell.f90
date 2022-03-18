@@ -482,7 +482,7 @@ contains
       self%lattice(:, 2) = self%lattice_constant*transl_mtx(2, :)
 
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
-      call self%set_honey_snd_nearest()
+      call self%set_honey_snd_nearest(transl_mtx)
       deallocate (m, pos)
    end subroutine init_file_honey
 
@@ -756,7 +756,7 @@ contains
       conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]
 
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
-      call self%set_honey_snd_nearest()
+      call self%set_honey_snd_nearest(transl_mtx)
 
       if (trim(self%mag_type) == "ferro") then
          call self%set_mag_ferro()
@@ -834,19 +834,20 @@ contains
 
    end subroutine set_honey_snd_nearest_line
 
-   subroutine set_honey_snd_nearest(self)
+   subroutine set_honey_snd_nearest(self,transl_mtx)
       implicit none
       class(unit_cell)        :: self
       integer                 :: i, j, cand, apd
       real(8)                 :: l, conn_mtx_A(3, 3), conn_mtx_B(3, 3), start_pos(3), &
-                                 conn(3), transl_mtx(3, 3), conn_storage(3, 3)
+                                 conn(3), conn_storage(3, 3)
       real(8), allocatable    :: tmp(:, :)
+      real(8), intent(in)     :: transl_mtx(3, 3)
       integer                 :: idx(3), curr_size
       apd = self%atom_per_dim
       l = 2d0*cos(deg_30)*self%lattice_constant
-      transl_mtx(1, :) = apd*l*[1d0, 0d0, 0d0]
-      transl_mtx(2, :) = apd*l*[0.5d0, sin(deg_60), 0d0]
-      transl_mtx(3, :) = apd*l*[0.5d0, -sin(deg_60), 0d0]
+      !transl_mtx(1, :) = apd*l*[1d0, 0d0, 0d0]
+      !transl_mtx(2, :) = apd*l*[0.5d0, sin(deg_60), 0d0]
+      !transl_mtx(3, :) = apd*l*[0.5d0, -sin(deg_60), 0d0]
 
       !only clockwise connections
       conn_mtx_A(1, :) = l*[-1d0, 0d0, 0d0]
