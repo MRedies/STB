@@ -1593,7 +1593,7 @@ contains
       real(8), intent(in) :: start(3) !> RS start position
       real(8), intent(in) :: conn(3) !> RZ connection
       real(8) :: new(3), delta_vec(3), delta
-      real(8), parameter :: repl_eps = 1d-8
+      real(8), parameter :: repl_eps = 1d-4
       integer    :: idx
       integer    :: i
 
