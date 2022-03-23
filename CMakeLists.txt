@@ -79,12 +79,6 @@ set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${dialect}")
 MESSAGE( STATUS "Flags:  ${CMAKE_Fortran_FLAGS}")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-find_package(fortran_stdlib REQUIRED)
-target_link_libraries(
-  ${stb.x}
-  PRIVATE
-  fortran_stdlib::fortran_stdlib
-)
 MESSAGE( STATUS "cmake_module_path:    " ${CMAKE_MODULE_PATH})
 
 MESSAGE(STATUS ${CMAKE_EXE_LINKER_FLAGS})
