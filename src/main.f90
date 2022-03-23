@@ -1,5 +1,6 @@
 program STB
    use Class_k_space
+   use Class_mpi_wrapper! wrapper around MPI_COMM_SPLIT for error documentation
    use m_config
    use m_npy
    use output
@@ -11,43 +12,69 @@ program STB
    implicit none
    type(k_space)                   :: Ksp
    character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
-   integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt
+   integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
+                                      ,sample_comm,color,n_sample_par,nProcs,n_sample&
+                                      ,ierr, me, me_sample,samples_per_comm, clock,nProcs_sample
    integer   , allocatable         :: seed(:)
-   integer                         :: ierr, me
+   type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
  
    call MPI_Init(ierr)
    call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
-
-   call random_seed(size = seed_sz)
-   allocate(seed(seed_sz))
-   seed =  7
-   call random_seed(put=seed)
+   call MPI_Comm_size(MPI_COMM_WORLD, nProcs, ierr)
 
    call get_inp_files(n_files, inp_files)
-
    call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
+   n_sample_par = 0
+   if (n_files == 1) then
+      if(me ==  root)then
+         write (*,*) "Reading n_sample from: ", trim(inp_files(1))
+         call CFG_read_file(cfg, trim(inp_files(1)))
+         call add_full_cfg(cfg)
+         call CFG_get(cfg, "berry%n_sample_par",  n_sample_par)
+      endif
+      call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
+      call calc_color(n_sample_par,nProcs,me,color)
+      !sorting in new comm according to rank in world
+      call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
+      call MPI_Comm_rank(sample_comm, me_sample, ierr)
+      call MPI_Comm_size(sample_comm, nProcs_sample, ierr)
+      if(me_sample==root) then
+         call random_seed(size = seed_sz)
+         !call system_clock(count=clock)
+         clock = 10 + me
+         allocate(seed(seed_sz))
+         seed = clock
+         call random_seed(put=seed)
+      endif
+      samples_per_comm = calc_samples_per_comm(n_sample_par,nProcs)
+      do n_sample = 1,samples_per_comm
+         call process_file(inp_files(1),sample_comm)
+      enddo
+   else 
+      do n_inp = 1, n_files
+         if(me == root) write (*,*) "started at ", date_time()
+         call process_file(inp_files(n_inp),MPI_COMM_WORLD)
+      enddo
+   endif
    
-   do n_inp = 1, n_files
-      if(me == root) write (*,*) "started at ", date_time()
-      call process_file(inp_files(n_inp))
-   enddo
-
    call MPI_Finalize(ierr)
 contains
-   subroutine process_file(inp_file)
+   subroutine process_file(inp_file,sample_comm)
       use mpi
       implicit none
       character(len=300), intent(in) :: inp_file
+      integer, intent(in)            :: sample_comm
       real(8)                        :: start, halt
-      integer                        :: me, ierr,ierr2
+      integer                        :: me, ierr,ierr2,me_sample
       logical                        :: perform_band, perform_dos, calc_hall, calc_hall_diag,&
                                         calc_orbmag, perform_ACA,plot_omega,pert_log,tmp,success
       type(CFG_t)                     :: cfg
       character(len=25)               :: fermi_type
+      
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
+      call MPI_Comm_rank(sample_comm, me_sample, ierr)
       start =  MPI_Wtime()
-
       if(me ==  root)then
          write (*,*) "running: ", trim(inp_file)
          call CFG_read_file(cfg, trim(inp_file))
@@ -64,7 +91,6 @@ contains
          call CFG_get(cfg, "ACA%perform_ACA",   perform_ACA)
          call CFG_get(cfg, "plot%plot_omega",   plot_omega)
       endif
-
       call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
@@ -74,7 +100,6 @@ contains
       call MPI_Bcast(perform_ACA,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(plot_omega,   1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(pert_log,     1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-
       !compare perturbation logical
       if(me == root) tmp = pert_log
       call MPI_Bcast(tmp, 1, MPI_LOGICAL, root, MPI_COMM_WORLD,ierr2)
@@ -82,16 +107,15 @@ contains
           call error_msg("pert_log doesn't match in main", abort=.True.)
           success = .False.
       endif
-      Ksp =  init_k_space(cfg)
+      Ksp =  init_k_space(cfg,sample_comm)
       if(me == root) call save_cfg(cfg)
 
       if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
 
       halt =  MPI_Wtime()
-      if(root ==  me) then
+      if(root ==  me_sample) then
          write (*,time_fmt) "Init: ", halt-start, "s"
       endif
-
       if(perform_band) then
          if(root == me) write (*,*) "started Band"
          call Ksp%calc_and_print_band()
@@ -270,6 +294,7 @@ contains
       call CFG_add(cfg, "dos%lower_E_bound",    0d0,     "")
       call CFG_add(cfg, "dos%upper_E_bound",    0d0,     "")
       call CFG_add(cfg, "berry%fermi_type", "fixed",      "")
+      call CFG_add(cfg, "berry%n_sample_par", 1,      "")
       call CFG_add(cfg, "berry%E_fermi",          [-10d0, 10d0, 300d0],   "")
       call CFG_add(cfg, "dos%fermi_fill",       0.5d0,   "")
       call CFG_add(cfg, "berry%pert_log", .False., "")
@@ -313,4 +338,39 @@ contains
       call CFG_write(cfg, trim(prefix) // "setup.cfg")
 
    end subroutine save_cfg
+
+   subroutine calc_color(n_sample_par,nProcs,rank,color)
+      use mpi
+      implicit none
+      integer , intent(in)           :: n_sample_par,nProcs,rank
+      integer                        :: color,divide,high
+      
+      color = 0
+      if (n_sample_par<nProcs) then
+         divide = nProcs/n_sample_par
+         high = divide*n_sample_par
+         color = rank/divide
+         if (rank>high) then
+            color = mod(rank,n_sample_par)
+         endif
+      else
+         color = rank
+      endif
+      
+   end subroutine
+   
+   function calc_samples_per_comm(n_sample_par,nProcs) result(samples_per_comm)
+      use mpi
+      implicit none
+      integer , intent(in)           :: n_sample_par,nProcs
+      integer                        :: samples_per_comm, rest
+
+      if (n_sample_par>nProcs) then
+         samples_per_comm = n_sample_par/nProcs
+         rest = mod(n_sample_par,nProcs)
+      else
+         samples_per_comm = 1
+      endif
+
+   end function
 end program STB

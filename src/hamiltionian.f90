@@ -31,6 +31,9 @@ module Class_hamiltionian
       integer         :: nProcs
       integer         :: me
       integer         :: num_orb, num_up
+      integer         :: sample_comm! the comm after splitting world
+      integer         :: me_sample
+      integer         :: nProcs_sample
       logical      :: test_run !> should unit tests be performed
       type(unit_cell) :: UC !> unit cell
       type(units)     :: units
@@ -298,19 +301,26 @@ contains
       endif
    end subroutine test_herm
 
-   function init_hamil(cfg) result(self)
+   function init_hamil(cfg,sample_comm) result(self)
       implicit none
-      type(CFG_t)    :: cfg
-      type(hamil)    :: self
-      real(8)        :: tmp
-      integer        :: ierr
-      integer        :: n, n_arr
+      type(CFG_t)         :: cfg
+      type(hamil)         :: self
+      integer, intent(in) :: sample_comm
+      real(8)             :: tmp
+      integer             :: ierr
+      integer             :: n, n_arr
 
+      self%sample_comm = sample_comm
+      
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
+      
+      call MPI_Comm_size(self%sample_comm, self%nProcs_sample, ierr)
+      call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
 
       self%units = init_units(cfg, self%me)
-      self%UC    = init_unit(cfg)
+      self%UC    = init_unit(cfg,sample_comm)
+
 
       if(self%me ==  0) then
          call CFG_get(cfg, "berry%temperature", tmp)
@@ -1603,20 +1613,22 @@ contains
       real(8), allocatable,intent(out)  :: eig_val(:,:)
       real(8)                           :: k(3)
       complex(8), allocatable           :: H(:,:)
-      integer    :: i, N, lwork, lrwork, liwork, info
+      integer                           :: i, N, lwork, lrwork, liwork, info&
+                                          , istat(5)=0
       real(8), allocatable              :: RWORK(:)
       complex(8), allocatable           :: WORK(:)
       integer   , allocatable           :: IWORK(:)
 
       N =  2 * self%num_up
-      allocate(eig_val(N, size(k_list, 2)))
-      allocate(H(N,N))
+      allocate(eig_val(N, size(k_list, 2)),stat = istat(1))
+      allocate(H(N,N),stat = istat(2))
       call calc_zheevd_size('N', H, eig_val(:,1), lwork, lrwork, liwork)
-      allocate(RWORK(lrwork))
-      allocate(IWORK(liwork))
-      allocate(WORK(lwork))
-
-      call MPI_Barrier(MPI_COMM_WORLD, info)
+      allocate(RWORK(lrwork),stat = istat(3))
+      allocate(IWORK(liwork),stat = istat(4))
+      allocate(WORK(lwork),stat = istat(5))
+      call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ham%calc_eig"])
+      !call MPI_Barrier(MPI_COMM_WORLD, info)
+      call MPI_Barrier(self%sample_comm, info)
       do i = 1,size(k_list,2)
          k =  k_list(:,i)
          call self%setup_H(k, H)

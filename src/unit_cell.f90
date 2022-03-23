@@ -27,6 +27,9 @@ module Class_unit_cell
       integer    :: nProcs
       integer    :: me
       integer    :: n_wind !> winding number for lin_rot
+      integer    :: sample_comm ! the communicator after splitting world
+      integer    :: nProcs_sample ! number of procs in comm
+      integer    :: me_sample ! rank in comm
       integer, allocatable    :: wavevector(:)
       real(8) :: lattice_constant !> lattice constant in atomic units
       real(8) :: eps !> threshold for positional accuracy
@@ -88,6 +91,8 @@ module Class_unit_cell
       procedure :: make_honeycomb_line => make_honeycomb_line
       procedure :: free_uc => free_uc
       procedure :: init_file_square => init_file_square
+      procedure :: init_file_honey => init_file_honey
+      procedure :: init_file_honey_high_troughput => init_file_honey_high_troughput
       procedure :: run_tests => run_tests
       procedure :: calc_area => calc_area
    end type unit_cell
@@ -113,11 +118,12 @@ contains
       ang = 180.0d0/PI*acos(ang)
    end function angle
 
-   function init_unit(cfg) result(self)
+   function init_unit(cfg,sample_comm) result(self)
       implicit none
       type(CFG_t)       :: cfg !> config file as read by m_config
       type(unit_cell)   :: self
       integer, parameter           :: lwork = 20
+      integer, intent(in)             :: sample_comm
       real(8)                         :: work(lwork), tmp
       integer, dimension(2)        :: ipiv
       integer                         :: info
@@ -127,6 +133,11 @@ contains
 
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
+      
+      self%sample_comm = sample_comm
+
+      call MPI_Comm_size(self%sample_comm, self%nProcs_sample, ierr)
+      call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
 
       self%units = init_units(cfg, self%me)
 
@@ -174,6 +185,7 @@ contains
          call CFG_get(cfg, "grid%dblatan_pref", self%dblatan_pref)
 
          call CFG_get(cfg, "grid%mag_file", self%mag_file)
+         call CFG_get(cfg, "grid%vec_pos_file", self%vec_pos_file)
          call CFG_get(cfg, "general%test_run", self%test_run)
 
 
@@ -189,11 +201,15 @@ contains
          call self%init_unit_honey_line()
       else if (trim(self%uc_type) == "file_square") then
          call self%init_file_square()
+      else if (trim(self%uc_type) == "file_honey") then
+         call self%init_file_honey()
       else
          write (*, *) self%me, ": Cell type unknown"
          stop
       endif
-
+      if (self%me == 0) then
+         write(*,*) self%lattice
+      endif
       ! calculate reciprocal grid
       self%rez_lattice = transpose(self%lattice)
       call dgetrf(2, 2, self%rez_lattice, 2, ipiv, info)
@@ -401,6 +417,154 @@ contains
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
       deallocate (m, pos)
    end subroutine init_file_square
+
+   subroutine init_file_honey(self)
+      use mpi
+      implicit none
+      class(unit_cell), intent(inout)   :: self
+      real(8)                           :: conn_mtx(3, 3)
+      real(8), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :)
+      integer, allocatable              :: site_type(:)
+      integer                           :: n(3), i, n_transl
+      integer                           :: info
+      character(len=300)                :: garb
+
+      if (self%me == root) then
+         write (*, *) "file =  ", trim(self%mag_file)
+         open (unit=21, file=trim(self%mag_file))
+         read (21, *) garb, n(1), n(2), n(3)
+         write (*, *) n
+      endif
+      call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
+      self%num_atoms = 2*n(1)*n(2)*n(3)
+
+      allocate (self%atoms(self%num_atoms))
+      allocate (m(3, self%num_atoms))
+      allocate (pos(3, self%num_atoms))
+      allocate (site_type(self%num_atoms))
+
+      do i = 1, self%num_atoms
+         if (self%me == root) then
+            read (21, *) pos(1, i), pos(2, i), pos(3, i), m(1, i), m(2, i), m(3, i), site_type(i)
+         endif
+      enddo
+
+      call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
+                     root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
+                     root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(site_type, int(self%num_atoms, 4), MYPI_INT, &
+                     root, MPI_COMM_WORLD, info)
+
+      pos = transpose(pos)*self%lattice_constant
+
+      call self%setup_honey(pos,site_type)
+
+      if (self%me == root) read (21, *) garb, n_transl
+      call MPI_Bcast(n_transl, 1, MYPI_INT, root, MPI_COMM_WORLD, info)
+      allocate (transl_mtx(n_transl, 3))
+
+      if (self%me == root) then
+         do i = 1, n_transl
+            read (21, *) transl_mtx(i, 1), transl_mtx(i, 2), transl_mtx(i, 3)
+         enddo
+         close (21)
+      endif
+
+      !if we want a molecule, ensure that no wrap-around is found
+      if (self%molecule) transl_mtx = transl_mtx*10d0
+
+      call MPI_Bcast(transl_mtx, int(3*n_transl, 4), MPI_REAL8, root, MPI_COMM_WORLD, info)
+
+      conn_mtx(1, :) = self%lattice_constant*[0d0, 1d0, 0d0]!1
+      conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]!2
+      conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]!3
+
+      self%lattice(:, 1) = self%lattice_constant*transl_mtx(1, :)
+      self%lattice(:, 2) = self%lattice_constant*transl_mtx(2, :)
+
+      call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
+      call self%set_honey_snd_nearest(transl_mtx)
+      deallocate (m, pos)
+   end subroutine init_file_honey
+
+   subroutine init_file_honey_high_troughput(self)
+      use mpi
+      use stdlib_io_npy, only: load_npy
+      implicit none
+      class(unit_cell), intent(inout)   :: self
+      real(8)                           :: conn_mtx(3, 3)
+      real(8), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :)
+      integer, allocatable              :: site_type(:)
+      integer                           :: n(3), i, n_transl
+      integer                           :: info
+      character(len=300)                :: garb
+
+
+      !READ IN STUFF WITH LOAD_NPY
+      !if (self%me == root) then
+      !read (21, *) garb, n(1), n(2), n(3)
+
+      !call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
+      !self%num_atoms = 2*n(1)*n(2)*n(3)
+      !self%vec_pos_file
+      if (self%me == root) then
+         open (unit=21, file=trim(self%mag_file))
+         read (21, *) garb, n_transl, n(1), n(2), n(3)
+         !N_VECTORS, N_A, N_B, N_C
+      endif
+         call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(n_transl, 1, MYPI_INT, root, MPI_COMM_WORLD, info)
+      self%num_atoms = 2*n(1)*n(2)*n(3)
+      allocate (self%atoms(self%num_atoms))
+      allocate (m(3, self%num_atoms))
+      allocate (pos(3, self%num_atoms))
+      allocate (site_type(self%num_atoms))
+      allocate (transl_mtx(n_transl, 3))
+      !READ IN STUFF WITH LOAD_NPY
+      if (self%me == root) then
+         do i = 1, n_transl
+            read (21, *) transl_mtx(i, 1), transl_mtx(i, 2), transl_mtx(i, 3)
+         enddo
+      endif
+      if (self%me == root) then
+         do i = 1, self%num_atoms
+            read (21, *) pos(1, i), pos(2, i), pos(3, i), site_type
+         enddo
+      endif
+         
+      if (self%me == root) then
+         call load_npy(self%mag_file,m)
+      endif
+      call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
+                     root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
+                     root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(site_type, int(self%num_atoms, 4), MYPI_INT, &
+                     root, MPI_COMM_WORLD, info)
+
+      pos = transpose(pos)*self%lattice_constant
+
+      call self%setup_honey(pos,site_type)
+
+
+      !if we want a molecule, ensure that no wrap-around is found
+      if (self%molecule) transl_mtx = transl_mtx*10d0
+
+      call MPI_Bcast(transl_mtx, int(3*n_transl, 4), MPI_REAL8, root, MPI_COMM_WORLD, info)
+
+      conn_mtx(1, :) = self%lattice_constant*[0d0, 1d0, 0d0]!1
+      conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]!2
+      conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]!3
+
+      self%lattice(:, 1) = self%lattice_constant*transl_mtx(1, :)
+      self%lattice(:, 2) = self%lattice_constant*transl_mtx(2, :)
+
+      call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
+      call self%set_honey_snd_nearest(transl_mtx)
+      deallocate (m, pos)
+   end subroutine init_file_honey_high_troughput
+
 
    subroutine make_hexagon(self, hexagon, site_type)
       implicit none
@@ -671,7 +835,7 @@ contains
       conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]
 
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
-      call self%set_honey_snd_nearest()
+      call self%set_honey_snd_nearest(transl_mtx)
 
       if (trim(self%mag_type) == "ferro") then
          call self%set_mag_ferro()
@@ -749,19 +913,20 @@ contains
 
    end subroutine set_honey_snd_nearest_line
 
-   subroutine set_honey_snd_nearest(self)
+   subroutine set_honey_snd_nearest(self,transl_mtx)
       implicit none
       class(unit_cell)        :: self
       integer                 :: i, j, cand, apd
       real(8)                 :: l, conn_mtx_A(3, 3), conn_mtx_B(3, 3), start_pos(3), &
-                                 conn(3), transl_mtx(3, 3), conn_storage(3, 3)
+                                 conn(3), conn_storage(3, 3)
       real(8), allocatable    :: tmp(:, :)
+      real(8), intent(in)     :: transl_mtx(3, 3)
       integer                 :: idx(3), curr_size
       apd = self%atom_per_dim
       l = 2d0*cos(deg_30)*self%lattice_constant
-      transl_mtx(1, :) = apd*l*[1d0, 0d0, 0d0]
-      transl_mtx(2, :) = apd*l*[0.5d0, sin(deg_60), 0d0]
-      transl_mtx(3, :) = apd*l*[0.5d0, -sin(deg_60), 0d0]
+      !transl_mtx(1, :) = apd*l*[1d0, 0d0, 0d0]
+      !transl_mtx(2, :) = apd*l*[0.5d0, sin(deg_60), 0d0]
+      !transl_mtx(3, :) = apd*l*[0.5d0, -sin(deg_60), 0d0]
 
       !only clockwise connections
       conn_mtx_A(1, :) = l*[-1d0, 0d0, 0d0]
@@ -945,14 +1110,27 @@ contains
    subroutine set_mag_random(self)
       implicit none
       class(unit_cell)       :: self
-      integer                :: i
-      real(8)                :: phi, theta, r(2)
+      integer                :: i,ierr(1),send_size,seed_sz
+      integer, allocatable   :: seed(:)
+      real(8)                :: phi, theta
+      real(8), allocatable   :: u(:,:)
 
+      allocate (u(self%num_atoms,2))
+      send_size = size(u)
+      if (self%me_sample==root) then
+         call random_seed(size = seed_sz)
+         allocate(seed(seed_sz))
+         call random_seed(get=seed)
+         write(*,*) "Seed: ",self%me,self%sample_comm,self%me_sample,seed
+         call random_number(u)
+      endif
+      call MPI_Bcast(u,     send_size,  MPI_REAL8,   root, self%sample_comm, ierr(1))
+      call check_ierr(ierr, self%me, "Mag rand check err")
       do i = 1, self%num_atoms
-         call random_number(r)
-
-         phi = r(1)*2d0*PI
-         theta = r(2)*PI
+         !sphere point picking
+         phi = 2*Pi*u(i,1)
+         theta = acos(2*u(i,2)-1d0)
+         !write(*,*) self%me,self%me_sample,phi,theta
          call self%atoms(i)%set_sphere(phi, theta)
       enddo
    end subroutine set_mag_random
@@ -1494,7 +1672,7 @@ contains
       real(8), intent(in) :: start(3) !> RS start position
       real(8), intent(in) :: conn(3) !> RZ connection
       real(8) :: new(3), delta_vec(3), delta
-      real(8), parameter :: repl_eps = 1d-8
+      real(8), parameter :: repl_eps = 1d-4
       integer    :: idx
       integer    :: i
 

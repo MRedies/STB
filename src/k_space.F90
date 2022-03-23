@@ -28,6 +28,9 @@ module Class_k_space
       integer              :: me !> MPI rank
       integer              :: berry_iter !> number of grid refinements
       integer              :: kpts_per_step !> new kpts per step and Proc
+      integer              :: me_sample
+      integer              :: nProcs_sample
+      integer              :: sample_comm ! the communicator after splitting world
       real(8)              :: k_shift(3) !> shift of brillouine-zone
       real(8)              :: berry_conv_crit !> convergance criterion for berry integration
       real(8), allocatable :: weights(:) !> weights for integration
@@ -131,10 +134,9 @@ contains
       Implicit None
       class(k_space)                :: self
       integer                       :: first, last, N
-      integer                       :: send_count, ierr
+      integer                       :: send_count, ierr, istat(4)=0
       integer   , allocatable       :: num_elems(:), offsets(:)
       real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
-
       if(trim(self%filling) ==  "path_rel") then
          call self%setup_k_path_rel()
       else if(trim(self%filling) == "path_abs") then
@@ -145,26 +147,28 @@ contains
          call error_msg("Filling not known", abort=.True.)
       endif
 
-      call my_section(self%me, self%nProcs, size(self%new_k_pts, 2), first, last)
-      allocate(k_pts_sec(3, last - first + 1))
+      call my_section(self%me_sample, self%nProcs_sample, size(self%new_k_pts, 2), first, last)
+      allocate(k_pts_sec(3, last - first + 1),stat = istat(1))
       k_pts_sec = self%new_k_pts(:,first:last)
-
       call self%ham%calc_eigenvalues(k_pts_sec, sec_eig_val)
-
       N = 2 *  self%ham%num_up
-      allocate(eig_val(N, size(self%new_k_pts,2)))
-      allocate(num_elems(self%nProcs))
-      allocate(offsets(self%nProcs))
-      call sections(self%nProcs, size(self%new_k_pts, 2), num_elems, offsets)
+      allocate(eig_val(N, size(self%new_k_pts,2)),stat = istat(2))
+      allocate(num_elems(self%nProcs_sample),stat = istat(3))
+      allocate(offsets(self%nProcs_sample),stat = istat(4))
+      call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%calc_and_print_band"])
+      call sections(self%nProcs_sample, size(self%new_k_pts, 2), num_elems, offsets)
       num_elems =  num_elems * N
       offsets   =  offsets   * N
 
       send_count =  N *  size(k_pts_sec, 2)
+      !call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
+      !                 eig_val,     num_elems,  offsets,   MPI_REAL8,&
+      !                 root,        MPI_COMM_WORLD, ierr)
       call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
                        eig_val,     num_elems,  offsets,   MPI_REAL8,&
-                       root,        MPI_COMM_WORLD, ierr)
+                       root,        self%sample_comm, ierr)
 
-      if(self%me == root) then
+      if(self%me_sample == root) then
          call save_npy(trim(self%prefix) //  "band_k.npy", self%new_k_pts / self%units%inv_length)
          call save_npy(trim(self%prefix) //  "band_E.npy", eig_val / self%units%energy)
          call save_npy(trim(self%prefix) //  "lattice.npy", &
@@ -276,6 +280,8 @@ contains
          call self%setup_inte_grid_para(self%DOS_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "file_square") then
          call self%setup_inte_grid_para(self%DOS_num_k_pts)
+      elseif(trim(self%ham%UC%uc_type) == "file_honey") then
+            call self%setup_inte_grid_hex(self%DOS_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
          call self%setup_inte_grid_hex(self%DOS_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_line") then
@@ -335,7 +341,7 @@ contains
       endif
    end subroutine calc_and_print_dos
 
-   function init_k_space(cfg) result(self)
+   function init_k_space(cfg,sample_comm) result(self)
       use mpi
       implicit none
       type(k_space)         :: self
@@ -344,12 +350,18 @@ contains
       !logical               :: logtmp
       integer               :: sz
       integer               :: ierr
+      integer, intent(in)   :: sample_comm
+
+      self%sample_comm = sample_comm
 
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
 
+      call MPI_Comm_size(self%sample_comm, self%nProcs_sample, ierr)
+      call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
+
       self%units = init_units(cfg, self%me)
-      self%ham   = init_hamil(cfg)
+      self%ham   = init_hamil(cfg,sample_comm)    
 
       if(self%me ==  0) then
          call CFG_get(cfg, "grid%k_shift", self%k_shift)
@@ -1151,9 +1163,12 @@ contains
          call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
          num_elems =  num_elems
          offsets   =  offsets
+         !call MPI_Gatherv(varall, send_count, MPI_REAL8, &
+         !               var_all_all,     num_elems,  offsets,   MPI_REAL8,&
+         !               root,        MPI_COMM_WORLD, ierr)
          call MPI_Gatherv(varall, send_count, MPI_REAL8, &
                         var_all_all,     num_elems,  offsets,   MPI_REAL8,&
-                        root,        MPI_COMM_WORLD, ierr)
+                        root,        self%sample_comm, ierr)
          deallocate(num_elems,offsets)
       endif
       if(self%me == root) then
@@ -1216,9 +1231,12 @@ contains
          call sections(self%nProcs, send_count*self%nProcs, num_elems, offsets)
          num_elems =  num_elems
          offsets   =  offsets
+         !call MPI_Gatherv(varall, send_count, MPI_REAL8, &
+         !               var_all_all,     num_elems,  offsets,   MPI_REAL8,&
+         !               root,        MPI_COMM_WORLD, ierr)
          call MPI_Gatherv(varall, send_count, MPI_REAL8, &
                         var_all_all,     num_elems,  offsets,   MPI_REAL8,&
-                        root,        MPI_COMM_WORLD, ierr)
+                        root,        self%sample_comm, ierr)
          deallocate(num_elems,offsets)
       endif
       if(self%me == root) then
@@ -1841,6 +1859,8 @@ contains
          call self%setup_inte_grid_para(self%berry_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "file_square") then
          call self%setup_inte_grid_para(self%berry_num_k_pts)
+         elseif(trim(self%ham%UC%uc_type) == "file_honey") then
+            call self%setup_inte_grid_hex(self%berry_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_2d") then
          call self%setup_inte_grid_hex(self%berry_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_line") then
