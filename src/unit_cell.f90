@@ -92,7 +92,7 @@ module Class_unit_cell
       procedure :: free_uc => free_uc
       procedure :: init_file_square => init_file_square
       procedure :: init_file_honey => init_file_honey
-      procedure :: init_file_honey_high_troughput => init_file_honey_high_troughput
+      procedure :: init_file_honey_htp => init_file_honey_htp
       procedure :: run_tests => run_tests
       procedure :: calc_area => calc_area
    end type unit_cell
@@ -488,7 +488,7 @@ contains
       deallocate (m, pos)
    end subroutine init_file_honey
 
-   subroutine init_file_honey_high_troughput(self)
+   subroutine init_file_honey_htp(self)
       use mpi
       use stdlib_io_npy, only: load_npy
       implicit none
@@ -563,7 +563,7 @@ contains
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
       call self%set_honey_snd_nearest(transl_mtx)
       deallocate (m, pos)
-   end subroutine init_file_honey_high_troughput
+   end subroutine init_file_honey_htp
 
 
    subroutine make_hexagon(self, hexagon, site_type)
