@@ -268,6 +268,7 @@ contains
       call CFG_add(cfg, "grid%dblatan_width",    0d0,   "plateau width")
       call CFG_add(cfg, "grid%dblatan_pref",     1d0,   "turning direction for plateau")
       call CFG_add(cfg, "grid%mag_file",         "",    "mag input file")
+      call CFG_add(cfg, "grid%vec_pos_file",         "",    "input file containing lat vectors and positions")
       call CFG_add(cfg, "grid%anticol_phi",empty_array, "anticollinear polar angle", dynamic_size=.True.)
       call CFG_add(cfg, "grid%anticol_theta",empty_array, "anticollinear azimutal angle", dynamic_size=.True.)
       call CFG_add(cfg, "grid%wavevector",empty_int_array, "wavector of spinspiral", dynamic_size=.True.)
