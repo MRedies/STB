@@ -48,6 +48,7 @@ module Class_unit_cell
       character(len=25) :: mag_type !> indicates type of magnetization
       character(len=25) :: spiral_type !> indicates type of magnetization
       character(len=300):: mag_file
+      character(len=300):: vec_pos_file
       logical :: molecule !> should we have a k-space or not?
       logical      :: test_run !> should unit tests be performed
       logical         :: pert_log ! berry in first order pert.
