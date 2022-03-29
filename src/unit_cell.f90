@@ -84,7 +84,6 @@ module Class_unit_cell
       procedure :: set_honey_snd_nearest_line => set_honey_snd_nearest_line
       procedure :: find_lattice_vectors => find_lattice_vectors
       procedure :: find_conn_vectors => find_conn_vectors
-      procedure :: set_mag_site => set_mag_site
       procedure :: set_mag_site_A => set_mag_site_A
       procedure :: Bcast_UC => Bcast_UC
       procedure :: setup_honey => setup_honey
@@ -1313,7 +1312,7 @@ contains
       implicit none
       class(unit_cell)    :: self
       integer, intent(in) :: ii, j
-      real(8), intent(in) :: center(3), UC_l
+      real(8), intent(in) :: UC_l
       integer             :: site_type, i
       real(8)             :: conn(3), phase_fac, x, l, R(3,3), shift_mtx(3,3), m(3), axis(3), wavevector(3) &
                              , wavevector_len, wavelength, psi
@@ -1351,7 +1350,7 @@ contains
    subroutine set_mag_linrot_1D_spiral(self,UC_l)
       implicit none
       class(unit_cell)    :: self
-      real(8), intent(in) :: center(3), UC_l
+      real(8), intent(in) :: UC_l
       integer             :: i, ii, j
       do i = 1, self%atom_per_dim
          ii = 4*(i-1)
