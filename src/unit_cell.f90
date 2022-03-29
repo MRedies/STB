@@ -500,7 +500,6 @@ contains
       integer, allocatable              :: site_type(:)
       integer                           :: n(3), i, n_transl
       integer                           :: info
-      character(len=300)                :: 
 
 
       self%num_atoms = 2*n(1)*n(2)*n(3)
