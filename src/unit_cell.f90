@@ -185,7 +185,9 @@ contains
          call CFG_get(cfg, "grid%dblatan_pref", self%dblatan_pref)
 
          call CFG_get(cfg, "grid%mag_file", self%mag_file)
-         call CFG_get(cfg, "grid%vec_pos_file", self%vec_pos_file)
+         call CFG_get(cfg, "grid%vec_file", self%vec_file)
+         call CFG_get(cfg, "grid%pos_file", self%pos_file)
+         call CFG_get(cfg, "grid%site_type_file", self%site_type_file)
          call CFG_get(cfg, "general%test_run", self%test_run)
 
 
@@ -498,43 +500,18 @@ contains
       integer, allocatable              :: site_type(:)
       integer                           :: n(3), i, n_transl
       integer                           :: info
-      character(len=300)                :: garb
+      character(len=300)                :: 
 
 
-      !READ IN STUFF WITH LOAD_NPY
-      !if (self%me == root) then
-      !read (21, *) garb, n(1), n(2), n(3)
-
-      !call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
-      !self%num_atoms = 2*n(1)*n(2)*n(3)
-      !self%vec_pos_file
-      if (self%me == root) then
-         open (unit=21, file=trim(self%mag_file))
-         read (21, *) garb, n_transl, n(1), n(2), n(3)
-         !N_VECTORS, N_A, N_B, N_C
-      endif
-         call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
-      call MPI_Bcast(n_transl, 1, MYPI_INT, root, MPI_COMM_WORLD, info)
       self%num_atoms = 2*n(1)*n(2)*n(3)
       allocate (self%atoms(self%num_atoms))
-      allocate (m(3, self%num_atoms))
-      allocate (pos(3, self%num_atoms))
-      allocate (site_type(self%num_atoms))
-      allocate (transl_mtx(n_transl, 3))
       !READ IN STUFF WITH LOAD_NPY
-      if (self%me == root) then
-         do i = 1, n_transl
-            read (21, *) transl_mtx(i, 1), transl_mtx(i, 2), transl_mtx(i, 3)
-         enddo
-      endif
-      if (self%me == root) then
-         do i = 1, self%num_atoms
-            read (21, *) pos(1, i), pos(2, i), pos(3, i), site_type
-         enddo
-      endif
          
       if (self%me == root) then
          call load_npy(self%mag_file,m)
+         call load_npy(self%pos_file,pos)
+         call load_npy(self%vec_file,transl_mtx)
+         call load_npy(self%site_type_file,transl_mtx)
       endif
       call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, MPI_COMM_WORLD, info)
