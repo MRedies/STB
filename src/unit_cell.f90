@@ -206,7 +206,7 @@ contains
       else if (trim(self%uc_type) == "file_square") then
          call self%init_file_square()
       else if (trim(self%uc_type) == "file_honey") then
-         call self%init_file_honey()
+         call self%init_file_honey_htp()
       else
          write (*, *) self%me, ": Cell type unknown"
          stop
