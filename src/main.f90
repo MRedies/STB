@@ -8,6 +8,7 @@ program STB
    use Constants
    use Class_unit_cell
    use mypi
+   use stdlib_io_npy, only: load_npy
 
    implicit none
    type(k_space)                   :: Ksp
@@ -15,9 +16,10 @@ program STB
    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
                                       ,sample_comm,color,n_sample_par,nProcs,n_sample&
                                       ,ierr, me, me_sample,samples_per_comm, clock,nProcs_sample
-   integer   , allocatable         :: seed(:)
+   integer   , allocatable         :: seed(:),dimensions(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
+   character(len=300)              :: dim_file
  
    call MPI_Init(ierr)
    call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
@@ -31,7 +33,10 @@ program STB
          write (*,*) "Reading n_sample from: ", trim(inp_files(1))
          call CFG_read_file(cfg, trim(inp_files(1)))
          call add_full_cfg(cfg)
-         call CFG_get(cfg, "berry%n_sample_par",  n_sample_par)
+         !call CFG_get(cfg, "berry%n_sample_par",  n_sample_par)
+         call CFG_get(cfg, "grid%dim_file",  dim_file)
+         call load_npy(dim_file,dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C
+         n_sample_par = dimensions(1)
       endif
       call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
       call calc_color(n_sample_par,nProcs,me,color)
@@ -268,6 +273,7 @@ contains
       call CFG_add(cfg, "grid%dblatan_width",    0d0,   "plateau width")
       call CFG_add(cfg, "grid%dblatan_pref",     1d0,   "turning direction for plateau")
       call CFG_add(cfg, "grid%mag_file",         "",    "mag input file")
+      call CFG_add(cfg, "grid%dim_file",         "dimensions.npy",    "sample set dimensions file")
       call CFG_add(cfg, "grid%vec_file",         "vecs.npy",    "input file containing lat vectors")
       call CFG_add(cfg, "grid%pos_file",         "pos.npy",    "input file containing positions")
       call CFG_add(cfg, "grid%site_type_file",         "site_type.npy",    "input file containing site types")
