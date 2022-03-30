@@ -35,7 +35,7 @@ program STB
          call add_full_cfg(cfg)
          !call CFG_get(cfg, "berry%n_sample_par",  n_sample_par)
          call CFG_get(cfg, "grid%dim_file",  dim_file)
-         call load_npy(dim_file,dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C
+         call load_npy(trim(dim_file),dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C
          n_sample_par = dimensions(1)
       endif
       call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
