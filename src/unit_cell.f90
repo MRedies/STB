@@ -503,17 +503,17 @@ contains
       integer                           :: n(3), i, n_transl
       integer                           :: info
 
-
-      self%num_atoms = 2*n(1)*n(2)*n(3)
-      allocate (self%atoms(self%num_atoms))
       !READ IN STUFF WITH LOAD_NPY
          
       if (self%me == root) then
          call load_npy(self%mag_file,m)
          call load_npy(self%pos_file,pos)
          call load_npy(self%vec_file,transl_mtx)
-         call load_npy(self%site_type_file,transl_mtx)
+         call load_npy(self%site_type_file,site_type)
       endif
+      self%num_atoms = size(site_type)
+      allocate (self%atoms(self%num_atoms))
+
       call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, MPI_COMM_WORLD, info)
       call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
