@@ -349,7 +349,7 @@ contains
 
    end subroutine save_cfg
 
-   subroutine calc_ncomms(min_comm_size,nProcs,ncomms):
+   subroutine calc_ncomms(min_comm_size,nProcs,ncomms)
       use mpi
       implicit none
       integer , intent(in)           :: min_comm_size,nProcs
