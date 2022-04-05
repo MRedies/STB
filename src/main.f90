@@ -15,7 +15,7 @@ program STB
    character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
                                       ,sample_comm,color,n_sample_par,nProcs,n_sample&
-                                      ,ierr, me, me_sample,samples_per_comm, clock,nProcs_sample
+                                      ,ierr, me, me_sample,samples_per_comm, clock,nProcs_sample&
                                       ,min_comm_size,ncomms
    integer(8)   , allocatable         :: seed(:),dimensions(:)
    type(CFG_t)                     :: cfg
