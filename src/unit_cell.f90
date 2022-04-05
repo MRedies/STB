@@ -1462,7 +1462,7 @@ contains
       implicit none
       class(unit_cell), intent(inout)  :: self
       real(8), intent(in)              :: hexagon(:, :)
-      integer, intent(in)              :: site_type(:)
+      integer(8), intent(in)           :: site_type(:)
       real(8)                          :: pos(3)
       integer                          :: i
 
