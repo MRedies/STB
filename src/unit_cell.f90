@@ -127,7 +127,7 @@ contains
       type(CFG_t)       :: cfg !> config file as read by m_config
       type(unit_cell)   :: self
       integer, parameter           :: lwork = 20
-      integer, intent(in)             :: sample_comm
+      integer, intent(in)             :: sample_comm,n_sample
       real(8)                         :: work(lwork), tmp
       integer, dimension(2)        :: ipiv
       integer                         :: info
