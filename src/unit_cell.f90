@@ -520,6 +520,8 @@ contains
 
       call MPI_Bcast(num_atoms, 1, MYPI_INT, &
                      root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(n_trans, 1, MYPI_INT, &
+                     root, MPI_COMM_WORLD, info)
       self%num_atoms = num_atoms
       allocate(m(3,num_atoms*self%samples_per_comm))
       allocate (pos(3, self%num_atoms))
