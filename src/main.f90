@@ -363,7 +363,7 @@ contains
       use mpi
       implicit none
       integer , intent(in)           :: nProcs,rank,min_comm_size
-      integer                        :: color
+      integer                        :: color,rest
       
       color = 0
       if (nProcs>=2*min_comm_size) then
