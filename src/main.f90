@@ -17,7 +17,7 @@ program STB
                                       ,sample_comm,color,n_sample_par,nProcs,n_sample&
                                       ,ierr, me, me_sample,samples_per_comm, clock,nProcs_sample&
                                       ,min_comm_size=2,ncomms
-   integer(8)   , allocatable         :: seed(:),dimensions(:)
+   integer(8)   , allocatable      :: seed(:),dimensions(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
    character(len=300)              :: dim_file
