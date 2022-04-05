@@ -16,6 +16,7 @@ program STB
    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
                                       ,sample_comm,color,n_sample_par,nProcs,n_sample&
                                       ,ierr, me, me_sample,samples_per_comm, clock,nProcs_sample
+                                      ,min_comm_size,ncomms
    integer(8)   , allocatable         :: seed(:),dimensions(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
@@ -33,13 +34,12 @@ program STB
          write (*,*) "Reading n_sample from: ", trim(inp_files(1))
          call CFG_read_file(cfg, trim(inp_files(1)))
          call add_full_cfg(cfg)
-         !call CFG_get(cfg, "berry%n_sample_par",  n_sample_par)
          call CFG_get(cfg, "grid%dim_file",  dim_file)
          call load_npy(trim(dim_file),dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C
          n_sample_par = dimensions(1)
       endif
       call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
-      call calc_color(n_sample_par,nProcs,me,color)
+      call calc_color(min_comm_size,nProcs,me,color)
       !sorting in new comm according to rank in world
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
@@ -52,7 +52,8 @@ program STB
          seed = clock
          call random_seed(put=seed)
       endif
-      samples_per_comm = calc_samples_per_comm(n_sample_par,nProcs)
+      call calc_ncomms(min_comm_size,nProcs,ncomms)
+      samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms)
       do n_sample = 1,samples_per_comm
          call process_file(inp_files(1),sample_comm)
       enddo
@@ -348,37 +349,41 @@ contains
 
    end subroutine save_cfg
 
-   subroutine calc_color(n_sample_par,nProcs,rank,color)
+   subroutine calc_ncomms(min_comm_size,nProcs,ncomms):
       use mpi
       implicit none
-      integer , intent(in)           :: n_sample_par,nProcs,rank
-      integer                        :: color,divide,high
+      integer , intent(in)           :: min_comm_size,nProcs
+      integer                        :: ncomms
+
+   ncomms = nProcs/min_comm_size
+
+   end subroutine
+
+   subroutine calc_color(min_comm_size,nProcs,rank,color)
+      use mpi
+      implicit none
+      integer , intent(in)           :: nProcs,rank,min_comm_size
+      integer                        :: color
       
       color = 0
-      if (n_sample_par<nProcs) then
-         divide = nProcs/n_sample_par
-         high = divide*n_sample_par
-         color = rank/divide
-         if (rank>high) then
-            color = mod(rank,n_sample_par)
-         endif
-      else
-         color = rank
+      if (nProcs>=2*min_comm_size) then
+         color = mod(rank,min_comm_size)
       endif
-      
+
    end subroutine
    
-   function calc_samples_per_comm(n_sample_par,nProcs) result(samples_per_comm)
+   function calc_samples_per_comm(n_sample_par,ncomms,rank) result(samples_per_comm)
       use mpi
       implicit none
-      integer , intent(in)           :: n_sample_par,nProcs
+      integer , intent(in)           :: n_sample_par,ncomms
       integer                        :: samples_per_comm, rest
 
-      if (n_sample_par>nProcs) then
-         samples_per_comm = n_sample_par/nProcs
-         rest = mod(n_sample_par,nProcs)
-      else
-         samples_per_comm = 1
+      !DISTRIBUTE SAMPLES EVENLY ON THE RANKS, AFTER THAT DISTRIBUTE THE REST EVENLY
+      samples_per_comm = n_sample_par/ncomms
+      rest = mod(n_sample_par,ncomms)
+      !CHECK IF THIS COMM GETS ONE SAMPLE FROM THE REST
+      if (rest>rank) then
+         samples_per_comm = samples_per_comm + 1
       endif
 
    end function

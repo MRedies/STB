@@ -500,7 +500,7 @@ contains
       real(8)                           :: conn_mtx(3, 3)
       real(8), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :)
       integer, allocatable              :: site_type(:)
-      integer                           :: n(3), i, n_transl
+      integer                           :: n(3), i, n_transl, num_atoms, num_samples_per_comm
       integer                           :: info
 
       !READ IN STUFF WITH LOAD_NPY
@@ -510,10 +510,12 @@ contains
          call load_npy(self%pos_file,pos)
          call load_npy(self%vec_file,transl_mtx)
          call load_npy(self%site_type_file,site_type)
+         num_atoms = size(site_type)
       endif
-      self%num_atoms = size(site_type)
+      call MPI_Bcast(num_atoms, 1, MYPI_INT, &
+                     root, MPI_COMM_WORLD, info)
+      self%num_atoms = num_atoms
       allocate (self%atoms(self%num_atoms))
-
       call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, MPI_COMM_WORLD, info)
       call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
