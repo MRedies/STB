@@ -521,7 +521,9 @@ contains
          allocate(m(3,num_atoms*self%samples_per_comm))
          idxstart = (self%sample_idx-1)*num_atoms*self%samples_per_comm + 1
          idxstop = self%sample_idx*num_atoms*self%samples_per_comm
-         m = m_large(idxstart:idxstop,:)
+         m(:,1) = m_large(idxstart:idxstop,1)
+         m(:,2) = m_large(idxstart:idxstop,2)
+         m(:,3) = m_large(idxstart:idxstop,3)
       endif
       call MPI_Bcast(num_atoms, 1, MYPI_INT, &
                      root, MPI_COMM_WORLD, info)
