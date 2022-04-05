@@ -513,29 +513,30 @@ contains
          
       if (self%me == root) then
          call load_npy(self%dim_file,dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C
-         call load_npy(self%mag_file,m_large)
-         call load_npy(self%pos_file,pos)
+         num_atoms = 2*dimensions(2)*dimensions(3)*dimensions(4)
          call load_npy(self%vec_file,transl_mtx)
          n_trans = size(transl_mtx,1)
-         call load_npy(self%site_type_file,site_type)
-         num_atoms = 2*dimensions(2)*dimensions(3)*dimensions(4)
-         allocate(m(3,num_atoms*self%samples_per_comm))
+      endif
+
+      call MPI_Bcast(num_atoms, 1, MYPI_INT, &
+                     root, MPI_COMM_WORLD, info)
+      self%num_atoms = num_atoms
+      allocate(m(3,num_atoms*self%samples_per_comm))
+      allocate (pos(3, self%num_atoms))
+      allocate (site_type(self%num_atoms))
+      allocate (transl_mtx(n_transl, 3))
+      allocate (self%atoms(self%num_atoms))
+
+      if (self%me == root) then
+         call load_npy(self%mag_file,m_large)
+         call load_npy(self%pos_file,pos)
+         call load_npy(self%site_type_file,site_type)       
          idxstart = (self%sample_idx-1)*num_atoms*self%samples_per_comm + 1
          idxstop = self%sample_idx*num_atoms*self%samples_per_comm
          m(1,:) = m_large(1,idxstart:idxstop)
          m(2,:) = m_large(2,idxstart:idxstop)
          m(3,:) = m_large(3,idxstart:idxstop)
       endif
-      
-      call MPI_Bcast(num_atoms, 1, MYPI_INT, &
-                     root, MPI_COMM_WORLD, info)
-      self%num_atoms = num_atoms
-
-      allocate(m(3,self%num_atoms*self%samples_per_comm))
-      allocate (pos(3, self%num_atoms))
-      allocate (site_type(self%num_atoms))
-      allocate (transl_mtx(n_transl, 3))
-      allocate (self%atoms(self%num_atoms))
       
       call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, MPI_COMM_WORLD, info)
