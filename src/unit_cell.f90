@@ -504,7 +504,7 @@ contains
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)
-      real(8), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
+      real(8), allocatable              :: transl_mtx(:, :),transl_in(:,:), m_large(:, :),m(:, :), pos(:, :)
       integer(8), allocatable           :: site_type(:),dimensions(:)
       integer                           :: n(3), i, n_transl, num_atoms,idxstart,idxstop,n_trans
       integer                           :: info
@@ -512,10 +512,9 @@ contains
       !READ IN STUFF WITH LOAD_NPY
          
       if (self%me == root) then
-         call load_npy(self%dim_file,dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C
+         call load_npy(self%dim_file,dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C,N_trans
          num_atoms = 2*dimensions(2)*dimensions(3)*dimensions(4)
-         call load_npy(self%vec_file,transl_mtx)
-         n_trans = size(transl_mtx,1)
+         n_trans = dimensions(5)
       endif
 
       call MPI_Bcast(num_atoms, 1, MYPI_INT, &
@@ -530,6 +529,7 @@ contains
       allocate (self%atoms(self%num_atoms))
 
       if (self%me == root) then
+         call load_npy(self%vec_file,transl_mtx)
          call load_npy(self%mag_file,m_large)
          call load_npy(self%pos_file,pos)
          call load_npy(self%site_type_file,site_type)       
