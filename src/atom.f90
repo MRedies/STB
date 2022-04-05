@@ -54,7 +54,7 @@ contains
         implicit none
         type(atom)                 :: self
         real(8), intent(in)        :: p_pos(3)
-        integer, optional          :: site
+        integer(8), optional       :: site
         integer                    :: ierr(2)
 
         call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr(1))
