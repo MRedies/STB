@@ -432,7 +432,7 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)
       real(8), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :)
-      integer, allocatable              :: site_type(:)
+      integer(8), allocatable              :: site_type(:)
       integer                           :: n(3), i, n_transl
       integer                           :: info
       character(len=300)                :: garb
