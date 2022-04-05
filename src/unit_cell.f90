@@ -745,7 +745,7 @@ contains
       real(8)                           :: transl_mtx(4, 3), conn_mtx(3, 3), shift_mtx(3, 3)
       real(8)                           :: base_len_uc, l
       real(8), allocatable              :: lattice(:, :), line(:, :)
-      integer, allocatable              :: site_type(:)
+      integer(8), allocatable           :: site_type(:)
       integer                           :: apd
       apd = self%atom_per_dim
       self%num_atoms = calc_num_atoms_line_honey(apd)
@@ -796,7 +796,7 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(8)  :: transl_mtx(3, 3), l, base_len_uc, conn_mtx(3, 3)
       real(8), allocatable             :: hexagon(:, :)
-      integer, allocatable             :: site_type(:)
+      integer(8), allocatable          :: site_type(:)
       integer                          :: apd
 
       apd = self%atom_per_dim
