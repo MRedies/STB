@@ -506,7 +506,7 @@ contains
       real(8)                           :: conn_mtx(3, 3)
       real(8), allocatable              :: transl_mtx(:, :),transl_in(:,:), m_large(:, :),m(:, :), pos(:, :)
       integer(8), allocatable           :: site_type(:),dimensions(:)
-      integer                           :: n(3), i, n_transl, num_atoms,idxstart,idxstop,n_trans
+      integer                           :: n(3), i,num_atoms,idxstart,idxstop,n_trans
       integer                           :: info
 
       !READ IN STUFF WITH LOAD_NPY
@@ -525,7 +525,7 @@ contains
       allocate(m(3,num_atoms*self%samples_per_comm))
       allocate (pos(3, self%num_atoms))
       allocate (site_type(self%num_atoms))
-      allocate (transl_mtx(n_transl, 3))
+      allocate (transl_mtx(n_trans, 3))
       allocate (self%atoms(self%num_atoms))
 
       if (self%me == root) then
@@ -555,7 +555,7 @@ contains
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
 
-      call MPI_Bcast(transl_mtx, int(3*n_transl, 4), MPI_REAL8, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(transl_mtx, int(3*n_trans, 4), MPI_REAL8, root, MPI_COMM_WORLD, info)
 
       conn_mtx(1, :) = self%lattice_constant*[0d0, 1d0, 0d0]!1
       conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]!2
