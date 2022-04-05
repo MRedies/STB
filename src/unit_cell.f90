@@ -519,8 +519,8 @@ contains
          call load_npy(self%site_type_file,site_type)
          num_atoms = 2*dimensions(2)*dimensions(3)*dimensions(4)
          allocate(m(num_atoms*self%samples_per_comm, 3))
-         idxstart = self%sample_idx*num_atoms*self%samples_per_comm
-         idxstop = (self%sample_idx+1)*num_atoms*self%samples_per_comm
+         idxstart = (self%sample_idx-1)*num_atoms*self%samples_per_comm + 1
+         idxstop = self%sample_idx*num_atoms*self%samples_per_comm + 1
          m = m_large(idxstart:idxstop,:)
       endif
       call MPI_Bcast(num_atoms, 1, MYPI_INT, &
