@@ -503,7 +503,7 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)
       real(8), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
-      integer, allocatable              :: site_type(:), dimensions
+      integer, allocatable              :: site_type(:), dimensions(:)
       integer                           :: n(3), i, n_transl, num_atoms, samples_per_comm,idxstart&
                                            ,idxstop
       integer                           :: info
