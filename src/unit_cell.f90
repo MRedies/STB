@@ -518,7 +518,7 @@ contains
          call load_npy(self%vec_file,transl_mtx)
          call load_npy(self%site_type_file,site_type)
          num_atoms = 2*dimensions(2)*dimensions(3)*dimensions(4)
-         allocate(m(num_atoms*samples_per_comm, 3))
+         allocate(m(num_atoms*self%samples_per_comm, 3))
          idxstart = self%sample_idx*num_atoms*self%samples_per_comm
          idxstop = (self%sample_idx+1)*num_atoms*self%samples_per_comm
          m = m_large(idxstart:idxstop,:)
