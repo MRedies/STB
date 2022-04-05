@@ -341,7 +341,7 @@ contains
       endif
    end subroutine calc_and_print_dos
 
-   function init_k_space(cfg,sample_comm,n_sample) result(self)
+   function init_k_space(cfg,sample_comm,n_sample,samples_per_comm) result(self)
       use mpi
       implicit none
       type(k_space)         :: self
@@ -350,7 +350,7 @@ contains
       !logical               :: logtmp
       integer               :: sz
       integer               :: ierr
-      integer, intent(in)   :: sample_comm,n_sample
+      integer, intent(in)   :: sample_comm,n_sample,samples_per_comm
 
       self%sample_comm = sample_comm
 
@@ -361,7 +361,7 @@ contains
       call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
 
       self%units = init_units(cfg, self%me)
-      self%ham   = init_hamil(cfg,sample_comm,n_sample)    
+      self%ham   = init_hamil(cfg,sample_comm,n_sample,samples_per_comm)    
 
       if(self%me ==  0) then
          call CFG_get(cfg, "grid%k_shift", self%k_shift)

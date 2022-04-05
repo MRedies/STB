@@ -55,22 +55,22 @@ program STB
       call calc_ncomms(min_comm_size,nProcs,ncomms)
       samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms,me_sample)
       do n_sample = 1,samples_per_comm
-         call process_file(inp_files(1),sample_comm,n_sample)
+         call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm)
       enddo
    else 
       do n_inp = 1, n_files
          if(me == root) write (*,*) "started at ", date_time()
-         call process_file(inp_files(n_inp),MPI_COMM_WORLD,1)
+         call process_file(inp_files(n_inp),MPI_COMM_WORLD,1,1)
       enddo
    endif
    
    call MPI_Finalize(ierr)
 contains
-   subroutine process_file(inp_file,sample_comm,n_sample)
+   subroutine process_file(inp_file,sample_comm,n_sample,samples_per_comm)
       use mpi
       implicit none
       character(len=300), intent(in) :: inp_file
-      integer, intent(in)            :: sample_comm,n_sample
+      integer, intent(in)            :: sample_comm,n_sample,samples_per_comm
       real(8)                        :: start, halt
       integer                        :: me, ierr,ierr2,me_sample
       logical                        :: perform_band, perform_dos, calc_hall, calc_hall_diag,&
@@ -113,7 +113,7 @@ contains
           call error_msg("pert_log doesn't match in main", abort=.True.)
           success = .False.
       endif
-      Ksp =  init_k_space(cfg,sample_comm,n_sample)
+      Ksp =  init_k_space(cfg,sample_comm,n_sample,samples_per_comm)
       if(me == root) call save_cfg(cfg)
 
       if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms

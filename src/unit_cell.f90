@@ -22,7 +22,8 @@ module Class_unit_cell
       real(8), public :: rez_lattice(2, 2) !> translation vectors
       !> of the reciprocal lattice. Indexs same as lattice
       ! number of non-redundant atoms pre unit cell
-      integer    :: sample_idx  !> number of the sample
+      integer    :: sample_idx  !> index of the sample
+      integer    :: samples_per_comm !> number of samples per communicator
       integer    :: num_atoms  !> number of non-redundant atoms in a unit cell
       integer    :: atom_per_dim !> atoms along the radius of the unit_cell
       integer    :: nProcs
@@ -122,12 +123,12 @@ contains
       ang = 180.0d0/PI*acos(ang)
    end function angle
 
-   function init_unit(cfg,sample_comm,n_sample) result(self)
+   function init_unit(cfg,sample_comm,n_sample,samples_per_comm) result(self)
       implicit none
       type(CFG_t)       :: cfg !> config file as read by m_config
       type(unit_cell)   :: self
       integer, parameter           :: lwork = 20
-      integer, intent(in)             :: sample_comm,n_sample
+      integer, intent(in)             :: sample_comm,n_sample,samples_per_comm
       real(8)                         :: work(lwork), tmp
       integer, dimension(2)        :: ipiv
       integer                         :: info
@@ -140,6 +141,7 @@ contains
       
       self%sample_comm = sample_comm
       self%sample_idx = n_sample
+      self%samples_per_comm = samples_per_comm
 
       call MPI_Comm_size(self%sample_comm, self%nProcs_sample, ierr)
       call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
@@ -504,8 +506,7 @@ contains
       real(8)                           :: conn_mtx(3, 3)
       real(8), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
       integer(8), allocatable           :: site_type(:),dimensions(:)
-      integer                           :: n(3), i, n_transl, num_atoms, samples_per_comm,idxstart&
-                                           ,idxstop
+      integer                           :: n(3), i, n_transl, num_atoms,idxstart,idxstop
       integer                           :: info
 
       !READ IN STUFF WITH LOAD_NPY
@@ -518,8 +519,8 @@ contains
          call load_npy(self%site_type_file,site_type)
          num_atoms = 2*dimensions(2)*dimensions(3)*dimensions(4)
          allocate(m(num_atoms*samples_per_comm, 3))
-         idxstart = self%sample_idx*num_atoms*samples_per_comm
-         idxstop = (self%sample_idx+1)*num_atoms*samples_per_comm
+         idxstart = self%sample_idx*num_atoms*self%samples_per_comm
+         idxstop = (self%sample_idx+1)*num_atoms*self%samples_per_comm
          m = m_large(idxstart:idxstop,:)
       endif
       call MPI_Bcast(num_atoms, 1, MYPI_INT, &
