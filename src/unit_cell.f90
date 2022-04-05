@@ -22,6 +22,7 @@ module Class_unit_cell
       real(8), public :: rez_lattice(2, 2) !> translation vectors
       !> of the reciprocal lattice. Indexs same as lattice
       ! number of non-redundant atoms pre unit cell
+      integer    :: sample_idx  !> number of the sample
       integer    :: num_atoms  !> number of non-redundant atoms in a unit cell
       integer    :: atom_per_dim !> atoms along the radius of the unit_cell
       integer    :: nProcs
@@ -50,6 +51,7 @@ module Class_unit_cell
       character(len=300):: mag_file
       character(len=300):: vec_file
       character(len=300):: pos_file
+      character(len=300):: dim_file
       character(len=300):: site_type_file
       logical :: molecule !> should we have a k-space or not?
       logical      :: test_run !> should unit tests be performed
@@ -137,6 +139,7 @@ contains
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
       
       self%sample_comm = sample_comm
+      self%sample_idx = 0
 
       call MPI_Comm_size(self%sample_comm, self%nProcs_sample, ierr)
       call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
@@ -189,6 +192,7 @@ contains
          call CFG_get(cfg, "grid%mag_file", self%mag_file)
          call CFG_get(cfg, "grid%vec_file", self%vec_file)
          call CFG_get(cfg, "grid%pos_file", self%pos_file)
+         call CFG_get(cfg, "grid%dim_file", self%dim_file)
          call CFG_get(cfg, "grid%site_type_file", self%site_type_file)
          call CFG_get(cfg, "general%test_run", self%test_run)
 
@@ -498,19 +502,26 @@ contains
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)
-      real(8), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :)
-      integer, allocatable              :: site_type(:)
-      integer                           :: n(3), i, n_transl, num_atoms, num_samples_per_comm
+      real(8), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
+      integer, allocatable              :: site_type(:), dimensions
+      integer                           :: n(3), i, n_transl, num_atoms, samples_per_comm,idxstart
+                                           ,idxstop
       integer                           :: info
 
       !READ IN STUFF WITH LOAD_NPY
          
       if (self%me == root) then
-         call load_npy(self%mag_file,m)
+         call load_npy(self%dim_file,dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C
+         call load_npy(self%mag_file,m_large)
          call load_npy(self%pos_file,pos)
          call load_npy(self%vec_file,transl_mtx)
          call load_npy(self%site_type_file,site_type)
-         num_atoms = size(site_type)
+         num_atoms = 2*dimensions(2)*dimensions(3)*dimensions(4)
+         allocate(m(num_atoms*samples_per_comm, 3))
+         idxstart = self%sample_idx*num_atoms*samples_per_comm
+         idxstop = self%sample_idx*num_atoms*samples_per_comm
+         m = m_large(idxstart:idxstop,:)
+         self%sample_idx = self%sample_idx + 1
       endif
       call MPI_Bcast(num_atoms, 1, MYPI_INT, &
                      root, MPI_COMM_WORLD, info)
