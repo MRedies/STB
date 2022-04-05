@@ -363,7 +363,7 @@ contains
       use mpi
       implicit none
       integer , intent(in)           :: nProcs,rank,min_comm_size
-      integer                        :: color,rest
+      integer                        :: color
       
       color = 0
       if (nProcs>=2*min_comm_size) then
@@ -375,7 +375,7 @@ contains
    function calc_samples_per_comm(n_sample_par,ncomms,rank) result(samples_per_comm)
       use mpi
       implicit none
-      integer , intent(in)           :: n_sample_par,ncomms
+      integer , intent(in)           :: n_sample_par,ncomms,rank
       integer                        :: samples_per_comm, rest
 
       !DISTRIBUTE SAMPLES EVENLY ON THE RANKS, AFTER THAT DISTRIBUTE THE REST EVENLY
