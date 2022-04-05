@@ -562,7 +562,7 @@ contains
       real(8)                          :: transl_mtx(3, 3), base_len_uc, l, pos(3)
       real(8), allocatable             :: hexagon(:, :), grid(:, :)
       integer                          :: num_atoms, cnt, apd, i
-      integer, allocatable             :: site_type(:)
+      integer(8), allocatable          :: site_type(:)
 
       apd = self%atom_per_dim
       base_len_uc = self%lattice_constant*apd
@@ -600,7 +600,7 @@ contains
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8), allocatable              :: line(:, :), conn_vecs(:, :)
-      integer, allocatable              :: site_type(:)
+      integer(8), allocatable           :: site_type(:)
       real(8)                           :: shift_mtx(3, 3), conn_mtx(3, 3), transf_mtx(3, 3), base_len_uc, posA(3), &
                                            posB(3), posC(3), posD(3),pos(3), conn_vec_1(3), conn_vec_2(3), l
       integer                           :: i, ii, ierr
