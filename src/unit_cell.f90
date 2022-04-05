@@ -122,7 +122,7 @@ contains
       ang = 180.0d0/PI*acos(ang)
    end function angle
 
-   function init_unit(cfg,sample_comm) result(self)
+   function init_unit(cfg,sample_comm,n_sample) result(self)
       implicit none
       type(CFG_t)       :: cfg !> config file as read by m_config
       type(unit_cell)   :: self
@@ -139,7 +139,7 @@ contains
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
       
       self%sample_comm = sample_comm
-      self%sample_idx = 0
+      self%sample_idx = n_sample
 
       call MPI_Comm_size(self%sample_comm, self%nProcs_sample, ierr)
       call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
@@ -519,9 +519,8 @@ contains
          num_atoms = 2*dimensions(2)*dimensions(3)*dimensions(4)
          allocate(m(num_atoms*samples_per_comm, 3))
          idxstart = self%sample_idx*num_atoms*samples_per_comm
-         idxstop = self%sample_idx*num_atoms*samples_per_comm
+         idxstop = (self%sample_idx+1)*num_atoms*samples_per_comm
          m = m_large(idxstart:idxstop,:)
-         self%sample_idx = self%sample_idx + 1
       endif
       call MPI_Bcast(num_atoms, 1, MYPI_INT, &
                      root, MPI_COMM_WORLD, info)

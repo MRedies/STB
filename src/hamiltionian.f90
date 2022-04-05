@@ -301,11 +301,11 @@ contains
       endif
    end subroutine test_herm
 
-   function init_hamil(cfg,sample_comm) result(self)
+   function init_hamil(cfg,sample_comm,n_sample) result(self)
       implicit none
       type(CFG_t)         :: cfg
       type(hamil)         :: self
-      integer, intent(in) :: sample_comm
+      integer, intent(in) :: sample_comm,n_sample
       real(8)             :: tmp
       integer             :: ierr
       integer             :: n, n_arr
@@ -319,7 +319,7 @@ contains
       call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
 
       self%units = init_units(cfg, self%me)
-      self%UC    = init_unit(cfg,sample_comm)
+      self%UC    = init_unit(cfg,sample_comm,n_sample)
 
 
       if(self%me ==  0) then
