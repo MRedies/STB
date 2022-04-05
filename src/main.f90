@@ -355,7 +355,7 @@ contains
       integer , intent(in)           :: min_comm_size,nProcs
       integer                        :: ncomms
 
-   ncomms = nProcs/min_comm_size
+      ncomms = nProcs/min_comm_size
 
    end subroutine
 
