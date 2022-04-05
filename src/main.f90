@@ -375,14 +375,14 @@ contains
    function calc_samples_per_comm(n_sample_par,ncomms,sample_rank) result(samples_per_comm)
       use mpi
       implicit none
-      integer , intent(in)           :: n_sample_par,ncomms,rank
+      integer , intent(in)           :: n_sample_par,ncomms,sample_rank
       integer                        :: samples_per_comm, rest
 
       !DISTRIBUTE SAMPLES EVENLY ON THE RANKS, AFTER THAT DISTRIBUTE THE REST EVENLY
       samples_per_comm = n_sample_par/ncomms
       rest = mod(n_sample_par,ncomms)
       !CHECK IF THIS COMM GETS ONE SAMPLE FROM THE REST
-      if (rest>rank) then
+      if (rest>sample_rank) then
          samples_per_comm = samples_per_comm + 1
       endif
 
