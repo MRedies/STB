@@ -506,7 +506,7 @@ contains
       real(8)                           :: conn_mtx(3, 3)
       real(8), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
       integer(8), allocatable           :: site_type(:),dimensions(:)
-      integer                           :: n(3), i, n_transl, num_atoms,idxstart,idxstop
+      integer                           :: n(3), i, n_transl, num_atoms,idxstart,idxstop,n_trans
       integer                           :: info
 
       !READ IN STUFF WITH LOAD_NPY
@@ -516,6 +516,7 @@ contains
          call load_npy(self%mag_file,m_large)
          call load_npy(self%pos_file,pos)
          call load_npy(self%vec_file,transl_mtx)
+         n_trans = size(transl_mtx,1)
          call load_npy(self%site_type_file,site_type)
          num_atoms = 2*dimensions(2)*dimensions(3)*dimensions(4)
          allocate(m(3,num_atoms*self%samples_per_comm))
@@ -525,10 +526,17 @@ contains
          m(2,:) = m_large(2,idxstart:idxstop)
          m(3,:) = m_large(3,idxstart:idxstop)
       endif
+      
       call MPI_Bcast(num_atoms, 1, MYPI_INT, &
                      root, MPI_COMM_WORLD, info)
       self%num_atoms = num_atoms
+
+      allocate(m(3,self%num_atoms*self%samples_per_comm))
+      allocate (pos(3, self%num_atoms))
+      allocate (site_type(self%num_atoms))
+      allocate (transl_mtx(n_transl, 3))
       allocate (self%atoms(self%num_atoms))
+      
       call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, MPI_COMM_WORLD, info)
       call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
