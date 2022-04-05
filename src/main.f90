@@ -53,7 +53,7 @@ program STB
          call random_seed(put=seed)
       endif
       call calc_ncomms(min_comm_size,nProcs,ncomms)
-      samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms)
+      samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms,me_sample)
       do n_sample = 1,samples_per_comm
          call process_file(inp_files(1),sample_comm)
       enddo
@@ -372,7 +372,7 @@ contains
 
    end subroutine
    
-   function calc_samples_per_comm(n_sample_par,ncomms,rank) result(samples_per_comm)
+   function calc_samples_per_comm(n_sample_par,ncomms,sample_rank) result(samples_per_comm)
       use mpi
       implicit none
       integer , intent(in)           :: n_sample_par,ncomms,rank
