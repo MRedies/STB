@@ -354,9 +354,11 @@ contains
       implicit none
       integer , intent(in)           :: min_comm_size,nProcs
       integer                        :: ncomms
-
-      ncomms = nProcs/min_comm_size
-
+      if (nProcs<min_comm_size) then
+         ncomms=1
+      else
+         ncomms = nProcs/min_comm_size
+      endif
    end subroutine
 
    subroutine calc_color(min_comm_size,nProcs,rank,color)
