@@ -532,6 +532,7 @@ contains
 
       if (self%me == root) then
          call load_npy(self%vec_file,transl_mtx)
+         transl_mtx = transpose(transl_mtx)
          call load_npy(self%mag_file,m_large)
          call load_npy(self%pos_file,pos)
          call load_npy(self%site_type_file,site_type)       
