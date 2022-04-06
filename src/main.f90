@@ -388,9 +388,9 @@ contains
       rest = mod(n_sample_par,ncomms)
       !CHECK IF THIS COMM GETS ONE SAMPLE FROM THE REST
       if (rest>color) then
-         startidx = (samples_per_comm + 1)*color
+         startidx = 1+(samples_per_comm + 1)*color
       else
-         startidx = (samples_per_comm + 1)*rest + samples_per_comm*(color-rest)
+         startidx = 1+(samples_per_comm + 1)*rest + samples_per_comm*(color-rest)
       endif
 
    end function

@@ -536,8 +536,8 @@ contains
          call load_npy(self%mag_file,m_large)
          call load_npy(self%pos_file,pos)
          call load_npy(self%site_type_file,site_type)       
-         idxstart = (self%sample_idx-1)*num_atoms*self%samples_per_comm + 1
-         idxstop = self%sample_idx*num_atoms*self%samples_per_comm
+         idxstart = (self%sample_idx-1)*num_atoms + 1!*self%samples_per_comm + 1
+         idxstop = self%sample_idx*num_atoms!*self%samples_per_comm
          m(1,:) = m_large(1,idxstart:idxstop)
          m(2,:) = m_large(2,idxstart:idxstop)
          m(3,:) = m_large(3,idxstart:idxstop)
