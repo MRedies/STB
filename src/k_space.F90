@@ -138,6 +138,7 @@ contains
       integer                       :: send_count, ierr, istat(4)=0
       integer   , allocatable       :: num_elems(:), offsets(:)
       real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
+      character(len=300)            :: filename
       if(trim(self%filling) ==  "path_rel") then
          call self%setup_k_path_rel()
       else if(trim(self%filling) == "path_abs") then
@@ -170,12 +171,16 @@ contains
                        root,        self%sample_comm, ierr)
 
       if(self%me_sample == root) then
-         call save_npy(trim(self%prefix) //  "band_k.npy", self%new_k_pts / self%units%inv_length)
-         call save_npy(trim(self%prefix) //  "band_E.npy", eig_val / self%units%energy)
-         call save_npy(trim(self%prefix) //  "lattice.npy", &
-                       self%ham%UC%lattice / self%units%length)
-         call save_npy(trim(self%prefix) //  "rez_lattice.npy", &
-                       self%ham%UC%rez_lattice / self%units%inv_length)
+         write (filename, "(A,I0.6,A)") "band_k_sample=", self%sample_idx, ".npy"
+         call save_npy(trim(self%prefix) //  filename, self%new_k_pts / self%units%inv_length)
+         write (filename, "(A,I0.6,A)") "band_E_sample=", self%sample_idx, ".npy"
+         call save_npy(trim(self%prefix) //  filename, eig_val / self%units%energy)
+         if(self%sample_idx==1) then
+            call save_npy(trim(self%prefix) //  "lattice.npy", &
+                        self%ham%UC%lattice / self%units%length)
+            call save_npy(trim(self%prefix) //  "rez_lattice.npy", &
+                        self%ham%UC%rez_lattice / self%units%inv_length)
+         endif
       endif
 
       deallocate(eig_val)
@@ -276,6 +281,7 @@ contains
       real(8), allocatable :: DOS(:), PDOS(:,:), up(:), down(:)
       real(8)              :: dE
       integer              :: i, num_up
+      character(len=300)   :: filename
 
       if(trim(self%ham%UC%uc_type) == "square_2d") then
          call self%setup_inte_grid_para(self%DOS_num_k_pts)
@@ -304,17 +310,18 @@ contains
 
       call self%calc_pdos(self%E_DOS, PDOS)
 
-      if(self%me == root) then
+      if(self%me_sample == root) then
          DOS  = sum(PDOS,1)
          up   = sum(PDOS(1:num_up, :),1)
          down = sum(PDOS(num_up+1:2*num_up, :),1)
-
-         call save_npy(trim(self%prefix) //  "DOS_E.npy", self%E_DOS / self%units%energy)
-         ! unit of DOS is per energy
-         call save_npy(trim(self%prefix) //  "DOS.npy", DOS * self%units%energy)
-         call save_npy(trim(self%prefix) //  "DOS_partial.npy", PDOS * self%units%energy)
-         call save_npy(trim(self%prefix) //  "DOS_up.npy", up *  self%units%energy)
-         call save_npy(trim(self%prefix) //  "DOS_down.npy", down *  self%units%energy)
+         write (filename, "(A,I0.6,A)") "DOS_sample=", self%sample_idx, ".npy"
+         call save_npy(trim(self%prefix) //  filename, , DOS * self%units%energy)
+         write (filename, "(A,I0.6,A)") "DOS_partial_sample=", self%sample_idx, ".npy"
+         call save_npy(trim(self%prefix) //  filename, PDOS * self%units%energy)
+         write (filename, "(A,I0.6,A)") "DOS_up_sample=", self%sample_idx, ".npy"
+         call save_npy(trim(self%prefix) //  filename, up * self%units%energy)
+         write (filename, "(A,I0.6,A)") "DOS_down_sample=", self%sample_idx, ".npy"
+         call save_npy(trim(self%prefix) //  filename, down * self%units%energy)
 
          allocate(self%int_DOS(self%num_DOS_pts))
 
@@ -330,12 +337,16 @@ contains
                               + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
          enddo
          ! integrated DOS ist unitless
-         call save_npy(trim(self%prefix) // "DOS_integrated.npy", self%int_DOS)
+         write (filename, "(A,I0.6,A)") "DOS_integrated_sample=", self%sample_idx, ".npy"
+         call save_npy(trim(self%prefix) // filename, self%int_DOS)
+         if(self%sample_idx==1) then
+            call save_npy(trim(self%prefix) //  "DOS_E.npy", self%E_DOS / self%units%energy)
+         endif
       endif
 
       deallocate(self%new_k_pts)
       deallocate(PDOS)
-      if(self%me == root) then
+      if(self%me_sample == root) then
          deallocate(DOS)
          deallocate(up)
          deallocate(down)
