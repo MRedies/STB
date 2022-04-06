@@ -56,7 +56,7 @@ program STB
       
       samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms,color)
       startidx = calc_starting_sample(n_sample_par,ncomms,color)
-      stopidx = startidx + samples_per_comm
+      stopidx = startidx + samples_per_comm - 1
       do n_sample = startidx,stopidx
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm)
       enddo
