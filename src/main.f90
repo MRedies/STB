@@ -16,7 +16,7 @@ program STB
    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
                                       ,sample_comm,color,n_sample_par,nProcs,n_sample&
                                       ,ierr, me, me_sample,samples_per_comm, clock,nProcs_sample&
-                                      ,min_comm_size=2,ncomms
+                                      ,min_comm_size=2,ncomms,startidx,stopidx
    integer(8)   , allocatable      :: seed(:),dimensions(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
@@ -53,8 +53,11 @@ program STB
          call random_seed(put=seed)
       endif
       call calc_ncomms(min_comm_size,nProcs,ncomms)
-      samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms,me_sample)
-      do n_sample = 1,samples_per_comm
+      
+      samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms,color)
+      startidx = calc_starting_sample(n_sample_par,ncomms,color)
+      stopidx = startidx + samples_per_comm
+      do n_sample = startidx,stopidx
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm)
       enddo
    else 
@@ -373,20 +376,39 @@ contains
       endif
 
    end subroutine
-   
-   function calc_samples_per_comm(n_sample_par,ncomms,sample_rank) result(samples_per_comm)
+    
+   function calc_starting_sample(n_sample_par,ncomms,color) result(startidx)
       use mpi
       implicit none
-      integer , intent(in)           :: n_sample_par,ncomms,sample_rank
+      integer , intent(in)           :: n_sample_par,ncomms,color
+      integer                        :: samples_per_comm,startidx, rest
+
+      !DISTRIBUTE SAMPLES EVENLY ON THE RANKS, AFTER THAT DISTRIBUTE THE REST EVENLY
+      samples_per_comm = n_sample_par/ncomms
+      rest = mod(n_sample_par,ncomms)
+      !CHECK IF THIS COMM GETS ONE SAMPLE FROM THE REST
+      if (rest>color) then
+         startidx = (samples_per_comm + 1)*color
+      else
+         startidx = (samples_per_comm + 1)*rest + samples_per_comm*(color-rest)
+      endif
+
+   end function
+   
+   function calc_samples_per_comm(n_sample_par,ncomms,color) result(samples_per_comm)
+      use mpi
+      implicit none
+      integer , intent(in)           :: n_sample_par,ncomms,color
       integer                        :: samples_per_comm, rest
 
       !DISTRIBUTE SAMPLES EVENLY ON THE RANKS, AFTER THAT DISTRIBUTE THE REST EVENLY
       samples_per_comm = n_sample_par/ncomms
       rest = mod(n_sample_par,ncomms)
       !CHECK IF THIS COMM GETS ONE SAMPLE FROM THE REST
-      if (rest>sample_rank) then
+      if (rest>color) then
          samples_per_comm = samples_per_comm + 1
       endif
 
    end function
+
 end program STB

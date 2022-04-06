@@ -506,9 +506,9 @@ contains
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)
-      real(8), allocatable              :: transl_mtx(:, :),transl_in(:,:), m_large(:, :),m(:, :), pos(:, :)
+      real(8), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
       integer(8), allocatable           :: site_type(:),dimensions(:)
-      integer                           :: n(3), i,num_atoms,idxstart,idxstop,n_trans
+      integer                           :: n(3),num_atoms,idxstart,idxstop,n_trans
       integer                           :: info
 
       !READ IN STUFF WITH LOAD_NPY

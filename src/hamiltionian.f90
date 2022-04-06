@@ -28,6 +28,7 @@ module Class_hamiltionian
       real(8), allocatable       :: drop_Vx_layers(:), drop_Vy_layers(:)
       complex(8), allocatable    :: del_H(:,:)
       character(len=300)   :: prefix
+      integer         :: sample_idx  !> index of the sample
       integer         :: nProcs
       integer         :: me
       integer         :: num_orb, num_up

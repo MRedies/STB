@@ -18,6 +18,7 @@ module Class_k_space
       real(8)              :: DOS_upper !> upper energy bound for DOS calc
       real(8)              :: temp !> temperature used in fermi-dirac
       !> used in DOS calculations
+      integer              :: sample_idx  !> index of the sample
       integer              :: DOS_num_k_pts !> number of kpts per dim
       integer              :: berry_num_k_pts !> number of ks per dim in berry calc
       integer              :: ACA_num_k_pts
