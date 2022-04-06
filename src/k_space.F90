@@ -315,7 +315,7 @@ contains
          up   = sum(PDOS(1:num_up, :),1)
          down = sum(PDOS(num_up+1:2*num_up, :),1)
          write (filename, "(A,I0.6,A)") "DOS_sample=", self%sample_idx, ".npy"
-         call save_npy(trim(self%prefix) //  filename, , DOS * self%units%energy)
+         call save_npy(trim(self%prefix) //  filename, DOS * self%units%energy)
          write (filename, "(A,I0.6,A)") "DOS_partial_sample=", self%sample_idx, ".npy"
          call save_npy(trim(self%prefix) //  filename, PDOS * self%units%energy)
          write (filename, "(A,I0.6,A)") "DOS_up_sample=", self%sample_idx, ".npy"
