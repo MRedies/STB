@@ -399,7 +399,7 @@ contains
       pos = pos*self%lattice_constant
 
       do i = 1, self%num_atoms
-         self%atoms(i) = init_ferro_z(pos(:, i))
+         self%atoms(i) = init_ferro_z(pos(:, i),self%sample_comm)
          call self%atoms(i)%set_m_cart(m(1, i), m(2, i), m(3, i))
       enddo
 
@@ -544,11 +544,11 @@ contains
       endif
       
       call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
-                     root, MPI_COMM_WORLD, info)
+                     root, self%sample_comm, info)
       call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
-                     root, MPI_COMM_WORLD, info)
+                     root, self%sample_comm, info)
       call MPI_Bcast(site_type, int(self%num_atoms, 4), MYPI_INT, &
-                     root, MPI_COMM_WORLD, info)
+                     root, self%sample_comm, info)
 
       pos = transpose(pos)*self%lattice_constant
 
@@ -558,7 +558,7 @@ contains
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
 
-      call MPI_Bcast(transl_mtx, int(3*n_trans, 4), MPI_REAL8, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(transl_mtx, int(3*n_trans, 4), MPI_REAL8, root, self%sample_comm, info)
 
       conn_mtx(1, :) = self%lattice_constant*[0d0, 1d0, 0d0]!1
       conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]!2
@@ -1435,7 +1435,7 @@ contains
       real(8)                           :: base_len
       real(8), dimension(3, 3)           :: base_vecs
 
-      self%atoms(1) = init_ferro_z((/0d0, 0d0, 0d0/))
+      self%atoms(1) = init_ferro_z((/0d0, 0d0, 0d0/),self%sample_comm)
       allocate (self%atoms(1)%neigh_idx(3))
       allocate (self%atoms(1)%neigh_conn(3, 3))
 
@@ -1462,7 +1462,7 @@ contains
       do i = 0, self%atom_per_dim - 1
          do j = 0, self%atom_per_dim - 1
             pos = [i, j, 0]*self%lattice_constant
-            self%atoms(cnt) = init_ferro_z(pos)
+            self%atoms(cnt) = init_ferro_z(pos,self%sample_comm)
             cnt = cnt + 1
          enddo
       enddo
@@ -1486,7 +1486,7 @@ contains
 
       do i = 1, size(hexagon, dim=1)
          pos = hexagon(i, :)
-         self%atoms(i) = init_ferro_z(pos, site=site_type(i))
+         self%atoms(i) = init_ferro_z(pos,self%sample_comm, site=site_type(i))
       enddo
    end subroutine setup_honey
 
@@ -1876,7 +1876,7 @@ contains
          passed = .False.
       endif
       do i = 1, self%num_atoms
-         passed = passed .and. self%atoms(i)%compare_to_root()
+         passed = passed .and. self%atoms(i)%compare_to_root(self%sample_comm)
       enddo
 
       if (passed) then

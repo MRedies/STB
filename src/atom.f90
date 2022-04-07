@@ -50,15 +50,15 @@ contains
         coord(3) = cos(self%m_theta)
     end function get_m_cart
 
-    function init_ferro_z(p_pos, site) result(self)
+    function init_ferro_z(p_pos, comm, site) result(self)
         implicit none
         type(atom)                 :: self
         real(8), intent(in)        :: p_pos(3)
         integer(8), optional       :: site
         integer                    :: ierr(2)
 
-        call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr(1))
-        call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr(2))
+        call MPI_Comm_size(comm, self%nProcs, ierr(1))
+        call MPI_Comm_rank(comm, self%me, ierr(2))
         call check_ierr(ierr, self%me, "init_ferro_z call")
 
         if(present(site)) then
@@ -94,11 +94,12 @@ contains
         !write(*,*) "self%m_theta",self%m_theta
     end subroutine set_sphere
 
-    function compare_to_root(self) result(success)
+    function compare_to_root(self,comm) result(success)
         implicit none
         class(atom)             :: self
         real(8)                 :: tmp, tmp_p(3)
         integer                 :: ierr(10), tmp_i
+        integer, intent(in)     :: comm
         integer, allocatable    :: tmp_ivec(:)
         integer(4)              :: tmp_i4
         integer(4), allocatable :: tmp_i4vec(:)
@@ -109,14 +110,14 @@ contains
 
         ! compare angles
         if(self%me == root) tmp = self%m_phi
-        call MPI_Bcast(tmp, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(1))
+        call MPI_Bcast(tmp, 1, MPI_REAL8, root, comm, ierr(1))
         if(abs(tmp - self%m_phi) > 1d-12) then
             call error_msg("m_phi doesn't match", abort=.True.)
             success = .False.
         endif
 
         if(self%me == root) tmp = self%m_theta
-        call MPI_Bcast(tmp, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(2))
+        call MPI_Bcast(tmp, 1, MPI_REAL8, root, comm, ierr(2))
         if(abs(tmp - self%m_theta) > 1d-12) then
             call error_msg("m_theta doesn't match", abort=.True.)
             success = .False.
@@ -124,7 +125,7 @@ contains
 
         ! compare positions
         if(self%me == root) tmp_p = self%pos
-        call MPI_Bcast(tmp_p, 3, MPI_REAL8, root, MPI_COMM_WORLD, ierr(3))
+        call MPI_Bcast(tmp_p, 3, MPI_REAL8, root, comm, ierr(3))
         if(my_norm2(tmp_p - self%pos) > 1d-11) then
             call error_msg("pos doesn't match", abort=.True.)
             success = .False.
@@ -132,7 +133,7 @@ contains
 
         ! compare site_types
         if(self%me == root) tmp_i4 = self%site_type
-        call MPI_Bcast(tmp_i4, 1, MPI_INTEGER4, root, MPI_COMM_WORLD, ierr(4))
+        call MPI_Bcast(tmp_i4, 1, MPI_INTEGER4, root, comm, ierr(4))
         if(tmp_i4 /= self%site_type) then
             call error_msg("site_type doesn't match", abort=.True.)
             success = .False.
@@ -140,7 +141,7 @@ contains
 
         ! compare neighbours
         if(self%me == root) tmp_i = size(self%neigh_idx)
-        call MPI_Bcast(tmp_i, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr(5))
+        call MPI_Bcast(tmp_i, 1, MPI_INTEGER, root, comm, ierr(5))
         if(tmp_i /= size(self%neigh_idx)) then
             call error_msg("size(neigh_idx) doesn't match", abort=.True.)
             success = .False.
@@ -149,7 +150,7 @@ contains
         allocate(tmp_ivec(size(self%neigh_idx)))
         if(self%me == root) tmp_ivec = self%neigh_idx
         call MPI_Bcast(tmp_ivec, size(self%neigh_idx), MPI_INTEGER, &
-                       root, MPI_COMM_WORLD, ierr(6))
+                       root, comm, ierr(6))
         if(any(tmp_ivec /= self%neigh_idx)) then
             write (*,*) self%me, "neigh_idx", self%neigh_idx
             write (*,*) self%me, "tmp_ivec", tmp_ivec
@@ -159,7 +160,7 @@ contains
         deallocate(tmp_ivec)
 
         if(self%me == root) tmp_i = size(self%neigh_conn)
-        call MPI_Bcast(tmp_i, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr(7))
+        call MPI_Bcast(tmp_i, 1, MPI_INTEGER, root, comm, ierr(7))
         if(tmp_i /= size(self%neigh_conn)) then
             call error_msg("size(neigh_conn) doesn't match", abort=.True.)
             success = .False.
@@ -169,7 +170,7 @@ contains
                           size(self%neigh_conn, dim=2)))
         if(self%me == root) tmp_rmtx = self%neigh_conn
         call MPI_Bcast(tmp_rmtx, size(tmp_rmtx), MPI_REAL8, &
-                                      root, MPI_COMM_WORLD, ierr(8))
+                                      root, comm, ierr(8))
         if(mtx_norm(tmp_rmtx - self%neigh_conn) >  1d-11) then
             call error_msg("neigh_conn doesn't match", abort=.True.)
             success = .False.
@@ -178,7 +179,7 @@ contains
 
         ! compare conn types
         if(self%me == root) tmp_i = size(self%conn_type)
-        call MPI_Bcast(tmp_i, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr(9))
+        call MPI_Bcast(tmp_i, 1, MPI_INTEGER, root, comm, ierr(9))
         if(tmp_i /= size(self%conn_type)) then
             call error_msg("size(conn_type) doesn't match", abort=.True.)
             success = .False.
@@ -187,7 +188,7 @@ contains
         allocate(tmp_i4vec(size(self%conn_type)))
         if(self%me == root) tmp_i4vec = self%conn_type
         call MPI_Bcast(tmp_i4vec, size(tmp_i4vec), MPI_INTEGER4, &
-                       root, MPI_COMM_WORLD, ierr(10))
+                       root, comm, ierr(10))
         if(any(tmp_i4vec /= self%conn_type)) then
             call error_msg("conn_type doesn't match", abort=.True.)
             success = .False.
