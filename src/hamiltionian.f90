@@ -312,6 +312,7 @@ contains
       integer             :: n, n_arr
 
       self%sample_comm = sample_comm
+      self%sample_idx = n_sample
       
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)

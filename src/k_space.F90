@@ -367,6 +367,7 @@ contains
       integer, intent(in)   :: sample_comm,n_sample,samples_per_comm
 
       self%sample_comm = sample_comm
+      self%sample_idx = n_sample
 
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
