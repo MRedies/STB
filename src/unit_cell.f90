@@ -1533,9 +1533,9 @@ contains
                cnt = cnt + 1
             endif
          enddo
-         allocate (self%atoms(i)%neigh_idx(n_found))
-         allocate (self%atoms(i)%neigh_conn(n_found, 3))
-         allocate (self%atoms(i)%conn_type(n_found))
+         if(.NOT. allocated(self%atoms(i)%neigh_idx))  allocate (self%atoms(i)%neigh_idx(n_found))
+         if(.NOT. allocated(self%atoms(i)%neigh_conn)) allocate (self%atoms(i)%neigh_conn(n_found, 3))
+         if(.NOT. allocated(self%atoms(i)%conn_type))  allocate (self%atoms(i)%conn_type(n_found))
          cnt = 1
          do j = 1, n_conn
             if (found_conn(j)) then
