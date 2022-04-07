@@ -317,6 +317,18 @@ contains
       call MPI_Bcast(self%dblatan_pref, 1, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(25))
       call MPI_Bcast(self%atan_pref, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(26))
+
+       !BCAST FILES, SINCE IN EVERY SUBCOMM THE ROOT NEEDS TO READ
+      call MPI_Bcast(self%mag_file, 300, MPI_CHARACTER, &
+                     root, MPI_COMM_WORLD, ierr(3))
+      call MPI_Bcast(self%vec_file, 300, MPI_CHARACTER, &
+                     root, MPI_COMM_WORLD, ierr(3))
+      call MPI_Bcast(self%pos_file, 300, MPI_CHARACTER, &
+                     root, MPI_COMM_WORLD, ierr(3))
+      call MPI_Bcast(self%dim_file, 300, MPI_CHARACTER, &
+                     root, MPI_COMM_WORLD, ierr(3))
+      call MPI_Bcast(self%site_type_file, 300, MPI_CHARACTER, &
+                     root, MPI_COMM_WORLD, ierr(3))
       call check_ierr(ierr, self%me, "Unit cell check err")
    end subroutine Bcast_UC
 
@@ -513,16 +525,16 @@ contains
 
       !READ IN STUFF WITH LOAD_NPY
          
-      if (self%me == root) then
-         call load_npy(self%dim_file,dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C,N_trans
+      if (self%me_sample == root) then
+         call load_npy(trim(self%dim_file),dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C,N_trans
          num_atoms = 2*dimensions(2)*dimensions(3)*dimensions(4)
          n_trans = dimensions(5)
       endif
 
       call MPI_Bcast(num_atoms, 1, MYPI_INT, &
-                     root, MPI_COMM_WORLD, info)
+                     root, self%sample_comm, info)
       call MPI_Bcast(n_trans, 1, MYPI_INT, &
-                     root, MPI_COMM_WORLD, info)
+                     root, self%sample_comm, info)
       self%num_atoms = num_atoms
       allocate(m(3,num_atoms))
       allocate (pos(3, self%num_atoms))
@@ -531,11 +543,11 @@ contains
       allocate (self%atoms(self%num_atoms))
 
       if (self%me_sample == root) then
-         call load_npy(self%vec_file,transl_mtx)
+         call load_npy(trim(self%vec_file),transl_mtx)
          transl_mtx = transpose(transl_mtx)
-         call load_npy(self%mag_file,m_large)
-         call load_npy(self%pos_file,pos)
-         call load_npy(self%site_type_file,site_type)       
+         call load_npy(trim(self%mag_file),m_large)
+         call load_npy(trim(self%pos_file),pos)
+         call load_npy(trim(self%site_type_file),site_type)       
          idxstart = (self%sample_idx-1)*num_atoms + 1
          idxstop = self%sample_idx*num_atoms
          m(1,:) = m_large(1,idxstart:idxstop)
