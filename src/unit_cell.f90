@@ -247,7 +247,7 @@ contains
       use mpi
       implicit none
       class(unit_cell)           :: self
-      integer, parameter         :: num_cast = 27
+      integer, parameter         :: num_cast = 32
       integer                    :: ierr(num_cast)
       integer                    :: anticol_size_phi, wsize, asize
       integer                    :: anticol_size_theta
@@ -320,15 +320,15 @@ contains
 
        !BCAST FILES, SINCE IN EVERY SUBCOMM THE ROOT NEEDS TO READ
       call MPI_Bcast(self%mag_file, 300, MPI_CHARACTER, &
-                     root, MPI_COMM_WORLD, ierr(3))
+                     root, MPI_COMM_WORLD, ierr(28))
       call MPI_Bcast(self%vec_file, 300, MPI_CHARACTER, &
-                     root, MPI_COMM_WORLD, ierr(3))
+                     root, MPI_COMM_WORLD, ierr(29))
       call MPI_Bcast(self%pos_file, 300, MPI_CHARACTER, &
-                     root, MPI_COMM_WORLD, ierr(3))
+                     root, MPI_COMM_WORLD, ierr(30))
       call MPI_Bcast(self%dim_file, 300, MPI_CHARACTER, &
-                     root, MPI_COMM_WORLD, ierr(3))
+                     root, MPI_COMM_WORLD, ierr(31))
       call MPI_Bcast(self%site_type_file, 300, MPI_CHARACTER, &
-                     root, MPI_COMM_WORLD, ierr(3))
+                     root, MPI_COMM_WORLD, ierr(32))
       call check_ierr(ierr, self%me, "Unit cell check err")
    end subroutine Bcast_UC
 
