@@ -566,8 +566,9 @@ contains
 
       self%lattice(:, 1) = self%lattice_constant*transl_mtx(1, :)
       self%lattice(:, 2) = self%lattice_constant*transl_mtx(2, :)
-
+      !FOR ATOM 2, THIS DOES NOT FIND ALL NEIGHBORS, WHAT TO DO?
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
+      call self%setup_gen_conn(-conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
       call self%set_honey_snd_nearest(transl_mtx)
       deallocate (m, pos)
    end subroutine init_file_honey_htp
