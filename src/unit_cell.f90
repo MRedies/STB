@@ -530,7 +530,7 @@ contains
       allocate (transl_mtx(n_trans, 3))
       allocate (self%atoms(self%num_atoms))
 
-      if (self%me == root) then
+      if (self%me_sample == root) then
          call load_npy(self%vec_file,transl_mtx)
          transl_mtx = transpose(transl_mtx)
          call load_npy(self%mag_file,m_large)
