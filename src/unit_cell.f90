@@ -1533,14 +1533,16 @@ contains
                cnt = cnt + 1
             endif
          enddo
-         if(.NOT. allocated(self%atoms(i)%neigh_idx)) then
-            allocate (self%atoms(i)%neigh_idx(n_found))
-         endif
-         if(.NOT. allocated(self%atoms(i)%neigh_conn)) then
-            allocate (self%atoms(i)%neigh_conn(n_found, 3))
-         endif
-         if(.NOT. allocated(self%atoms(i)%conn_type)) then
-            allocate (self%atoms(i)%conn_type(n_found))
+         if (n_found>0) then
+            if(.NOT. allocated(self%atoms(i)%neigh_idx)) then
+               allocate (self%atoms(i)%neigh_idx(n_found))
+            endif
+            if(.NOT. allocated(self%atoms(i)%neigh_conn)) then
+               allocate (self%atoms(i)%neigh_conn(n_found, 3))
+            endif
+            if(.NOT. allocated(self%atoms(i)%conn_type)) then
+               allocate (self%atoms(i)%conn_type(n_found))
+            endif
          endif
          cnt = 1
          do j = 1, n_conn
