@@ -54,6 +54,7 @@ contains
         implicit none
         type(atom)                 :: self
         real(8), intent(in)        :: p_pos(3)
+        integer, intent(in)        :: comm
         integer(8), optional       :: site
         integer                    :: ierr(2)
 
