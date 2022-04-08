@@ -373,7 +373,7 @@ contains
       color = 0
       if (nProcs>=2*min_comm_size) then
          color = mod(rank,ncomms)
-         if (color = 0) then
+         if (color == 0) then
             color = rank/ncomms
          endif
       endif
