@@ -372,9 +372,10 @@ contains
       call calc_ncomms(min_comm_size,nProcs,ncomms)
       color = 0
       if (nProcs>=2*min_comm_size) then
-         color = mod(rank,ncomms)
-         if (color == 0) then
+         if (mod(rank,ncomms) == 0) then
             color = rank/ncomms
+         else
+            color = mod(rank,ncomms)
          endif
       endif
 
