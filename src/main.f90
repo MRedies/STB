@@ -368,11 +368,11 @@ contains
       use mpi
       implicit none
       integer , intent(in)           :: nProcs,rank,min_comm_size
-      integer                        :: color
-      
+      integer                        :: color,ncomms
+      call calc_ncomms(min_comm_size,nProcs,ncomms)
       color = 0
       if (nProcs>=2*min_comm_size) then
-         color = rank/min_comm_size!mod(rank,min_comm_size)
+         color = mod(rank,ncomms)
       endif
 
    end subroutine
