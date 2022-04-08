@@ -372,7 +372,7 @@ contains
       
       color = 0
       if (nProcs>=2*min_comm_size) then
-         color = mod(rank,min_comm_size)
+         color = rank/min_comm_size!mod(rank,min_comm_size)
       endif
 
    end subroutine
