@@ -519,8 +519,8 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)
       real(8), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
-      integer(8), allocatable           :: site_type8(:),dimensions(:)
-      integer(4), allocatable           :: site_type(:)
+      integer(8), allocatable           :: site_type(:),dimensions(:)
+      integer(4), allocatable           :: site_type4(:)
       integer                           :: n(3),num_atoms,idxstart,idxstop,n_trans
       integer                           :: info
 
@@ -549,7 +549,7 @@ contains
          call load_npy(trim(self%mag_file),m_large)
          call load_npy(trim(self%pos_file),pos)
          call load_npy(trim(self%site_type_file),site_type8)
-         site_type = int(site_type8,4)
+         site_type4 = int(site_type,4)
          idxstart = (self%sample_idx-1)*num_atoms + 1
          idxstop = self%sample_idx*num_atoms
          m(1,:) = m_large(1,idxstart:idxstop)
@@ -560,9 +560,9 @@ contains
                      root, self%sample_comm, info)
       call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, self%sample_comm, info)
-      call MPI_Bcast(site_type, int(self%num_atoms, 4), MYPI_INT, &
+      call MPI_Bcast(site_type4, int(self%num_atoms, 4), MYPI_INT, &
                      root, self%sample_comm, info)
-
+      site_type = int(site_type4,8)
       pos = transpose(pos)*self%lattice_constant
 
       call self%setup_honey(pos,site_type)
