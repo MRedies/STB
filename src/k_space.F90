@@ -304,7 +304,7 @@ contains
 
       call linspace(self%DOS_lower, self%DOS_upper, self%num_DOS_pts, self%E_DOS)
 
-      if(self%me ==  root) then
+      if(self%me_sample ==  root) then
          allocate(DOS(self%num_DOS_pts))
          allocate(up(self%num_DOS_pts))
          allocate(down(self%num_DOS_pts))
