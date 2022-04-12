@@ -540,6 +540,7 @@ contains
       allocate(m(3,num_atoms))
       allocate (pos(3, self%num_atoms))
       allocate (site_type(self%num_atoms))
+      allocate (site_type4(self%num_atoms))
       allocate (transl_mtx(n_trans, 3))
       allocate (self%atoms(self%num_atoms))
 
