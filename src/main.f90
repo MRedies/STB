@@ -57,10 +57,13 @@ program STB
       samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms,color)
       startidx = calc_starting_sample(n_sample_par,ncomms,color)
       stopidx = startidx + samples_per_comm - 1
+      if(me_sample==root) then
+         write(*,*) "Samples from: " startidx,stopidx
+      endif
       do n_sample = startidx,stopidx
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm)
       enddo
-   else 
+   else
       do n_inp = 1, n_files
          if(me == root) write (*,*) "started at ", date_time()
          call process_file(inp_files(n_inp),MPI_COMM_WORLD,1,1)
