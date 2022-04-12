@@ -377,9 +377,9 @@ contains
       color = 0
       if (nProcs>=2*min_comm_size) then
          if (rank>=ncomms*min_comm_size) then
-            color = (rank-ncomms*min_comm_size)/ncomms
+            color = mod((rank-ncomms*min_comm_size),ncomms)
          else
-            color = rank/ncomms
+            color = mod(rank,ncomms)
          endif
       endif
 
