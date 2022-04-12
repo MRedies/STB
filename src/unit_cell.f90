@@ -548,7 +548,7 @@ contains
          transl_mtx = transpose(transl_mtx)
          call load_npy(trim(self%mag_file),m_large)
          call load_npy(trim(self%pos_file),pos)
-         call load_npy(trim(self%site_type_file),site_type8)
+         call load_npy(trim(self%site_type_file),site_type)
          site_type4 = int(site_type,4)
          idxstart = (self%sample_idx-1)*num_atoms + 1
          idxstop = self%sample_idx*num_atoms
