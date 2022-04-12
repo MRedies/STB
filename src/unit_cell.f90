@@ -520,7 +520,7 @@ contains
       real(8)                           :: conn_mtx(3, 3)
       real(8), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
       integer(8), allocatable           :: site_type(:),dimensions(:)
-      integer                           :: n(3),num_atoms,idxstart,idxstop,n_trans,site_type_size
+      integer                           :: n(3),num_atoms,idxstart,idxstop,n_trans
       integer                           :: info
 
       !READ IN STUFF WITH LOAD_NPY
@@ -554,12 +554,11 @@ contains
          m(2,:) = m_large(2,idxstart:idxstop)
          m(3,:) = m_large(3,idxstart:idxstop)
       endif
-      site_type_size = int(self%num_atoms,4)!int(self%num_atoms, 4)
       call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, self%sample_comm, info)
       call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, self%sample_comm, info)
-      call MPI_Bcast(site_type, site_type_size, MYPI_INT, &
+      call MPI_Bcast(site_type, int(self%num_atoms, 8), MYPI_INT, &
                      root, self%sample_comm, info)
 
       pos = transpose(pos)*self%lattice_constant
