@@ -225,7 +225,7 @@ contains
       loc_PDOS =  0d0
       PDOS = 0d0
 
-      call my_section(self%me, self%nProcs, size(self%new_k_pts,2), first, last)
+      call my_section(self%me_sample, self%nProcs, size(self%new_k_pts,2), first, last)
       if(self%me == root) write (*,*) "DOS kpts", size(self%new_k_pts,2)
       percentage = 0
       do k_idx=first, last
@@ -267,7 +267,7 @@ contains
       loc_PDOS =  loc_PDOS / real(size(self%new_k_pts, 2))
       call MPI_Reduce(loc_PDOS,  PDOS,    size(loc_PDOS), &
                       MPI_REAL8, MPI_SUM, root, &
-                      MPI_COMM_WORLD, ierr)
+                      self%sample_comm, ierr)
 
       deallocate(loc_PDOS)
       deallocate(WORK)
