@@ -59,6 +59,11 @@ program STB
       startidx = calc_starting_sample(n_sample_par,ncomms,color)
       stopidx = startidx + samples_per_comm - 1
       !do n_sample = startidx,stopidx
+      if(me_sample==root) then
+         do n_sample = color+1,n_sample_par,ncomms
+         write(*,*) n_sample
+         enddo
+      endif
       do n_sample = color+1,n_sample_par,ncomms
          if(me_sample==root) then
             write(*,*) "Samples: " ,n_sample
