@@ -58,16 +58,7 @@ program STB
       samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms,color)
       startidx = calc_starting_sample(n_sample_par,ncomms,color)
       stopidx = startidx + samples_per_comm - 1
-      !do n_sample = startidx,stopidx
-      if(me_sample==root) then
-         do n_sample = color+1,n_sample_par,ncomms
-         write(*,*) n_sample
-         enddo
-      endif
       do n_sample = color+1,n_sample_par,ncomms
-         if(me_sample==root) then
-            write(*,*) "Samples: " ,n_sample
-         endif
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm)
       enddo
    else

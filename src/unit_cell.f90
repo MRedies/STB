@@ -291,7 +291,7 @@ contains
                      root, self%sample_comm, ierr(14))
       call MPI_Bcast(anticol_size_theta, 1, MYPI_INT, &
                      root, self%sample_comm, ierr(15))
-      if (self%m_sample /= root) then
+      if (self%me_sample /= root) then
          allocate (self%anticol_phi(anticol_size_phi))
          allocate (self%anticol_theta(anticol_size_theta))
       endif
