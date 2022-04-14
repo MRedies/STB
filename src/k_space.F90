@@ -385,7 +385,7 @@ contains
          if(self%prefix(len_trim(self%prefix):len_trim(self%prefix)) /=  "/") then
             self%prefix =  trim(self%prefix) // "/"
          endif
-         call create_dir(self%prefix)
+         !call create_dir(self%prefix)
 
          call CFG_get(cfg, "band%filling", self%filling)
 
