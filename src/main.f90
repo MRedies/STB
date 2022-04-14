@@ -67,7 +67,6 @@ program STB
          call process_file(inp_files(n_inp),MPI_COMM_WORLD,1,1)
       enddo
    endif
-   call MPI_Barrier(MPI_COMM_WORLD, info)
    call MPI_Finalize(ierr)
 contains
    subroutine process_file(inp_file,sample_comm,n_sample,samples_per_comm)
