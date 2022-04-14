@@ -148,7 +148,7 @@ contains
 
       self%units = init_units(cfg, self%me)
 
-      if (self%me_sample == root) then
+      if (self%me == 0) then
          call CFG_get(cfg, "berry%pert_log", tmp_log)
          self%pert_log = tmp_log
          call CFG_get(cfg, "grid%epsilon", tmp)
@@ -252,83 +252,83 @@ contains
       integer                    :: anticol_size_phi, wsize, asize
       integer                    :: anticol_size_theta
 
-      if (self%me_sample == root) then
+      if (self%me == root) then
          anticol_size_phi = size(self%anticol_phi)
          anticol_size_theta = size(self%anticol_theta)
          wsize = size(self%wavevector)
          !asize = size(self%axis)
       endif
       call MPI_Bcast(self%eps, 1, MPI_REAL8, &
-                     root, self%sample_comm, ierr(1))
+                     root, MPI_COMM_WORLD, ierr(1))
       call MPI_Bcast(self%mag_type, 25, MPI_CHARACTER, &
-                     root, self%sample_comm, ierr(2))
+                     root, MPI_COMM_WORLD, ierr(2))
       call MPI_Bcast(self%uc_type, 25, MPI_CHARACTER, &
-                     root, self%sample_comm, ierr(3))
+                     root, MPI_COMM_WORLD, ierr(3))
       call MPI_Bcast(self%lattice_constant, 1, MPI_REAL8, &
-                     root, self%sample_comm, ierr(4))
+                     root, MPI_COMM_WORLD, ierr(4))
       call MPI_Bcast(self%atom_per_dim, 1, MYPI_INT, &
-                     root, self%sample_comm, ierr(5))
+                     root, MPI_COMM_WORLD, ierr(5))
 
       call MPI_Bcast(self%ferro_phi, 1, MPI_REAL8, &
-                     root, self%sample_comm, ierr(6))
+                     root, MPI_COMM_WORLD, ierr(6))
       call MPI_Bcast(self%ferro_theta, 1, MPI_REAL8, &
-                     root, self%sample_comm, ierr(7))
+                     root, MPI_COMM_WORLD, ierr(7))
       call MPI_Bcast(self%atan_factor, 1, MPI_REAL8, &
-                     root, self%sample_comm, ierr(8))
+                     root, MPI_COMM_WORLD, ierr(8))
       call MPI_Bcast(self%dblatan_dist, 1, MPI_REAL8, &
-                     root, self%sample_comm, ierr(9))
+                     root, MPI_COMM_WORLD, ierr(9))
       call MPI_Bcast(self%skyrm_middle, 1, MPI_REAL8, &
-                     root, self%sample_comm, ierr(10))
+                     root, MPI_COMM_WORLD, ierr(10))
 
       call MPI_Bcast(self%n_wind, 1, MYPI_INT, &
-                     root, self%sample_comm, ierr(11))
+                     root, MPI_COMM_WORLD, ierr(11))
       call MPI_Bcast(self%molecule, 1, MPI_LOGICAL, &
-                     root, self%sample_comm, ierr(12))
+                     root, MPI_COMM_WORLD, ierr(12))
       call MPI_Bcast(self%test_run, 1, MPI_LOGICAL, &
-                     root, self%sample_comm, ierr(13))
+                     root, MPI_COMM_WORLD, ierr(13))
 
       call MPI_Bcast(anticol_size_phi, 1, MYPI_INT, &
-                     root, self%sample_comm, ierr(14))
+                     root, MPI_COMM_WORLD, ierr(14))
       call MPI_Bcast(anticol_size_theta, 1, MYPI_INT, &
-                     root, self%sample_comm, ierr(15))
-      if (self%me_sample /= root) then
+                     root, MPI_COMM_WORLD, ierr(15))
+      if (self%me /= root) then
          allocate (self%anticol_phi(anticol_size_phi))
          allocate (self%anticol_theta(anticol_size_theta))
       endif
       call MPI_Bcast(self%anticol_theta, anticol_size_theta, MPI_REAL8, &
-                     root, self%sample_comm, ierr(16))
+                     root, MPI_COMM_WORLD, ierr(16))
       call MPI_Bcast(self%anticol_phi, anticol_size_phi, MPI_REAL8, &
-                     root, self%sample_comm, ierr(17))
+                     root, MPI_COMM_WORLD, ierr(17))
 
       call MPI_Bcast(self%pert_log, 1, MPI_LOGICAL, &
-                     root, self%sample_comm, ierr(18))
+                     root, MPI_COMM_WORLD, ierr(18))
 
-      call MPI_Bcast(wsize, 1, MYPI_INT, root, self%sample_comm, ierr(19))
-      call MPI_Bcast(asize, 1, MYPI_INT, root, self%sample_comm, ierr(20))
-      if (self%me_sample /= root) then
+      call MPI_Bcast(wsize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(19))
+      call MPI_Bcast(asize, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr(20))
+      if (self%me /= root) then
          allocate (self%wavevector(wsize))
          !allocate (self%axis(asize))
       endif
-      call MPI_Bcast(self%wavevector, wsize, MYPI_INT, root, self%sample_comm, ierr(21))
-      call MPI_Bcast(self%axis_phi, 1, MPI_REAL8, root, self%sample_comm, ierr(22))
-      call MPI_Bcast(self%axis_theta, 1, MPI_REAL8, root, self%sample_comm, ierr(27))
-      call MPI_Bcast(self%cone_angle, 1, MPI_REAL8, root, self%sample_comm, ierr(23))
-      call MPI_Bcast(self%spiral_type, 25, MPI_CHARACTER, root, self%sample_comm, ierr(24))
+      call MPI_Bcast(self%wavevector, wsize, MYPI_INT, root, MPI_COMM_WORLD, ierr(21))
+      call MPI_Bcast(self%axis_phi, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(22))
+      call MPI_Bcast(self%axis_theta, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(27))
+      call MPI_Bcast(self%cone_angle, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(23))
+      call MPI_Bcast(self%spiral_type, 25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr(24))
       call MPI_Bcast(self%dblatan_pref, 1, MPI_REAL8, &
-                     root, self%sample_comm, ierr(25))
-      call MPI_Bcast(self%atan_pref, 1, MPI_REAL8, root, self%sample_comm, ierr(26))
+                     root, MPI_COMM_WORLD, ierr(25))
+      call MPI_Bcast(self%atan_pref, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr(26))
 
        !BCAST FILES, SINCE IN EVERY SUBCOMM THE ROOT NEEDS TO READ
       call MPI_Bcast(self%mag_file, 300, MPI_CHARACTER, &
-                     root, self%sample_comm, ierr(28))
+                     root, MPI_COMM_WORLD, ierr(28))
       call MPI_Bcast(self%vec_file, 300, MPI_CHARACTER, &
-                     root, self%sample_comm, ierr(29))
+                     root, MPI_COMM_WORLD, ierr(29))
       call MPI_Bcast(self%pos_file, 300, MPI_CHARACTER, &
-                     root, self%sample_comm, ierr(30))
+                     root, MPI_COMM_WORLD, ierr(30))
       call MPI_Bcast(self%dim_file, 300, MPI_CHARACTER, &
-                     root, self%sample_comm, ierr(31))
+                     root, MPI_COMM_WORLD, ierr(31))
       call MPI_Bcast(self%site_type_file, 300, MPI_CHARACTER, &
-                     root, self%sample_comm, ierr(32))
+                     root, MPI_COMM_WORLD, ierr(32))
       call check_ierr(ierr, self%me, "Unit cell check err")
    end subroutine Bcast_UC
 
@@ -390,7 +390,7 @@ contains
          read (21, *) garb, n(1), n(2), n(3)
          write (*, *) n
       endif
-      call MPI_Bcast(n, 3, MYPI_INT, root, self%sample_comm, info)
+      call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
       self%num_atoms = n(1)*n(2)*n(3)
 
       allocate (self%atoms(self%num_atoms))
@@ -404,9 +404,9 @@ contains
       enddo
 
       call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
-                     root, self%sample_comm, info)
+                     root, MPI_COMM_WORLD, info)
       call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
-                     root, self%sample_comm, info)
+                     root, MPI_COMM_WORLD, info)
 
       pos = pos*self%lattice_constant
 
@@ -416,7 +416,7 @@ contains
       enddo
 
       if (self%me == root) read (21, *) garb, n_transl
-      call MPI_Bcast(n_transl, 1, MYPI_INT, root, self%sample_comm, info)
+      call MPI_Bcast(n_transl, 1, MYPI_INT, root, MPI_COMM_WORLD, info)
       allocate (transl_mtx(n_transl, 3))
 
       if (self%me == root) then
@@ -429,7 +429,7 @@ contains
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
 
-      call MPI_Bcast(transl_mtx, int(3*n_transl, 4), MPI_REAL8, root, self%sample_comm, info)
+      call MPI_Bcast(transl_mtx, int(3*n_transl, 4), MPI_REAL8, root, MPI_COMM_WORLD, info)
 
       conn_mtx(1, :) = (/self%lattice_constant, 0d0, 0d0/)
       conn_mtx(2, :) = (/0d0, self%lattice_constant, 0d0/)
@@ -459,7 +459,7 @@ contains
          read (21, *) garb, n(1), n(2), n(3)
          write (*, *) n
       endif
-      call MPI_Bcast(n, 3, MYPI_INT, root, self%sample_comm, info)
+      call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
       self%num_atoms = 2*n(1)*n(2)*n(3)
 
       allocate (self%atoms(self%num_atoms))
@@ -474,18 +474,18 @@ contains
       enddo
 
       call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
-                     root, self%sample_comm, info)
+                     root, MPI_COMM_WORLD, info)
       call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
-                     root, self%sample_comm, info)
+                     root, MPI_COMM_WORLD, info)
       call MPI_Bcast(site_type, int(self%num_atoms, 4), MYPI_INT, &
-                     root, self%sample_comm, info)
+                     root, MPI_COMM_WORLD, info)
 
       pos = transpose(pos)*self%lattice_constant
 
       call self%setup_honey(pos,site_type)
 
       if (self%me == root) read (21, *) garb, n_transl
-      call MPI_Bcast(n_transl, 1, MYPI_INT, root, self%sample_comm, info)
+      call MPI_Bcast(n_transl, 1, MYPI_INT, root, MPI_COMM_WORLD, info)
       allocate (transl_mtx(n_transl, 3))
 
       if (self%me == root) then
@@ -498,7 +498,7 @@ contains
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
 
-      call MPI_Bcast(transl_mtx, int(3*n_transl, 4), MPI_REAL8, root, self%sample_comm, info)
+      call MPI_Bcast(transl_mtx, int(3*n_transl, 4), MPI_REAL8, root, MPI_COMM_WORLD, info)
 
       conn_mtx(1, :) = self%lattice_constant*[0d0, 1d0, 0d0]!1
       conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]!2
@@ -1880,7 +1880,7 @@ contains
       passed = .True.
       !compare perturbation logical
       if (self%me == root) tmp = self%pert_log
-      call MPI_Bcast(tmp, 1, MPI_LOGICAL, root, self%sample_comm, ierr)
+      call MPI_Bcast(tmp, 1, MPI_LOGICAL, root, MPI_COMM_WORLD, ierr)
       if (tmp .NEQV. self%pert_log) then
          call error_msg("pert_log doesn't match", abort=.True.)
          passed = .False.
