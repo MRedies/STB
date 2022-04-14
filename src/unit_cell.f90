@@ -148,7 +148,7 @@ contains
 
       self%units = init_units(cfg, self%me)
 
-      if (self%me == root) then
+      if (self%me_sample == root) then
          call CFG_get(cfg, "berry%pert_log", tmp_log)
          self%pert_log = tmp_log
          call CFG_get(cfg, "grid%epsilon", tmp)
