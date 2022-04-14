@@ -378,7 +378,7 @@ contains
       self%units = init_units(cfg, self%me)
       self%ham   = init_hamil(cfg,sample_comm,n_sample,samples_per_comm)    
 
-      if(self%me ==  0) then
+      if(self%me_sample ==  0) then
          call CFG_get(cfg, "grid%k_shift", self%k_shift)
 
          call CFG_get(cfg, "output%band_prefix", self%prefix)
@@ -454,75 +454,75 @@ contains
       endif
 
       call MPI_Bcast(self%prefix,  300,          MPI_CHARACTER, &
-                     root,                    MPI_COMM_WORLD, ierr(1))
+                     root,                    self%sample_comm, ierr(1))
       call MPI_Bcast(self%filling, 300,          MPI_CHARACTER, &
-                     root,                    MPI_COMM_WORLD, ierr(2))
+                     root,                    self%sample_comm, ierr(2))
 
       call MPI_Bcast(self%DOS_gamma,   1,            MPI_REAL8,   &
-                     root,                        MPI_COMM_WORLD, ierr(3))
+                     root,                        self%sample_comm, ierr(3))
       call MPI_Bcast(self%num_DOS_pts, 1,            MYPI_INT, &
-                     root,                        MPI_COMM_WORLD, ierr(4))
+                     root,                        self%sample_comm, ierr(4))
 
       call MPI_Bcast(sz, 2,            MYPI_INT, &
-                     root,          MPI_COMM_WORLD, ierr(5))
+                     root,          self%sample_comm, ierr(5))
 
-      if(self%me /= root) then
+      if(self%me_sample /= root) then
          allocate(self%k1_param(sz(1)))
          allocate(self%k2_param(sz(2)))
       endif
       call MPI_Bcast(self%k1_param,      sz(1),          MPI_REAL8,    &
-                     root,               MPI_COMM_WORLD, ierr(6))
+                     root,               self%sample_comm, ierr(6))
       call MPI_Bcast(self%k2_param,      sz(2),          MPI_REAL8,    &
-                     root,               MPI_COMM_WORLD, ierr(7))
+                     root,               self%sample_comm, ierr(7))
       call MPI_Bcast(self%num_k_pts,     1,              MYPI_INT, &
-                     root,               MPI_COMM_WORLD, ierr(8))
+                     root,               self%sample_comm, ierr(8))
       call MPI_Bcast(self%DOS_num_k_pts, 1,              MYPI_INT, &
-                     root,               MPI_COMM_WORLD, ierr(9))
+                     root,               self%sample_comm, ierr(9))
       call MPI_Bcast(self%DOS_lower,     1,              MPI_REAL8, &
-                     root,               MPI_COMM_WORLD, ierr(10))
+                     root,               self%sample_comm, ierr(10))
       call MPI_Bcast(self%DOS_upper,     1,              MPI_REAL8, &
-                     root,               MPI_COMM_WORLD, ierr(11))
+                     root,               self%sample_comm, ierr(11))
 
       ! Berry parameter               
       call MPI_Bcast(self%berry_num_k_pts, 1,            MYPI_INT,   &
-                     root,                            MPI_COMM_WORLD, ierr(12))
+                     root,                            self%sample_comm, ierr(12))
       call MPI_Bcast(self%temp,            1,            MPI_REAL8,     &
-                     root,                            MPI_COMM_WORLD, ierr(13))
+                     root,                            self%sample_comm, ierr(13))
       call MPI_Bcast(self%berry_iter,      1,            MYPI_INT,   &
-                     root,                            MPI_COMM_WORLD, ierr(14))
+                     root,                            self%sample_comm, ierr(14))
       call MPI_Bcast(self%kpts_per_step,   1,            MYPI_INT,   &
-                     root,                            MPI_COMM_WORLD, ierr(15))
+                     root,                            self%sample_comm, ierr(15))
       call MPI_Bcast(self%k_shift,         3,            MPI_REAL8,     &
-                     root,                            MPI_COMM_WORLD, ierr(16))
+                     root,                            self%sample_comm, ierr(16))
       call MPI_Bcast(self%berry_conv_crit, 1,            MPI_REAL8,     &
-                     root,                            MPI_COMM_WORLD, ierr(17))
+                     root,                            self%sample_comm, ierr(17))
       call MPI_Bcast(self%perform_pad,     1,            MPI_LOGICAL,   &
-                     root,                            MPI_COMM_WORLD, ierr(18))
+                     root,                            self%sample_comm, ierr(18))
       call MPI_Bcast(self%calc_hall,       1,            MPI_LOGICAL,   &
-                     root,                            MPI_COMM_WORLD, ierr(19))
+                     root,                            self%sample_comm, ierr(19))
       call MPI_Bcast(self%calc_hall_diag,       1,            MPI_LOGICAL,   &
-                     root,                            MPI_COMM_WORLD, ierr(26))
+                     root,                            self%sample_comm, ierr(26))
       call MPI_Bcast(self%berry_safe,       1,            MPI_LOGICAL,   &
-                     root,                            MPI_COMM_WORLD, ierr(27))
+                     root,                            self%sample_comm, ierr(27))
       call MPI_Bcast(self%calc_orbmag,     1,            MPI_LOGICAL,   &
-                     root,                            MPI_COMM_WORLD, ierr(20))
+                     root,                            self%sample_comm, ierr(20))
       call MPI_Bcast(self%chosen_weights,  300,          MPI_CHARACTER, &
-                     root,                            MPI_COMM_WORLD, ierr(21))
+                     root,                            self%sample_comm, ierr(21))
       call MPI_Bcast(self%ada_mode,    6,          MPI_CHARACTER, &
-                     root,                            MPI_COMM_WORLD, ierr(22))
+                     root,                            self%sample_comm, ierr(22))
       call MPI_Bcast(self%berry_component,    6,          MPI_CHARACTER, &
-                     root,                            MPI_COMM_WORLD, ierr(28))
+                     root,                            self%sample_comm, ierr(28))
 
       call MPI_Bcast(self%test_run,      1,              MPI_LOGICAL, &
-                     root,              MPI_COMM_WORLD, ierr(23))
+                     root,              self%sample_comm, ierr(23))
       call MPI_Bcast(self%ACA_num_k_pts, 1,              MYPI_INT,    &
-                     root,              MPI_COMM_WORLD, ierr(24))
+                     root,              self%sample_comm, ierr(24))
       call MPI_Bcast(self%num_plot_pts,  1,              MYPI_INT,    &
-                     root,              MPI_COMM_WORLD, ierr(25))
+                     root,              self%sample_comm, ierr(25))
       !call MPI_Bcast(self%pert_log, 1,            MPI_LOGICAL,   &
       !               root,                            MPI_COMM_WORLD, ierr(26))
 
-      call check_ierr(ierr, self%me, "Ksp Bcast")
+      call check_ierr(ierr, self%me_sample, "Ksp Bcast")
    end subroutine Bcast_k_space
 
    subroutine setup_k_grid(self)
