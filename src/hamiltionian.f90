@@ -324,7 +324,7 @@ contains
       self%UC    = init_unit(cfg,sample_comm,n_sample,samples_per_comm)
 
 
-      if(self%me ==  0) then
+      if(self%me_sample ==  0) then
          call CFG_get(cfg, "berry%temperature", tmp)
          self%temp = tmp * self%units%temperature
 
@@ -410,67 +410,67 @@ contains
       integer               :: ierr(num_cast), Vx_len, Vy_len
 
       call MPI_Bcast(self%E_s,      1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(1))
+                     root,          self%sample_comm, ierr(1))
       call MPI_Bcast(self%E_A,      1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(2))
+                     root,          self%sample_comm, ierr(2))
       call MPI_Bcast(self%E_B,      1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(3))
+                     root,          self%sample_comm, ierr(3))
       call MPI_Bcast(self%E_p,      3,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(4))
+                     root,          self%sample_comm, ierr(4))
       call MPI_Bcast(self%Vss_sig,  1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(5))
+                     root,          self%sample_comm, ierr(5))
       call MPI_Bcast(self%Vpp_pi,   1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(6))
+                     root,          self%sample_comm, ierr(6))
       call MPI_Bcast(self%Vpp_sig,  1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(7))
+                     root,          self%sample_comm, ierr(7))
       call MPI_Bcast(self%V2pp_pi,  1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(8))
+                     root,          self%sample_comm, ierr(8))
       call MPI_Bcast(self%V2pp_sig, 1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(9))
+                     root,          self%sample_comm, ierr(9))
       call MPI_Bcast(self%t_2,      1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(10))
+                     root,          self%sample_comm, ierr(10))
       call MPI_Bcast(self%phi_2,    1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(11))
+                     root,          self%sample_comm, ierr(11))
       call MPI_Bcast(self%t_so,     1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(12))
+                     root,          self%sample_comm, ierr(12))
       call MPI_Bcast(self%lambda,   1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(13))
+                     root,          self%sample_comm, ierr(13))
       call MPI_Bcast(self%eta_soc,  1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(14))
+                     root,          self%sample_comm, ierr(14))
       call MPI_Bcast(self%num_orb,  1,              MYPI_INT,    &
-                     root,          MPI_COMM_WORLD, ierr(15))
+                     root,          self%sample_comm, ierr(15))
       call MPI_Bcast(self%num_up,   1,              MYPI_INT,    &
-                     root,          MPI_COMM_WORLD, ierr(16))
+                     root,          self%sample_comm, ierr(16))
       call MPI_Bcast(self%test_run, 1,              MPI_LOGICAL, &
-                     root,         MPI_COMM_WORLD, ierr(17))
+                     root,         self%sample_comm, ierr(17))
 
       call MPI_Bcast(self%HB1,    1,              MPI_REAL8, &
-                     root,        MPI_COMM_WORLD, ierr(18))
+                     root,        self%sample_comm, ierr(18))
       call MPI_Bcast(self%HB2,    1,              MPI_REAL8, &
-                     root,        MPI_COMM_WORLD, ierr(19))
+                     root,        self%sample_comm, ierr(19))
       call MPI_Bcast(self%HB_eta, 1,              MPI_REAL8, &
-                     root,        MPI_COMM_WORLD, ierr(20))
+                     root,        self%sample_comm, ierr(20))
       ! allocate and share Vx_dropout
-      if(self%me == root) Vx_len = size(self%drop_Vx_layers)
+      if(self%me_sample == root) Vx_len = size(self%drop_Vx_layers)
       call MPI_Bcast(Vx_len, 1, MPI_INTEGER, &
-                     root, MPI_COMM_WORLD, ierr(21))
+                     root, self%sample_comm, ierr(21))
       call MPI_Bcast(self%prefix,  300,          MPI_CHARACTER, &
-                     root,        MPI_COMM_WORLD, ierr(22))
+                     root,        self%sample_comm, ierr(22))
       ! allocate and share Vy_dropout
-      if(self%me ==root) Vy_len = size(self%drop_Vy_layers)
+      if(self%me_sample ==root) Vy_len = size(self%drop_Vy_layers)
       call MPI_Bcast(Vy_len, 1, MPI_INTEGER, &
-                     root, MPI_COMM_WORLD, ierr(23))
+                     root, self%sample_comm, ierr(23))
 
-      if(self%me /= root) allocate(self%drop_Vy_layers(Vy_len))
+      if(self%me_sample /= root) allocate(self%drop_Vy_layers(Vy_len))
       call MPI_Bcast(self%drop_Vy_layers, Vy_len, MPI_REAL8, &
-                     root, MPI_COMM_WORLD, ierr(24))
+                     root, self%sample_comm, ierr(24))
       call MPI_Bcast(self%lambda_KM, 1,              MPI_REAL8, &
-                     root,        MPI_COMM_WORLD, ierr(25))
-      if(self%me /= root) allocate(self%drop_Vx_layers(Vx_len))
+                     root,        self%sample_comm, ierr(25))
+      if(self%me_sample /= root) allocate(self%drop_Vx_layers(Vx_len))
       call MPI_Bcast(self%drop_Vx_layers, Vx_len, MPI_REAL8, &
-                     root, MPI_COMM_WORLD, ierr(26))
+                     root, self%sample_comm, ierr(26))
       call MPI_Bcast(self%gamma,      1,              MPI_REAL8,   &
-                     root,          MPI_COMM_WORLD, ierr(27))
+                     root,          self%sample_comm, ierr(27))
       call check_ierr(ierr, self%me, "Hamiltionian check err")
    end subroutine
 
