@@ -20,7 +20,7 @@ program STB
    integer(8)   , allocatable      :: seed(:),dimensions(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
-   character(len=300)              :: dim_file
+   character(len=300)              :: dim_file,prefix
  
    call MPI_Init(ierr)
    call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
@@ -34,11 +34,11 @@ program STB
          write (*,*) "Reading n_sample from: ", trim(inp_files(1))
          call CFG_read_file(cfg, trim(inp_files(1)))
          !!! CREATE DIR IN MAIN!!!
-         call CFG_get(cfg, "output%band_prefix", self%prefix)
-         if(self%prefix(len_trim(self%prefix):len_trim(self%prefix)) /=  "/") then
-            self%prefix =  trim(self%prefix) // "/"
+         call CFG_get(cfg, "output%band_prefix", prefix)
+         if(prefix(len_trim(self%prefix):len_trim(prefix)) /=  "/") then
+            prefix =  trim(prefix) // "/"
          endif
-         call create_dir(self%prefix)
+         call create_dir(prefix)
          call add_full_cfg(cfg)
 
          call CFG_get(cfg, "grid%dim_file",  dim_file)
