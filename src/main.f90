@@ -35,7 +35,7 @@ program STB
          call CFG_read_file(cfg, trim(inp_files(1)))
          !!! CREATE DIR IN MAIN!!!
          call CFG_get(cfg, "output%band_prefix", prefix)
-         if(prefix(len_trim(self%prefix):len_trim(prefix)) /=  "/") then
+         if(prefix(len_trim(prefix):len_trim(prefix)) /=  "/") then
             prefix =  trim(prefix) // "/"
          endif
          call create_dir(prefix)
