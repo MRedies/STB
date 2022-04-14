@@ -85,7 +85,7 @@ contains
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       start =  MPI_Wtime()
-      if(me ==  root)then
+      if(me_sample ==  root)then
          write (*,*) "running: ", trim(inp_file)
          call CFG_read_file(cfg, trim(inp_file))
 
@@ -101,18 +101,18 @@ contains
          call CFG_get(cfg, "ACA%perform_ACA",   perform_ACA)
          call CFG_get(cfg, "plot%plot_omega",   plot_omega)
       endif
-      call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-      call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-      call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
-      call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-      call MPI_Bcast(calc_hall_diag,    1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-      call MPI_Bcast(calc_orbmag,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-      call MPI_Bcast(perform_ACA,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-      call MPI_Bcast(plot_omega,   1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
-      call MPI_Bcast(pert_log,     1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, sample_comm, ierr)
+      call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, sample_comm, ierr)
+      call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, sample_comm, ierr)
+      call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, sample_comm, ierr)
+      call MPI_Bcast(calc_hall_diag,    1,  MPI_LOGICAL,   root, sample_comm, ierr)
+      call MPI_Bcast(calc_orbmag,  1,  MPI_LOGICAL,   root, sample_comm, ierr)
+      call MPI_Bcast(perform_ACA,  1,  MPI_LOGICAL,   root, sample_comm, ierr)
+      call MPI_Bcast(plot_omega,   1,  MPI_LOGICAL,   root, sample_comm, ierr)
+      call MPI_Bcast(pert_log,     1,  MPI_LOGICAL,   root, sample_comm, ierr)
       !compare perturbation logical
-      if(me == root) tmp = pert_log
-      call MPI_Bcast(tmp, 1, MPI_LOGICAL, root, MPI_COMM_WORLD,ierr2)
+      if(me_sample == root) tmp = pert_log
+      call MPI_Bcast(tmp, 1, MPI_LOGICAL, root, sample_comm,ierr2)
       if(tmp .NEQV. pert_log) then
           call error_msg("pert_log doesn't match in main", abort=.True.)
           success = .False.
