@@ -33,14 +33,13 @@ program STB
       if(me ==  root)then
          write (*,*) "Reading n_sample from: ", trim(inp_files(1))
          call CFG_read_file(cfg, trim(inp_files(1)))
+         call add_full_cfg(cfg)
          !!! CREATE DIR IN MAIN!!!
          call CFG_get(cfg, "output%band_prefix", prefix)
          if(prefix(len_trim(prefix):len_trim(prefix)) /=  "/") then
             prefix =  trim(prefix) // "/"
          endif
          call create_dir(prefix)
-         call add_full_cfg(cfg)
-
          call CFG_get(cfg, "grid%dim_file",  dim_file)
          call load_npy(trim(dim_file),dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C
          n_sample_par = dimensions(1)
