@@ -32,7 +32,7 @@ module Class_append_funcs
         implicit none
         integer                             :: i
         integer,allocatable                 :: isize(:)
-        real(8), intent(in)                 :: element
+        real(8), allocatable, intent(in)    :: element
         real(8), allocatable, intent(inout) :: list(:,:)
         real(8), allocatable                :: clist(:,:)
     
