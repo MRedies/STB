@@ -19,7 +19,7 @@ program STB
                                       ,ierr, me, me_sample,samples_per_comm, clock,nProcs_sample&
                                       ,min_comm_size=2,ncomms,startidx,stopidx
    integer(8)   , allocatable      :: seed(:),dimensions(:)
-   integer, allocatable            :: sample_arr
+   integer, allocatable            :: sample_arr(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
    character(len=300)              :: dim_file,prefix
