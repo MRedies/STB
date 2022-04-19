@@ -1,6 +1,7 @@
 program STB
    use Class_k_space
    use Class_mpi_wrapper! wrapper around MPI_COMM_SPLIT for error documentation
+   use append_funcs
    use m_config
    use m_npy
    use output
@@ -17,7 +18,7 @@ program STB
                                       ,sample_comm,color,n_sample_par,nProcs,n_sample&
                                       ,ierr, me, me_sample,samples_per_comm, clock,nProcs_sample&
                                       ,min_comm_size=2,ncomms,startidx,stopidx
-   integer(8)   , allocatable      :: seed(:),dimensions(:)
+   integer(8)   , allocatable      :: seed(:),dimensions(:),sample_arr(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
    character(len=300)              :: dim_file,prefix
@@ -65,6 +66,7 @@ program STB
       startidx = calc_starting_sample(n_sample_par,ncomms,color)
       stopidx = startidx + samples_per_comm - 1
       do n_sample = color+1,n_sample_par,ncomms
+         add_to_arr1D(sample_arr,n_sample)
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm)
       enddo
    else
