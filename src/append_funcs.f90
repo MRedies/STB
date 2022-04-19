@@ -1,5 +1,5 @@
-module append_funcs
-    
+module Class_append_funcs
+    use mpi
     implicit none
     
     contains
