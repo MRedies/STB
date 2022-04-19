@@ -54,7 +54,7 @@ module Class_append_funcs
   
     else
          allocate(list(1,1))
-         list(1,1) = element
+         list(1,:) = element
     end if
   
   end subroutine add_to_arr2D
