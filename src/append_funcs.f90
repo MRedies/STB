@@ -3,7 +3,33 @@ module Class_append_funcs
     implicit none
     
     contains
-    subroutine add_to_arr1D(list, element)
+    
+    subroutine add_to_arr1D_int(list, element)
+        implicit none
+        integer                             :: i,isize
+        integer, intent(in)                 :: element
+        integer, allocatable, intent(inout) :: list(:)
+        integer, allocatable                :: clist(:)
+  
+        if(allocated(list)) then
+            isize = size(list)
+            allocate(clist(isize+1))
+            do i=1,isize          
+            clist(i) = list(i)
+            end do
+            clist(isize+1) = element
+  
+            deallocate(list)
+            call move_alloc(clist, list)
+  
+        else
+            allocate(list(1))
+            list(1) = element
+        end if
+  
+    end subroutine add_to_arr1D_int
+
+    subroutine add_to_arr1D_real(list, element)
         implicit none
         integer                             :: i,isize
         real(8), intent(in)                 :: element
@@ -26,9 +52,9 @@ module Class_append_funcs
             list(1) = element
         end if
   
-    end subroutine add_to_arr1D
+    end subroutine add_to_arr1D_real
   
-    subroutine add_to_arr2D(list, element)
+    subroutine add_to_arr2D_real(list, element)
         implicit none
         integer                             :: i
         integer,allocatable                 :: isize(:)
@@ -57,5 +83,5 @@ module Class_append_funcs
          list(1,:) = element
     end if
   
-  end subroutine add_to_arr2D
+  end subroutine add_to_arr2D_real
 end module
