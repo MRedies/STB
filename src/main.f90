@@ -1,7 +1,7 @@
 program STB
    use Class_k_space
    use Class_mpi_wrapper! wrapper around MPI_COMM_SPLIT for error documentation
-   use append_funcs
+   use Class_append_funcs
    use m_config
    use m_npy
    use output
