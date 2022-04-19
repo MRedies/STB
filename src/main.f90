@@ -146,7 +146,7 @@ contains
       if(perform_dos) then
          if(root == me) write (*,*) "started DOS"
          call Ksp%calc_and_print_dos()
-
+         call Ksp%save_DOS_collect()
          ! Only set Fermi energy relative if DOS was performed
          if(trim(fermi_type) == "filling") then
             call Ksp%find_fermi(cfg)

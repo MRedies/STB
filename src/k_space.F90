@@ -6,11 +6,17 @@ module Class_k_space
    use Class_helper
    use MYPI
    use ieee_arithmetic
+   use Class_append_funcs
    implicit none
 
    type k_space
       real(8), allocatable :: new_k_pts(:,:), all_k_pts(:,:)
       real(8), allocatable :: int_DOS(:) !> integrated Density of states
+      real(8), allocatable :: int_DOS_collect(:,:) !> integrated Density of states
+      real(8), allocatable :: DOS_collect(:,:) !> integrated Density of states
+      real(8), allocatable :: PDOS_collect(:,:,:) !> integrated Density of states
+      real(8), allocatable :: up_collect(:,:) !> integrated Density of states
+      real(8), allocatable :: down_collect(:,:) !> integrated Density of states
       real(8), allocatable :: E_DOS(:)
       real(8)              :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
       !> DOS calculations
@@ -277,11 +283,11 @@ contains
 
    subroutine calc_and_print_dos(self)
       implicit none
-      class(k_space)       :: self
-      real(8), allocatable :: DOS(:), PDOS(:,:), up(:), down(:)
-      real(8)              :: dE
-      integer              :: i, num_up
-      character(len=300)   :: filename
+      class(k_space)                    :: self
+      real(8), allocatable, intent(out) :: DOS(:), PDOS(:,:), up(:), down(:)
+      real(8)                           :: dE
+      integer                           :: i, num_up
+      character(len=300)                :: filename
 
       if(trim(self%ham%UC%uc_type) == "square_2d") then
          call self%setup_inte_grid_para(self%DOS_num_k_pts)
@@ -316,14 +322,19 @@ contains
          DOS  = sum(PDOS,1)
          up   = sum(PDOS(1:num_up, :),1)
          down = sum(PDOS(num_up+1:2*num_up, :),1)
-         write (filename, "(A,I0.6,A)") "DOS_sample=", self%sample_idx, ".npy"
-         call save_npy(trim(self%prefix) //  filename, DOS * self%units%energy)
-         write (filename, "(A,I0.6,A)") "DOS_partial_sample=", self%sample_idx, ".npy"
-         call save_npy(trim(self%prefix) //  filename, PDOS * self%units%energy)
-         write (filename, "(A,I0.6,A)") "DOS_up_sample=", self%sample_idx, ".npy"
-         call save_npy(trim(self%prefix) //  filename, up * self%units%energy)
-         write (filename, "(A,I0.6,A)") "DOS_down_sample=", self%sample_idx, ".npy"
-         call save_npy(trim(self%prefix) //  filename, down * self%units%energy)
+
+         call add_to_arr2D_real(self%DOS_collect,DOS)
+         call add_to_arr2D_real(self%up_collect,up)
+         call add_to_arr2D_real(self%down_collect,down)
+
+         !write (filename, "(A,I0.6,A)") "DOS_sample=", self%sample_idx, ".npy"
+         !call save_npy(trim(self%prefix) //  filename, DOS * self%units%energy)
+         !write (filename, "(A,I0.6,A)") "DOS_partial_sample=", self%sample_idx, ".npy"
+         !call save_npy(trim(self%prefix) //  filename, PDOS * self%units%energy)
+         !write (filename, "(A,I0.6,A)") "DOS_up_sample=", self%sample_idx, ".npy"
+         !call save_npy(trim(self%prefix) //  filename, up * self%units%energy)
+         !write (filename, "(A,I0.6,A)") "DOS_down_sample=", self%sample_idx, ".npy"
+         !call save_npy(trim(self%prefix) //  filename, down * self%units%energy)
 
          allocate(self%int_DOS(self%num_DOS_pts))
 
@@ -339,8 +350,9 @@ contains
                               + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
          enddo
          ! integrated DOS ist unitless
-         write (filename, "(A,I0.6,A)") "DOS_integrated_sample=", self%sample_idx, ".npy"
-         call save_npy(trim(self%prefix) // filename, self%int_DOS)
+         call add_to_arr2D_real(self%int_DOS_collect,down)
+         !write (filename, "(A,I0.6,A)") "DOS_integrated_sample=", self%sample_idx, ".npy"
+         !call save_npy(trim(self%prefix) // filename, self%int_DOS)
          if(self%sample_idx==1) then
             call save_npy(trim(self%prefix) //  "DOS_E.npy", self%E_DOS / self%units%energy)
          endif
@@ -354,6 +366,21 @@ contains
          deallocate(down)
       endif
    end subroutine calc_and_print_dos
+
+   subroutine save_DOS_collect(self)
+      use mpi
+      implicit None
+
+      character(len=300)                :: filename
+      write (filename, "(A)") "DOS_collect=.npy"
+      call save_npy(trim(self%prefix) //  filename, self%DOS_collect * self%units%energy)
+      write (filename, "(A)") "int_DOS_collect=.npy"
+      call save_npy(trim(self%prefix) //  filename, self%int_DOS_collect * self%units%energy)
+      write (filename, "(A)") "up_collect=.npy"
+      call save_npy(trim(self%prefix) //  filename, self%up_collect * self%units%energy)
+      write (filename, "(A)") "down_collect=.npy"
+      call save_npy(trim(self%prefix) //  filename, self%down_collect * self%units%energy)
+   end subroutine
 
    function init_k_space(cfg,sample_comm,n_sample,samples_per_comm) result(self)
       use mpi

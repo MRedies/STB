@@ -73,7 +73,7 @@ module Class_append_funcs
         if (size(element)==isize(2)) then
            clist(isize(1)+1,:) = element
         else
-            write(*,*) "Append shape does agree!"
+            write(*,*) "Append shape does not agree!"
         endif
         deallocate(list)
         call move_alloc(clist, list)
