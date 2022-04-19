@@ -39,13 +39,13 @@ module Class_append_funcs
     allocate(isize(2))
 
     if(allocated(list)) then
-        isize = shape(alist)
+        isize = shape(list)
         allocate(clist(isize(1)+1,isize(2)))
-        do i=1,isize          
+        do i=1,isize(1)
            clist(i,:) = list(i,:)
         end do
         if (size(element)==isize(2)) then
-           clist(isize+1,:) = element
+           clist(isize(1)+1,:) = element
         else
             write(*,*) "Append shape does agree!"
         endif
@@ -53,8 +53,8 @@ module Class_append_funcs
         call move_alloc(clist, list)
   
     else
-         allocate(list(1))
-         list(1) = element
+         allocate(list(1,1))
+         list(1,1) = element
     end if
   
   end subroutine add_to_arr2D
