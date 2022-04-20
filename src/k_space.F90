@@ -14,7 +14,6 @@ module Class_k_space
       real(8), allocatable :: int_DOS(:) !> integrated Density of states
       real(8), allocatable :: int_DOS_collect(:,:) !> integrated Density of states
       real(8), allocatable :: DOS_collect(:,:) !> integrated Density of states
-      real(8), allocatable :: PDOS_collect(:,:,:) !> integrated Density of states
       real(8), allocatable :: up_collect(:,:) !> integrated Density of states
       real(8), allocatable :: down_collect(:,:) !> integrated Density of states
       real(8), allocatable :: E_DOS(:)
@@ -323,20 +322,20 @@ contains
          up   = sum(PDOS(1:num_up, :),1)
          down = sum(PDOS(num_up+1:2*num_up, :),1)
          if(.NOT. allocated(self%DOS_collect)) then
-            allocate(self%DOS_collect(shape(DOS)))
-            self%DOS_collect = DOS
+            allocate(self%DOS_collect(1,shape(DOS)))
+            self%DOS_collect(1,:) = DOS
          else
             call add_to_arr2D_real(self%DOS_collect,DOS)
          endif
          if(.NOT. allocated(self%up_collect)) then
-            allocate(self%up_collect(shape(up)))
-            self%up_collect = up
+            allocate(self%up_collect(1,shape(up)))
+            self%up_collect(1,:) = up
          else
             call add_to_arr2D_real(self%up_collect,up)
          endif
          if(.NOT. allocated(self%down_collect)) then
-            allocate(self%down_collect(shape(down)))
-            self%down_collect = down
+            allocate(self%down_collect(1,shape(down)))
+            self%down_collect(1,:) = down
          else
             call add_to_arr2D_real(self%down_collect,down)
          endif
@@ -364,9 +363,9 @@ contains
                               + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
          enddo
          ! integrated DOS ist unitless
-         if(.NOT. allocated(self%self%int_DOS_collect)) then
-            allocate(self%int_DOS_collect(shape(self%int_DOS)))
-            self%int_DOS_collect = self%int_DOS
+         if(.NOT. allocated(self%int_DOS_collect)) then
+            allocate(self%int_DOS_collect(1,shape(self%int_DOS)))
+            self%int_DOS_collect(1,:) = self%int_DOS
          else
             call add_to_arr2D_real(self%int_DOS_collect,self%int_DOS)
          endif
@@ -392,7 +391,7 @@ contains
       implicit none
       class(k_space)                    :: self
       character(len=300)                :: filename
-      
+
       write (filename, "(A)") "DOS_collect=.npy"
       call save_npy(trim(self%prefix) //  filename, self%DOS_collect * self%units%energy)
       write (filename, "(A)") "int_DOS_collect=.npy"
