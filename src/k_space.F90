@@ -322,19 +322,19 @@ contains
          up   = sum(PDOS(1:num_up, :),1)
          down = sum(PDOS(num_up+1:2*num_up, :),1)
          if(.NOT. allocated(self%DOS_collect)) then
-            allocate(self%DOS_collect(1,shape(DOS)))
+            allocate(self%DOS_collect(1,size(DOS)))
             self%DOS_collect(1,:) = DOS
          else
             call add_to_arr2D_real(self%DOS_collect,DOS)
          endif
          if(.NOT. allocated(self%up_collect)) then
-            allocate(self%up_collect(1,shape(up)))
+            allocate(self%up_collect(1,size(up)))
             self%up_collect(1,:) = up
          else
             call add_to_arr2D_real(self%up_collect,up)
          endif
          if(.NOT. allocated(self%down_collect)) then
-            allocate(self%down_collect(1,shape(down)))
+            allocate(self%down_collect(1,size(down)))
             self%down_collect(1,:) = down
          else
             call add_to_arr2D_real(self%down_collect,down)
@@ -364,7 +364,7 @@ contains
          enddo
          ! integrated DOS ist unitless
          if(.NOT. allocated(self%int_DOS_collect)) then
-            allocate(self%int_DOS_collect(1,shape(self%int_DOS)))
+            allocate(self%int_DOS_collect(1,size(self%int_DOS)))
             self%int_DOS_collect(1,:) = self%int_DOS
          else
             call add_to_arr2D_real(self%int_DOS_collect,self%int_DOS)
