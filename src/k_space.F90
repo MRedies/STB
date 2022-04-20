@@ -284,7 +284,7 @@ contains
    subroutine calc_and_print_dos(self)
       implicit none
       class(k_space)                    :: self
-      real(8), allocatable, intent(out) :: DOS(:), PDOS(:,:), up(:), down(:)
+      real(8), allocatable              :: DOS(:), PDOS(:,:), up(:), down(:)
       real(8)                           :: dE
       integer                           :: i, num_up
       character(len=300)                :: filename
@@ -322,10 +322,24 @@ contains
          DOS  = sum(PDOS,1)
          up   = sum(PDOS(1:num_up, :),1)
          down = sum(PDOS(num_up+1:2*num_up, :),1)
-
-         call add_to_arr2D_real(self%DOS_collect,DOS)
-         call add_to_arr2D_real(self%up_collect,up)
-         call add_to_arr2D_real(self%down_collect,down)
+         if(.NOT. allocated(self%DOS_collect)) then
+            allocate(self%DOS_collect(shape(DOS)))
+            self%DOS_collect = DOS
+         else
+            call add_to_arr2D_real(self%DOS_collect,DOS)
+         endif
+         if(.NOT. allocated(self%up_collect)) then
+            allocate(self%up_collect(shape(up)))
+            self%up_collect = up
+         else
+            call add_to_arr2D_real(self%up_collect,up)
+         endif
+         if(.NOT. allocated(self%down_collect)) then
+            allocate(self%down_collect(shape(down)))
+            self%down_collect = down
+         else
+            call add_to_arr2D_real(self%down_collect,down)
+         endif
 
          !write (filename, "(A,I0.6,A)") "DOS_sample=", self%sample_idx, ".npy"
          !call save_npy(trim(self%prefix) //  filename, DOS * self%units%energy)
@@ -350,7 +364,13 @@ contains
                               + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
          enddo
          ! integrated DOS ist unitless
-         call add_to_arr2D_real(self%int_DOS_collect,down)
+         if(.NOT. allocated(self%self%int_DOS_collect)) then
+            allocate(self%int_DOS_collect(shape(self%int_DOS)))
+            self%int_DOS_collect = self%int_DOS
+         else
+            call add_to_arr2D_real(self%int_DOS_collect,self%int_DOS)
+         endif
+         
          !write (filename, "(A,I0.6,A)") "DOS_integrated_sample=", self%sample_idx, ".npy"
          !call save_npy(trim(self%prefix) // filename, self%int_DOS)
          if(self%sample_idx==1) then
@@ -369,9 +389,10 @@ contains
 
    subroutine save_DOS_collect(self)
       use mpi
-      implicit None
-
+      implicit none
+      class(k_space)                    :: self
       character(len=300)                :: filename
+      
       write (filename, "(A)") "DOS_collect=.npy"
       call save_npy(trim(self%prefix) //  filename, self%DOS_collect * self%units%energy)
       write (filename, "(A)") "int_DOS_collect=.npy"
