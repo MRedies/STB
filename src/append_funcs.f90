@@ -10,6 +10,7 @@ module Class_append_funcs
         real(8), allocatable ::  down_collect(:,:)
         integer              ::  me,me_sample
         character(len=300)   :: prefix
+        type(units)          :: units
     contains
         procedure :: add_DOS_collect => add_DOS_collect
         procedure :: save_DOS_collect => save_DOS_collect
@@ -26,9 +27,11 @@ module Class_append_funcs
             type(collect_quantities) :: self
             type(CFG_t)              :: cfg
             integer                  :: ierr,sample_comm
+            character(len=300)       :: prefix
     
             call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
             call MPI_Comm_rank(sample_comm, self%me_sample, ierr)
+            self%units = init_units(cfg, self%me)
             self%prefix = trim(prefix)
         end function init_collect_quantities
         subroutine add_DOS_collect(self, DOS, up, down, int_DOS)
@@ -63,13 +66,10 @@ module Class_append_funcs
             endif
         end subroutine
         
-        subroutine save_DOS_collect(self,cfg)
+        subroutine save_DOS_collect(self)
         use mpi
         implicit none
         class(collect_quantities)           :: self
-        integer                             :: ierr 
-        type(CFG_t)                         :: cfg
-        type(units)                         :: units
         character(len=300)                  :: filename
         
    
