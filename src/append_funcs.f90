@@ -20,7 +20,6 @@ module Class_append_funcs
         procedure :: add_to_arr2D_real => add_to_arr2D_real
     end type collect_quantities
     
-
     contains
         function init_collect_quantities(cfg,prefix,sample_comm) result(self)
             use mpi

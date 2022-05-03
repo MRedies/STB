@@ -59,6 +59,7 @@ program STB
       samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms,color)
       startidx = calc_starting_sample(n_sample_par,ncomms,color)
       stopidx = startidx + samples_per_comm - 1
+      ColQ = init_collect_quantities(cfg,prefix,sample_comm)
       do n_sample = color+1,n_sample_par,ncomms
          call ColQ%add_to_arr1D_int(sample_arr,n_sample)
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm)
@@ -71,13 +72,12 @@ program STB
          call process_file(inp_files(n_inp),MPI_COMM_WORLD,1,1)
       enddo
    endif
-   call self%save_DOS_collect(cfg)
    call MPI_Finalize(ierr)
 contains
-   subroutine process_file(self,inp_file,sample_comm,n_sample,samples_per_comm)
+   subroutine process_file(inp_file,sample_comm,n_sample,samples_per_comm,ColQ)
       use mpi
       implicit none
-      class(main_io)                 :: self
+      type(collect_quantities)        :: ColQ
       character(len=300), intent(in) :: inp_file
       integer, intent(in)            :: sample_comm,n_sample,samples_per_comm
       real(8)                        :: start, halt
