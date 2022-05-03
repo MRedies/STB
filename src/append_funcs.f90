@@ -42,48 +42,48 @@ module Class_append_funcs
             real(8), intent(in)                 :: DOS(:), up(:), down(:), int_DOS(:)
     
             if(.NOT. allocated(self%DOS_collect)) then
-            allocate(self%DOS_collect(1,size(DOS)))
-            self%DOS_collect(1,:) = DOS
+                allocate(self%DOS_collect(1,size(DOS)))
+                self%DOS_collect(1,:) = DOS
             else
-            call self%add_to_arr2D_real(self%DOS_collect,DOS)
+                call self%add_to_arr2D_real(self%DOS_collect,DOS)
             endif
             if(.NOT. allocated(self%up_collect)) then
-            allocate(self%up_collect(1,size(up)))
-            self%up_collect(1,:) = up
+                allocate(self%up_collect(1,size(up)))
+                self%up_collect(1,:) = up
             else
-            call self%add_to_arr2D_real(self%up_collect,up)
+                call self%add_to_arr2D_real(self%up_collect,up)
             endif
             if(.NOT. allocated(self%down_collect)) then
-            allocate(self%down_collect(1,size(down)))
-            self%down_collect(1,:) = down
+                allocate(self%down_collect(1,size(down)))
+                self%down_collect(1,:) = down
             else
-            call self%add_to_arr2D_real(self%down_collect,down)
+                call self%add_to_arr2D_real(self%down_collect,down)
             endif
             if(.NOT. allocated(self%int_DOS_collect)) then
-            allocate(self%int_DOS_collect(1,size(int_DOS)))
-            self%int_DOS_collect(1,:) = int_DOS
+                allocate(self%int_DOS_collect(1,size(int_DOS)))
+                self%int_DOS_collect(1,:) = int_DOS
             else
-            call self%add_to_arr2D_real(self%int_DOS_collect,int_DOS)
+                call self%add_to_arr2D_real(self%int_DOS_collect,int_DOS)
             endif
         end subroutine
         
         subroutine save_DOS_collect(self)
-        use mpi
-        implicit none
-        class(collect_quantities)           :: self
-        character(len=300)                  :: filename
-        
-   
-        if(self%me_sample ==  root) then
-            write (filename, "(A)") "DOS_collect=.npy"
-            call save_npy(trim(self%prefix) //  filename, self%DOS_collect * self%units%energy)
-            write (filename, "(A)") "int_DOS_collect=.npy"
-            call save_npy(trim(self%prefix) //  filename, self%int_DOS_collect * self%units%energy)
-            write (filename, "(A)") "up_collect=.npy"
-            call save_npy(trim(self%prefix) //  filename, self%up_collect * self%units%energy)
-            write (filename, "(A)") "down_collect=.npy"
-            call save_npy(trim(self%prefix) //  filename, self%down_collect * self%units%energy)
-        endif
+            use mpi
+            implicit none
+            class(collect_quantities)           :: self
+            character(len=300)                  :: filename
+            
+    
+            if(self%me_sample ==  root) then
+                write (filename, "(A)") "DOS_collect=.npy"
+                call save_npy(trim(self%prefix) //  filename, self%DOS_collect * self%units%energy)
+                write (filename, "(A)") "int_DOS_collect=.npy"
+                call save_npy(trim(self%prefix) //  filename, self%int_DOS_collect * self%units%energy)
+                write (filename, "(A)") "up_collect=.npy"
+                call save_npy(trim(self%prefix) //  filename, self%up_collect * self%units%energy)
+                write (filename, "(A)") "down_collect=.npy"
+                call save_npy(trim(self%prefix) //  filename, self%down_collect * self%units%energy)
+            endif
         end subroutine
 
         subroutine add_to_arr1D_int(self,list, element)
