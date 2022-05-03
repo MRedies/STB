@@ -282,7 +282,6 @@ contains
       real(8), allocatable              :: DOS(:), PDOS(:,:), up(:), down(:)
       real(8)                           :: dE
       integer                           :: i, num_up
-      character(len=300)                :: filename
 
       if(trim(self%ham%UC%uc_type) == "square_2d") then
          call self%setup_inte_grid_para(self%DOS_num_k_pts)

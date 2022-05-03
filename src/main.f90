@@ -15,11 +15,11 @@ program STB
    type(k_space)                   :: Ksp
    type(collect_quantities)        :: ColQ
    character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
-   integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
+   integer                         :: n_inp, n_files, start_idx, end_idx, cnt&
                                       ,sample_comm,color,n_sample_par,nProcs,n_sample&
-                                      ,ierr, me, me_sample,samples_per_comm, clock,nProcs_sample&
+                                      ,ierr, me, me_sample,samples_per_comm,nProcs_sample&
                                       ,min_comm_size=2,ncomms,startidx,stopidx
-   integer(8)   , allocatable      :: seed(:),dimensions(:)
+   integer(8)   , allocatable      :: dimensions(:)
    integer, allocatable            :: sample_arr(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
@@ -65,7 +65,7 @@ program STB
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm)
          !ADD RETURNS (DOS, SIGMA ETC) TO COLLECT ARRAYS
       enddo
-      call ColQ%save_DOS_collect(cfg)
+      call ColQ%save_DOS_collect()
    else
       do n_inp = 1, n_files
          if(me == root) write (*,*) "started at ", date_time()
