@@ -1,8 +1,9 @@
 module Class_append_funcs
     use mpi
     use m_config
+    use m_npy
     use Class_units
-    use stdlib_io_npy, only: load_npy,save_npy
+    use stdlib_io_npy, only: load_npy
     implicit none
     type collect_quantities
         real(8), allocatable ::  int_DOS_collect(:,:)
