@@ -1,21 +1,36 @@
 module Class_append_funcs
     use mpi
+    use m_config
+    use Class_units
     implicit none
     type collect_quantities
         real(8), allocatable ::  int_DOS_collect(:,:)
         real(8), allocatable ::  DOS_collect(:,:)
         real(8), allocatable ::  up_collect(:,:)
         real(8), allocatable ::  down_collect(:,:)
+        integer              ::  me,me_sample
+        character(len=300)   :: prefix
     contains
-        procedure add_DOS_collect => add_DOS_collect
-        procedure save_DOS_collect => save_DOS_collect
-        procedure add_to_arr1D_int => add_to_arr1D_int
-        procedure add_to_arr1D_real => add_to_arr1D_real
-        procedure add_to_arr2D_real => add_to_arr2D_real
+        procedure :: add_DOS_collect => add_DOS_collect
+        procedure :: save_DOS_collect => save_DOS_collect
+        procedure :: add_to_arr1D_int => add_to_arr1D_int
+        procedure :: add_to_arr1D_real => add_to_arr1D_real
+        procedure :: add_to_arr2D_real => add_to_arr2D_real
     end type collect_quantities
     
 
     contains
+        function init_collect_quantities(cfg,prefix,sample_comm) result(self)
+            use mpi
+            implicit none
+            type(collect_quantities) :: self
+            type(CFG_t)              :: cfg
+            integer                  :: ierr,sample_comm
+    
+            call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
+            call MPI_Comm_rank(sample_comm, self%me_sample, ierr)
+            self%prefix = trim(prefix)
+        end function init_collect_quantities
         subroutine add_DOS_collect(self, DOS, up, down, int_DOS)
             use mpi
             implicit none
@@ -52,26 +67,25 @@ module Class_append_funcs
         use mpi
         implicit none
         class(collect_quantities)           :: self
-        integer                             :: me 
+        integer                             :: ierr 
         type(CFG_t)                         :: cfg
-        real(8), allocatable, intent(inout) ::  int_DOS_collect(:,:) ,DOS_collect(:,:), up_collect(:,:), down_collect(:,:)
+        type(units)                         :: units
         character(len=300)                  :: filename
         
-        call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
-        units = init_units(cfg, me)
-    
-        if(me_sample ==  root) then
+   
+        if(self%me_sample ==  root) then
             write (filename, "(A)") "DOS_collect=.npy"
-            call save_npy(trim(prefix) //  filename, self%DOS_collect * units%energy)
+            call save_npy(trim(self%prefix) //  filename, self%DOS_collect * units%energy)
             write (filename, "(A)") "int_DOS_collect=.npy"
-            call save_npy(trim(prefix) //  filename, self%int_DOS_collect * units%energy)
+            call save_npy(trim(self%prefix) //  filename, self%int_DOS_collect * units%energy)
             write (filename, "(A)") "up_collect=.npy"
-            call save_npy(trim(prefix) //  filename, self%up_collect * units%energy)
+            call save_npy(trim(self%prefix) //  filename, self%up_collect * units%energy)
             write (filename, "(A)") "down_collect=.npy"
-            call save_npy(trim(prefix) //  filename, self%down_collect * units%energy)
+            call save_npy(trim(self%prefix) //  filename, self%down_collect * units%energy)
         endif
-        end subroutine 
-        subroutine add_to_arr1D_int(list, element)
+        end subroutine
+
+        subroutine add_to_arr1D_int(self,list, element)
             implicit none
             class(collect_quantities)           :: self
             integer                             :: i,isize
@@ -97,7 +111,7 @@ module Class_append_funcs
     
         end subroutine add_to_arr1D_int
 
-        subroutine add_to_arr1D_real(list, element)
+        subroutine add_to_arr1D_real(self,list, element)
             implicit none
             class(collect_quantities)           :: self
             integer                             :: i,isize
@@ -123,7 +137,7 @@ module Class_append_funcs
     
         end subroutine add_to_arr1D_real
     
-        subroutine add_to_arr2D_real(list, element)
+        subroutine add_to_arr2D_real(self,list, element)
             implicit none
             class(collect_quantities)           :: self
             integer                             :: i
