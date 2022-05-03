@@ -68,8 +68,9 @@ program STB
       call ColQ%save_DOS_collect()
    else
       do n_inp = 1, n_files
+         ColQ = init_collect_quantities(cfg,prefix,MPI_COMM_WORLD)
          if(me == root) write (*,*) "started at ", date_time()
-         call process_file(inp_files(n_inp),MPI_COMM_WORLD,1,1)
+         call process_file(inp_files(n_inp),MPI_COMM_WORLD,1,1,ColQ)
       enddo
    endif
    call MPI_Finalize(ierr)
