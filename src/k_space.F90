@@ -12,6 +12,7 @@ module Class_k_space
    type k_space
       real(8), allocatable :: new_k_pts(:,:), all_k_pts(:,:)
       real(8), allocatable :: int_DOS(:) !> integrated Density of states
+      real(8), allocatable :: DOS(:), up(:), down(:)
       real(8), allocatable :: E_DOS(:)
       real(8)              :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
       !> DOS calculations
@@ -308,6 +309,15 @@ contains
          allocate(DOS(self%num_DOS_pts))
          allocate(up(self%num_DOS_pts))
          allocate(down(self%num_DOS_pts))
+         if(.NOT. allocated(self%DOS))then 
+            allocate(self%DOS(self%num_DOS_pts))
+         endif
+         if(.NOT. allocated(self%up))then 
+            allocate(self%up(self%num_DOS_pts))
+         endif
+         if(.NOT. allocated(self%down))then 
+            allocate(self%down(self%num_DOS_pts))
+         endif
       endif
 
       call self%calc_pdos(self%E_DOS, PDOS)
@@ -352,6 +362,9 @@ contains
       deallocate(self%new_k_pts)
       deallocate(PDOS)
       if(self%me_sample == root) then
+         self%DOS = DOS
+         self%up = up
+         self%down = down
          deallocate(DOS)
          deallocate(up)
          deallocate(down)
