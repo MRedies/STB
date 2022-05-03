@@ -2,6 +2,7 @@ module Class_append_funcs
     use mpi
     use m_config
     use Class_units
+    use stdlib_io_npy, only: load_npy,save_npy
     implicit none
     type collect_quantities
         real(8), allocatable ::  int_DOS_collect(:,:)
@@ -75,13 +76,13 @@ module Class_append_funcs
    
         if(self%me_sample ==  root) then
             write (filename, "(A)") "DOS_collect=.npy"
-            call save_npy(trim(self%prefix) //  filename, self%DOS_collect * units%energy)
+            call save_npy(trim(self%prefix) //  filename, self%DOS_collect * self%units%energy)
             write (filename, "(A)") "int_DOS_collect=.npy"
-            call save_npy(trim(self%prefix) //  filename, self%int_DOS_collect * units%energy)
+            call save_npy(trim(self%prefix) //  filename, self%int_DOS_collect * self%units%energy)
             write (filename, "(A)") "up_collect=.npy"
-            call save_npy(trim(self%prefix) //  filename, self%up_collect * units%energy)
+            call save_npy(trim(self%prefix) //  filename, self%up_collect * self%units%energy)
             write (filename, "(A)") "down_collect=.npy"
-            call save_npy(trim(self%prefix) //  filename, self%down_collect * units%energy)
+            call save_npy(trim(self%prefix) //  filename, self%down_collect * self%units%energy)
         endif
         end subroutine
 
