@@ -12,21 +12,14 @@ program STB
    use stdlib_io_npy, only: load_npy
    implicit none
 
-   type main_io
-      real(8), allocatable ::  int_DOS_collect(:,:) ,DOS_collect(:,:), up_collect(:,:), down_collect(:,:)
-   contains
-       procedure :: add_DOS_collect  => add_DOS_collect
-       procedure :: save_DOS_collect => save_DOS_collect
-   end type main_io
-
    type(k_space)                   :: Ksp
+   type(collect_quantities)        :: ColQ
    character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
                                       ,sample_comm,color,n_sample_par,nProcs,n_sample&
                                       ,ierr, me, me_sample,samples_per_comm, clock,nProcs_sample&
                                       ,min_comm_size=2,ncomms,startidx,stopidx
    integer(8)   , allocatable      :: seed(:),dimensions(:)
-   real(8), allocatable            :: int_DOS_collect(:,:) ,DOS_collect(:,:), up_collect(:,:), down_collect(:,:)
    integer, allocatable            :: sample_arr(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
@@ -67,11 +60,11 @@ program STB
       startidx = calc_starting_sample(n_sample_par,ncomms,color)
       stopidx = startidx + samples_per_comm - 1
       do n_sample = color+1,n_sample_par,ncomms
-         call add_to_arr1D_int(sample_arr,n_sample)
+         call ColQ%add_to_arr1D_int(sample_arr,n_sample)
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm)
          !ADD RETURNS (DOS, SIGMA ETC) TO COLLECT ARRAYS
       enddo
-      !call save_dos_collect()
+      call ColQ%save_DOS_collect(cfg)
    else
       do n_inp = 1, n_files
          if(me == root) write (*,*) "started at ", date_time()
@@ -150,7 +143,7 @@ contains
       if(perform_dos) then
          if(root == me) write (*,*) "started DOS"
          call Ksp%calc_and_print_dos()
-         call self%save_DOS_collect(Ksp%DOS,Ksp%up,Ksp%down,Ksp%int_DOS)
+         call ColQ%add_DOS_collect(Ksp%DOS,Ksp%up,Ksp%down,Ksp%int_DOS)
          ! Only set Fermi energy relative if DOS was performed
          if(trim(fermi_type) == "filling") then
             call Ksp%find_fermi(cfg)
@@ -429,60 +422,5 @@ contains
       endif
 
    end function
-
-   subroutine add_DOS_collect(self, DOS, up, down, int_DOS)
-      use mpi
-      implicit none
-      class(main_io)                      :: self
-      real(8), intent(in)                 :: DOS(:), up(:), down(:), int_DOS(:)
-
-      if(.NOT. allocated(self%DOS_collect)) then
-         allocate(self%DOS_collect(1,size(DOS)))
-         self%DOS_collect(1,:) = DOS
-      else
-         call add_to_arr2D_real(self%DOS_collect,DOS)
-      endif
-      if(.NOT. allocated(self%up_collect)) then
-         allocate(self%up_collect(1,size(up)))
-         self%up_collect(1,:) = up
-      else
-         call add_to_arr2D_real(self%up_collect,up)
-      endif
-      if(.NOT. allocated(self%down_collect)) then
-         allocate(self%down_collect(1,size(down)))
-         self%down_collect(1,:) = down
-      else
-         call add_to_arr2D_real(self%down_collect,down)
-      endif
-      if(.NOT. allocated(self%int_DOS_collect)) then
-         allocate(self%int_DOS_collect(1,size(int_DOS)))
-         self%int_DOS_collect(1,:) = int_DOS
-      else
-         call add_to_arr2D_real(self%int_DOS_collect,int_DOS)
-      endif
-
-   subroutine save_DOS_collect(self,cfg)
-      use mpi
-      implicit none
-      class(main_io)                      :: self
-      integer                             :: me 
-      type(CFG_t)                         :: cfg
-      real(8), allocatable, intent(inout) ::  int_DOS_collect(:,:) ,DOS_collect(:,:), up_collect(:,:), down_collect(:,:)
-      character(len=300)                  :: filename
-      
-      call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
-      units = init_units(cfg, me)
-
-      if(me_sample ==  root) then
-         write (filename, "(A)") "DOS_collect=.npy"
-         call save_npy(trim(prefix) //  filename, self%DOS_collect * units%energy)
-         write (filename, "(A)") "int_DOS_collect=.npy"
-         call save_npy(trim(prefix) //  filename, self%int_DOS_collect * units%energy)
-         write (filename, "(A)") "up_collect=.npy"
-         call save_npy(trim(prefix) //  filename, self%up_collect * units%energy)
-         write (filename, "(A)") "down_collect=.npy"
-         call save_npy(trim(prefix) //  filename, self%down_collect * units%energy)
-      endif
-   end subroutine
 
 end program STB
