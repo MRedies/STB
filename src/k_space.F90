@@ -12,10 +12,6 @@ module Class_k_space
    type k_space
       real(8), allocatable :: new_k_pts(:,:), all_k_pts(:,:)
       real(8), allocatable :: int_DOS(:) !> integrated Density of states
-      real(8), allocatable :: int_DOS_collect(:,:) !> integrated Density of states
-      real(8), allocatable :: DOS_collect(:,:) !> integrated Density of states
-      real(8), allocatable :: up_collect(:,:) !> integrated Density of states
-      real(8), allocatable :: down_collect(:,:) !> integrated Density of states
       real(8), allocatable :: E_DOS(:)
       real(8)              :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
       !> DOS calculations
@@ -322,24 +318,7 @@ contains
          DOS  = sum(PDOS,1)
          up   = sum(PDOS(1:num_up, :),1)
          down = sum(PDOS(num_up+1:2*num_up, :),1)
-         if(.NOT. allocated(self%DOS_collect)) then
-            allocate(self%DOS_collect(1,size(DOS)))
-            self%DOS_collect(1,:) = DOS
-         else
-            call add_to_arr2D_real(self%DOS_collect,DOS)
-         endif
-         if(.NOT. allocated(self%up_collect)) then
-            allocate(self%up_collect(1,size(up)))
-            self%up_collect(1,:) = up
-         else
-            call add_to_arr2D_real(self%up_collect,up)
-         endif
-         if(.NOT. allocated(self%down_collect)) then
-            allocate(self%down_collect(1,size(down)))
-            self%down_collect(1,:) = down
-         else
-            call add_to_arr2D_real(self%down_collect,down)
-         endif
+
 
          !write (filename, "(A,I0.6,A)") "DOS_sample=", self%sample_idx, ".npy"
          !call save_npy(trim(self%prefix) //  filename, DOS * self%units%energy)
@@ -364,12 +343,6 @@ contains
                               + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
          enddo
          ! integrated DOS ist unitless
-         if(.NOT. allocated(self%int_DOS_collect)) then
-            allocate(self%int_DOS_collect(1,size(self%int_DOS)))
-            self%int_DOS_collect(1,:) = self%int_DOS
-         else
-            call add_to_arr2D_real(self%int_DOS_collect,self%int_DOS)
-         endif
          
          !write (filename, "(A,I0.6,A)") "DOS_integrated_sample=", self%sample_idx, ".npy"
          !call save_npy(trim(self%prefix) // filename, self%int_DOS)
@@ -386,22 +359,6 @@ contains
          deallocate(down)
       endif
    end subroutine calc_and_print_dos
-
-   subroutine save_DOS_collect(self)
-      use mpi
-      implicit none
-      class(k_space)                    :: self
-      character(len=300)                :: filename
-
-      write (filename, "(A)") "DOS_collect=.npy"
-      call save_npy(trim(self%prefix) //  filename, self%DOS_collect * self%units%energy)
-      write (filename, "(A)") "int_DOS_collect=.npy"
-      call save_npy(trim(self%prefix) //  filename, self%int_DOS_collect * self%units%energy)
-      write (filename, "(A)") "up_collect=.npy"
-      call save_npy(trim(self%prefix) //  filename, self%up_collect * self%units%energy)
-      write (filename, "(A)") "down_collect=.npy"
-      call save_npy(trim(self%prefix) //  filename, self%down_collect * self%units%energy)
-   end subroutine
 
    function init_k_space(cfg,sample_comm,n_sample,samples_per_comm) result(self)
       use mpi

@@ -10,8 +10,15 @@ program STB
    use Class_unit_cell
    use mypi
    use stdlib_io_npy, only: load_npy
-
    implicit none
+
+   type main_io
+      real(8), allocatable ::  int_DOS_collect(:,:) ,DOS_collect(:,:), up_collect(:,:), down_collect(:,:)
+   contains
+       procedure :: add_DOS_collect  => add_DOS_collect
+       procedure :: save_DOS_collect => save_DOS_collect
+   end type main_io
+
    type(k_space)                   :: Ksp
    character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
    integer                         :: n_inp, n_files, seed_sz, start_idx, end_idx, cnt&
@@ -19,6 +26,7 @@ program STB
                                       ,ierr, me, me_sample,samples_per_comm, clock,nProcs_sample&
                                       ,min_comm_size=2,ncomms,startidx,stopidx
    integer(8)   , allocatable      :: seed(:),dimensions(:)
+   real(8), allocatable            :: int_DOS_collect(:,:) ,DOS_collect(:,:), up_collect(:,:), down_collect(:,:)
    integer, allocatable            :: sample_arr(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
@@ -53,14 +61,6 @@ program STB
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       call MPI_Comm_size(sample_comm, nProcs_sample, ierr)
-      if(me_sample==root) then
-         call random_seed(size = seed_sz)
-         !call system_clock(count=clock)
-         clock = 10 + me
-         allocate(seed(seed_sz))
-         seed = clock
-         call random_seed(put=seed)
-      endif
       call calc_ncomms(min_comm_size,nProcs,ncomms)
       
       samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms,color)
@@ -69,18 +69,22 @@ program STB
       do n_sample = color+1,n_sample_par,ncomms
          call add_to_arr1D_int(sample_arr,n_sample)
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm)
+         !ADD RETURNS (DOS, SIGMA ETC) TO COLLECT ARRAYS
       enddo
+      !call save_dos_collect()
    else
       do n_inp = 1, n_files
          if(me == root) write (*,*) "started at ", date_time()
          call process_file(inp_files(n_inp),MPI_COMM_WORLD,1,1)
       enddo
    endif
+   call self%save_DOS_collect(cfg)
    call MPI_Finalize(ierr)
 contains
-   subroutine process_file(inp_file,sample_comm,n_sample,samples_per_comm)
+   subroutine process_file(self,inp_file,sample_comm,n_sample,samples_per_comm)
       use mpi
       implicit none
+      class(main_io)                 :: self
       character(len=300), intent(in) :: inp_file
       integer, intent(in)            :: sample_comm,n_sample,samples_per_comm
       real(8)                        :: start, halt
@@ -146,7 +150,7 @@ contains
       if(perform_dos) then
          if(root == me) write (*,*) "started DOS"
          call Ksp%calc_and_print_dos()
-         call Ksp%save_DOS_collect()
+         call self%save_DOS_collect(Ksp%DOS,Ksp%up,Ksp%down,Ksp%int_DOS)
          ! Only set Fermi energy relative if DOS was performed
          if(trim(fermi_type) == "filling") then
             call Ksp%find_fermi(cfg)
@@ -173,6 +177,8 @@ contains
       if(root ==  me) then
          write (*,time_fmt) "Total: ", halt-start, "s"
       endif
+      !!!! call append here
+      !append(main%dos_collect,ksp%dos)
       call Ksp%free_ksp()
       if(me == root) call CFG_clear(cfg)
 
@@ -423,5 +429,60 @@ contains
       endif
 
    end function
+
+   subroutine add_DOS_collect(self, DOS, up, down, int_DOS)
+      use mpi
+      implicit none
+      class(main_io)                      :: self
+      real(8), intent(in)                 :: DOS(:), up(:), down(:), int_DOS(:)
+
+      if(.NOT. allocated(self%DOS_collect)) then
+         allocate(self%DOS_collect(1,size(DOS)))
+         self%DOS_collect(1,:) = DOS
+      else
+         call add_to_arr2D_real(self%DOS_collect,DOS)
+      endif
+      if(.NOT. allocated(self%up_collect)) then
+         allocate(self%up_collect(1,size(up)))
+         self%up_collect(1,:) = up
+      else
+         call add_to_arr2D_real(self%up_collect,up)
+      endif
+      if(.NOT. allocated(self%down_collect)) then
+         allocate(self%down_collect(1,size(down)))
+         self%down_collect(1,:) = down
+      else
+         call add_to_arr2D_real(self%down_collect,down)
+      endif
+      if(.NOT. allocated(self%int_DOS_collect)) then
+         allocate(self%int_DOS_collect(1,size(int_DOS)))
+         self%int_DOS_collect(1,:) = int_DOS
+      else
+         call add_to_arr2D_real(self%int_DOS_collect,int_DOS)
+      endif
+
+   subroutine save_DOS_collect(self,cfg)
+      use mpi
+      implicit none
+      class(main_io)                      :: self
+      integer                             :: me 
+      type(CFG_t)                         :: cfg
+      real(8), allocatable, intent(inout) ::  int_DOS_collect(:,:) ,DOS_collect(:,:), up_collect(:,:), down_collect(:,:)
+      character(len=300)                  :: filename
+      
+      call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
+      units = init_units(cfg, me)
+
+      if(me_sample ==  root) then
+         write (filename, "(A)") "DOS_collect=.npy"
+         call save_npy(trim(prefix) //  filename, self%DOS_collect * units%energy)
+         write (filename, "(A)") "int_DOS_collect=.npy"
+         call save_npy(trim(prefix) //  filename, self%int_DOS_collect * units%energy)
+         write (filename, "(A)") "up_collect=.npy"
+         call save_npy(trim(prefix) //  filename, self%up_collect * units%energy)
+         write (filename, "(A)") "down_collect=.npy"
+         call save_npy(trim(prefix) //  filename, self%down_collect * units%energy)
+      endif
+   end subroutine
 
 end program STB
