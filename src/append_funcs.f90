@@ -79,13 +79,13 @@ module Class_append_funcs
     
             if(self%me_sample ==  root) then
                 write (filename, "(A)") "DOS_collect=.npy"
-                call save_npy(trim(self%prefix) //  filename, self%DOS_collect * self%units%energy)
+                call save_npy(trim(self%prefix) //  trim(filename), self%DOS_collect * self%units%energy)
                 write (filename, "(A)") "int_DOS_collect=.npy"
-                call save_npy(trim(self%prefix) //  filename, self%int_DOS_collect * self%units%energy)
+                call save_npy(trim(self%prefix) //  trim(filename), self%int_DOS_collect * self%units%energy)
                 write (filename, "(A)") "up_collect=.npy"
-                call save_npy(trim(self%prefix) //  filename, self%up_collect * self%units%energy)
+                call save_npy(trim(self%prefix) //  trim(filename), self%up_collect * self%units%energy)
                 write (filename, "(A)") "down_collect=.npy"
-                call save_npy(trim(self%prefix) //  filename, self%down_collect * self%units%energy)
+                call save_npy(trim(self%prefix) //  trim(filename), self%down_collect * self%units%energy)
             endif
         end subroutine
 
