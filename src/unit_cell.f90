@@ -483,7 +483,9 @@ contains
       pos = transpose(pos)*self%lattice_constant
 
       call self%setup_honey(pos,site_type)
-
+      do i=1,num_atoms
+         call self%atoms(i)%set_m_cart(m(1, i), m(2, i), m(3, i))
+      enddo
       if (self%me == root) read (21, *) garb, n_transl
       call MPI_Bcast(n_transl, 1, MYPI_INT, root, MPI_COMM_WORLD, info)
       allocate (transl_mtx(n_transl, 3))
@@ -520,7 +522,7 @@ contains
       real(8)                           :: conn_mtx(3, 3)
       real(8), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
       integer(8), allocatable           :: site_type(:),dimensions(:)
-      integer                           :: n(3),num_atoms,idxstart,idxstop,n_trans
+      integer                           :: n(3),num_atoms,idxstart,idxstop,n_trans,i
       integer                           :: info
 
       !READ IN STUFF WITH LOAD_NPY
@@ -563,7 +565,9 @@ contains
       pos = transpose(pos)*self%lattice_constant
 
       call self%setup_honey(pos,site_type)
-
+      do i=1,num_atoms
+         call self%atoms(i)%set_m_cart(m(1, i), m(2, i), m(3, i))
+      enddo
 
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
