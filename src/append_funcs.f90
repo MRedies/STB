@@ -79,7 +79,7 @@ module Class_append_funcs
     
             if(self%me_sample ==  root) then
                 write (filename, "(A)") "DOS_collect=.npy"
-                write(*,*) filename,"EOL"
+                write(*,*) trim(self%prefix) //  trim(filename),"EOL"
                 call save_npy(trim(self%prefix) //  trim(filename), self%DOS_collect * self%units%energy)
                 write (filename, "(A)") "int_DOS_collect=.npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%int_DOS_collect * self%units%energy)
