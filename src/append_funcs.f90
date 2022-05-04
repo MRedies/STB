@@ -10,7 +10,7 @@ module Class_append_funcs
         real(8), allocatable ::  DOS_collect(:,:)
         real(8), allocatable ::  up_collect(:,:)
         real(8), allocatable ::  down_collect(:,:)
-        integer              ::  me,me_sample
+        integer              ::  me,me_sample,color
         character(len=300)   :: prefix
         type(units)          :: units
     contains
@@ -22,18 +22,19 @@ module Class_append_funcs
     end type collect_quantities
     
     contains
-        function init_collect_quantities(cfg,prefix,sample_comm) result(self)
+        function init_collect_quantities(cfg,prefix,sample_comm,color) result(self)
             use mpi
             implicit none
             type(collect_quantities) :: self
             type(CFG_t)              :: cfg
-            integer                  :: ierr,sample_comm
+            integer                  :: ierr,sample_comm,color
             character(len=300)       :: prefix
     
             call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
             call MPI_Comm_rank(sample_comm, self%me_sample, ierr)
             self%units = init_units(cfg, self%me)
             self%prefix = trim(prefix)
+            self%color = color
         end function init_collect_quantities
 
         subroutine add_DOS_collect(self, DOS, up, down, int_DOS)
@@ -78,14 +79,13 @@ module Class_append_funcs
             
     
             if(self%me_sample ==  root) then
-                write (filename, "(A)") "DOS_collect=.npy"
-                write(*,*) trim(self%prefix) //  trim(filename),"EOL"
+                write (filename, "(A)") "DOS_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%DOS_collect * self%units%energy)
-                write (filename, "(A)") "int_DOS_collect=.npy"
+                write (filename, "(A)") "int_DOS_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%int_DOS_collect * self%units%energy)
-                write (filename, "(A)") "up_collect=.npy"
+                write (filename, "(A)") "up_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%up_collect * self%units%energy)
-                write (filename, "(A)") "down_collect=.npy"
+                write (filename, "(A)") "down_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%down_collect * self%units%energy)
             endif
         end subroutine

@@ -60,7 +60,7 @@ program STB
       samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms,color)
       startidx = calc_starting_sample(n_sample_par,ncomms,color)
       stopidx = startidx + samples_per_comm - 1
-      ColQ = init_collect_quantities(cfg,prefix,sample_comm)
+      ColQ = init_collect_quantities(cfg,prefix,sample_comm,color)
       do n_sample = color+1,n_sample_par,ncomms
          call ColQ%add_to_arr1D_int(sample_arr,n_sample)
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm,ColQ)
