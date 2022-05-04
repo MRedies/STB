@@ -483,7 +483,7 @@ contains
       pos = transpose(pos)*self%lattice_constant
 
       call self%setup_honey(pos,site_type)
-      do i=1,num_atoms
+      do i=1,self%num_atoms
          call self%atoms(i)%set_m_cart(m(1, i), m(2, i), m(3, i))
       enddo
       if (self%me == root) read (21, *) garb, n_transl
@@ -538,7 +538,7 @@ contains
       call MPI_Bcast(n_trans, 1, MYPI_INT, &
                      root, self%sample_comm, info)
       self%num_atoms = num_atoms
-      allocate(m(3,num_atoms))
+      allocate(m(3,self%num_atoms))
       allocate (pos(3, self%num_atoms))
       allocate (site_type(self%num_atoms))
       allocate (transl_mtx(n_trans, 3))
@@ -550,8 +550,8 @@ contains
          call load_npy(trim(self%mag_file),m_large)
          call load_npy(trim(self%pos_file),pos)
          call load_npy(trim(self%site_type_file),site_type)
-         idxstart = (self%sample_idx-1)*num_atoms + 1
-         idxstop = self%sample_idx*num_atoms
+         idxstart = (self%sample_idx-1)*self%num_atoms + 1
+         idxstop = self%sample_idx*self%num_atoms
          m(1,:) = m_large(1,idxstart:idxstop)
          m(2,:) = m_large(2,idxstart:idxstop)
          m(3,:) = m_large(3,idxstart:idxstop)
@@ -565,7 +565,7 @@ contains
       pos = transpose(pos)*self%lattice_constant
 
       call self%setup_honey(pos,site_type)
-      do i=1,num_atoms
+      do i=1,self%num_atoms
          call self%atoms(i)%set_m_cart(m(1, i), m(2, i), m(3, i))
       enddo
 
