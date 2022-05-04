@@ -48,6 +48,7 @@ program STB
          n_sample_par = dimensions(1)
          write(*,*) "N Samples: " ,n_sample_par
       endif
+      call MPI_Bcast(prefix,   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
       call calc_color(min_comm_size,nProcs,me,color)
       !sorting in new comm according to rank in world
