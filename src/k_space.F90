@@ -328,14 +328,10 @@ contains
          down = sum(PDOS(num_up+1:2*num_up, :),1)
 
          if (self%sample_idx==1 .and self%me==root) then
-            write (filename, "(A)") "DOS.npy"
-            call save_npy(trim(self%prefix) //  filename, DOS * self%units%energy)
-            write (filename, "(A)") "DOS_partial.npy"
-            call save_npy(trim(self%prefix) //  filename, PDOS * self%units%energy)
-            write (filename, "(A)") "DOS_up.npy"
-            call save_npy(trim(self%prefix) //  filename, up * self%units%energy)
-            write (filename, "(A)") "DOS_down=.npy"
-            call save_npy(trim(self%prefix) //  filename, down * self%units%energy)
+            call save_npy(trim(self%prefix) //  "DOS.npy", DOS * self%units%energy)
+            call save_npy(trim(self%prefix) //  "DOS_partial.npy", PDOS * self%units%energy)
+            call save_npy(trim(self%prefix) //  "DOS_up.npy", up * self%units%energy)
+            call save_npy(trim(self%prefix) //  "DOS_down=.npy", down * self%units%energy)
          endif
          allocate(self%int_DOS(self%num_DOS_pts))
 
@@ -352,8 +348,7 @@ contains
          enddo
          ! integrated DOS ist unitless
          if (self%sample_idx==1 .and self%me==root) then
-            write (filename, "(A)") "DOS_integrated.npy"
-            call save_npy(trim(self%prefix) // filename, self%int_DOS)
+            call save_npy(trim(self%prefix) // "DOS_integrated.npy", self%int_DOS)
          endif
          if(self%sample_idx==1) then
             call save_npy(trim(self%prefix) //  "DOS_E.npy", self%E_DOS / self%units%energy)

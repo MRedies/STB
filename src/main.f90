@@ -93,7 +93,9 @@ contains
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       start =  MPI_Wtime()
       if(me_sample ==  root)then
-         write (*,*) "running: ", trim(inp_file)
+         if(me==root) then
+            write (*,*) "running: ", trim(inp_file)
+         endif
          call CFG_read_file(cfg, trim(inp_file))
 
          call add_full_cfg(cfg)
@@ -130,7 +132,7 @@ contains
       if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
 
       halt =  MPI_Wtime()
-      if(root ==  me_sample) then
+      if(root ==  me) then
          write (*,time_fmt) "Init: ", halt-start, "s"
       endif
       if(perform_band) then
