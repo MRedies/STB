@@ -327,16 +327,16 @@ contains
          up   = sum(PDOS(1:num_up, :),1)
          down = sum(PDOS(num_up+1:2*num_up, :),1)
 
-
-         !write (filename, "(A,I0.6,A)") "DOS_sample=", self%sample_idx, ".npy"
-         !call save_npy(trim(self%prefix) //  filename, DOS * self%units%energy)
-         !write (filename, "(A,I0.6,A)") "DOS_partial_sample=", self%sample_idx, ".npy"
-         !call save_npy(trim(self%prefix) //  filename, PDOS * self%units%energy)
-         !write (filename, "(A,I0.6,A)") "DOS_up_sample=", self%sample_idx, ".npy"
-         !call save_npy(trim(self%prefix) //  filename, up * self%units%energy)
-         !write (filename, "(A,I0.6,A)") "DOS_down_sample=", self%sample_idx, ".npy"
-         !call save_npy(trim(self%prefix) //  filename, down * self%units%energy)
-
+         if (self%sample_idx==1 .and self%me==root) then
+            write (filename, "(A)") "DOS.npy"
+            call save_npy(trim(self%prefix) //  filename, DOS * self%units%energy)
+            write (filename, "(A)") "DOS_partial.npy"
+            call save_npy(trim(self%prefix) //  filename, PDOS * self%units%energy)
+            write (filename, "(A)") "DOS_up.npy"
+            call save_npy(trim(self%prefix) //  filename, up * self%units%energy)
+            write (filename, "(A)") "DOS_down=.npy"
+            call save_npy(trim(self%prefix) //  filename, down * self%units%energy)
+         endif
          allocate(self%int_DOS(self%num_DOS_pts))
 
          if(size(self%E_DOS) >=  2) then
@@ -351,9 +351,10 @@ contains
                               + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
          enddo
          ! integrated DOS ist unitless
-         
-         !write (filename, "(A,I0.6,A)") "DOS_integrated_sample=", self%sample_idx, ".npy"
-         !call save_npy(trim(self%prefix) // filename, self%int_DOS)
+         if (self%sample_idx==1 .and self%me==root) then
+            write (filename, "(A)") "DOS_integrated.npy"
+            call save_npy(trim(self%prefix) // filename, self%int_DOS)
+         endif
          if(self%sample_idx==1) then
             call save_npy(trim(self%prefix) //  "DOS_E.npy", self%E_DOS / self%units%energy)
          endif

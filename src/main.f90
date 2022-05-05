@@ -58,10 +58,10 @@ program STB
       call calc_ncomms(min_comm_size,nProcs,ncomms)
       
       samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms,color)
-      startidx = calc_starting_sample(n_sample_par,ncomms,color)
-      stopidx = startidx + samples_per_comm - 1
       ColQ = init_collect_quantities(cfg,prefix,sample_comm,color)
       do n_sample = color+1,n_sample_par,ncomms
+         if (me_sample==root) then
+            write(*,*) "----- Sample: ",n_sample," -----"
          call ColQ%add_to_arr1D_int(sample_arr,n_sample)
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm,ColQ)
          !ADD RETURNS (DOS, SIGMA ETC) TO COLLECT ARRAYS
@@ -390,25 +390,7 @@ contains
       endif
 
    end subroutine
-    
-   function calc_starting_sample(n_sample_par,ncomms,color) result(startidx)
-      use mpi
-      implicit none
-      integer , intent(in)           :: n_sample_par,ncomms,color
-      integer                        :: samples_per_comm,startidx, rest
-
-      !DISTRIBUTE SAMPLES EVENLY ON THE RANKS, AFTER THAT DISTRIBUTE THE REST EVENLY
-      samples_per_comm = n_sample_par/ncomms
-      rest = mod(n_sample_par,ncomms)
-      !CHECK IF THIS COMM GETS ONE SAMPLE FROM THE REST
-      if (rest>color) then
-         startidx = 1+(samples_per_comm + 1)*color
-      else
-         startidx = 1+(samples_per_comm + 1)*rest + samples_per_comm*(color-rest)
-      endif
-
-   end function
-   
+      
    function calc_samples_per_comm(n_sample_par,ncomms,color) result(samples_per_comm)
       use mpi
       implicit none
