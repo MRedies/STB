@@ -327,7 +327,7 @@ contains
          up   = sum(PDOS(1:num_up, :),1)
          down = sum(PDOS(num_up+1:2*num_up, :),1)
 
-         if (self%sample_idx==1 .and self%me==root) then
+         if (self%sample_idx==1 .and. self%me==root) then
             call save_npy(trim(self%prefix) //  "DOS.npy", DOS * self%units%energy)
             call save_npy(trim(self%prefix) //  "DOS_partial.npy", PDOS * self%units%energy)
             call save_npy(trim(self%prefix) //  "DOS_up.npy", up * self%units%energy)
@@ -347,7 +347,7 @@ contains
                               + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
          enddo
          ! integrated DOS ist unitless
-         if (self%sample_idx==1 .and self%me==root) then
+         if (self%sample_idx==1 .and. self%me==root) then
             call save_npy(trim(self%prefix) // "DOS_integrated.npy", self%int_DOS)
          endif
          if(self%sample_idx==1) then
