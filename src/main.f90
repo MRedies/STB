@@ -18,12 +18,12 @@ program STB
    integer                         :: n_inp, n_files, start_idx, end_idx, cnt&
                                       ,sample_comm,color,n_sample_par,nProcs,n_sample&
                                       ,ierr, me, me_sample,samples_per_comm,nProcs_sample&
-                                      ,min_comm_size=2,ncomms,startidx,stopidx
+                                      ,min_comm_size=2,ncomms
    integer(8)   , allocatable      :: dimensions(:)
    integer, allocatable            :: sample_arr(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
-   character(len=300)              :: dim_file,prefix
+   character(len=300)              :: dim_file,prefix,uctype
  
    call MPI_Init(ierr)
    call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
@@ -44,7 +44,7 @@ program STB
          endif
          call create_dir(prefix)
          call CFG_get(cfg, "grid%unit_cell_type", uctype)
-         if(uctype=="file_honey_htp") then
+         if(trim(uctype)=="file_honey_htp") then
             call CFG_get(cfg, "grid%dim_file",  dim_file)
             call load_npy(trim(dim_file),dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C
             n_sample_par = dimensions(1)
