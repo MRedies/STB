@@ -20,7 +20,6 @@ program STB
                                       ,ierr, me, me_sample,samples_per_comm,nProcs_sample&
                                       ,min_comm_size=2,ncomms
    integer(8)   , allocatable      :: dimensions(:)
-   integer, allocatable            :: sample_arr(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
    character(len=300)              :: dim_file,prefix,uctype
@@ -54,6 +53,7 @@ program STB
          write(*,*) "N Samples: " ,n_sample_par
       endif
       call MPI_Bcast(prefix,   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(uctype,   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
       call calc_color(min_comm_size,nProcs,me,color)
       !sorting in new comm according to rank in world
@@ -68,11 +68,12 @@ program STB
          if (me_sample==root) then
             write(*,*) "----- Sample: ",n_sample," -----"
          endif
-         call ColQ%add_to_arr1D_int(sample_arr,n_sample)
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm,ColQ)
          !ADD RETURNS (DOS, SIGMA ETC) TO COLLECT ARRAYS
       enddo
-      call ColQ%save_DOS_collect()
+      if(trim(uctype)=="file_honey_htp") then
+         call ColQ%save_DOS_collect()
+      endif
    else
       do n_inp = 1, n_files
          ColQ = init_collect_quantities(cfg,prefix,MPI_COMM_WORLD,color)
@@ -94,6 +95,7 @@ contains
                                         calc_orbmag, perform_ACA,plot_omega,pert_log,tmp,success
       type(CFG_t)                     :: cfg
       character(len=25)               :: fermi_type
+      character(len=300)               :: uctype
       
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
@@ -115,6 +117,7 @@ contains
          call CFG_get(cfg, "berry%calc_orbmag", calc_orbmag)
          call CFG_get(cfg, "ACA%perform_ACA",   perform_ACA)
          call CFG_get(cfg, "plot%plot_omega",   plot_omega)
+         call CFG_get(cfg, "grid%unit_cell_type", uctype)
       endif
       call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, sample_comm, ierr)
@@ -153,7 +156,9 @@ contains
       if(perform_dos) then
          if(root == me) write (*,*) "started DOS"
          call Ksp%calc_and_print_dos()
-         call ColQ%add_DOS_collect(Ksp%DOS,Ksp%up,Ksp%down,Ksp%int_DOS)
+         if(trim(uctype)=="file_honey_htp") then
+            call ColQ%add_DOS_collect(Ksp%DOS,Ksp%up,Ksp%down,Ksp%int_DOS)
+         endif
          ! Only set Fermi energy relative if DOS was performed
          if(trim(fermi_type) == "filling") then
             call Ksp%find_fermi(cfg)
