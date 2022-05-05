@@ -43,9 +43,14 @@ program STB
             prefix =  trim(prefix) // "/"
          endif
          call create_dir(prefix)
-         call CFG_get(cfg, "grid%dim_file",  dim_file)
-         call load_npy(trim(dim_file),dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C
-         n_sample_par = dimensions(1)
+         call CFG_get(cfg, "grid%unit_cell_type", uctype)
+         if(uctype=="file_honey_htp") then
+            call CFG_get(cfg, "grid%dim_file",  dim_file)
+            call load_npy(trim(dim_file),dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C
+            n_sample_par = dimensions(1)
+         else
+            n_sample_par = 1
+         endif
          write(*,*) "N Samples: " ,n_sample_par
       endif
       call MPI_Bcast(prefix,   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
