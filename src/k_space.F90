@@ -1040,7 +1040,7 @@ contains
       integer                      :: err(1)
 
       N_k = size(self%new_k_pts, 2)
-      call my_section(self%me, self%nProcs, N_k, first, last)
+      call my_section(self%me, self%nProcs_sample, N_k, first, last)
       allocate(kidx_new(last-first+1),      stat=err(1))
       call check_ierr(err, self%me, "new kidx")
 
@@ -2047,8 +2047,8 @@ contains
       n_kpts =  size(self%new_k_pts,2)
       if(self%me == root) write (*,*) "nkpts =  ", n_kpts
 
-      per_proc = CEILING((1d0*n_kpts)/(1d0*self%nProcs))
-      rest =  self%nProcs * per_proc - n_kpts
+      per_proc = CEILING((1d0*n_kpts)/(1d0*self%nProcs_sample))
+      rest =  self%nProcs_sample * per_proc - n_kpts
 
       if(self%me == root) write (*,*) "per_proc", per_proc
       if(self%me == root) write (*,*) "rest", rest
