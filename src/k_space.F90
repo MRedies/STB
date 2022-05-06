@@ -331,7 +331,7 @@ contains
             call save_npy(trim(self%prefix) //  "DOS.npy", DOS * self%units%energy)
             call save_npy(trim(self%prefix) //  "DOS_partial.npy", PDOS * self%units%energy)
             call save_npy(trim(self%prefix) //  "DOS_up.npy", up * self%units%energy)
-            call save_npy(trim(self%prefix) //  "DOS_down=.npy", down * self%units%energy)
+            call save_npy(trim(self%prefix) //  "DOS_down.npy", down * self%units%energy)
          endif
          allocate(self%int_DOS(self%num_DOS_pts))
 
@@ -381,10 +381,10 @@ contains
       self%sample_comm = sample_comm
       self%sample_idx = n_sample
 
-      call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
+      !call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
 
-      call MPI_Comm_size(self%sample_comm, self%nProcs_sample, ierr)
+      call MPI_Comm_size(self%sample_comm, self%nProcs, ierr)
       call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
 
       self%units = init_units(cfg, self%me)
