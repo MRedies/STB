@@ -227,7 +227,7 @@ contains
       loc_PDOS =  0d0
       PDOS = 0d0
 
-      call my_section(self%me_sample, self%nProcs, size(self%new_k_pts,2), first, last)
+      call my_section(self%me_sample, self%nProcs_sample, size(self%new_k_pts,2), first, last)
       if(self%me == root) write (*,*) "DOS kpts", size(self%new_k_pts,2)
       percentage = 0
       do k_idx=first, last
@@ -381,10 +381,10 @@ contains
       self%sample_comm = sample_comm
       self%sample_idx = n_sample
 
-      !call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
+      call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
 
-      call MPI_Comm_size(self%sample_comm, self%nProcs, ierr)
+      call MPI_Comm_size(self%sample_comm, self%nProcs_sample, ierr)
       call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
 
       self%units = init_units(cfg, self%me)
