@@ -350,7 +350,6 @@ contains
 
          call CFG_get(cfg, "hamil%t_so", tmp)
          self%t_so =  tmp * self%units%energy
-         !write(*,*) "Rasbha spin orbit:", self%t_so,tmp
 
          call CFG_get(cfg, "hamil%eta_soc", tmp)
          self%eta_soc =  tmp * self%units%energy
@@ -471,7 +470,7 @@ contains
                      root, self%sample_comm, ierr(26))
       call MPI_Bcast(self%gamma,      1,              MPI_REAL8,   &
                      root,          self%sample_comm, ierr(27))
-      call check_ierr(ierr, self%me, "Hamiltionian check err")
+      call check_ierr(ierr, self%me_sample, "Hamiltionian check err")
    end subroutine
 
     subroutine set_loc_exch(self,H)
