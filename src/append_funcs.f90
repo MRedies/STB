@@ -17,6 +17,8 @@ module Class_append_funcs
     contains
         procedure :: add_DOS_collect => add_DOS_collect
         procedure :: save_DOS_collect => save_DOS_collect
+        procedure :: add_spins_collect => add_spins_collect
+        procedure :: save_spins_collect => save_spins_collect
         procedure :: add_to_arr1D_int => add_to_arr1D_int
         procedure :: add_to_arr1D_real => add_to_arr1D_real
         procedure :: add_to_arr2D_real => add_to_arr2D_real
