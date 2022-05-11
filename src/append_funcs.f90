@@ -77,12 +77,14 @@ module Class_append_funcs
             use mpi
             implicit none
             class(collect_quantities)           :: self
+            integer,allocatable                 :: isize(:)
             real(8), intent(in)                 :: spins(:,:)
     
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%spins_collect)) then
-                    allocate(self%spins_collect(size(spins)))
-                    self%spins_collect(1,:) = spins
+                    isize = size(spins)
+                    allocate(self%spins_collect(isize))
+                    self%spins_collect(isize(1),:) = spins
                 else
                     call self%add_to_arr2D_real(self%spins_collect,spins)
                 endif
