@@ -131,8 +131,8 @@ contains
       integer, parameter           :: lwork = 20
       integer, intent(in)             :: sample_comm,n_sample,samples_per_comm
       real(8)                         :: work(lwork), tmp
-      integer, dimension(2)        :: ipiv
-      integer                         :: info
+      integer, dimension(2)           :: ipiv
+      integer                         :: info,i
       integer                         :: ierr
       integer                         :: anticol_size, wavevector_size
       logical                         :: tmp_log
