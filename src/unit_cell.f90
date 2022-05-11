@@ -38,6 +38,7 @@ module Class_unit_cell
       real(8) :: ferro_phi, ferro_theta
       real(8) :: cone_angle
       real(8), allocatable:: anticol_phi(:), anticol_theta(:), m0_A(:), m0_B(:) !> the angles for anticollinear setups, one
+      real(8), allocatable:: all_spins(:,:) !>the array containing spins of all sites
       real(8) :: axis_theta,axis_phi !> the angles for anticollinear setups, one
       real(8) :: atan_factor !> how fast do we change the border wall
       real(8) :: atan_pref !> prefactor for atan
@@ -219,6 +220,12 @@ contains
          write (*, *) self%me, ": Cell type unknown"
          stop
       endif
+      !!! INIT ARRAY OF SPINS !!!
+
+      allocate(self%all_spins(self%num_atoms,3))
+      do i=1,self%num_atoms
+         self%all_spins(i,:) = self%atoms(i)%get_m_cart()
+      enddo
       if (self%me == 0) then
          write(*,*) self%lattice
       endif
@@ -580,9 +587,7 @@ contains
 
       self%lattice(:, 1) = self%lattice_constant*transl_mtx(1, :)
       self%lattice(:, 2) = self%lattice_constant*transl_mtx(2, :)
-      !FOR ATOM 2, THIS DOES NOT FIND ALL NEIGHBORS, WHAT TO DO?
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
-      !call self%setup_gen_conn(-conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
       call self%set_honey_snd_nearest(transl_mtx)
       deallocate (m, pos)
    end subroutine init_file_honey_htp

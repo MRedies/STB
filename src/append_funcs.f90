@@ -10,6 +10,7 @@ module Class_append_funcs
         real(8), allocatable ::  DOS_collect(:,:)
         real(8), allocatable ::  up_collect(:,:)
         real(8), allocatable ::  down_collect(:,:)
+        real(8), allocatable ::  spins_collect(:,:)
         integer              ::  me,me_sample,color
         character(len=300)   :: prefix
         type(units)          :: units
@@ -71,6 +72,22 @@ module Class_append_funcs
             endif
         end subroutine
         
+        subroutine add_spins_collect(self, spins)
+            use mpi
+            implicit none
+            class(collect_quantities)           :: self
+            real(8), intent(in)                 :: spins(:,:)
+    
+            if(self%me_sample==root) then
+                if(.NOT. allocated(self%spins_collect)) then
+                    allocate(self%spins_collect(size(spins)))
+                    self%spins_collect(1,:) = spins
+                else
+                    call self%add_to_arr2D_real(self%spins_collect,spins)
+                endif
+            endif
+        end subroutine
+        
         subroutine save_DOS_collect(self)
             use mpi
             implicit none
@@ -87,6 +104,19 @@ module Class_append_funcs
                 call save_npy(trim(self%prefix) //  trim(filename), self%up_collect * self%units%energy)
                 write (filename,  "(A,I0.6,A)") "down_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%down_collect * self%units%energy)
+            endif
+        end subroutine
+
+        subroutine save_spins_collect(self)
+            use mpi
+            implicit none
+            class(collect_quantities)           :: self
+            character(len=300)                  :: filename
+            
+    
+            if(self%me_sample ==  root) then
+                write (filename,  "(A,I0.6,A)") "spins_collect=", self%color,".npy"
+                call save_npy(trim(self%prefix) //  trim(filename), self%spins_collect)
             endif
         end subroutine
 

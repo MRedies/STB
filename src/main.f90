@@ -73,6 +73,7 @@ program STB
       enddo
       if(trim(uctype)=="file_honey_htp") then
          call ColQ%save_DOS_collect()
+         call ColQ%save_spins_collect()
       endif
    else
       do n_inp = 1, n_files
@@ -136,6 +137,7 @@ contains
           success = .False.
       endif
       Ksp =  init_k_space(cfg,sample_comm,n_sample,samples_per_comm)
+      call ColQ%add_spins_collect(Ksp%ham%UC%all_spins)
       if(me == root) call save_cfg(cfg)
 
       if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
