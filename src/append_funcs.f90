@@ -110,7 +110,7 @@ module Class_append_funcs
                     allocate(self%sample_idx(1))
                     self%sample_idx = idx
                 else
-                    call self%add_to_arr1D_int(self%spins_collect,spins)
+                    call self%add_to_arr1D_int(self%sample_idx,idx)
                 endif
             endif
         end subroutine
