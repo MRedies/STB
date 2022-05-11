@@ -243,7 +243,6 @@ module Class_append_funcs
         do i=1,esize(1)
             list(i,:) = element(i,:)
         enddo
-        list(1,:) = element
     end if
     
     end subroutine add_2D_to_arr2D_real
