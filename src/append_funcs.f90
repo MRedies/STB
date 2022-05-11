@@ -82,7 +82,7 @@ module Class_append_funcs
             integer                             :: i
             integer,allocatable                 :: isize(:)
             real(8), intent(in)                 :: spins(:,:)
-    
+            allocate(isize(2))
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%spins_collect)) then
                     isize = size(spins)
@@ -221,6 +221,7 @@ module Class_append_funcs
         real(8), allocatable                :: clist(:,:)
     
     allocate(isize(2))
+    allocate(esize(2))
 
     if(allocated(list)) then
         isize = shape(list)
