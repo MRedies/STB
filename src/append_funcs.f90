@@ -85,7 +85,7 @@ module Class_append_funcs
             allocate(isize(2))
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%spins_collect)) then
-                    isize = size(spins)
+                    isize = shape(spins)
                     allocate(self%spins_collect(isize(1),isize(2)))
                     do i=1,isize(1)
                         self%spins_collect(i,:) = spins(i,:)
