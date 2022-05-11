@@ -201,6 +201,44 @@ module Class_append_funcs
             allocate(list(1,1))
             list(1,:) = element
         end if
-    
     end subroutine add_to_arr2D_real
+
+    subroutine add_2D_to_arr2D_real(self,list, element)
+        implicit none
+        class(collect_quantities)           :: self
+        integer                             :: i
+        integer,allocatable                 :: isize(:),esize(:)
+        real(8)             , intent(in)    :: element(:,:)
+        real(8), allocatable, intent(inout) :: list(:,:)
+        real(8), allocatable                :: clist(:,:)
+    
+    allocate(isize(2))
+
+    if(allocated(list)) then
+        isize = shape(list)
+        esize = shape(element)
+        allocate(clist(isize(1)+esize(1),isize(2)))
+        do i=1,isize(1)
+        clist(i,:) = list(i,:)
+        end do
+        if (esize(2)==isize(2)) then
+            do i=1,esize(1)
+                clist(isize(1)+i,:) = element(i,:)
+            enddo
+        else
+            write(*,*) "Append shape does not agree!"
+        endif
+        deallocate(list)
+        call move_alloc(clist, list)
+
+    else
+        esize = shape(element)
+        allocate(list(esize(1),esize(2)))
+        do i=1,esize(1)
+            list(i,:) = element(i,:)
+        enddo
+        list(1,:) = element
+    end if
+    
+    end subroutine add_2D_to_arr2D_real
 end module
