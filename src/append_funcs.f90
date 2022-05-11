@@ -83,7 +83,7 @@ module Class_append_funcs
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%spins_collect)) then
                     isize = size(spins)
-                    allocate(self%spins_collect(isize))
+                    allocate(self%spins_collect(isize(1),isize(2)))
                     self%spins_collect(isize(1),:) = spins
                 else
                     call self%add_to_arr2D_real(self%spins_collect,spins)
