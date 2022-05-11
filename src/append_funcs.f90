@@ -89,7 +89,7 @@ module Class_append_funcs
                         self%spins_collect(i,:) = spins(i,:)
                     enddo
                 else
-                    call self%add_to_arr2D_real(self%spins_collect,spins)
+                    call self%add_2D_to_arr2D_real(self%spins_collect,spins)
                 endif
             endif
         end subroutine
