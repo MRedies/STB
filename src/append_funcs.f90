@@ -147,7 +147,7 @@ module Class_append_funcs
             endif
         end subroutine
 
-        subroutine save_spins_collect(self)
+        subroutine save_sample_idx(self)
             use mpi
             implicit none
             class(collect_quantities)           :: self
