@@ -68,12 +68,16 @@ program STB
          if (me_sample==root) then
             write(*,*) "----- Sample: ",n_sample," -----"
          endif
+         if(trim(uctype)=="file_honey_htp") then
+            call ColQ%add_sample_idx(n_sample)
+         endif
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm,ColQ)
          !ADD RETURNS (DOS, SIGMA ETC) TO COLLECT ARRAYS
       enddo
       if(trim(uctype)=="file_honey_htp") then
          call ColQ%save_DOS_collect()
          call ColQ%save_spins_collect()
+         call ColQ%save_sample_idx()
       endif
    else
       do n_inp = 1, n_files
@@ -137,8 +141,10 @@ contains
           success = .False.
       endif
       Ksp =  init_k_space(cfg,sample_comm,n_sample,samples_per_comm)
-      call ColQ%add_spins_collect(Ksp%ham%UC%all_spins)
-      if(me == root) call save_cfg(cfg)
+      if(trim(uctype)=="file_honey_htp") then
+         call ColQ%add_spins_collect(Ksp%ham%UC%all_spins)
+      endif
+         if(me == root) call save_cfg(cfg)
 
       if(me == root) write (*,*) "num atm", Ksp%ham%UC%num_atoms
 

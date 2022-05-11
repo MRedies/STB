@@ -11,6 +11,7 @@ module Class_append_funcs
         real(8), allocatable ::  up_collect(:,:)
         real(8), allocatable ::  down_collect(:,:)
         real(8), allocatable ::  spins_collect(:,:)
+        integer, allocatable ::  sample_idx(:)
         integer              ::  me,me_sample,color
         character(len=300)   :: prefix
         type(units)          :: units
@@ -18,6 +19,8 @@ module Class_append_funcs
         procedure :: add_DOS_collect => add_DOS_collect
         procedure :: save_DOS_collect => save_DOS_collect
         procedure :: add_spins_collect => add_spins_collect
+        procedure :: add_sample_idx => add_sample_idx
+        procedure :: save_sample_idx => save_sample_idx
         procedure :: save_spins_collect => save_spins_collect
         procedure :: add_to_arr1D_int => add_to_arr1D_int
         procedure :: add_to_arr1D_real => add_to_arr1D_real
@@ -95,6 +98,22 @@ module Class_append_funcs
                 endif
             endif
         end subroutine
+
+        subroutine add_sample_idx(self, idx)
+            use mpi
+            implicit none
+            class(collect_quantities)           :: self
+            integer, intent(in)                 :: idx
+
+            if(self%me_sample==root) then
+                if(.NOT. allocated(self%sample_idx)) then
+                    allocate(self%sample_idx(1))
+                    self%sample_idx = idx
+                else
+                    call self%add_to_arr1D_int(self%spins_collect,spins)
+                endif
+            endif
+        end subroutine
         
         subroutine save_DOS_collect(self)
             use mpi
@@ -125,6 +144,19 @@ module Class_append_funcs
             if(self%me_sample ==  root) then
                 write (filename,  "(A,I0.6,A)") "spins_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%spins_collect)
+            endif
+        end subroutine
+
+        subroutine save_spins_collect(self)
+            use mpi
+            implicit none
+            class(collect_quantities)           :: self
+            character(len=300)                  :: filename
+            
+    
+            if(self%me_sample ==  root) then
+                write (filename,  "(A,I0.6,A)") "sample_idx_collect=", self%color,".npy"
+                call save_npy(trim(self%prefix) //  trim(filename), self%sample_idx)
             endif
         end subroutine
 
