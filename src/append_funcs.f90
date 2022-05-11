@@ -20,6 +20,7 @@ module Class_append_funcs
         procedure :: add_to_arr1D_int => add_to_arr1D_int
         procedure :: add_to_arr1D_real => add_to_arr1D_real
         procedure :: add_to_arr2D_real => add_to_arr2D_real
+        procedure :: add_2D_to_arr2D_real => add_2D_to_arr2D_real
     end type collect_quantities
     
     contains
