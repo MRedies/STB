@@ -170,7 +170,7 @@ contains
 
          call CFG_get(cfg, "grid%winding_number", self%n_wind)
          call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
-         write(*,*) self%me, "UC type is: "self%uc_type
+         write(*,*) self%me, "UC type is: ",self%uc_type
          call CFG_get_size(cfg, "grid%wavevector", wavevector_size)
          allocate (self%wavevector(wavevector_size))
          call CFG_get(cfg, "grid%wavevector", self%wavevector)
