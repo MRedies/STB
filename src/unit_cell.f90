@@ -217,7 +217,7 @@ contains
       else if (trim(self%uc_type) == "file_honey_htp") then
          call self%init_file_honey_htp()
       else
-         write (*, *, *) self%me, ": Cell type unknown", self%uc_type
+         write (*, *) self%me, ": Cell type unknown", self%uc_type
          stop
       endif
       !!! INIT ARRAY OF SPINS !!!
