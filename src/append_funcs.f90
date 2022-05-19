@@ -22,10 +22,6 @@ module Class_append_funcs
         procedure :: add_sample_idx => add_sample_idx
         procedure :: save_sample_idx => save_sample_idx
         procedure :: save_spins_collect => save_spins_collect
-        procedure :: add_to_arr1D_int => add_to_arr1D_int
-        procedure :: add_to_arr1D_real => add_to_arr1D_real
-        procedure :: add_to_arr2D_real => add_to_arr2D_real
-        procedure :: add_2D_to_arr2D_real => add_2D_to_arr2D_real
     end type collect_quantities
     
     contains
@@ -55,25 +51,25 @@ module Class_append_funcs
                     allocate(self%DOS_collect(1,size(DOS)))
                     self%DOS_collect(1,:) = DOS
                 else
-                    call self%add_to_arr2D_real(self%DOS_collect,DOS)
+                    call add_to_arr2D_real(self%DOS_collect,DOS)
                 endif
                 if(.NOT. allocated(self%up_collect)) then
                     allocate(self%up_collect(1,size(up)))
                     self%up_collect(1,:) = up
                 else
-                    call self%add_to_arr2D_real(self%up_collect,up)
+                    call add_to_arr2D_real(self%up_collect,up)
                 endif
                 if(.NOT. allocated(self%down_collect)) then
                     allocate(self%down_collect(1,size(down)))
                     self%down_collect(1,:) = down
                 else
-                    call self%add_to_arr2D_real(self%down_collect,down)
+                    call add_to_arr2D_real(self%down_collect,down)
                 endif
                 if(.NOT. allocated(self%int_DOS_collect)) then
                     allocate(self%int_DOS_collect(1,size(int_DOS)))
                     self%int_DOS_collect(1,:) = int_DOS
                 else
-                    call self%add_to_arr2D_real(self%int_DOS_collect,int_DOS)
+                    call add_to_arr2D_real(self%int_DOS_collect,int_DOS)
                 endif
             endif
         end subroutine
@@ -94,7 +90,7 @@ module Class_append_funcs
                         self%spins_collect(i,:) = spins(i,:)
                     enddo
                 else
-                    call self%add_2D_to_arr2D_real(self%spins_collect,spins)
+                    call add_2D_to_arr2D_real(self%spins_collect,spins)
                 endif
             endif
         end subroutine
@@ -110,7 +106,7 @@ module Class_append_funcs
                     allocate(self%sample_idx(1))
                     self%sample_idx = idx
                 else
-                    call self%add_to_arr1D_int(self%sample_idx,idx)
+                    call add_to_arr1D_int(self%sample_idx,idx)
                 endif
             endif
         end subroutine
@@ -160,7 +156,7 @@ module Class_append_funcs
             endif
         end subroutine
 
-        subroutine add_to_arr1D_int(self,list, element)
+        subroutine add_to_arr1D_int(list, element)
             implicit none
             class(collect_quantities)           :: self
             integer                             :: i,isize
@@ -186,7 +182,7 @@ module Class_append_funcs
     
         end subroutine add_to_arr1D_int
 
-        subroutine add_to_arr1D_real(self,list, element)
+        subroutine add_to_arr1D_real(list, element)
             implicit none
             class(collect_quantities)           :: self
             integer                             :: i,isize
@@ -212,7 +208,7 @@ module Class_append_funcs
     
         end subroutine add_to_arr1D_real
     
-        subroutine add_to_arr2D_real(self,list, element)
+        subroutine add_to_arr2D_real(list, element)
             implicit none
             class(collect_quantities)           :: self
             integer                             :: i
@@ -243,7 +239,7 @@ module Class_append_funcs
         end if
     end subroutine add_to_arr2D_real
 
-    subroutine add_2D_to_arr2D_real(self,list, element)
+    subroutine add_2D_to_arr2D_real(list, element)
         implicit none
         class(collect_quantities)           :: self
         integer                             :: i
