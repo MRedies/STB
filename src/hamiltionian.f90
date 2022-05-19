@@ -216,7 +216,7 @@ contains
          call test_herm(self%del_H, tag="del_H")
          call test_herm(fd_H, tag="FD H")
 
-         if(cnorm2(reshape(fd_H - self%del_H, [N*N])) >= 1d-8) then
+         if(abs(cnorm2(reshape(fd_H - self%del_H, [N*N]))) >= 1d-8) then
             call error_msg("FD comp failed")
             write (*,*) "FD"
             call save_npy("output/dbg/fd_H.npy",fd_H)
