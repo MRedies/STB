@@ -1417,8 +1417,9 @@ contains
       integer   , allocatable  :: iwork(:)
       integer, intent(in)      :: pert_log
       character (300)          :: elem_file
-      integer      :: n_dim, lwork, lrwork, liwork, info
-      integer      :: ierr(3)
+      integer                  :: n_dim, info
+      integer(8)               :: lwork, lrwork, liwork
+      integer                  :: ierr(3)
       n_dim = 2 * self%num_up
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
       if(.not. allocated(temp)) allocate(temp(n_dim,n_dim))
@@ -1614,8 +1615,8 @@ contains
       real(8), allocatable,intent(out)  :: eig_val(:,:)
       real(8)                           :: k(3)
       complex(8), allocatable           :: H(:,:)
-      integer                           :: i, N, lwork, lrwork, liwork, info&
-                                          , istat(5)=0
+      integer                           :: i, N, info, istat(5)=0
+      integer(8)                        :: lwork, lrwork, liwork
       real(8), allocatable              :: RWORK(:)
       complex(8), allocatable           :: WORK(:)
       integer   , allocatable           :: IWORK(:)
@@ -1655,7 +1656,8 @@ contains
       complex(8), allocatable           :: H(:,:), work(:)
       real(8), allocatable              :: rwork(:)
       integer   , allocatable           :: iwork(:)
-      integer                           :: N, lwork, lrwork, liwork, info
+      integer                           :: N, info
+      integer(8)                        :: lwork, lrwork, liwork
 
       N = 2 * self%num_up
 
