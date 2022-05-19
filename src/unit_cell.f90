@@ -528,8 +528,8 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)
       real(8), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
-      integer(8), allocatable           :: site_type(:),dimensions(:)
-      integer                           :: n(3),num_atoms,idxstart,idxstop,n_trans,i
+      integer(8), allocatable           :: site_type(:),dimensions(:),num_atoms,n_trans
+      integer                           :: idxstart,idxstop,i
       integer                           :: info
 
       !READ IN STUFF WITH LOAD_NPY
@@ -540,11 +540,11 @@ contains
          n_trans = dimensions(5)
       endif
 
-      call MPI_Bcast(num_atoms, 1, MYPI_INT, &
+      call MPI_Bcast(num_atoms, 1, MPI_INTEGER8, &
                      root, self%sample_comm, info)
-      call MPI_Bcast(n_trans, 1, MYPI_INT, &
+      call MPI_Bcast(n_trans, 1, MPI_INTEGER8, &
                      root, self%sample_comm, info)
-      self%num_atoms = num_atoms
+      self%num_atoms = int(num_atoms,kind=4)
       allocate(m(3,self%num_atoms))
       allocate (pos(3, self%num_atoms))
       allocate (site_type(self%num_atoms))

@@ -839,7 +839,7 @@ contains
     real(8)                     ::a(3,2)
     real(8)                     ::k_n(3)
     integer                     ::conn,i,i_d,j,j_d
-    real(8)                     ::KM,lambda_KM,x,y,f
+    real(8)                     ::KM,x,y,f
 
     if(self%num_orb /= 1) call error_msg("Kane-Mele only for s-oritals", abort=.True.)
 
@@ -860,7 +860,7 @@ contains
       y = 0.5*dot_product(k_n,a(:,2) + a(:,1))
       x = 0.5*dot_product(k_n,a(:,1) - a(:,2))
       f = 4*(2*sin(y)*cos(x) - sin(2*x))
-      KM = lambda_KM*f
+      KM = self%lambda_KM*f
       H(i,i) = H(i,i) + KM
       H(i_d,i_d) = H(i_d,i_d) - KM
       do conn = 1,size(self%UC%atoms(i)%neigh_idx)
@@ -1019,12 +1019,9 @@ contains
     real(8)                     ::a(3,2)
     real(8)                     ::k_n(3)
     integer                     ::conn,i,i_d,j,j_d
-    real(8)                     ::abs_k,KM_deriv,lambda_KM,x,y,f_deriv
-
-    lambda_KM = self%lambda_KM
+    real(8)                     ::abs_k,KM_deriv,x,y,f_deriv
 
     if(self%num_orb /= 1) call error_msg("Kane-Mele only for s-oritals", abort=.True.)
-    lambda_KM = self%lambda_KM
     do i = 1,self%num_up
         i_d =  i + self%num_up
         self%del_H(i,i) = self%del_H(i,i) + KM_deriv
@@ -1047,7 +1044,7 @@ contains
                x = 0.5*dot_product(k_n,a(:,1) - a(:,2))
                abs_k = my_norm2(k)
                f_deriv = 8*(2*cos(y)*cos(x)*y/abs_k - 2*sin(y)*sin(x)*x/abs_k - 2*x/abs_k*cos(2*x))
-               KM_deriv = lambda_KM*f_deriv
+               KM_deriv = self%lambda_KM*f_deriv
                j =  self%UC%atoms(i)%neigh_idx(conn)
                j_d = j + self%num_up
                self%del_H(j,j) = self%del_H(j,j) - KM_deriv

@@ -14,7 +14,7 @@ module Class_atom
         real(8)                  :: m_theta !> polar spin angle \f$\theta\f$
                                             !> see german wikipedia, not english
         real(8), dimension(3)    :: pos     !> Position in RS in atomic units
-        integer(4)               :: site_type !> A or B site
+        integer(8)               :: site_type !> A or B site
 
         integer   , allocatable  :: neigh_idx(:)  !> index of neighbour atom
         real(8), allocatable     :: neigh_conn(:,:) !> real space connection to neighbour.

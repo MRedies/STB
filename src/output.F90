@@ -152,7 +152,6 @@ contains
    subroutine create_dir(folder)
       implicit none
       character(len=*) :: folder
-      logical          :: already
       integer(4)       :: succ
 
       call execute_command_line("rm " // trim(folder) // "*.npy", exitstat=succ)

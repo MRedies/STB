@@ -46,7 +46,7 @@ program STB
          if(trim(uctype)=="file_honey_htp") then
             call CFG_get(cfg, "grid%dim_file",  dim_file)
             call load_npy(trim(dim_file),dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C
-            n_sample_par = dimensions(1)
+            n_sample_par = int(dimensions(1), kind = 4)
          else
             n_sample_par = 1
          endif

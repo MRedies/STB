@@ -21,7 +21,7 @@ contains
    function cnorm2(vec) result(norm)
       implicit none
       complex(8), intent(in)   :: vec(:)
-      real(8)                  :: norm
+      complex(8)               :: norm
 
       ! see fortran defition for complex dot_product
       norm = sqrt(dot_product(vec,vec))

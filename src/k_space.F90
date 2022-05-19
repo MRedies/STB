@@ -257,11 +257,13 @@ contains
             ! eigenvectors are stored column-wise
             ! m-th eigenvalue
             ! j-th component of
+            ! convert H to type real to avoid warnings, in loop above
+            ! the value is already enforced to be real (product with conjg)
             do m =  1,N
                lor = self%lorentzian(E(E_idx) - eig_val(m))
                do j = 1,N
                   loc_PDOS(j, E_idx) = loc_PDOS(j, E_idx) &
-                                       + lor * H(j,m)
+                                       + lor * real(H(j,m), kind = 8)
                enddo
             enddo
          enddo
