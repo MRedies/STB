@@ -158,7 +158,6 @@ module Class_append_funcs
 
         subroutine add_to_arr1D_int(list, element)
             implicit none
-            class(collect_quantities)           :: self
             integer                             :: i,isize
             integer, intent(in)                 :: element
             integer, allocatable, intent(inout) :: list(:)
@@ -184,7 +183,6 @@ module Class_append_funcs
 
         subroutine add_to_arr1D_real(list, element)
             implicit none
-            class(collect_quantities)           :: self
             integer                             :: i,isize
             real(8), intent(in)                 :: element
             real(8), allocatable, intent(inout) :: list(:)
@@ -210,7 +208,6 @@ module Class_append_funcs
     
         subroutine add_to_arr2D_real(list, element)
             implicit none
-            class(collect_quantities)           :: self
             integer                             :: i
             integer,allocatable                 :: isize(:)
             real(8)             , intent(in)    :: element(:)
@@ -241,7 +238,6 @@ module Class_append_funcs
 
     subroutine add_2D_to_arr2D_real(list, element)
         implicit none
-        class(collect_quantities)           :: self
         integer                             :: i
         integer,allocatable                 :: isize(:),esize(:)
         real(8)             , intent(in)    :: element(:,:)
