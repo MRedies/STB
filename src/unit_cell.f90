@@ -170,7 +170,6 @@ contains
 
          call CFG_get(cfg, "grid%winding_number", self%n_wind)
          call CFG_get(cfg, "grid%unit_cell_type", self%uc_type)
-         write(*,*) self%me, "UC type is: ",self%uc_type
          call CFG_get_size(cfg, "grid%wavevector", wavevector_size)
          allocate (self%wavevector(wavevector_size))
          call CFG_get(cfg, "grid%wavevector", self%wavevector)
@@ -218,7 +217,7 @@ contains
       else if (trim(self%uc_type) == "file_honey_htp") then
          call self%init_file_honey_htp()
       else
-         write (*, *) self%me, ": Cell type unknown", self%uc_type
+         write (*, *) self%me, ": Cell type unknown"
          stop
       endif
       !!! INIT ARRAY OF SPINS !!!
