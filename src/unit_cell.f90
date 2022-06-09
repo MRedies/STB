@@ -528,8 +528,7 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)
       real(8), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
-      integer(8), allocatable           :: site_type(:),dimensions(:)
-      integer(8)                        :: num_atoms,n_trans
+      integer(8), allocatable           :: site_type(:),dimensions(:),num_atoms,n_trans
       integer                           :: idxstart,idxstop,i
       integer                           :: info
 
