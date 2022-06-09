@@ -18,7 +18,7 @@ program STB
    integer                         :: n_inp, n_files, start_idx, end_idx, cnt&
                                       ,sample_comm,color,n_sample_par,nProcs,n_sample&
                                       ,ierr, me, me_sample,samples_per_comm,nProcs_sample&
-                                      ,min_comm_size=2,ncomms
+                                      ,min_comm_size=8,ncomms
    integer(8)   , allocatable      :: dimensions(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
