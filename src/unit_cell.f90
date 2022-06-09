@@ -563,6 +563,7 @@ contains
          m(1,:) = m_large(1,idxstart:idxstop)
          m(2,:) = m_large(2,idxstart:idxstop)
          m(3,:) = m_large(3,idxstart:idxstop)
+         deallocate(m_large)
       endif
       call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, self%sample_comm, info)
