@@ -541,9 +541,9 @@ contains
          n_trans = dimensions(5)
       endif
 
-      call MPI_Bcast(num_atoms, 1, MPI_INTEGER8, &
+      call MPI_Bcast(num_atoms, 1, MYPI_INT, &
                      root, self%sample_comm, info)
-      call MPI_Bcast(n_trans, 1, MPI_INTEGER8, &
+      call MPI_Bcast(n_trans, 1, MYPI_INT, &
                      root, self%sample_comm, info)
       self%num_atoms = int(num_atoms,kind=4)
       allocate(m(3,self%num_atoms))
