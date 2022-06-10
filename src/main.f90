@@ -124,6 +124,7 @@ contains
          call CFG_get(cfg, "plot%plot_omega",   plot_omega)
          call CFG_get(cfg, "grid%unit_cell_type", uctype)
       endif
+      write(*,*) "FLAG MAIN 1", self%me, self%me_sample
       call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, sample_comm, ierr)
@@ -133,6 +134,7 @@ contains
       call MPI_Bcast(perform_ACA,  1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(plot_omega,   1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(pert_log,     1,  MPI_LOGICAL,   root, sample_comm, ierr)
+      write(*,*) "FLAG MAIN 2", self%me, self%me_sample
       !compare perturbation logical
       if(me_sample == root) tmp = pert_log
       call MPI_Bcast(tmp, 1, MPI_LOGICAL, root, sample_comm,ierr2)
@@ -140,6 +142,7 @@ contains
           call error_msg("pert_log doesn't match in main", abort=.True.)
           success = .False.
       endif
+      write(*,*) "FLAG MAIN 3", self%me, self%me_sample
       Ksp =  init_k_space(cfg,sample_comm,n_sample,samples_per_comm)
       if(trim(uctype)=="file_honey_htp") then
          call ColQ%add_spins_collect(Ksp%ham%UC%all_spins)
