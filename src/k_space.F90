@@ -203,8 +203,8 @@ contains
       complex(8), allocatable :: H(:,:), WORK(:)
       integer   , allocatable :: IWORK(:)
       integer     :: first, last, ierr
-      integer     :: k_idx, E_idx, j, m, N, info, percentage
-      integer(8)  :: lwork, liwork, lrwork
+      integer     :: k_idx, E_idx, j, m, N, info
+      integer     :: lwork, liwork, lrwork, percentage
 
       N =  2 * self%ham%num_up
       allocate(H(N,N))
@@ -2223,7 +2223,7 @@ contains
       complex(8), allocatable :: H(:,:), WORK(:)
       integer                 :: N_k, N, &
                                  first, last, k_idx, info, ierr
-      integer(8)              :: lwork, lrwork, liwork
+      integer                 :: lwork, lrwork, liwork
       integer, allocatable    :: IWORK(:)
 
       if(self%ham%num_orb /= 3) then

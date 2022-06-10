@@ -69,7 +69,7 @@ contains
       character(len=1)          :: vn_flag
       complex(8), intent(in)    :: H(:,:)
       real(8), intent(in)       :: eig_val(:)
-      integer(8), intent(out)   :: lwork, lrwork, liwork
+      integer, intent(out)      :: lwork, lrwork, liwork
       complex(8)                :: lwork_tmp
       real(8)                   :: lrwork_tmp
       integer(8)                :: N, info, minus_1!, me, nProcs
