@@ -1342,7 +1342,7 @@ contains
       class(unit_cell)    :: self
       integer, intent(in) :: ii, j
       real(8), intent(in) :: UC_l
-      integer             :: site_type, i
+      integer             :: i
       real(8)             :: conn(3), phase_fac, x, l, R(3,3), shift_mtx(3,3), m(3), axis(3), wavevector(3) &
                              , wavevector_len, wavelength, psi
       axis(1) = sin(self%axis_theta) *  cos(self%axis_phi)
@@ -1363,7 +1363,6 @@ contains
          psi = 2d0*PI/wavelength
       endif
       i = ii + j
-      site_type = self%atoms(i)%site_type
       
       phase_fac = 0d0!
       if (self%atoms(i)%site_type /= self%atoms(j)%site_type) then
@@ -1395,8 +1394,8 @@ contains
       character(len=*)        :: folder
       real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
       integer                 :: i, n_neigh
-      integer, allocatable :: neigh(:, :)
-      integer, allocatable    :: site_type(:), conn_type(:, :)
+      integer, allocatable :: neigh(:, :), conn_type(:, :)
+      integer(8), allocatable    :: site_type(:)
 
       allocate (x(self%num_atoms))
       allocate (y(self%num_atoms))
