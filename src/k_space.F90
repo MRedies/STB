@@ -390,6 +390,7 @@ contains
       call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
 
       self%units = init_units(cfg, self%me)
+      write(*,*) "FlAG INIT K SPACE"
       self%ham   = init_hamil(cfg,sample_comm,n_sample,samples_per_comm)    
 
       if(self%me_sample ==  0) then
