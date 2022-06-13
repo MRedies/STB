@@ -529,7 +529,7 @@ contains
       real(8)                           :: conn_mtx(3, 3)
       real(8), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
       integer(8), allocatable           :: site_type(:),dimensions(:)
-      integer(8)                        :: num_atoms,n_trans
+      integer(8)                        :: num_atoms,n_trans,me
       integer                           :: idxstart,idxstop,i
       integer                           :: info
 
