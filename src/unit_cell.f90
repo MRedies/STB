@@ -534,7 +534,9 @@ contains
       integer                           :: info
 
       !READ IN STUFF WITH LOAD_NPY
-         
+      if(me == root)then
+         write(*,*) "FLAG 1"
+      endif
       if (self%me_sample == root) then
          call load_npy(trim(self%dim_file),dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C,N_trans
          num_atoms = 2*dimensions(2)*dimensions(3)*dimensions(4)
@@ -591,6 +593,9 @@ contains
       self%lattice(:, 2) = self%lattice_constant*transl_mtx(2, :)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
       call self%set_honey_snd_nearest(transl_mtx)
+      if(me == root)then
+         write(*,*) "FLAG 2"
+      endif
       deallocate (m, pos)
    end subroutine init_file_honey_htp
 
