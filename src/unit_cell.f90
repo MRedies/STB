@@ -945,7 +945,7 @@ contains
    subroutine set_honey_snd_nearest(self,transl_mtx)
       implicit none
       class(unit_cell)        :: self
-      integer                 :: i, j, cand, apd
+      integer                 :: i, j, cand
       real(8)                 :: l, conn_mtx_A(3, 3), conn_mtx_B(3, 3), start_pos(3), &
                                  conn(3), conn_storage(3, 3)
       real(8), allocatable    :: tmp(:, :)
