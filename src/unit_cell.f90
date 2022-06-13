@@ -951,11 +951,7 @@ contains
       real(8), allocatable    :: tmp(:, :)
       real(8), intent(in)     :: transl_mtx(3, 3)
       integer                 :: idx(3), curr_size
-      apd = self%atom_per_dim
       l = 2d0*cos(deg_30)*self%lattice_constant
-      !transl_mtx(1, :) = apd*l*[1d0, 0d0, 0d0]
-      !transl_mtx(2, :) = apd*l*[0.5d0, sin(deg_60), 0d0]
-      !transl_mtx(3, :) = apd*l*[0.5d0, -sin(deg_60), 0d0]
 
       !only clockwise connections
       conn_mtx_A(1, :) = l*[-1d0, 0d0, 0d0]
