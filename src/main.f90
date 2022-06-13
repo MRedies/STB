@@ -32,7 +32,7 @@ program STB
    call MPI_Bcast(n_files, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
    n_sample_par = 0
    if (n_files == 1) then
-      if(me ==  root)then
+      if(me == root)then
          write (*,*) "Reading n_sample from: ", trim(inp_files(1))
          call CFG_read_file(cfg, trim(inp_files(1)))
          call add_full_cfg(cfg)
