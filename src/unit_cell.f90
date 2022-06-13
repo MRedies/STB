@@ -956,7 +956,10 @@ contains
                                  conn(3), conn_storage(3, 3)
       real(8), allocatable    :: tmp(:, :)
       real(8), intent(in)     :: transl_mtx(3, 3)
-      integer                 :: idx(3), curr_size,me
+      integer                 :: idx(3), curr_size,me,ierr
+
+      call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
+
       l = 2d0*cos(deg_30)*self%lattice_constant
       !only clockwise connections
       conn_mtx_A(1, :) = l*[-1d0, 0d0, 0d0]
