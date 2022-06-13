@@ -593,10 +593,10 @@ contains
       self%lattice(:, 1) = self%lattice_constant*transl_mtx(1, :)
       self%lattice(:, 2) = self%lattice_constant*transl_mtx(2, :)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
-      call self%set_honey_snd_nearest(transl_mtx)
       if(me == root)then
          write(*,*) "FLAG 2"
       endif
+      call self%set_honey_snd_nearest(transl_mtx)
       deallocate (m, pos)
    end subroutine init_file_honey_htp
 
@@ -956,9 +956,8 @@ contains
                                  conn(3), conn_storage(3, 3)
       real(8), allocatable    :: tmp(:, :)
       real(8), intent(in)     :: transl_mtx(3, 3)
-      integer                 :: idx(3), curr_size
+      integer                 :: idx(3), curr_size,me
       l = 2d0*cos(deg_30)*self%lattice_constant
-
       !only clockwise connections
       conn_mtx_A(1, :) = l*[-1d0, 0d0, 0d0]
       conn_mtx_A(2, :) = l*[0.5d0, sin(deg_60), 0d0]
@@ -967,7 +966,6 @@ contains
       conn_mtx_B(1, :) = -l*[-1d0, 0d0, 0d0]
       conn_mtx_B(2, :) = -l*[0.5d0, sin(deg_60), 0d0]
       conn_mtx_B(3, :) = -l*[0.5d0, -sin(deg_60), 0d0]
-
       do i = 1, self%num_atoms
          start_pos = self%atoms(i)%pos
 
@@ -989,6 +987,9 @@ contains
             endif
          enddo
          !append 1D-arrays
+         if(me == root)then
+            write(*,*) "FLAG 3"
+         endif
          self%atoms(i)%neigh_idx = [self%atoms(i)%neigh_idx, idx]
          self%atoms(i)%conn_type = [self%atoms(i)%conn_type, [snd_nn_conn, snd_nn_conn, snd_nn_conn]]
          curr_size = size(self%atoms(i)%neigh_conn, 1)
