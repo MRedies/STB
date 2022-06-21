@@ -597,6 +597,9 @@ contains
          write(*,*) "FLAG 2"
       endif
       call self%set_honey_snd_nearest(transl_mtx)
+      if(me == root)then
+         write(*,*) "FLAG 4"
+      endif
       deallocate (m, pos)
    end subroutine init_file_honey_htp
 
