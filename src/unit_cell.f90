@@ -1002,7 +1002,13 @@ contains
          allocate (tmp(curr_size + 3, 3))
          tmp(1:curr_size, :) = self%atoms(i)%neigh_conn
          tmp(curr_size + 1:curr_size + 3, :) = conn_storage
+         if(me == root)then
+            write(*,*) "FLAG 3.1"
+         endif
          call move_alloc(tmp, self%atoms(i)%neigh_conn)
+         if(me == root)then
+            write(*,*) "FLAG 3.2"
+         endif
       enddo
 
    end subroutine set_honey_snd_nearest
