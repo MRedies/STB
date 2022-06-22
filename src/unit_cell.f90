@@ -136,7 +136,6 @@ contains
       integer                         :: ierr
       integer                         :: anticol_size, wavevector_size
       logical                         :: tmp_log
-
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
       
@@ -203,7 +202,6 @@ contains
       endif
 
       call self%Bcast_UC()
-
       if (trim(self%uc_type) == "square_2d") then
          call self%init_unit_square()
       else if (trim(self%uc_type) == "honey_2d") then
