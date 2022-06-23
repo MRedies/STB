@@ -999,7 +999,11 @@ contains
          if(me == root)then
             write(*,*) "FLAG 3.0"
          endif
-         curr_size = size(self%atoms(i)%neigh_conn, 1)
+         if(.NOT. allocated(self%atoms(i)%neigh_conn)) then
+            curr_size = 0
+         else
+            curr_size = size(self%atoms(i)%neigh_conn, 1)
+         endif
          allocate (tmp(curr_size + 3, 3))
          if(me == root)then
             write(*,*) "FLAG 3.1", curr_size, size(tmp)
