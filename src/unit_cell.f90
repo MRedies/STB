@@ -246,7 +246,7 @@ contains
          self%rez_lattice = 2*PI*self%rez_lattice
       endif
       if (self%test_run) call self%run_tests()
-      if(me == root)then
+      if(self%me == root)then
          write(*,*) "FLAG 5"
       endif
    end function
