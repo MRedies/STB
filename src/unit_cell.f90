@@ -1006,7 +1006,7 @@ contains
          endif
          allocate (tmp(curr_size + 3, 3))
          if(me == root)then
-            write(*,*) "FLAG 3.1", curr_size, size(tmp)
+            write(*,*) "FLAG 3.1", curr_size, size(tmp), size(conn_storage)
          endif
          tmp(1:curr_size, :) = self%atoms(i)%neigh_conn
          tmp(curr_size + 1:curr_size + 3, :) = conn_storage
