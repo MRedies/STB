@@ -996,13 +996,17 @@ contains
          endif
          self%atoms(i)%neigh_idx = [self%atoms(i)%neigh_idx, idx]
          self%atoms(i)%conn_type = [self%atoms(i)%conn_type, [snd_nn_conn, snd_nn_conn, snd_nn_conn]]
+         if(me == root)then
+            write(*,*) "FLAG 3.0"
+         endif
          curr_size = size(self%atoms(i)%neigh_conn, 1)
-         allocate (tmp(curr_size + 3, 3))
-         tmp(1:curr_size, :) = self%atoms(i)%neigh_conn
-         tmp(curr_size + 1:curr_size + 3, :) = conn_storage
          if(me == root)then
             write(*,*) "FLAG 3.1"
          endif
+         allocate (tmp(curr_size + 3, 3))
+         tmp(1:curr_size, :) = self%atoms(i)%neigh_conn
+         tmp(curr_size + 1:curr_size + 3, :) = conn_storage
+
          call move_alloc(tmp, self%atoms(i)%neigh_conn)
          if(me == root)then
             write(*,*) "FLAG 3.2"
