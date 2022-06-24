@@ -595,13 +595,6 @@ contains
       if(me == root)then
          write(*,*) "FLAG 2"
       endif
-<<<<<<< HEAD
-      call self%set_honey_snd_nearest(transl_mtx)
-      if(me == root)then
-         write(*,*) "FLAG 4"
-      endif
-=======
->>>>>>> parent of 1a5dade... flags. stupid i know
       deallocate (m, pos)
    end subroutine init_file_honey_htp
 
@@ -996,9 +989,6 @@ contains
          !append 1D-arrays
          self%atoms(i)%neigh_idx = [self%atoms(i)%neigh_idx, idx]
          self%atoms(i)%conn_type = [self%atoms(i)%conn_type, [snd_nn_conn, snd_nn_conn, snd_nn_conn]]
-         if(me == root)then
-            write(*,*) "FLAG 3.0"
-         endif
          if(.NOT. allocated(self%atoms(i)%neigh_conn)) then
             curr_size = 0
          else
