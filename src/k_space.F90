@@ -462,7 +462,7 @@ contains
       integer                :: sz(2)
       ierr =  0
 
-      if(self%me ==  root) then
+      if(self%me_sample ==  root) then
          sz(1) = size(self%k1_param)
          sz(2) = size(self%k2_param)
       endif
