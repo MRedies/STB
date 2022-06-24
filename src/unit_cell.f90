@@ -592,9 +592,6 @@ contains
       self%lattice(:, 2) = self%lattice_constant*transl_mtx(2, :)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
       call self%set_honey_snd_nearest(transl_mtx)
-      if(me == root)then
-         write(*,*) "FLAG 2"
-      endif
       deallocate (m, pos)
    end subroutine init_file_honey_htp
 
