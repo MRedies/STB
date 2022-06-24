@@ -981,13 +981,20 @@ contains
             endif
          enddo
          !append 1D-arrays
+         
+         if(.NOT. allocated(self%atoms(i)%neigh_idx)) then
+            allocate (self%atoms(i)%neigh_idx(0))
+         endif
+         if(.NOT. allocated(self%atoms(i)%neigh_conn)) then
+            allocate (self%atoms(i)%neigh_conn(size(conn_storage,1),size(conn_storage,2)))
+         endif
+         if(.NOT. allocated(self%atoms(i)%conn_type)) then
+            allocate (self%atoms(i)%conn_type(0))
+         endif
+
          self%atoms(i)%neigh_idx = [self%atoms(i)%neigh_idx, idx]
          self%atoms(i)%conn_type = [self%atoms(i)%conn_type, [snd_nn_conn, snd_nn_conn, snd_nn_conn]]
-         if(.NOT. allocated(self%atoms(i)%neigh_conn)) then
-            curr_size = 0
-         else
-            curr_size = size(self%atoms(i)%neigh_conn, 1)
-         endif
+         curr_size = size(self%atoms(i)%neigh_conn, 1)
          allocate (tmp(curr_size + 3, 3))
          tmp(1:curr_size, :) = self%atoms(i)%neigh_conn
          tmp(curr_size + 1:curr_size + 3, :) = conn_storage
