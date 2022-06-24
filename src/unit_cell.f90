@@ -532,9 +532,7 @@ contains
       integer                           :: info
 
       !READ IN STUFF WITH LOAD_NPY
-      if(me == root)then
-         write(*,*) "FLAG 1"
-      endif
+         
       if (self%me_sample == root) then
          call load_npy(trim(self%dim_file),dimensions)!ORDERING: N_SAMPLES,N_A,N_B,N_C,N_trans
          num_atoms = 2*dimensions(2)*dimensions(3)*dimensions(4)
