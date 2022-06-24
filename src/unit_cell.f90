@@ -529,10 +529,9 @@ contains
       integer(8), allocatable           :: site_type(:),dimensions(:)
       integer(8)                        :: num_atoms,n_trans,me
       integer                           :: idxstart,idxstop,i
-      integer                           :: info, ierr
+      integer                           :: info
 
       !READ IN STUFF WITH LOAD_NPY
-      call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
       if(me == root)then
          write(*,*) "FLAG 1"
       endif
