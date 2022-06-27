@@ -4,7 +4,6 @@ module Class_hamiltionian
    use Class_unit_cell
    use m_npy
    use mpi_f08
-   use MYPI
    use Constants
    implicit none
 
