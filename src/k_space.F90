@@ -475,10 +475,10 @@ contains
 
       call MPI_Bcast(self%DOS_gamma,   1,            MPI_REAL8,   &
                      root,                        self%sample_comm, ierr(3))
-      call MPI_Bcast(self%num_DOS_pts, 1,            MYPI_INT, &
+      call MPI_Bcast(self%num_DOS_pts, 1,            MPI_INTEGER, &
                      root,                        self%sample_comm, ierr(4))
 
-      call MPI_Bcast(sz, 2,            MYPI_INT, &
+      call MPI_Bcast(sz, 2,            MPI_INTEGER, &
                      root,          self%sample_comm, ierr(5))
 
       if(self%me_sample /= root) then
@@ -489,9 +489,9 @@ contains
                      root,               self%sample_comm, ierr(6))
       call MPI_Bcast(self%k2_param,      sz(2),          MPI_REAL8,    &
                      root,               self%sample_comm, ierr(7))
-      call MPI_Bcast(self%num_k_pts,     1,              MYPI_INT, &
+      call MPI_Bcast(self%num_k_pts,     1,              MPI_INTEGER, &
                      root,               self%sample_comm, ierr(8))
-      call MPI_Bcast(self%DOS_num_k_pts, 1,              MYPI_INT, &
+      call MPI_Bcast(self%DOS_num_k_pts, 1,              MPI_INTEGER, &
                      root,               self%sample_comm, ierr(9))
       call MPI_Bcast(self%DOS_lower,     1,              MPI_REAL8, &
                      root,               self%sample_comm, ierr(10))
@@ -499,13 +499,13 @@ contains
                      root,               self%sample_comm, ierr(11))
 
       ! Berry parameter               
-      call MPI_Bcast(self%berry_num_k_pts, 1,            MYPI_INT,   &
+      call MPI_Bcast(self%berry_num_k_pts, 1,            MPI_INTEGER,   &
                      root,                            self%sample_comm, ierr(12))
       call MPI_Bcast(self%temp,            1,            MPI_REAL8,     &
                      root,                            self%sample_comm, ierr(13))
-      call MPI_Bcast(self%berry_iter,      1,            MYPI_INT,   &
+      call MPI_Bcast(self%berry_iter,      1,            MPI_INTEGER,   &
                      root,                            self%sample_comm, ierr(14))
-      call MPI_Bcast(self%kpts_per_step,   1,            MYPI_INT,   &
+      call MPI_Bcast(self%kpts_per_step,   1,            MPI_INTEGER,   &
                      root,                            self%sample_comm, ierr(15))
       call MPI_Bcast(self%k_shift,         3,            MPI_REAL8,     &
                      root,                            self%sample_comm, ierr(16))
@@ -530,9 +530,9 @@ contains
 
       call MPI_Bcast(self%test_run,      1,              MPI_LOGICAL, &
                      root,              self%sample_comm, ierr(23))
-      call MPI_Bcast(self%ACA_num_k_pts, 1,              MYPI_INT,    &
+      call MPI_Bcast(self%ACA_num_k_pts, 1,              MPI_INTEGER,    &
                      root,              self%sample_comm, ierr(24))
-      call MPI_Bcast(self%num_plot_pts,  1,              MYPI_INT,    &
+      call MPI_Bcast(self%num_plot_pts,  1,              MPI_INTEGER,    &
                      root,              self%sample_comm, ierr(25))
       !call MPI_Bcast(self%pert_log, 1,            MPI_LOGICAL,   &
       !               root,                            MPI_COMM_WORLD, ierr(26))

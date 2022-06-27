@@ -8,7 +8,6 @@ program STB
    use mpi_f08
    use Constants
    use Class_unit_cell
-   use mypi
    use stdlib_io_npy, only: load_npy
    implicit none
 
@@ -55,7 +54,7 @@ program STB
       endif
       call MPI_Bcast(prefix,   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(uctype,   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
-      call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(n_sample_par, 1,  MPI_INTEGER,   root, MPI_COMM_WORLD, ierr)
       call calc_color(min_comm_size,nProcs,me,color)
       !sorting in new comm according to rank in world
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
@@ -250,7 +249,7 @@ contains
             enddo
          endif
       endif
-      call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(n_files, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
       if(me /= root) allocate(inp_files(n_files))
 
       do i=1,n_files

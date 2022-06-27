@@ -437,9 +437,9 @@ contains
                      root,          self%sample_comm, ierr(13))
       call MPI_Bcast(self%eta_soc,  1,              MPI_REAL8,   &
                      root,          self%sample_comm, ierr(14))
-      call MPI_Bcast(self%num_orb,  1,              MYPI_INT,    &
+      call MPI_Bcast(self%num_orb,  1,              MPI_INTEGER,    &
                      root,          self%sample_comm, ierr(15))
-      call MPI_Bcast(self%num_up,   1,              MYPI_INT,    &
+      call MPI_Bcast(self%num_up,   1,              MPI_INTEGER,    &
                      root,          self%sample_comm, ierr(16))
       call MPI_Bcast(self%test_run, 1,              MPI_LOGICAL, &
                      root,         self%sample_comm, ierr(17))

@@ -5,7 +5,6 @@ module Class_unit_cell
    use output
    use m_npy
    use mpi_f08
-   use mypi
    use Constants
    use class_Units
 
@@ -272,7 +271,7 @@ contains
                      root, self%sample_comm, ierr(3))
       call MPI_Bcast(self%lattice_constant, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(4))
-      call MPI_Bcast(self%atom_per_dim, 1, MYPI_INT, &
+      call MPI_Bcast(self%atom_per_dim, 1, MPI_INTEGER, &
                      root, self%sample_comm, ierr(5))
 
       call MPI_Bcast(self%ferro_phi, 1, MPI_REAL8, &
@@ -286,16 +285,16 @@ contains
       call MPI_Bcast(self%skyrm_middle, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(10))
 
-      call MPI_Bcast(self%n_wind, 1, MYPI_INT, &
+      call MPI_Bcast(self%n_wind, 1, MPI_INTEGER, &
                      root, self%sample_comm, ierr(11))
       call MPI_Bcast(self%molecule, 1, MPI_LOGICAL, &
                      root, self%sample_comm, ierr(12))
       call MPI_Bcast(self%test_run, 1, MPI_LOGICAL, &
                      root, self%sample_comm, ierr(13))
 
-      call MPI_Bcast(anticol_size_phi, 1, MYPI_INT, &
+      call MPI_Bcast(anticol_size_phi, 1, MPI_INTEGER, &
                      root, self%sample_comm, ierr(14))
-      call MPI_Bcast(anticol_size_theta, 1, MYPI_INT, &
+      call MPI_Bcast(anticol_size_theta, 1, MPI_INTEGER, &
                      root, self%sample_comm, ierr(15))
       if (self%me_sample /= root) then
          allocate (self%anticol_phi(anticol_size_phi))
@@ -309,13 +308,13 @@ contains
       call MPI_Bcast(self%pert_log, 1, MPI_LOGICAL, &
                      root, self%sample_comm, ierr(18))
 
-      call MPI_Bcast(wsize, 1, MYPI_INT, root, self%sample_comm, ierr(19))
-      call MPI_Bcast(asize, 1, MYPI_INT, root, self%sample_comm, ierr(20))
+      call MPI_Bcast(wsize, 1, MPI_INTEGER, root, self%sample_comm, ierr(19))
+      call MPI_Bcast(asize, 1, MPI_INTEGER, root, self%sample_comm, ierr(20))
       if (self%me_sample /= root) then
          allocate (self%wavevector(wsize))
          !allocate (self%axis(asize))
       endif
-      call MPI_Bcast(self%wavevector, wsize, MYPI_INT, root, self%sample_comm, ierr(21))
+      call MPI_Bcast(self%wavevector, wsize, MPI_INTEGER, root, self%sample_comm, ierr(21))
       call MPI_Bcast(self%axis_phi, 1, MPI_REAL8, root, self%sample_comm, ierr(22))
       call MPI_Bcast(self%axis_theta, 1, MPI_REAL8, root, self%sample_comm, ierr(27))
       call MPI_Bcast(self%cone_angle, 1, MPI_REAL8, root, self%sample_comm, ierr(23))
@@ -396,7 +395,7 @@ contains
          read (21, *) garb, n(1), n(2), n(3)
          write (*, *) n
       endif
-      call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(n, 3, MPI_INTEGER, root, MPI_COMM_WORLD, info)
       self%num_atoms = n(1)*n(2)*n(3)
 
       allocate (self%atoms(self%num_atoms))
@@ -422,7 +421,7 @@ contains
       enddo
 
       if (self%me == root) read (21, *) garb, n_transl
-      call MPI_Bcast(n_transl, 1, MYPI_INT, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(n_transl, 1, MPI_INTEGER, root, MPI_COMM_WORLD, info)
       allocate (transl_mtx(n_transl, 3))
 
       if (self%me == root) then
@@ -465,7 +464,7 @@ contains
          read (21, *) garb, n(1), n(2), n(3)
          write (*, *) n
       endif
-      call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(n, 3, MPI_INTEGER, root, MPI_COMM_WORLD, info)
       self%num_atoms = 2*n(1)*n(2)*n(3)
 
       allocate (self%atoms(self%num_atoms))
@@ -483,7 +482,7 @@ contains
                      root, MPI_COMM_WORLD, info)
       call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, MPI_COMM_WORLD, info)
-      call MPI_Bcast(site_type, int(self%num_atoms, 4), MYPI_INT, &
+      call MPI_Bcast(site_type, int(self%num_atoms, 4), MPI_INTEGER, &
                      root, MPI_COMM_WORLD, info)
 
       pos = transpose(pos)*self%lattice_constant
@@ -493,7 +492,7 @@ contains
          call self%atoms(i)%set_m_cart(m(1, i), m(2, i), m(3, i))
       enddo
       if (self%me == root) read (21, *) garb, n_transl
-      call MPI_Bcast(n_transl, 1, MYPI_INT, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(n_transl, 1, MPI_INTEGER, root, MPI_COMM_WORLD, info)
       allocate (transl_mtx(n_transl, 3))
 
       if (self%me == root) then
