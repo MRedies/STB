@@ -1,7 +1,7 @@
 module Class_k_space
    use m_config
    use m_npy
-   use mpif08
+   use mpi_f08
    use Class_hamiltionian
    use Class_helper
    use MYPI
@@ -133,7 +133,7 @@ contains
    end subroutine free_ksp
 
    Subroutine  calc_and_print_band(self)
-      use mpif08
+      use mpi_f08
       Implicit None
       class(k_space)                :: self
       integer                       :: first, last, N
@@ -193,7 +193,7 @@ contains
    End Subroutine calc_and_print_band
 
    subroutine calc_pdos(self, E, PDOS)
-      use mpif08
+      use mpi_f08
       implicit none
       class(k_space)          :: self
       real(8), intent(in)     :: E(:)
@@ -370,7 +370,7 @@ contains
    end subroutine calc_and_print_dos
 
    function init_k_space(cfg,sample_comm,n_sample,samples_per_comm) result(self)
-      use mpif08
+      use mpi_f08
       implicit none
       type(k_space)         :: self
       type(CFG_t)           :: cfg
@@ -455,7 +455,7 @@ contains
    end function init_k_space
 
    subroutine Bcast_k_space(self)
-      use mpif08
+      use mpi_f08
       class(k_space)             :: self
       integer, parameter     :: num_cast =  28
       integer                :: ierr(num_cast)
@@ -878,7 +878,7 @@ contains
    end function vol_k_hex
 
    subroutine calc_berry_quantities(self,pert_log)
-      use mpif08
+      use mpi_f08
       implicit none
       class(k_space)          :: self
       real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
@@ -1054,7 +1054,7 @@ contains
    end subroutine calc_new_kidx
 
    subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, omega_surf_new, omega_sea_new, Q_L_new, Q_IC_new, pert_log)
-      use mpif08
+      use mpi_f08
       implicit none
       class(k_space)            :: self
       integer                   :: N_k, cnt, k_idx, num_up, n_ferm,pert_idx
@@ -1402,7 +1402,7 @@ contains
    end subroutine finalize_orbmag
 
    subroutine integrate_hall_sea(self, kidx_all, omega_z_all, hall)
-      use mpif08
+      use mpi_f08
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: kidx_all(:)
@@ -1447,7 +1447,7 @@ contains
    end subroutine integrate_hall_sea
 
    subroutine integrate_hall_surf(self, kidx_all, omega_z_all, hall)
-      use mpif08
+      use mpi_f08
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: kidx_all(:)
@@ -1493,7 +1493,7 @@ contains
    end subroutine integrate_hall_surf
 
    subroutine integrate_hall(self, kidx_all, omega_z_all, eig_val_all, hall)
-      use mpif08
+      use mpi_f08
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: kidx_all(:)
@@ -1547,7 +1547,7 @@ contains
    end subroutine integrate_hall
 
    subroutine integrate_orbmag(self, Q_kidx_all, Q_L_all, Q_IC_all, orb_mag, orbmag_L, orbmag_IC)
-      use mpif08
+      use mpi_f08
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: Q_kidx_all(:)
@@ -1617,7 +1617,7 @@ contains
    end subroutine integrate_orbmag
 
    subroutine set_hall_weights(self, omega_z_all, kidx_all)
-      use mpif08
+      use mpi_f08
       implicit none
       class(k_space)         :: self
       integer   , intent(in) :: kidx_all(:)
@@ -1669,7 +1669,7 @@ contains
    end subroutine set_hall_weights
 
    subroutine set_orbmag_weights(self, Q_all, Q_kidx_all)
-      use mpif08
+      use mpi_f08
       implicit none
       class(k_space)            :: self
       real(8), intent(in)       :: Q_all(:,:)
@@ -1901,7 +1901,7 @@ contains
    end subroutine setup_berry_inte_grid
 
    subroutine find_fermi(self, cfg)
-      use mpif08
+      use mpi_f08
       implicit none
       class(k_space)         :: self
       class(CFG_t)           :: cfg
@@ -2214,7 +2214,7 @@ contains
    end subroutine append_kpts
 
    subroutine calc_ACA(self)
-      use mpif08
+      use mpi_f08
       implicit none
       class(k_space)              :: self
       real(8), allocatable    :: m(:), S(:), l_space(:), eig_val(:), RWORK(:)

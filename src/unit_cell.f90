@@ -4,7 +4,7 @@ module Class_unit_cell
    use m_config
    use output
    use m_npy
-   use mpif08
+   use mpi_f08
    use mypi
    use Constants
    use class_Units
@@ -249,7 +249,7 @@ contains
    end function
 
    subroutine Bcast_UC(self)
-      use mpif08
+      use mpi_f08
       implicit none
       class(unit_cell)           :: self
       integer, parameter         :: num_cast = 32
@@ -380,7 +380,7 @@ contains
    end subroutine init_unit_square
 
    subroutine init_file_square(self)
-      use mpif08
+      use mpi_f08
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)
@@ -448,7 +448,7 @@ contains
    end subroutine init_file_square
 
    subroutine init_file_honey(self)
-      use mpif08
+      use mpi_f08
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)
@@ -520,7 +520,7 @@ contains
    end subroutine init_file_honey
 
    subroutine init_file_honey_htp(self)
-      use mpif08
+      use mpi_f08
       use stdlib_io_npy, only: load_npy
       implicit none
       class(unit_cell), intent(inout)   :: self
@@ -1886,7 +1886,7 @@ contains
    end function n_times_phi
 
    subroutine run_tests(self)
-      use mpif08
+      use mpi_f08
       implicit none
       class(unit_cell), intent(in)   :: self
       integer                        :: i, ierr

@@ -6,12 +6,12 @@
 
 module Class_mpi_wrapper
     use m_config
-    use mpif08
+    use mpi_f08
     implicit none
 
 contains
    subroutine judft_comm_split(comm, color, key, new_comm)
-      use mpif08
+      use mpi_f08
       implicit none
       integer, intent(in)    :: comm, color, key
       integer, intent(inout) :: new_comm
@@ -35,7 +35,7 @@ contains
    end subroutine judft_comm_split
 
    subroutine judft_mpi_error_handler(comm, error_code)
-      use mpif08
+      use mpi_f08
       implicit none
       integer  :: comm, error_code
       integer             :: str_len, ierr

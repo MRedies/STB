@@ -5,7 +5,7 @@ program STB
    use m_config
    use m_npy
    use output
-   use mpif08
+   use mpi_f08
    use Constants
    use Class_unit_cell
    use mypi
@@ -89,7 +89,7 @@ program STB
    call MPI_Finalize(ierr)
 contains
    subroutine process_file(inp_file,sample_comm,n_sample,samples_per_comm,ColQ)
-      use mpif08
+      use mpi_f08
       implicit none
       type(collect_quantities)        :: ColQ
       character(len=300), intent(in) :: inp_file
@@ -205,7 +205,7 @@ contains
    end subroutine process_file
 
    subroutine get_inp_files(n_files, inp_files)
-      use mpif08
+      use mpi_f08
       implicit none
       integer, intent(out)     :: n_files
       character(len=300), allocatable :: inp_files(:)
@@ -259,7 +259,7 @@ contains
    end subroutine get_inp_files
 
    Subroutine  add_full_cfg(cfg)
-      use mpif08
+      use mpi_f08
       Implicit None
       type(CFG_t)            :: cfg
       real(8), allocatable   :: empty_array(:)
@@ -376,7 +376,7 @@ contains
    End Subroutine add_full_cfg
 
    subroutine save_cfg(cfg)
-      use mpif08
+      use mpi_f08
       Implicit None
       type(CFG_t)            :: cfg
       character(len=300)     :: prefix
@@ -388,7 +388,7 @@ contains
    end subroutine save_cfg
 
    subroutine calc_ncomms(min_comm_size,nProcs,ncomms)
-      use mpif08
+      use mpi_f08
       implicit none
       integer , intent(in)           :: min_comm_size,nProcs
       integer                        :: ncomms
@@ -400,7 +400,7 @@ contains
    end subroutine
 
    subroutine calc_color(min_comm_size,nProcs,rank,color)
-      use mpif08
+      use mpi_f08
       implicit none
       integer , intent(in)           :: nProcs,rank,min_comm_size
       integer                        :: color,ncomms
@@ -417,7 +417,7 @@ contains
    end subroutine
       
    function calc_samples_per_comm(n_sample_par,ncomms,color) result(samples_per_comm)
-      use mpif08
+      use mpi_f08
       implicit none
       integer , intent(in)           :: n_sample_par,ncomms,color
       integer                        :: samples_per_comm, rest

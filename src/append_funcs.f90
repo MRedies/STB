@@ -1,5 +1,5 @@
 module Class_append_funcs
-    use mpif08
+    use mpi_f08
     use m_config
     use m_npy
     use Class_units
@@ -26,7 +26,7 @@ module Class_append_funcs
     
     contains
         function init_collect_quantities(cfg,prefix,sample_comm,color) result(self)
-            use mpif08
+            use mpi_f08
             implicit none
             type(collect_quantities) :: self
             type(CFG_t)              :: cfg
@@ -41,7 +41,7 @@ module Class_append_funcs
         end function init_collect_quantities
 
         subroutine add_DOS_collect(self, DOS, up, down, int_DOS)
-            use mpif08
+            use mpi_f08
             implicit none
             class(collect_quantities)           :: self
             real(8), intent(in)                 :: DOS(:), up(:), down(:), int_DOS(:)
@@ -75,7 +75,7 @@ module Class_append_funcs
         end subroutine
         
         subroutine add_spins_collect(self, spins)
-            use mpif08
+            use mpi_f08
             implicit none
             class(collect_quantities)           :: self
             integer                             :: i
@@ -96,7 +96,7 @@ module Class_append_funcs
         end subroutine
 
         subroutine add_sample_idx(self, idx)
-            use mpif08
+            use mpi_f08
             implicit none
             class(collect_quantities)           :: self
             integer, intent(in)                 :: idx
@@ -112,7 +112,7 @@ module Class_append_funcs
         end subroutine
         
         subroutine save_DOS_collect(self)
-            use mpif08
+            use mpi_f08
             implicit none
             class(collect_quantities)           :: self
             character(len=300)                  :: filename
@@ -131,7 +131,7 @@ module Class_append_funcs
         end subroutine
 
         subroutine save_spins_collect(self)
-            use mpif08
+            use mpi_f08
             implicit none
             class(collect_quantities)           :: self
             character(len=300)                  :: filename
@@ -144,7 +144,7 @@ module Class_append_funcs
         end subroutine
 
         subroutine save_sample_idx(self)
-            use mpif08
+            use mpi_f08
             implicit none
             class(collect_quantities)           :: self
             character(len=300)                  :: filename
