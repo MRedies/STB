@@ -4,7 +4,6 @@ module Class_k_space
    use mpi_f08
    use Class_hamiltionian
    use Class_helper
-   use MYPI
    use ieee_arithmetic
    use Class_append_funcs
    implicit none
