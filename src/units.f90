@@ -1,7 +1,7 @@
 module class_Units
    use m_config
    use Constants
-   use mpi
+   use mpif08
    implicit none
 
    type, public :: units

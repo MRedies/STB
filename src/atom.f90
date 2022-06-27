@@ -1,7 +1,7 @@
 module Class_atom
     use Class_helper
     use Constants
-    use mpi
+    use mpif08
     implicit none
 
     enum, bind(c)  !> A or B site in graphene

@@ -3,7 +3,7 @@ module Class_hamiltionian
    use output
    use Class_unit_cell
    use m_npy
-   use mpi
+   use mpif08
    use MYPI
    use Constants
    implicit none
@@ -88,7 +88,7 @@ module Class_hamiltionian
 
 contains
    subroutine set_fermi(self, cfg)
-      use mpi
+      use mpif08
       implicit none
       class(hamil)         :: self
       class(CFG_t)           :: cfg

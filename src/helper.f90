@@ -1,7 +1,7 @@
 module Class_helper
    use m_config
    use Constants
-   use mpi
+   use mpif08
    implicit none
 
    character(len=1), parameter :: c_esc = achar(27)
