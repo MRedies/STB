@@ -30,7 +30,8 @@ module Class_append_funcs
             implicit none
             type(collect_quantities) :: self
             type(CFG_t)              :: cfg
-            integer                  :: ierr,sample_comm,color
+            integer                  :: ierr,color
+            type(MPI_Comm)           :: sample_comm
             character(len=300)       :: prefix
     
             call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
