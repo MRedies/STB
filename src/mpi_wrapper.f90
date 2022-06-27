@@ -16,7 +16,8 @@ contains
       integer, intent(in)    :: color, key
       type(MPI_Comm), intent(in) :: comm
       type(MPI_Comm), intent(inout) :: new_comm
-      integer                :: ierr, err_handler
+      integer                :: ierr
+      TYPE(MPI_Errhandler) :: err_handler
 
       call MPI_Comm_Split(comm,color,key,new_comm,ierr)
       if(ierr /= 0) then
