@@ -28,7 +28,7 @@ module Class_unit_cell
       integer    :: nProcs
       integer    :: me
       integer    :: n_wind !> winding number for lin_rot
-      type(MI_Comm)   :: sample_comm ! the communicator after splitting world
+      type(MPI_Comm)   :: sample_comm ! the communicator after splitting world
       integer    :: nProcs_sample ! number of procs in comm
       integer    :: me_sample ! rank in comm
       integer, allocatable    :: wavevector(:)
