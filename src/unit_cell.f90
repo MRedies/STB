@@ -29,7 +29,7 @@ module Class_unit_cell
       integer    :: nProcs
       integer    :: me
       integer    :: n_wind !> winding number for lin_rot
-      integer    :: sample_comm ! the communicator after splitting world
+      type(MI_Comm)   :: sample_comm ! the communicator after splitting world
       integer    :: nProcs_sample ! number of procs in comm
       integer    :: me_sample ! rank in comm
       integer, allocatable    :: wavevector(:)
@@ -129,7 +129,8 @@ contains
       type(CFG_t)       :: cfg !> config file as read by m_config
       type(unit_cell)   :: self
       integer, parameter           :: lwork = 20
-      integer, intent(in)             :: sample_comm,n_sample,samples_per_comm
+      integer, intent(in)             :: n_sample,samples_per_comm
+      type(MPI_Comm), intent(in)      :: sample_comm
       real(8)                         :: work(lwork), tmp
       integer, dimension(2)           :: ipiv
       integer                         :: info,i

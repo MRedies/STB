@@ -16,9 +16,10 @@ program STB
    type(collect_quantities)        :: ColQ
    character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
    integer                         :: n_inp, n_files, start_idx, end_idx, cnt&
-                                      ,sample_comm,color,n_sample_par,nProcs,n_sample&
+                                      ,color,n_sample_par,nProcs,n_sample&
                                       ,ierr, me, me_sample,samples_per_comm,nProcs_sample&
                                       ,min_comm_size=8,ncomms
+   type(MPI_Comm)                  :: sample_comm
    integer(8)   , allocatable      :: dimensions(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
@@ -93,7 +94,8 @@ contains
       implicit none
       type(collect_quantities)        :: ColQ
       character(len=300), intent(in) :: inp_file
-      integer, intent(in)            :: sample_comm,n_sample,samples_per_comm
+      integer, intent(in)            :: n_sample,samples_per_comm
+      type(MPI_Comm), intent(in)     :: sample_comm
       real(8)                        :: start, halt
       integer                        :: me, ierr,ierr2,me_sample
       logical                        :: perform_band, perform_dos, calc_hall, calc_hall_diag,&

@@ -33,7 +33,7 @@ module Class_k_space
       integer              :: kpts_per_step !> new kpts per step and Proc
       integer              :: me_sample
       integer              :: nProcs_sample
-      integer              :: sample_comm ! the communicator after splitting world
+      type(MPI_Comm)       :: sample_comm ! the communicator after splitting world
       real(8)              :: k_shift(3) !> shift of brillouine-zone
       real(8)              :: berry_conv_crit !> convergance criterion for berry integration
       real(8), allocatable :: weights(:) !> weights for integration
@@ -378,7 +378,8 @@ contains
       !logical               :: logtmp
       integer               :: sz
       integer               :: ierr
-      integer, intent(in)   :: sample_comm,n_sample,samples_per_comm
+      integer, intent(in)   :: n_sample,samples_per_comm
+      type(MPI_Comm), intent(in) :: sample_comm
 
       self%sample_comm = sample_comm
       self%sample_idx = n_sample

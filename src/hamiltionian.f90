@@ -32,7 +32,7 @@ module Class_hamiltionian
       integer         :: nProcs
       integer         :: me
       integer         :: num_orb, num_up
-      integer         :: sample_comm! the comm after splitting world
+      type(MPI_Comm)        :: sample_comm! the comm after splitting world
       integer         :: me_sample
       integer         :: nProcs_sample
       logical      :: test_run !> should unit tests be performed
@@ -306,7 +306,8 @@ contains
       implicit none
       type(CFG_t)         :: cfg
       type(hamil)         :: self
-      integer, intent(in) :: sample_comm,n_sample,samples_per_comm
+      integer, intent(in) :: n_sample,samples_per_comm
+      type(MPI_Comm), intent(in) :: sample_comm
       real(8)             :: tmp
       integer             :: ierr
       integer             :: n, n_arr
