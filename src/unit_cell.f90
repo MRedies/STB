@@ -172,8 +172,6 @@ contains
          call CFG_get_size(cfg, "grid%wavevector", wavevector_size)
          allocate (self%wavevector(wavevector_size))
          call CFG_get(cfg, "grid%wavevector", self%wavevector)
-         !call CFG_get_size(cfg, "grid%axis", wavevector_size)
-         !allocate (self%axis(wavevector_size))
          call CFG_get(cfg, "grid%axis_phi", self%axis_phi)
          call CFG_get(cfg, "grid%axis_theta", self%axis_theta)
          call CFG_get(cfg, "grid%cone_angle", self%cone_angle)
@@ -240,11 +238,7 @@ contains
          write (*, *) self%me, ": Inversion of lattice vectors failed"
          stop
       endif
-      if (trim(self%mag_type) == "1Dspiral") then
-         self%rez_lattice = 2*PI*self%rez_lattice
-      else
-         self%rez_lattice = 2*PI*self%rez_lattice
-      endif
+      self%rez_lattice = 2*PI*self%rez_lattice
       if (self%test_run) call self%run_tests()
    end function
 
@@ -252,16 +246,15 @@ contains
       use mpi_f08
       implicit none
       class(unit_cell)           :: self
-      integer, parameter         :: num_cast = 32
+      integer, parameter         :: num_cast = 31
       integer                    :: ierr(num_cast)
-      integer                    :: anticol_size_phi, wsize, asize
+      integer                    :: anticol_size_phi, wsize
       integer                    :: anticol_size_theta
 
       if (self%me_sample == root) then
          anticol_size_phi = size(self%anticol_phi)
          anticol_size_theta = size(self%anticol_theta)
          wsize = size(self%wavevector)
-         !asize = size(self%axis)
       endif
       call MPI_Bcast(self%eps, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(1))
@@ -309,31 +302,29 @@ contains
                      root, self%sample_comm, ierr(18))
 
       call MPI_Bcast(wsize, 1, MPI_INTEGER, root, self%sample_comm, ierr(19))
-      call MPI_Bcast(asize, 1, MPI_INTEGER, root, self%sample_comm, ierr(20))
       if (self%me_sample /= root) then
          allocate (self%wavevector(wsize))
-         !allocate (self%axis(asize))
       endif
-      call MPI_Bcast(self%wavevector, wsize, MPI_INTEGER, root, self%sample_comm, ierr(21))
-      call MPI_Bcast(self%axis_phi, 1, MPI_REAL8, root, self%sample_comm, ierr(22))
-      call MPI_Bcast(self%axis_theta, 1, MPI_REAL8, root, self%sample_comm, ierr(27))
-      call MPI_Bcast(self%cone_angle, 1, MPI_REAL8, root, self%sample_comm, ierr(23))
-      call MPI_Bcast(self%spiral_type, 25, MPI_CHARACTER, root, self%sample_comm, ierr(24))
+      call MPI_Bcast(self%wavevector, wsize, MPI_INTEGER, root, self%sample_comm, ierr(20))
+      call MPI_Bcast(self%axis_phi, 1, MPI_REAL8, root, self%sample_comm, ierr(21))
+      call MPI_Bcast(self%axis_theta, 1, MPI_REAL8, root, self%sample_comm, ierr(26))
+      call MPI_Bcast(self%cone_angle, 1, MPI_REAL8, root, self%sample_comm, ierr(22))
+      call MPI_Bcast(self%spiral_type, 25, MPI_CHARACTER, root, self%sample_comm, ierr(23))
       call MPI_Bcast(self%dblatan_pref, 1, MPI_REAL8, &
-                     root, self%sample_comm, ierr(25))
-      call MPI_Bcast(self%atan_pref, 1, MPI_REAL8, root, self%sample_comm, ierr(26))
+                     root, self%sample_comm, ierr(24))
+      call MPI_Bcast(self%atan_pref, 1, MPI_REAL8, root, self%sample_comm, ierr(25))
 
        !BCAST FILES, SINCE IN EVERY SUBCOMM THE ROOT NEEDS TO READ
       call MPI_Bcast(self%mag_file, 300, MPI_CHARACTER, &
-                     root, self%sample_comm, ierr(28))
+                     root, self%sample_comm, ierr(27))
       call MPI_Bcast(self%vec_file, 300, MPI_CHARACTER, &
-                     root, self%sample_comm, ierr(29))
+                     root, self%sample_comm, ierr(28))
       call MPI_Bcast(self%pos_file, 300, MPI_CHARACTER, &
-                     root, self%sample_comm, ierr(30))
+                     root, self%sample_comm, ierr(29))
       call MPI_Bcast(self%dim_file, 300, MPI_CHARACTER, &
-                     root, self%sample_comm, ierr(31))
+                     root, self%sample_comm, ierr(30))
       call MPI_Bcast(self%site_type_file, 300, MPI_CHARACTER, &
-                     root, self%sample_comm, ierr(32))
+                     root, self%sample_comm, ierr(31))
       call check_ierr(ierr, self%me, "Unit cell check err")
    end subroutine Bcast_UC
 
