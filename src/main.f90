@@ -128,6 +128,7 @@ contains
       call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, sample_comm, ierr)
+      call MPI_Bcast(uctype,   300, MPI_CHARACTER, root, sample_comm, ierr)
       call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(calc_hall_diag,    1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(calc_orbmag,  1,  MPI_LOGICAL,   root, sample_comm, ierr)
