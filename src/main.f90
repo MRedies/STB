@@ -67,17 +67,19 @@ program STB
       do n_sample = color+1,n_sample_par,ncomms
          if (me_sample==root) then
             write(*,*) "----- Sample: ",n_sample," -----"
-         endif
-         if(trim(uctype)=="file_honey_htp") then
-            call ColQ%add_sample_idx(n_sample)
+            if(trim(uctype)=="file_honey_htp") then
+               call ColQ%add_sample_idx(n_sample)
+            endif
          endif
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm,ColQ)
          !ADD RETURNS (DOS, SIGMA ETC) TO COLLECT ARRAYS
       enddo
-      if(trim(uctype)=="file_honey_htp") then
-         call ColQ%save_DOS_collect()
-         call ColQ%save_spins_collect()
-         call ColQ%save_sample_idx()
+      if (me_sample==root) then
+         if(trim(uctype)=="file_honey_htp") then
+            call ColQ%save_DOS_collect()
+            call ColQ%save_spins_collect()
+            call ColQ%save_sample_idx()
+         endif
       endif
    else
       do n_inp = 1, n_files
@@ -143,8 +145,10 @@ contains
           success = .False.
       endif
       Ksp =  init_k_space(cfg,sample_comm,n_sample,samples_per_comm)
-      if(trim(uctype)=="file_honey_htp") then
-         call ColQ%add_spins_collect(Ksp%ham%UC%all_spins)
+      if (me_sample==root) then
+         if(trim(uctype)=="file_honey_htp") then
+            call ColQ%add_spins_collect(Ksp%ham%UC%all_spins)
+         endif
       endif
          if(me == root) call save_cfg(cfg)
 
@@ -166,12 +170,14 @@ contains
       if(perform_dos) then
          if(root == me) write (*,*) "started DOS"
          call Ksp%calc_and_print_dos()
-         if(trim(uctype)=="file_honey_htp") then
-            call ColQ%add_DOS_collect(Ksp%DOS,Ksp%up,Ksp%down,Ksp%int_DOS)
-            deallocate(Ksp%DOS)
-            deallocate(Ksp%up)
-            deallocate(Ksp%down)
-            deallocate(Ksp%int_DOS)
+         if (me_sample==root) then
+            if(trim(uctype)=="file_honey_htp") then
+               call ColQ%add_DOS_collect(Ksp%DOS,Ksp%up,Ksp%down,Ksp%int_DOS)
+               deallocate(Ksp%DOS)
+               deallocate(Ksp%up)
+               deallocate(Ksp%down)
+               deallocate(Ksp%int_DOS)
+            endif
          endif
          ! Only set Fermi energy relative if DOS was performed
          if(trim(fermi_type) == "filling") then
