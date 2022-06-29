@@ -552,7 +552,6 @@ contains
          m(1,:) = m_large(1,idxstart:idxstop)
          m(2,:) = m_large(2,idxstart:idxstop)
          m(3,:) = m_large(3,idxstart:idxstop)
-         write(*,*) "root:",m(1,:),m(2,:),m(3,:)
          deallocate(m_large)
       endif
       call MPI_Bcast(pos(1:3,1:self%num_atoms), int(3*self%num_atoms, 4), MPI_REAL8, &
@@ -564,7 +563,6 @@ contains
       pos = transpose(pos)*self%lattice_constant
 
       call self%setup_honey(pos,site_type)
-      write(*,*) m(1,:),m(2,:),m(3,:)
       do i=1,self%num_atoms
          call self%atoms(i)%set_m_cart(m(1, i), m(2, i), m(3, i))
       enddo
