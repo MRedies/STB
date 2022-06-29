@@ -564,7 +564,7 @@ contains
       pos = transpose(pos)*self%lattice_constant
 
       call self%setup_honey(pos,site_type)
-      write(*,*) shape(m),m(1,:),"--",m(2,:),"--",m(3,:)
+      write(*,*) m(1,:),"--",m(2,:),"--",m(3,:)
       do i=1,self%num_atoms
          call self%atoms(i)%set_m_cart(m(1, i), m(2, i), m(3, i))
       enddo
