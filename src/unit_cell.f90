@@ -502,8 +502,8 @@ contains
       conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]!2
       conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]!3
 
-      self%lattice(:, 1) = self%lattice_constant*transl_mtx(1, :)
-      self%lattice(:, 2) = self%lattice_constant*transl_mtx(2, :)
+      self%lattice(:, 1) = self%lattice_constant*transl_mtx(1, 1:2)
+      self%lattice(:, 2) = self%lattice_constant*transl_mtx(2, 1:2)
 
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
       call self%set_honey_snd_nearest(transl_mtx)
@@ -576,8 +576,8 @@ contains
       conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]!2
       conn_mtx(3, :) = self%lattice_constant*[-cos(deg_30), -sin(deg_30), 0d0]!3
 
-      self%lattice(:, 1) = self%lattice_constant*transl_mtx(1, :)
-      self%lattice(:, 2) = self%lattice_constant*transl_mtx(2, :)
+      self%lattice(:, 1) = self%lattice_constant*transl_mtx(1, 1:2)
+      self%lattice(:, 2) = self%lattice_constant*transl_mtx(2, 1:2)
       call self%setup_gen_conn(conn_mtx, [nn_conn, nn_conn, nn_conn], transl_mtx)
       call self%set_honey_snd_nearest(transl_mtx)
       deallocate (m, pos)
