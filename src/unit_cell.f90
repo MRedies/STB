@@ -555,11 +555,11 @@ contains
          write(*,*) "root:",m(1,:),m(2,:),m(3,:)
          deallocate(m_large)
       endif
-      call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
+      call MPI_Bcast(pos(1:3,1:self%num_atoms), int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, self%sample_comm, info)
-      call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
+      call MPI_Bcast(m(1:3,1:self%num_atoms), int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, self%sample_comm, info)
-      call MPI_Bcast(site_type, int(self%num_atoms, 4), MPI_INTEGER8, &
+      call MPI_Bcast(site_type(1:self%num_atoms), int(self%num_atoms, 4), MPI_INTEGER8, &
                      root, self%sample_comm, info)
       pos = transpose(pos)*self%lattice_constant
 
