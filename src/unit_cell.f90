@@ -570,7 +570,7 @@ contains
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
 
-      call MPI_Bcast(transl_mtx, int(3*n_trans, 4), MPI_REAL8, root, self%sample_comm, info)
+      call MPI_Bcast(transl_mtx(1:ntrans,1:3), int(3*n_trans, 4), MPI_REAL8, root, self%sample_comm, info)
 
       conn_mtx(1, :) = self%lattice_constant*[0d0, 1d0, 0d0]!1
       conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]!2
