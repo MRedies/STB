@@ -31,10 +31,46 @@ MESSAGE(STATUS "Using ${CMAKE_Fortran_COMPILER_ID} compiler")
 target_link_libraries (stb.x ${LAPACK_LIBRARIES} ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/triangulation/triangle.o)
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+    target_compile_options(stb.x PRIVATE -C
+        -Wall
+        -Wextra
+        -Wconversion
+        -Wline-truncation
+        -Wcharacter-truncation
+        -Wsurprising
+        -Waliasing
+        -Wunused-parameter
+        -Wno-maybe-uninitialized
+        -fwhole-file
+        -fimplicit-none
+        -fallow-argument-mismatch
+        -fbacktrace
+        -ffree-form
+        -ffree-line-length-0
+        -fcheck=all
+        -finit-real=nan
+        -ftrapv
+        -cpp
+        -g
+        -O0
+    )
     set(dialect "-ffree-form -Wall -fimplicit-none -m64  -m64 -I$ENV{MKLROOT}/include  -L$ENV{MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_gf_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
     set(bounds "-fbounds-check -Wall")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+    target_compile_options(stb.x PRIVATE -C
+        -CB
+        -check uninit
+        -debug all
+        -warn all
+        -e18
+        -ftrapuv
+        -traceback
+        -qopenmp
+        -fpp
+        -g
+        -O0
+    )
     #set(dialect "-std08 -warn all -g -init=Nan -implicitnone -heap_arrays")
     set(dialect "-std08 -warn all -g -implicitnone -heap_arrays")
     set(bounds "-check all")
@@ -48,27 +84,6 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
         set(dialect "${dialect} -I$ENV{MKLROOT}/include")
     endif()
 endif()
-if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
-    set(dialect "-Mfreeform -Mdclchk -Mstandard -Mallocatable=03")
-	set(bounds "-C")
-endif()
-if(CMAKE_Fortran_COMPILER_ID MATCHES "IBM")
-    MESSAGE(STATUS "IBM")
-    #target_link_libraries(stb.x lapack esslbg)
-    target_link_libraries(stb.x lapack esslsmpbg xlsmp)
-    set(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
-    #set(CMAKE_Fortran_COMPILER scorep)
-    #set(dialect "mpixlf2008_r -O2 -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm -qsmp=omp -qnosave")
-    set(CMAKE_Fortran_COMPILER mpixlf2008_r)
-    if(STB_USE_64BIT)
-        set(dialect "-O2 -qstrict -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm -qsmp=omp -qnosave -qintsize=8")
-    else()
-        set(dialect "-O2 -qstrict -qarch=qp -qtune=qp -WF,-DIBM_COMPILER_USED -qnullterm -qsmp=omp -qnosave")
-    endif()
-    set(debug "-C")
-endif()
-
-
 
 set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${bounds}")
 set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${debug}")
