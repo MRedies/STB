@@ -102,7 +102,6 @@ contains
         integer                 :: ierr(10), tmp_i
         integer, intent(in)     :: comm
         integer, allocatable    :: tmp_ivec(:)
-        integer(4)              :: tmp_i4
         integer(8)              :: tmp_i8
         integer(4), allocatable :: tmp_i4vec(:)
         real(8), allocatable    :: tmp_rmtx(:,:)
