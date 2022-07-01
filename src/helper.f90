@@ -147,8 +147,10 @@ contains
       step =  (halt - start) /  (n-1)
       curr =  start
 
-      if(allocated(x) .and. size(x) /= n) then
-         deallocate(x)
+      if(allocated(x)) then
+         if(size(x) /= n) then
+            deallocate(x)
+         endif
       endif
       if(.not. allocated(x)) then
          allocate(x(n))
