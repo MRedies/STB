@@ -97,10 +97,10 @@ contains
 
     function compare_to_root(self,comm) result(success)
         implicit none
-        class(atom)             :: self
-        real(8)                 :: tmp, tmp_p(3)
-        integer                 :: ierr(10), tmp_i
-        integer, intent(in)     :: comm
+        class(atom)                :: self
+        real(8)                    :: tmp, tmp_p(3)
+        integer                    :: ierr(10), tmp_i
+        type(MPI_Comm), intent(in) :: comm
         integer, allocatable    :: tmp_ivec(:)
         integer(8)              :: tmp_i8
         integer(4), allocatable :: tmp_i4vec(:)
