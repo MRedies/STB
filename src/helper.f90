@@ -72,16 +72,13 @@ contains
       integer, intent(out)      :: lwork, lrwork, liwork
       complex(8)                :: lwork_tmp
       real(8)                   :: lrwork_tmp
-      integer(8)                :: N, info, minus_1!, me, nProcs
+      integer(8)                :: N, info, minus_1
 
       minus_1 = - 1
       N       = size(H, dim = 1)
 
       call zheevd(vn_flag, 'U', N, H, N, eig_val, &
                   lwork_tmp, minus_1, lrwork_tmp, minus_1, liwork, minus_1, info)
-
-      !call MPI_Comm_rank(MPI_COMM_WORLD, me, info)
-      !call MPI_Comm_size(MPI_COMM_WORLD, nProcs, info)
 
       lwork  = int(lwork_tmp, kind  = 8)
       lrwork = int(lrwork_tmp, kind = 8)
