@@ -97,15 +97,16 @@ contains
 
     function compare_to_root(self,comm) result(success)
         implicit none
-        class(atom)                :: self
-        real(8)                    :: tmp, tmp_p(3)
-        integer                    :: ierr(10), tmp_i
-        type(MPI_Comm), intent(in) :: comm
-        integer, allocatable       :: tmp_ivec(:)
-        integer(4)                 :: tmp_i4
-        integer(4), allocatable    :: tmp_i4vec(:)
-        real(8), allocatable       :: tmp_rmtx(:,:)
-        logical                    :: success
+        class(atom)             :: self
+        real(8)                 :: tmp, tmp_p(3)
+        integer                 :: ierr(10), tmp_i
+        integer, intent(in)     :: comm
+        integer, allocatable    :: tmp_ivec(:)
+        integer(4)              :: tmp_i4
+        integer(8)              :: tmp_i8
+        integer(4), allocatable :: tmp_i4vec(:)
+        real(8), allocatable    :: tmp_rmtx(:,:)
+        logical                 :: success
 
         success = .True.
 
@@ -133,9 +134,9 @@ contains
         endif
 
         ! compare site_types
-        if(self%me == root) tmp_i4 = self%site_type
-        call MPI_Bcast(tmp_i4, 1, MPI_INTEGER4, root, comm, ierr(4))
-        if(tmp_i4 /= self%site_type) then
+        if(self%me == root) tmp_i8 = self%site_type
+        call MPI_Bcast(tmp_i8, 1, MPI_INTEGER8, root, comm, ierr(4))
+        if(tmp_i8 /= self%site_type) then
             call error_msg("site_type doesn't match", abort=.True.)
             success = .False.
         endif
