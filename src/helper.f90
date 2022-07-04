@@ -148,7 +148,9 @@ contains
       curr =  start
 
       if(allocated(x)) then
-         deallocate(x)
+         if(size(x) /= n) then
+            deallocate(x)
+         endif
       endif
       if(.not. allocated(x)) then
          allocate(x(n))
