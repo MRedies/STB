@@ -182,6 +182,7 @@ module Class_append_funcs
         end subroutine add_to_arr1D_int
 
         subroutine add_to_arr1D_real(list, element)
+            !https://stackoverflow.com/questions/28048508/how-to-add-new-element-to-dynamical-array-in-fortran-90
             implicit none
             integer                             :: i,isize
             real(8), intent(in)                 :: element
@@ -192,7 +193,7 @@ module Class_append_funcs
                 isize = size(list)
                 allocate(clist(isize+1))
                 do i=1,isize          
-                clist(i) = list(i)
+                    clist(i) = list(i)
                 end do
                 clist(isize+1) = element
     
@@ -207,6 +208,7 @@ module Class_append_funcs
         end subroutine add_to_arr1D_real
     
         subroutine add_to_arr2D_real(list, element)
+            !https://stackoverflow.com/questions/28048508/how-to-add-new-element-to-dynamical-array-in-fortran-90
             implicit none
             integer                             :: i
             integer,allocatable                 :: isize(:)
@@ -220,7 +222,7 @@ module Class_append_funcs
             isize = shape(list)
             allocate(clist(isize(1)+1,isize(2)))
             do i=1,isize(1)
-            clist(i,:) = list(i,:)
+                clist(i,:) = list(i,:)
             end do
             if (size(element)==isize(2)) then
             clist(isize(1)+1,:) = element
@@ -237,6 +239,7 @@ module Class_append_funcs
     end subroutine add_to_arr2D_real
 
     subroutine add_2D_to_arr2D_real(list, element)
+        !https://stackoverflow.com/questions/28048508/how-to-add-new-element-to-dynamical-array-in-fortran-90
         implicit none
         integer                             :: i
         integer,allocatable                 :: isize(:),esize(:)
@@ -252,7 +255,7 @@ module Class_append_funcs
         esize = shape(element)
         allocate(clist(isize(1)+esize(1),isize(2)))
         do i=1,isize(1)
-        clist(i,:) = list(i,:)
+            clist(i,:) = list(i,:)
         end do
         if (esize(2)==isize(2)) then
             do i=1,esize(1)
