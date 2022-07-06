@@ -100,7 +100,6 @@ contains
       endif
       call MPI_Bcast(tmp, 3, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
       n_steps = nint(tmp(3))
-      write(*,*) tmp(1),"--",tmp(2),"--",tmp(3)
       tmp =  tmp *  self%units%energy
    
       call linspace(tmp(1), tmp(2), n_steps, self%E_fermi)
