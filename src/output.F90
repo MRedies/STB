@@ -1,5 +1,5 @@
 Module  output
-   use mpi
+   use mpi_f08
    use m_npy
    use Class_helper
    implicit None

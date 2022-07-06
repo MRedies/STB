@@ -3,8 +3,7 @@ module Class_hamiltionian
    use output
    use Class_unit_cell
    use m_npy
-   use mpi
-   use MYPI
+   use mpi_f08
    use Constants
    implicit none
 
@@ -32,7 +31,7 @@ module Class_hamiltionian
       integer         :: nProcs
       integer         :: me
       integer         :: num_orb, num_up
-      integer         :: sample_comm! the comm after splitting world
+      type(MPI_Comm)        :: sample_comm! the comm after splitting world
       integer         :: me_sample
       integer         :: nProcs_sample
       logical      :: test_run !> should unit tests be performed
@@ -88,7 +87,7 @@ module Class_hamiltionian
 
 contains
    subroutine set_fermi(self, cfg)
-      use mpi
+      use mpi_f08
       implicit none
       class(hamil)         :: self
       class(CFG_t)           :: cfg
@@ -306,7 +305,8 @@ contains
       implicit none
       type(CFG_t)         :: cfg
       type(hamil)         :: self
-      integer, intent(in) :: sample_comm,n_sample,samples_per_comm
+      integer, intent(in) :: n_sample,samples_per_comm
+      type(MPI_Comm), intent(in) :: sample_comm
       real(8)             :: tmp
       integer             :: ierr
       integer             :: n, n_arr
@@ -436,9 +436,9 @@ contains
                      root,          self%sample_comm, ierr(13))
       call MPI_Bcast(self%eta_soc,  1,              MPI_REAL8,   &
                      root,          self%sample_comm, ierr(14))
-      call MPI_Bcast(self%num_orb,  1,              MYPI_INT,    &
+      call MPI_Bcast(self%num_orb,  1,              MPI_INTEGER,    &
                      root,          self%sample_comm, ierr(15))
-      call MPI_Bcast(self%num_up,   1,              MYPI_INT,    &
+      call MPI_Bcast(self%num_up,   1,              MPI_INTEGER,    &
                      root,          self%sample_comm, ierr(16))
       call MPI_Bcast(self%test_run, 1,              MPI_LOGICAL, &
                      root,         self%sample_comm, ierr(17))

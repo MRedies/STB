@@ -1,10 +1,9 @@
 module Class_k_space
    use m_config
    use m_npy
-   use mpi
+   use mpi_f08
    use Class_hamiltionian
    use Class_helper
-   use MYPI
    use ieee_arithmetic
    use Class_append_funcs
    implicit none
@@ -33,7 +32,7 @@ module Class_k_space
       integer              :: kpts_per_step !> new kpts per step and Proc
       integer              :: me_sample
       integer              :: nProcs_sample
-      integer              :: sample_comm ! the communicator after splitting world
+      type(MPI_Comm)       :: sample_comm ! the communicator after splitting world
       real(8)              :: k_shift(3) !> shift of brillouine-zone
       real(8)              :: berry_conv_crit !> convergance criterion for berry integration
       real(8), allocatable :: weights(:) !> weights for integration
@@ -133,7 +132,7 @@ contains
    end subroutine free_ksp
 
    Subroutine  calc_and_print_band(self)
-      use mpi
+      use mpi_f08
       Implicit None
       class(k_space)                :: self
       integer                       :: first, last, N
@@ -193,7 +192,7 @@ contains
    End Subroutine calc_and_print_band
 
    subroutine calc_pdos(self, E, PDOS)
-      use mpi
+      use mpi_f08
       implicit none
       class(k_space)          :: self
       real(8), intent(in)     :: E(:)
@@ -370,7 +369,7 @@ contains
    end subroutine calc_and_print_dos
 
    function init_k_space(cfg,sample_comm,n_sample,samples_per_comm) result(self)
-      use mpi
+      use mpi_f08
       implicit none
       type(k_space)         :: self
       type(CFG_t)           :: cfg
@@ -378,7 +377,8 @@ contains
       !logical               :: logtmp
       integer               :: sz
       integer               :: ierr
-      integer, intent(in)   :: sample_comm,n_sample,samples_per_comm
+      integer, intent(in)   :: n_sample,samples_per_comm
+      type(MPI_Comm), intent(in) :: sample_comm
 
       self%sample_comm = sample_comm
       self%sample_idx = n_sample
@@ -455,7 +455,7 @@ contains
    end function init_k_space
 
    subroutine Bcast_k_space(self)
-      use mpi
+      use mpi_f08
       class(k_space)             :: self
       integer, parameter     :: num_cast =  28
       integer                :: ierr(num_cast)
@@ -474,10 +474,10 @@ contains
 
       call MPI_Bcast(self%DOS_gamma,   1,            MPI_REAL8,   &
                      root,                        self%sample_comm, ierr(3))
-      call MPI_Bcast(self%num_DOS_pts, 1,            MYPI_INT, &
+      call MPI_Bcast(self%num_DOS_pts, 1,            MPI_INTEGER, &
                      root,                        self%sample_comm, ierr(4))
 
-      call MPI_Bcast(sz, 2,            MYPI_INT, &
+      call MPI_Bcast(sz, 2,            MPI_INTEGER, &
                      root,          self%sample_comm, ierr(5))
 
       if(self%me_sample /= root) then
@@ -488,9 +488,9 @@ contains
                      root,               self%sample_comm, ierr(6))
       call MPI_Bcast(self%k2_param,      sz(2),          MPI_REAL8,    &
                      root,               self%sample_comm, ierr(7))
-      call MPI_Bcast(self%num_k_pts,     1,              MYPI_INT, &
+      call MPI_Bcast(self%num_k_pts,     1,              MPI_INTEGER, &
                      root,               self%sample_comm, ierr(8))
-      call MPI_Bcast(self%DOS_num_k_pts, 1,              MYPI_INT, &
+      call MPI_Bcast(self%DOS_num_k_pts, 1,              MPI_INTEGER, &
                      root,               self%sample_comm, ierr(9))
       call MPI_Bcast(self%DOS_lower,     1,              MPI_REAL8, &
                      root,               self%sample_comm, ierr(10))
@@ -498,13 +498,13 @@ contains
                      root,               self%sample_comm, ierr(11))
 
       ! Berry parameter               
-      call MPI_Bcast(self%berry_num_k_pts, 1,            MYPI_INT,   &
+      call MPI_Bcast(self%berry_num_k_pts, 1,            MPI_INTEGER,   &
                      root,                            self%sample_comm, ierr(12))
       call MPI_Bcast(self%temp,            1,            MPI_REAL8,     &
                      root,                            self%sample_comm, ierr(13))
-      call MPI_Bcast(self%berry_iter,      1,            MYPI_INT,   &
+      call MPI_Bcast(self%berry_iter,      1,            MPI_INTEGER,   &
                      root,                            self%sample_comm, ierr(14))
-      call MPI_Bcast(self%kpts_per_step,   1,            MYPI_INT,   &
+      call MPI_Bcast(self%kpts_per_step,   1,            MPI_INTEGER,   &
                      root,                            self%sample_comm, ierr(15))
       call MPI_Bcast(self%k_shift,         3,            MPI_REAL8,     &
                      root,                            self%sample_comm, ierr(16))
@@ -529,9 +529,9 @@ contains
 
       call MPI_Bcast(self%test_run,      1,              MPI_LOGICAL, &
                      root,              self%sample_comm, ierr(23))
-      call MPI_Bcast(self%ACA_num_k_pts, 1,              MYPI_INT,    &
+      call MPI_Bcast(self%ACA_num_k_pts, 1,              MPI_INTEGER,    &
                      root,              self%sample_comm, ierr(24))
-      call MPI_Bcast(self%num_plot_pts,  1,              MYPI_INT,    &
+      call MPI_Bcast(self%num_plot_pts,  1,              MPI_INTEGER,    &
                      root,              self%sample_comm, ierr(25))
       !call MPI_Bcast(self%pert_log, 1,            MPI_LOGICAL,   &
       !               root,                            MPI_COMM_WORLD, ierr(26))
@@ -878,7 +878,7 @@ contains
    end function vol_k_hex
 
    subroutine calc_berry_quantities(self,pert_log)
-      use mpi
+      use mpi_f08
       implicit none
       class(k_space)          :: self
       real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
@@ -1054,7 +1054,7 @@ contains
    end subroutine calc_new_kidx
 
    subroutine calc_new_berry_points(self, eig_val_new, omega_z_new, omega_surf_new, omega_sea_new, Q_L_new, Q_IC_new, pert_log)
-      use mpi
+      use mpi_f08
       implicit none
       class(k_space)            :: self
       integer                   :: N_k, cnt, k_idx, num_up, n_ferm,pert_idx
@@ -1402,7 +1402,7 @@ contains
    end subroutine finalize_orbmag
 
    subroutine integrate_hall_sea(self, kidx_all, omega_z_all, hall)
-      use mpi
+      use mpi_f08
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: kidx_all(:)
@@ -1447,7 +1447,7 @@ contains
    end subroutine integrate_hall_sea
 
    subroutine integrate_hall_surf(self, kidx_all, omega_z_all, hall)
-      use mpi
+      use mpi_f08
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: kidx_all(:)
@@ -1493,7 +1493,7 @@ contains
    end subroutine integrate_hall_surf
 
    subroutine integrate_hall(self, kidx_all, omega_z_all, eig_val_all, hall)
-      use mpi
+      use mpi_f08
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: kidx_all(:)
@@ -1547,7 +1547,7 @@ contains
    end subroutine integrate_hall
 
    subroutine integrate_orbmag(self, Q_kidx_all, Q_L_all, Q_IC_all, orb_mag, orbmag_L, orbmag_IC)
-      use mpi
+      use mpi_f08
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: Q_kidx_all(:)
@@ -1617,7 +1617,7 @@ contains
    end subroutine integrate_orbmag
 
    subroutine set_hall_weights(self, omega_z_all, kidx_all)
-      use mpi
+      use mpi_f08
       implicit none
       class(k_space)         :: self
       integer   , intent(in) :: kidx_all(:)
@@ -1669,7 +1669,7 @@ contains
    end subroutine set_hall_weights
 
    subroutine set_orbmag_weights(self, Q_all, Q_kidx_all)
-      use mpi
+      use mpi_f08
       implicit none
       class(k_space)            :: self
       real(8), intent(in)       :: Q_all(:,:)
@@ -1901,7 +1901,7 @@ contains
    end subroutine setup_berry_inte_grid
 
    subroutine find_fermi(self, cfg)
-      use mpi
+      use mpi_f08
       implicit none
       class(k_space)         :: self
       class(CFG_t)           :: cfg
@@ -2214,7 +2214,7 @@ contains
    end subroutine append_kpts
 
    subroutine calc_ACA(self)
-      use mpi
+      use mpi_f08
       implicit none
       class(k_space)              :: self
       real(8), allocatable    :: m(:), S(:), l_space(:), eig_val(:), RWORK(:)

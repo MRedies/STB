@@ -4,8 +4,7 @@ module Class_unit_cell
    use m_config
    use output
    use m_npy
-   use mpi
-   use mypi
+   use mpi_f08
    use Constants
    use class_Units
 
@@ -29,7 +28,7 @@ module Class_unit_cell
       integer    :: nProcs
       integer    :: me
       integer    :: n_wind !> winding number for lin_rot
-      integer    :: sample_comm ! the communicator after splitting world
+      type(MPI_Comm)   :: sample_comm ! the communicator after splitting world
       integer    :: nProcs_sample ! number of procs in comm
       integer    :: me_sample ! rank in comm
       integer, allocatable    :: wavevector(:)
@@ -129,7 +128,8 @@ contains
       type(CFG_t)       :: cfg !> config file as read by m_config
       type(unit_cell)   :: self
       integer, parameter           :: lwork = 20
-      integer, intent(in)             :: sample_comm,n_sample,samples_per_comm
+      integer, intent(in)             :: n_sample,samples_per_comm
+      type(MPI_Comm), intent(in)      :: sample_comm
       real(8)                         :: work(lwork), tmp
       integer, dimension(2)           :: ipiv
       integer                         :: info,i
@@ -243,7 +243,7 @@ contains
    end function
 
    subroutine Bcast_UC(self)
-      use mpi
+      use mpi_f08
       implicit none
       class(unit_cell)           :: self
       integer, parameter         :: num_cast = 31
@@ -264,7 +264,7 @@ contains
                      root, self%sample_comm, ierr(3))
       call MPI_Bcast(self%lattice_constant, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(4))
-      call MPI_Bcast(self%atom_per_dim, 1, MYPI_INT, &
+      call MPI_Bcast(self%atom_per_dim, 1, MPI_INTEGER, &
                      root, self%sample_comm, ierr(5))
 
       call MPI_Bcast(self%ferro_phi, 1, MPI_REAL8, &
@@ -278,16 +278,16 @@ contains
       call MPI_Bcast(self%skyrm_middle, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(10))
 
-      call MPI_Bcast(self%n_wind, 1, MYPI_INT, &
+      call MPI_Bcast(self%n_wind, 1, MPI_INTEGER, &
                      root, self%sample_comm, ierr(11))
       call MPI_Bcast(self%molecule, 1, MPI_LOGICAL, &
                      root, self%sample_comm, ierr(12))
       call MPI_Bcast(self%test_run, 1, MPI_LOGICAL, &
                      root, self%sample_comm, ierr(13))
 
-      call MPI_Bcast(anticol_size_phi, 1, MYPI_INT, &
+      call MPI_Bcast(anticol_size_phi, 1, MPI_INTEGER, &
                      root, self%sample_comm, ierr(14))
-      call MPI_Bcast(anticol_size_theta, 1, MYPI_INT, &
+      call MPI_Bcast(anticol_size_theta, 1, MPI_INTEGER, &
                      root, self%sample_comm, ierr(15))
       if (self%me_sample /= root) then
          allocate (self%anticol_phi(anticol_size_phi))
@@ -371,7 +371,7 @@ contains
    end subroutine init_unit_square
 
    subroutine init_file_square(self)
-      use mpi
+      use mpi_f08
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)
@@ -386,7 +386,7 @@ contains
          read (21, *) garb, n(1), n(2), n(3)
          write (*, *) n
       endif
-      call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(n, 3, MPI_INTEGER, root, MPI_COMM_WORLD, info)
       self%num_atoms = n(1)*n(2)*n(3)
 
       allocate (self%atoms(self%num_atoms))
@@ -412,7 +412,7 @@ contains
       enddo
 
       if (self%me == root) read (21, *) garb, n_transl
-      call MPI_Bcast(n_transl, 1, MYPI_INT, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(n_transl, 1, MPI_INTEGER, root, MPI_COMM_WORLD, info)
       allocate (transl_mtx(n_transl, 3))
 
       if (self%me == root) then
@@ -439,7 +439,7 @@ contains
    end subroutine init_file_square
 
    subroutine init_file_honey(self)
-      use mpi
+      use mpi_f08
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)
@@ -455,7 +455,7 @@ contains
          read (21, *) garb, n(1), n(2), n(3)
          write (*, *) n
       endif
-      call MPI_Bcast(n, 3, MYPI_INT, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(n, 3, MPI_INTEGER, root, MPI_COMM_WORLD, info)
       self%num_atoms = 2*n(1)*n(2)*n(3)
 
       allocate (self%atoms(self%num_atoms))
@@ -473,7 +473,7 @@ contains
                      root, MPI_COMM_WORLD, info)
       call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, MPI_COMM_WORLD, info)
-      call MPI_Bcast(site_type, int(self%num_atoms, 4), MYPI_INT, &
+      call MPI_Bcast(site_type, int(self%num_atoms, 4), MPI_INTEGER, &
                      root, MPI_COMM_WORLD, info)
 
       pos = transpose(pos)*self%lattice_constant
@@ -483,7 +483,7 @@ contains
          call self%atoms(i)%set_m_cart(m(1, i), m(2, i), m(3, i))
       enddo
       if (self%me == root) read (21, *) garb, n_transl
-      call MPI_Bcast(n_transl, 1, MYPI_INT, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(n_transl, 1, MPI_INTEGER, root, MPI_COMM_WORLD, info)
       allocate (transl_mtx(n_transl, 3))
 
       if (self%me == root) then
@@ -511,7 +511,7 @@ contains
    end subroutine init_file_honey
 
    subroutine init_file_honey_htp(self)
-      use mpi
+      use mpi_f08
       use stdlib_io_npy, only: load_npy
       implicit none
       class(unit_cell), intent(inout)   :: self
@@ -554,11 +554,11 @@ contains
          m(3,:) = m_large(3,idxstart:idxstop)
          deallocate(m_large)
       endif
-      call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
+      call MPI_Bcast(pos(1:3,1:self%num_atoms), int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, self%sample_comm, info)
-      call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
+      call MPI_Bcast(m(1:3,1:self%num_atoms), int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, self%sample_comm, info)
-      call MPI_Bcast(site_type, int(self%num_atoms, 4), MPI_INTEGER8, &
+      call MPI_Bcast(site_type(1:self%num_atoms), int(self%num_atoms, 4), MPI_INTEGER8, &
                      root, self%sample_comm, info)
       pos = transpose(pos)*self%lattice_constant
 
@@ -570,7 +570,7 @@ contains
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
 
-      call MPI_Bcast(transl_mtx, int(3*n_trans, 4), MPI_REAL8, root, self%sample_comm, info)
+      call MPI_Bcast(transl_mtx(1:n_trans,1:3), int(3*n_trans, 4), MPI_REAL8, root, self%sample_comm, info)
 
       conn_mtx(1, :) = self%lattice_constant*[0d0, 1d0, 0d0]!1
       conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]!2
@@ -1877,7 +1877,7 @@ contains
    end function n_times_phi
 
    subroutine run_tests(self)
-      use mpi
+      use mpi_f08
       implicit none
       class(unit_cell), intent(in)   :: self
       integer                        :: i, ierr

@@ -6,16 +6,18 @@
 
 module Class_mpi_wrapper
     use m_config
-    use mpi
+    use mpi_f08
     implicit none
 
 contains
    subroutine judft_comm_split(comm, color, key, new_comm)
-      use mpi
+      use mpi_f08
       implicit none
-      integer, intent(in)    :: comm, color, key
-      integer, intent(inout) :: new_comm
-      integer                :: ierr, err_handler
+      integer, intent(in)    :: color, key
+      type(MPI_Comm), intent(in) :: comm
+      type(MPI_Comm), intent(inout) :: new_comm
+      integer                :: ierr
+      TYPE(MPI_Errhandler) :: err_handler
 
       call MPI_Comm_Split(comm,color,key,new_comm,ierr)
       if(ierr /= 0) then
@@ -35,9 +37,10 @@ contains
    end subroutine judft_comm_split
 
    subroutine judft_mpi_error_handler(comm, error_code)
-      use mpi
+      use mpi_f08
       implicit none
-      integer  :: comm, error_code
+      integer  :: error_code
+      type(MPI_Comm) :: comm
       integer             :: str_len, ierr
       character(len=3000) :: error_str
 

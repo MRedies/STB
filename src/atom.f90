@@ -1,7 +1,7 @@
 module Class_atom
     use Class_helper
     use Constants
-    use mpi
+    use mpi_f08
     implicit none
 
     enum, bind(c)  !> A or B site in graphene
@@ -54,7 +54,7 @@ contains
         implicit none
         type(atom)                 :: self
         real(8), intent(in)        :: p_pos(3)
-        integer, intent(in)        :: comm
+        type(MPI_Comm), intent(in) :: comm
         integer(8), optional       :: site
         integer                    :: ierr(2)
 
@@ -97,10 +97,10 @@ contains
 
     function compare_to_root(self,comm) result(success)
         implicit none
-        class(atom)             :: self
-        real(8)                 :: tmp, tmp_p(3)
-        integer                 :: ierr(10), tmp_i
-        integer, intent(in)     :: comm
+        class(atom)                :: self
+        real(8)                    :: tmp, tmp_p(3)
+        integer                    :: ierr(10), tmp_i
+        type(MPI_Comm), intent(in) :: comm
         integer, allocatable    :: tmp_ivec(:)
         integer(8)              :: tmp_i8
         integer(4), allocatable :: tmp_i4vec(:)

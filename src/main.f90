@@ -5,10 +5,9 @@ program STB
    use m_config
    use m_npy
    use output
-   use mpi
+   use mpi_f08
    use Constants
    use Class_unit_cell
-   use mypi
    use stdlib_io_npy, only: load_npy
    implicit none
 
@@ -16,9 +15,10 @@ program STB
    type(collect_quantities)        :: ColQ
    character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
    integer                         :: n_inp, n_files, start_idx, end_idx, cnt&
-                                      ,sample_comm,color,n_sample_par,nProcs,n_sample&
+                                      ,color,n_sample_par,nProcs,n_sample&
                                       ,ierr, me, me_sample,samples_per_comm,nProcs_sample&
                                       ,min_comm_size=8,ncomms
+   type(MPI_Comm)                  :: sample_comm
    integer(8)   , allocatable      :: dimensions(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
@@ -54,7 +54,7 @@ program STB
       endif
       call MPI_Bcast(prefix,   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(uctype,   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
-      call MPI_Bcast(n_sample_par, 1,  MYPI_INT,   root, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(n_sample_par, 1,  MPI_INTEGER,   root, MPI_COMM_WORLD, ierr)
       call calc_color(min_comm_size,nProcs,me,color)
       !sorting in new comm according to rank in world
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
@@ -91,11 +91,12 @@ program STB
    call MPI_Finalize(ierr)
 contains
    subroutine process_file(inp_file,sample_comm,n_sample,samples_per_comm,ColQ)
-      use mpi
+      use mpi_f08
       implicit none
       type(collect_quantities)        :: ColQ
       character(len=300), intent(in) :: inp_file
-      integer, intent(in)            :: sample_comm,n_sample,samples_per_comm
+      integer, intent(in)            :: n_sample,samples_per_comm
+      type(MPI_Comm), intent(in)     :: sample_comm
       real(8)                        :: start, halt
       integer                        :: me, ierr,ierr2,me_sample
       logical                        :: perform_band, perform_dos, calc_hall, calc_hall_diag,&
@@ -212,7 +213,7 @@ contains
    end subroutine process_file
 
    subroutine get_inp_files(n_files, inp_files)
-      use mpi
+      use mpi_f08
       implicit none
       integer, intent(out)     :: n_files
       character(len=300), allocatable :: inp_files(:)
@@ -255,7 +256,7 @@ contains
             enddo
          endif
       endif
-      call MPI_Bcast(n_files, 1, MYPI_INT, root, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(n_files, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
       if(me /= root) allocate(inp_files(n_files))
 
       do i=1,n_files
@@ -266,7 +267,7 @@ contains
    end subroutine get_inp_files
 
    Subroutine  add_full_cfg(cfg)
-      use mpi
+      use mpi_f08
       Implicit None
       type(CFG_t)            :: cfg
       real(8), allocatable   :: empty_array(:)
@@ -383,7 +384,7 @@ contains
    End Subroutine add_full_cfg
 
    subroutine save_cfg(cfg)
-      use mpi
+      use mpi_f08
       Implicit None
       type(CFG_t)            :: cfg
       character(len=300)     :: prefix
@@ -395,7 +396,7 @@ contains
    end subroutine save_cfg
 
    subroutine calc_ncomms(min_comm_size,nProcs,ncomms)
-      use mpi
+      use mpi_f08
       implicit none
       integer , intent(in)           :: min_comm_size,nProcs
       integer                        :: ncomms
@@ -407,7 +408,7 @@ contains
    end subroutine
 
    subroutine calc_color(min_comm_size,nProcs,rank,color)
-      use mpi
+      use mpi_f08
       implicit none
       integer , intent(in)           :: nProcs,rank,min_comm_size
       integer                        :: color,ncomms
@@ -424,7 +425,7 @@ contains
    end subroutine
       
    function calc_samples_per_comm(n_sample_par,ncomms,color) result(samples_per_comm)
-      use mpi
+      use mpi_f08
       implicit none
       integer , intent(in)           :: n_sample_par,ncomms,color
       integer                        :: samples_per_comm, rest
