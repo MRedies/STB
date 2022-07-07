@@ -127,7 +127,7 @@ module Class_append_funcs
                 endif
                 allocate(isize(2))
                 isize = shape(self%DOS_collect)
-                write(*,*) isize
+                write(*,*) "SIZE",isize
                 allocate(tmp(isize(1),isize(2)))
                 tmp = self%DOS_collect * self%units%energy
                 write (filename,  "(A,I0.6,A)") "DOS_collect=", self%color,".npy"
