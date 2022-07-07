@@ -116,17 +116,31 @@ module Class_append_funcs
             implicit none
             class(collect_quantities)           :: self
             character(len=300)                  :: filename
+            real, allocatable                   ::  tmp(:,:)
+
             
     
             if(self%me_sample ==  root) then
                 write (filename,  "(A,I0.6,A)") "DOS_collect=", self%color,".npy"
-                call save_npy(trim(self%prefix) //  trim(filename), self%DOS_collect * self%units%energy)
+                allocate(tmp(shape(self%DOS_collect,1),shape(self%DOS_collect,2)))
+                tmp = self%DOS_collect * self%units%energy
+                call save_npy(trim(self%prefix) //  trim(filename), tmp)
+                deallocate(tmp)
                 write (filename,  "(A,I0.6,A)") "int_DOS_collect=", self%color,".npy"
-                call save_npy(trim(self%prefix) //  trim(filename), self%int_DOS_collect * self%units%energy)
+                allocate(tmp(shape(self%int_DOS_collect,1),shape(self%int_DOS_collect,2)))
+                tmp = self%int_DOS_collect * self%units%energy
+                call save_npy(trim(self%prefix) //  trim(filename), tmp)
+                deallocate(tmp)
                 write (filename,  "(A,I0.6,A)") "up_collect=", self%color,".npy"
-                call save_npy(trim(self%prefix) //  trim(filename), self%up_collect * self%units%energy)
+                allocate(tmp(shape(self%up_collect,1),shape(self%up_collect,2)))
+                tmp = self%up_collect * self%units%energy
+                call save_npy(trim(self%prefix) //  trim(filename), tmp)
+                deallocate(tmp)
                 write (filename,  "(A,I0.6,A)") "down_collect=", self%color,".npy"
-                call save_npy(trim(self%prefix) //  trim(filename), self%down_collect * self%units%energy)
+                allocate(tmp(shape(self%down_collect,1),shape(self%down_collect,2)))
+                tmp = self%down_collect * self%units%energy
+                call save_npy(trim(self%prefix) //  trim(filename), tmp)
+                deallocate(tmp)
             endif
         end subroutine
 
