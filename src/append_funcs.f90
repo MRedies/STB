@@ -121,7 +121,7 @@ module Class_append_funcs
             
     
             if(self%me_sample ==  root) then
-
+                allocate(tmp(1,1))
                 if(allocated(tmp)) then
                     deallocate(tmp)
                 endif
