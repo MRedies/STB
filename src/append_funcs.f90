@@ -121,6 +121,10 @@ module Class_append_funcs
             
     
             if(self%me_sample ==  root) then
+
+                if(allocated(tmp)):
+                    deallocate(tmp)
+                endif
                 write (filename,  "(A,I0.6,A)") "DOS_collect=", self%color,".npy"
                 allocate(tmp(shape(self%DOS_collect,1),shape(self%DOS_collect,2)))
                 tmp = self%DOS_collect * self%units%energy
