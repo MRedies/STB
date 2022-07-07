@@ -116,7 +116,7 @@ module Class_append_funcs
             implicit none
             class(collect_quantities)           :: self
             character(len=300)                  :: filename
-            real, allocatable                   ::  tmp(:,:)
+            real(8), allocatable                ::  tmp(:,:)
             integer,allocatable                 :: isize(:)
 
             
