@@ -3,12 +3,11 @@ program STB
    use Class_mpi_wrapper! wrapper around MPI_COMM_SPLIT for error documentation
    use Class_append_funcs
    use m_config
-   use m_npy
+   use stdlib_io_npy, only:load_npy,save_npy
    use output
    use mpi_f08
    use Constants
    use Class_unit_cell
-   use stdlib_io_npy, only: load_npy
    implicit none
 
    type(k_space)                   :: Ksp

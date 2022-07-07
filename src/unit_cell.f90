@@ -3,7 +3,7 @@ module Class_unit_cell
    use Class_helper
    use m_config
    use output
-   use m_npy
+   use stdlib_io_npy, only:load_npy,save_npy
    use mpi_f08
    use Constants
    use class_Units
@@ -512,7 +512,6 @@ contains
 
    subroutine init_file_honey_htp(self)
       use mpi_f08
-      use stdlib_io_npy, only: load_npy
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(8)                           :: conn_mtx(3, 3)

@@ -2,7 +2,7 @@ module Class_hamiltionian
    use m_config
    use output
    use Class_unit_cell
-   use m_npy
+   use stdlib_io_npy, only:load_npy,save_npy
    use mpi_f08
    use Constants
    implicit none

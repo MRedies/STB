@@ -1,7 +1,6 @@
 module Class_append_funcs
     use mpi_f08
     use m_config
-    use m_npy
     use Class_units
     use stdlib_io_npy, only: save_npy
     implicit none

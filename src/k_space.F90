@@ -1,6 +1,6 @@
 module Class_k_space
    use m_config
-   use m_npy
+   use stdlib_io_npy, only:load_npy,save_npy
    use mpi_f08
    use Class_hamiltionian
    use Class_helper
