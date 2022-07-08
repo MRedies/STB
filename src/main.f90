@@ -166,7 +166,7 @@ contains
       if(trim(fermi_type) == "fixed") then
          call Ksp%ham%set_fermi(cfg)
       endif
-
+      write(*,*) "p_dos main process file",perform_dos
       if(perform_dos) then
          if(root == me) write (*,*) "started DOS"
          call Ksp%calc_and_print_dos()
