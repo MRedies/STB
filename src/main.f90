@@ -170,6 +170,7 @@ contains
       if(perform_dos) then
          if(root == me) write (*,*) "started DOS"
          call Ksp%calc_and_print_dos()
+         write(*,*) "me_sample main process file",me_sample
          if (me_sample==root) then
             write(*,*) "UCType main process file",trim(uctype)
             if(trim(uctype)=="file_honey_htp") then
