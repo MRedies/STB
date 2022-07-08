@@ -173,6 +173,7 @@ contains
          if (me_sample==root) then
             if(trim(uctype)=="file_honey_htp") then
                call ColQ%add_DOS_collect(Ksp%DOS,Ksp%up,Ksp%down,Ksp%int_DOS)
+               write(*,*) "Alloc main process file",allocated(ColQ%DOS_collect)
                deallocate(Ksp%DOS)
                deallocate(Ksp%up)
                deallocate(Ksp%down)
