@@ -149,6 +149,9 @@ contains
           success = .False.
       endif
       Ksp =  init_k_space(cfg,sample_comm,n_sample,samples_per_comm)
+      if (me_sample == root) then
+         write(*,*) "p_dos main process file 3",perform_dos
+      endif
       if (me_sample==root) then
          if(trim(uctype)=="file_honey_htp") then
             call ColQ%add_spins_collect(Ksp%ham%UC%all_spins)
