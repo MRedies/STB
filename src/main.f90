@@ -75,6 +75,7 @@ program STB
       enddo
       if (me_sample==root) then
          if(trim(uctype)=="file_honey_htp") then
+            write(*,*) "Alloc main",allocated(ColQ%DOS_collect)
             call ColQ%save_DOS_collect()
             call ColQ%save_spins_collect()
             call ColQ%save_sample_idx()
