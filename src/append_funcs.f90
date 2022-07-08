@@ -126,8 +126,8 @@ module Class_append_funcs
                     deallocate(tmp)
                 endif
                 allocate(isize(2))
+                write(*,*) "Alloc",allocated(self%DOS_collect)
                 isize = shape(self%DOS_collect)
-                write(*,*) "SIZE",isize,allocated(self%DOS_collect)
                 allocate(tmp(isize(1),isize(2)))
                 tmp = self%DOS_collect * self%units%energy
                 write (filename,  "(A,I0.6,A)") "DOS_collect=", self%color,".npy"
