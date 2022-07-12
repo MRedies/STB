@@ -98,7 +98,7 @@ contains
       if(root == self%me) then
          call CFG_get(cfg, "berry%E_fermi", tmp)
       endif
-      call MPI_Bcast(tmp, 3, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(tmp(1:3), 3, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
       n_steps = nint(tmp(3))
       tmp =  tmp *  self%units%energy
    
@@ -466,7 +466,7 @@ contains
       call MPI_Bcast(self%lambda_KM, 1,              MPI_REAL8, &
                      root,        self%sample_comm, ierr(25))
       if(self%me_sample /= root) allocate(self%drop_Vx_layers(Vx_len))
-      call MPI_Bcast(self%drop_Vx_layers(1:Vy_len), Vx_len, MPI_REAL8, &
+      call MPI_Bcast(self%drop_Vx_layers(1:Vx_len), Vx_len, MPI_REAL8, &
                      root, self%sample_comm, ierr(26))
       call MPI_Bcast(self%gamma,      1,              MPI_REAL8,   &
                      root,          self%sample_comm, ierr(27))
