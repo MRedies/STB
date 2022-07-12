@@ -321,7 +321,9 @@ contains
       call MPI_Bcast(self%dblatan_pref, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(24))
       call MPI_Bcast(self%atan_pref, 1, MPI_REAL8, root, self%sample_comm, ierr(25))
-
+      if (self%me_sample== root) then
+         write(*,*) "IN BCAST UC SUCCESS"
+      endif
        !BCAST FILES, SINCE IN EVERY SUBCOMM THE ROOT NEEDS TO READ
       call MPI_Bcast(self%mag_file, 300, MPI_CHARACTER, &
                      root, self%sample_comm, ierr(27))
