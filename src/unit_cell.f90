@@ -267,11 +267,11 @@ contains
 
       call MPI_Bcast(self%eps, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(1))
+      call MPI_Bcast(self%mag_type, 25, MPI_CHARACTER, &
+                     root, self%sample_comm, ierr(2))
       if (self%me_sample== root) then
          write(*,*) "IN BCAST UC SUCCESS"
       endif
-      call MPI_Bcast(self%mag_type, 25, MPI_CHARACTER, &
-                     root, self%sample_comm, ierr(2))
       call MPI_Bcast(self%uc_type, 25, MPI_CHARACTER, &
                      root, self%sample_comm, ierr(3))
       call MPI_Bcast(self%lattice_constant, 1, MPI_REAL8, &
