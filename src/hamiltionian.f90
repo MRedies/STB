@@ -402,6 +402,9 @@ contains
          endif
       endif
       call self%Bcast_hamil()
+      if (self%me_sample== root) then
+         write(*,*) "BCAST HAMIL SUCCESS"
+      endif
    end function init_hamil
    
    subroutine Bcast_hamil(self)

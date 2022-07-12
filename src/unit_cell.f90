@@ -200,6 +200,9 @@ contains
       endif
 
       call self%Bcast_UC()
+      if (self%me_sample== root) then
+         write(*,*) "BCAST UC SUCCESS"
+      endif
       if (trim(self%uc_type) == "square_2d") then
          call self%init_unit_square()
       else if (trim(self%uc_type) == "honey_2d") then
