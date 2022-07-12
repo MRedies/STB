@@ -484,9 +484,9 @@ contains
          allocate(self%k1_param(sz(1)))
          allocate(self%k2_param(sz(2)))
       endif
-      call MPI_Bcast(self%k1_param,      sz(1),          MPI_REAL8,    &
+      call MPI_Bcast(self%k1_param(1:sz(1)),      sz(1),          MPI_REAL8,    &
                      root,               self%sample_comm, ierr(6))
-      call MPI_Bcast(self%k2_param,      sz(2),          MPI_REAL8,    &
+      call MPI_Bcast(self%k2_param(1:sz(2)),      sz(2),          MPI_REAL8,    &
                      root,               self%sample_comm, ierr(7))
       call MPI_Bcast(self%num_k_pts,     1,              MPI_INTEGER, &
                      root,               self%sample_comm, ierr(8))
@@ -1435,13 +1435,13 @@ contains
       ! Allreduce is not suitable for convergence criteria
       ierr = 0
       if(self%me == root) then
-         call MPI_Reduce(MPI_IN_PLACE, hall, size(hall), MPI_REAL8, &
+         call MPI_Reduce(MPI_IN_PLACE, hall(1:size(hall)), size(hall), MPI_REAL8, &
                          MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
       else
-         call MPI_Reduce(hall, hall, size(hall), MPI_REAL8, &
+         call MPI_Reduce(hall(1:size(hall)), hall(1:size(hall)), size(hall), MPI_REAL8, &
                          MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
       endif
-      call MPI_Bcast(hall, size(hall), MPI_REAL8, root, &
+      call MPI_Bcast(hall(1:size(hall)), size(hall), MPI_REAL8, root, &
                      MPI_COMM_WORLD, ierr(2))
       call check_ierr(ierr, self%me, "Hall conductance")
    end subroutine integrate_hall_sea
@@ -1481,13 +1481,13 @@ contains
       ! Allreduce is not suitable for convergence criteria
       ierr = 0
       if(self%me == root) then
-         call MPI_Reduce(MPI_IN_PLACE, hall, size(hall), MPI_REAL8, &
+         call MPI_Reduce(MPI_IN_PLACE, hall(1:size(hall)), size(hall), MPI_REAL8, &
                          MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
       else
-         call MPI_Reduce(hall, hall, size(hall), MPI_REAL8, &
+         call MPI_Reduce(hall(1:size(hall)), hall(1:size(hall)), size(hall), MPI_REAL8, &
                          MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
       endif
-      call MPI_Bcast(hall, size(hall), MPI_REAL8, root, &
+      call MPI_Bcast(hall(1:size(hall)), size(hall), MPI_REAL8, root, &
                      MPI_COMM_WORLD, ierr(2))
       call check_ierr(ierr, self%me, "Hall conductance")
    end subroutine integrate_hall_surf
@@ -1535,13 +1535,13 @@ contains
       ! Allreduce is not suitable for convergence criteria
       ierr = 0
       if(self%me == root) then
-         call MPI_Reduce(MPI_IN_PLACE, hall, size(hall), MPI_REAL8, &
+         call MPI_Reduce(MPI_IN_PLACE, hall(1:size(hall)), size(hall), MPI_REAL8, &
                          MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
       else
-         call MPI_Reduce(hall, hall, size(hall), MPI_REAL8, &
+         call MPI_Reduce(hall(1:size(hall)), hall(1:size(hall)), size(hall), MPI_REAL8, &
                          MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
       endif
-      call MPI_Bcast(hall, size(hall), MPI_REAL8, root, &
+      call MPI_Bcast(hall(1:size(hall)), size(hall), MPI_REAL8, root, &
                      MPI_COMM_WORLD, ierr(2))
       call check_ierr(ierr, self%me, "Hall conductance")
    end subroutine integrate_hall
