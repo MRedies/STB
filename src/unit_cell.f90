@@ -201,7 +201,9 @@ contains
 
 
       endif
-
+      if (self%me_sample== root) then
+         write(*,*) "UNTIL BCAST UC SUCCESS"
+      endif
       call self%Bcast_UC()
       if (self%me_sample== root) then
          write(*,*) "BCAST UC SUCCESS"
