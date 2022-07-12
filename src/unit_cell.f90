@@ -264,9 +264,7 @@ contains
          anticol_size_theta = size(self%anticol_theta)
          wsize = size(self%wavevector)
       endif
-      if (self%me_sample== root) then
-         write(*,*) "IN BCAST UC SUCCESS"
-      endif
+
       call MPI_Bcast(self%eps, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(1))
       call MPI_Bcast(self%mag_type, 25, MPI_CHARACTER, &
@@ -300,6 +298,9 @@ contains
                      root, self%sample_comm, ierr(14))
       call MPI_Bcast(anticol_size_theta, 1, MPI_INTEGER, &
                      root, self%sample_comm, ierr(15))
+      if (self%me_sample== root) then
+         write(*,*) "IN BCAST UC SUCCESS"
+      endif
       if (self%me_sample /= root) then
          allocate (self%anticol_phi(anticol_size_phi))
          allocate (self%anticol_theta(anticol_size_theta))
