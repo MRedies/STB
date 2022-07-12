@@ -477,7 +477,7 @@ contains
       call MPI_Bcast(self%num_DOS_pts, 1,            MPI_INTEGER, &
                      root,                        self%sample_comm, ierr(4))
 
-      call MPI_Bcast(sz, 2,            MPI_INTEGER, &
+      call MPI_Bcast(sz(1:2), 2,            MPI_INTEGER, &
                      root,          self%sample_comm, ierr(5))
 
       if(self%me_sample /= root) then
@@ -506,7 +506,7 @@ contains
                      root,                            self%sample_comm, ierr(14))
       call MPI_Bcast(self%kpts_per_step,   1,            MPI_INTEGER,   &
                      root,                            self%sample_comm, ierr(15))
-      call MPI_Bcast(self%k_shift,         3,            MPI_REAL8,     &
+      call MPI_Bcast(self%k_shift(1:3),         3,            MPI_REAL8,     &
                      root,                            self%sample_comm, ierr(16))
       call MPI_Bcast(self%berry_conv_crit, 1,            MPI_REAL8,     &
                      root,                            self%sample_comm, ierr(17))
@@ -1553,21 +1553,23 @@ contains
       integer   , intent(in)  :: Q_kidx_all(:)
       real(8), intent(in)     :: Q_L_all(:, :), Q_IC_all(:,:)
       real(8), allocatable    :: orb_mag(:), orbmag_L(:), orbmag_IC(:)
-      integer                 :: n_ferm, loc_idx, k_idx
+      integer                 :: n_ferm, loc_idx, k_idx, E_f_size
       integer                 :: ierr(4)
 
+
+      E_f_size = size(self%ham%E_fermi)
       if(allocated(orb_mag))then
-         if(size(orb_mag) /= size(self%ham%E_fermi)) deallocate(orb_mag)
+         if(size(orb_mag) /= E_f_size) deallocate(orb_mag)
       endif
-      if(.not. allocated(orb_mag)) allocate(orb_mag(size(self%ham%E_fermi)))
+      if(.not. allocated(orb_mag)) allocate(orb_mag(E_f_size))
       if(allocated(orbmag_L))then
-         if(size(orbmag_L) /= size(self%ham%E_fermi)) deallocate(orbmag_L)
+         if(size(orbmag_L) /= E_f_size) deallocate(orbmag_L)
       endif
-      if(.not. allocated(orbmag_L)) allocate(orbmag_L(size(self%ham%E_fermi)))
+      if(.not. allocated(orbmag_L)) allocate(orbmag_L(E_f_size))
       if(allocated(orbmag_IC))then
-         if(size(orbmag_IC) /= size(self%ham%E_fermi)) deallocate(orbmag_IC)
+         if(size(orbmag_IC) /= E_f_size) deallocate(orbmag_IC)
       endif
-      if(.not. allocated(orbmag_IC)) allocate(orbmag_IC(size(self%ham%E_fermi)))
+      if(.not. allocated(orbmag_IC)) allocate(orbmag_IC(E_f_size))
 
       !run triangulation
       call run_triang(self%all_k_pts, self%elem_nodes)
@@ -1592,24 +1594,24 @@ contains
 
       ! reduce & bcast local term
       if(self%me == root) then
-         call MPI_Reduce(MPI_IN_PLACE, orbmag_L, size(orbmag_L),&
+         call MPI_Reduce(MPI_IN_PLACE, orbmag_L(1:E_f_size), size(orbmag_L),&
                          MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
       else
-         call MPI_Reduce(orbmag_L, orbmag_L, size(orbmag_L), MPI_REAL8,&
+         call MPI_Reduce(orbmag_L(1:E_f_size), orbmag_L(1:E_f_size), size(orbmag_L), MPI_REAL8,&
                          MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
       endif
-      call MPI_Bcast(orbmag_L, size(orbmag_L), MPI_REAL8, root, &
+      call MPI_Bcast(orbmag_L(1:E_f_size), size(orbmag_L), MPI_REAL8, root, &
                      MPI_COMM_WORLD, ierr(2))
 
       ! reduce & bcast itinerant term
       if(self%me == root) then
-         call MPI_Reduce(MPI_IN_PLACE, orbmag_IC, size(orbmag_IC), &
+         call MPI_Reduce(MPI_IN_PLACE, orbmag_IC(1:E_f_size), size(orbmag_IC), &
                          MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(3))
       else
-         call MPI_Reduce(orbmag_IC, orbmag_IC, size(orbmag_IC), &
+         call MPI_Reduce(orbmag_IC(1:E_f_size), orbmag_IC(1:E_f_size), size(orbmag_IC), &
                          MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(3))
       endif
-      call MPI_Bcast(orbmag_IC, size(orbmag_IC), MPI_REAL8, root, &
+      call MPI_Bcast(orbmag_IC(1:E_f_size), size(orbmag_IC), MPI_REAL8, root, &
                      MPI_COMM_WORLD, ierr(4))
 
       orb_mag    = orbmag_L + orbmag_IC
@@ -1656,13 +1658,13 @@ contains
 
       ierr = 0
       if(self%me == root) then
-         call MPI_Reduce(MPI_IN_PLACE, self%refine_weights, n_elem,&
+         call MPI_Reduce(MPI_IN_PLACE, self%refine_weights(1:n_elem), n_elem,&
                          MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
       else
-         call MPI_Reduce(self%refine_weights,self%refine_weights, n_elem, &
+         call MPI_Reduce(self%refine_weights(1:n_elem),self%refine_weights(1:n_elem), n_elem, &
                          MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
       endif
-      call MPI_Bcast(self%refine_weights, n_elem, MPI_REAL8, &
+      call MPI_Bcast(self%refine_weights(1:n_elem), n_elem, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(2))
       call check_ierr(ierr, self%me, " hall: set_refine_weights")
 
@@ -1705,13 +1707,13 @@ contains
 
       ierr =  0
       if(self%me == root) then
-         call MPI_Reduce(MPI_IN_PLACE, self%refine_weights, n_elem,&
+         call MPI_Reduce(MPI_IN_PLACE, self%refine_weights(1:n_elem), n_elem,&
                          MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
       else
-         call MPI_Reduce(self%refine_weights,self%refine_weights, n_elem, &
+         call MPI_Reduce(self%refine_weights(1:n_elem),self%refine_weights(1:n_elem), n_elem, &
                          MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
       endif
-      call MPI_Bcast(self%refine_weights, n_elem, MPI_REAL8, &
+      call MPI_Bcast(self%refine_weights(1:n_elem), n_elem, MPI_REAL8, &
                      root, MPI_COMM_WORLD, ierr(2))
       call check_ierr(ierr, self%me, " orb_mag: set_refine_weights")
 

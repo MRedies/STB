@@ -414,7 +414,7 @@ contains
                      root,          self%sample_comm, ierr(2))
       call MPI_Bcast(self%E_B,      1,              MPI_REAL8,   &
                      root,          self%sample_comm, ierr(3))
-      call MPI_Bcast(self%E_p,      3,              MPI_REAL8,   &
+      call MPI_Bcast(self%E_p(1:3),      3,              MPI_REAL8,   &
                      root,          self%sample_comm, ierr(4))
       call MPI_Bcast(self%Vss_sig,  1,              MPI_REAL8,   &
                      root,          self%sample_comm, ierr(5))
@@ -461,12 +461,12 @@ contains
                      root, self%sample_comm, ierr(23))
 
       if(self%me_sample /= root) allocate(self%drop_Vy_layers(Vy_len))
-      call MPI_Bcast(self%drop_Vy_layers, Vy_len, MPI_REAL8, &
+      call MPI_Bcast(self%drop_Vy_layers(1:Vy_len), Vy_len, MPI_REAL8, &
                      root, self%sample_comm, ierr(24))
       call MPI_Bcast(self%lambda_KM, 1,              MPI_REAL8, &
                      root,        self%sample_comm, ierr(25))
       if(self%me_sample /= root) allocate(self%drop_Vx_layers(Vx_len))
-      call MPI_Bcast(self%drop_Vx_layers, Vx_len, MPI_REAL8, &
+      call MPI_Bcast(self%drop_Vx_layers(1:Vy_len), Vx_len, MPI_REAL8, &
                      root, self%sample_comm, ierr(26))
       call MPI_Bcast(self%gamma,      1,              MPI_REAL8,   &
                      root,          self%sample_comm, ierr(27))

@@ -293,9 +293,9 @@ contains
          allocate (self%anticol_phi(anticol_size_phi))
          allocate (self%anticol_theta(anticol_size_theta))
       endif
-      call MPI_Bcast(self%anticol_theta, anticol_size_theta, MPI_REAL8, &
+      call MPI_Bcast(self%anticol_theta(1:anticol_size_theta), anticol_size_theta, MPI_REAL8, &
                      root, self%sample_comm, ierr(16))
-      call MPI_Bcast(self%anticol_phi, anticol_size_phi, MPI_REAL8, &
+      call MPI_Bcast(self%anticol_phi(1:anticol_size_phi), anticol_size_phi, MPI_REAL8, &
                      root, self%sample_comm, ierr(17))
 
       call MPI_Bcast(self%pert_log, 1, MPI_LOGICAL, &
@@ -305,7 +305,7 @@ contains
       if (self%me_sample /= root) then
          allocate (self%wavevector(wsize))
       endif
-      call MPI_Bcast(self%wavevector, wsize, MPI_INTEGER, root, self%sample_comm, ierr(20))
+      call MPI_Bcast(self%wavevector(1:wsize), wsize, MPI_INTEGER, root, self%sample_comm, ierr(20))
       call MPI_Bcast(self%axis_phi, 1, MPI_REAL8, root, self%sample_comm, ierr(21))
       call MPI_Bcast(self%axis_theta, 1, MPI_REAL8, root, self%sample_comm, ierr(26))
       call MPI_Bcast(self%cone_angle, 1, MPI_REAL8, root, self%sample_comm, ierr(22))
