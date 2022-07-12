@@ -289,11 +289,11 @@ contains
 
       call MPI_Bcast(self%n_wind, 1, MPI_INTEGER, &
                      root, self%sample_comm, ierr(11))
-      call MPI_Bcast(self%molecule, 1, MPI_LOGICAL, &
-                     root, self%sample_comm, ierr(12))
       if (self%me_sample== root) then
          write(*,*) "IN BCAST UC SUCCESS"
       endif
+      call MPI_Bcast(self%molecule, 1, MPI_LOGICAL, &
+                     root, self%sample_comm, ierr(12))
       call MPI_Bcast(self%test_run, 1, MPI_LOGICAL, &
                      root, self%sample_comm, ierr(13))
       call MPI_Bcast(anticol_size_phi, 1, MPI_INTEGER, &
