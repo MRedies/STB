@@ -391,7 +391,9 @@ contains
 
       self%units = init_units(cfg, self%me)
       self%ham   = init_hamil(cfg,sample_comm,n_sample,samples_per_comm)    
-
+      if (self%me_sample== root) then
+         write(*,*) "SET UP HAMIL SUCCESS"
+      endif
       if(self%me_sample ==  0) then
          call CFG_get(cfg, "grid%k_shift", self%k_shift)
 

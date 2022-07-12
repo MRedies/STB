@@ -322,7 +322,9 @@ contains
 
       self%units = init_units(cfg, self%me)
       self%UC    = init_unit(cfg,sample_comm,n_sample,samples_per_comm)
-
+      if (self%me_sample== root) then
+         write(*,*) "SET UP UC SUCCESS"
+      endif
 
       if(self%me_sample ==  0) then
          call CFG_get(cfg, "berry%temperature", tmp)
