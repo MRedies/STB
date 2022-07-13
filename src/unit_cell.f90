@@ -286,8 +286,8 @@ contains
          write(*,*) "IN BCAST UC SUCCESS", self%dblatan_dist, self%me_sample, self%me
       endif
       !----------------!
-      call MPI_Bcast(self%dblatan_dist, 1, MPI_REAL8, &
-                     root, self%sample_comm, ierr(9))
+      !call MPI_Bcast(self%dblatan_dist, 1, MPI_REAL8, &
+      !               root, self%sample_comm, ierr(9))
       !----------------!
       call MPI_Bcast(self%skyrm_middle, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(10))
