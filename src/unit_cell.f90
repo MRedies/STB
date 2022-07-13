@@ -283,7 +283,7 @@ contains
       call MPI_Bcast(self%atan_factor, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(8))
       if (self%me_sample== root) then
-         write(*,*) "IN BCAST UC SUCCESS", self%dblatan_dist, type(self%dblatan_dist)
+         write(*,*) "IN BCAST UC SUCCESS", self%dblatan_dist
       endif
       call MPI_Bcast(self%dblatan_dist, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(9))
