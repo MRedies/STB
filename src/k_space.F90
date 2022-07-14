@@ -210,7 +210,7 @@ contains
       allocate(eig_val(N))
 
       call calc_zheevd_size('V', H, eig_val, lwork, lrwork, liwork)
-      if(self%me ==  0) then
+      if(self%me == root) then
          write (*,*) "shape(H) =  ", shape(H)
          write (*,*) "lwork =  ", lwork
          write (*,*) "lrwork = ", lrwork
