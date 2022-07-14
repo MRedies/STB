@@ -397,7 +397,7 @@ contains
       if (self%me_sample== root) then
          write(*,*) "SET UP HAMIL SUCCESS", self%me,self%me_sample
       endif
-      if(self%me_sample ==  0) then
+      if(self%me_sample ==  root) then
          call CFG_get(cfg, "grid%k_shift", self%k_shift)
 
          call CFG_get(cfg, "output%band_prefix", self%prefix)
