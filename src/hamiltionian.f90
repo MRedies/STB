@@ -329,7 +329,7 @@ contains
          write(*,*) "SET UP UC SUCCESS"
       endif
 
-      if(self%me_sample ==  root) then
+      if(self%me_sample == root) then
          call CFG_get(cfg, "berry%temperature", tmp)
          self%temp = tmp * self%units%temperature
 
