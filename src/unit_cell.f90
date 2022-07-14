@@ -151,7 +151,7 @@ contains
          write(*,*) "SET UP UNITS UC SUCCESS"
       endif
 
-      if (self%me_sample == 0) then
+      if (self%me_sample == root) then
          call CFG_get(cfg, "berry%pert_log", tmp_log)
          self%pert_log = tmp_log
          call CFG_get(cfg, "grid%epsilon", tmp)
