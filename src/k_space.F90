@@ -390,13 +390,8 @@ contains
       call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
 
       self%units = init_units(cfg, self%me)
-      if (self%me_sample== root) then
-         write(*,*) "SET UP UNITS K SUCCESS"
-      endif
       self%ham   = init_hamil(cfg,sample_comm,n_sample,samples_per_comm)    
-      if (self%me_sample== root) then
-         write(*,*) "SET UP HAMIL SUCCESS", self%me,self%me_sample
-      endif
+      
       if(self%me_sample ==  root) then
          call CFG_get(cfg, "grid%k_shift", self%k_shift)
 

@@ -147,9 +147,6 @@ contains
       call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
 
       self%units = init_units(cfg, self%me)
-      if (self%me_sample== root) then
-         write(*,*) "SET UP UNITS UC SUCCESS"
-      endif
 
       if (self%me_sample == root) then
          call CFG_get(cfg, "berry%pert_log", tmp_log)
@@ -201,13 +198,7 @@ contains
 
 
       endif
-      if (self%me_sample== root) then
-         write(*,*) "UNTIL BCAST UC SUCCESS"
-      endif
       call self%Bcast_UC()
-      if (self%me_sample== root) then
-         write(*,*) "BCAST UC SUCCESS"
-      endif
       if (trim(self%uc_type) == "square_2d") then
          call self%init_unit_square()
       else if (trim(self%uc_type) == "honey_2d") then

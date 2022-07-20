@@ -126,7 +126,6 @@ module Class_append_funcs
                     deallocate(tmp)
                 endif
                 allocate(isize(2))
-                write(*,*) "Alloc",allocated(self%DOS_collect)
                 isize = shape(self%DOS_collect)
                 allocate(tmp(isize(1),isize(2)))
                 tmp = self%DOS_collect * self%units%energy

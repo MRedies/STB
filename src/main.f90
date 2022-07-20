@@ -75,7 +75,6 @@ program STB
       enddo
       if (me_sample==root) then
          if(trim(uctype)=="file_honey_htp") then
-            write(*,*) "Alloc main",allocated(ColQ%DOS_collect)
             call ColQ%save_DOS_collect()
             call ColQ%save_spins_collect()
             call ColQ%save_sample_idx()
@@ -126,7 +125,6 @@ contains
          call CFG_get(cfg, "ACA%perform_ACA",   perform_ACA)
          call CFG_get(cfg, "plot%plot_omega",   plot_omega)
          call CFG_get(cfg, "grid%unit_cell_type", uctype)
-         write(*,*) "p_dos main process file",perform_dos
       endif
       call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, sample_comm, ierr)
@@ -138,9 +136,7 @@ contains
       call MPI_Bcast(perform_ACA,  1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(plot_omega,   1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(pert_log,     1,  MPI_LOGICAL,   root, sample_comm, ierr)
-      if (me_sample == root) then
-         write(*,*) "p_dos main process file 2",perform_dos
-      endif
+
       !compare perturbation logical
       if(me_sample == root) tmp = pert_log
       call MPI_Bcast(tmp, 1, MPI_LOGICAL, root, sample_comm,ierr2)
@@ -149,9 +145,7 @@ contains
           success = .False.
       endif
       Ksp =  init_k_space(cfg,sample_comm,n_sample,samples_per_comm)
-      if (me_sample == root) then
-         write(*,*) "p_dos main process file 3",perform_dos
-      endif
+
       if (me_sample==root) then
          if(trim(uctype)=="file_honey_htp") then
             call ColQ%add_spins_collect(Ksp%ham%UC%all_spins)
@@ -176,12 +170,9 @@ contains
       if(perform_dos) then
          if(root == me) write (*,*) "started DOS"
          call Ksp%calc_and_print_dos()
-         write(*,*) "me_sample main process file",me_sample
          if (me_sample==root) then
-            write(*,*) "UCType main process file",trim(uctype)
             if(trim(uctype)=="file_honey_htp") then
                call ColQ%add_DOS_collect(Ksp%DOS,Ksp%up,Ksp%down,Ksp%int_DOS)
-               write(*,*) "Alloc main process file",allocated(ColQ%DOS_collect)
                deallocate(Ksp%DOS)
                deallocate(Ksp%up)
                deallocate(Ksp%down)
