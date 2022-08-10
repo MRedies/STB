@@ -54,12 +54,12 @@ program STB
       call MPI_Bcast(prefix,   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(uctype,   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(n_sample_par, 1,  MPI_INTEGER,   root, MPI_COMM_WORLD, ierr)
-      call calc_color(min_comm_size,nProcs,me,color)
+      call calc_color(min_comm_size,nProcs,n_sample_par,me,color)
       !sorting in new comm according to rank in world
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
       call MPI_Comm_rank(sample_comm, me_sample, ierr)
       call MPI_Comm_size(sample_comm, nProcs_sample, ierr)
-      call calc_ncomms(min_comm_size,nProcs,ncomms)
+      call calc_ncomms(min_comm_size,nProcs,n_sample_par,ncomms)
       
       samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms,color)
       ColQ = init_collect_quantities(cfg,prefix,sample_comm,color)
@@ -395,24 +395,26 @@ contains
 
    end subroutine save_cfg
 
-   subroutine calc_ncomms(min_comm_size,nProcs,ncomms)
+   subroutine calc_ncomms(min_comm_size,nProcs,n_sample_par,ncomms)
       use mpi_f08
       implicit none
-      integer , intent(in)           :: min_comm_size,nProcs
+      integer , intent(in)           :: min_comm_size,nProcs,n_sample_par
       integer                        :: ncomms
       if (nProcs<min_comm_size) then
          ncomms=1
+      elseif (n_sample_par<nProcs/min_comm_size):
+         n_comms = n_sample_par
       else
          ncomms = nProcs/min_comm_size
       endif
    end subroutine
 
-   subroutine calc_color(min_comm_size,nProcs,rank,color)
+   subroutine calc_color(min_comm_size,nProcs,n_sample_par,rank,color)
       use mpi_f08
       implicit none
-      integer , intent(in)           :: nProcs,rank,min_comm_size
+      integer , intent(in)           :: nProcs,n_sample_par,rank,min_comm_size
       integer                        :: color,ncomms
-      call calc_ncomms(min_comm_size,nProcs,ncomms)
+      call calc_ncomms(min_comm_size,nProcs,n_sample_par,ncomms)
       color = 0
       if (nProcs>=2*min_comm_size) then
          if (rank>=ncomms*min_comm_size) then
