@@ -402,7 +402,7 @@ contains
       integer                        :: ncomms
       if (nProcs<min_comm_size) then
          ncomms=1
-      elseif (n_sample_par<nProcs/min_comm_size):
+      elseif (n_sample_par<nProcs/min_comm_size)
          ncomms = n_sample_par
       else
          ncomms = nProcs/min_comm_size
