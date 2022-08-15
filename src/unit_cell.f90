@@ -1,4 +1,4 @@
-module Class_unit_cell
+__module Class_unit_cell
    use Class_atom
    use Class_helper
    use m_config
@@ -274,7 +274,7 @@ contains
       call MPI_Bcast(self%atan_factor, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(8))
       if (self%me_sample == root) then
-         write(*,*) "IN BCAST UC SUCCESS", self%dblatan_dist, self%me_sample, self%me
+         write(*,*) "IN BCAST UC SUCCESS", self%dblatan_dist, kind(self%dblatan_dist),self%me_sample, self%me
       endif
       !----------------!
       call MPI_Bcast(self%dblatan_dist, 1, MPI_REAL8, &
