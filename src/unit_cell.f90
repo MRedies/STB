@@ -1,4 +1,4 @@
-__module Class_unit_cell
+module Class_unit_cell
    use Class_atom
    use Class_helper
    use m_config
