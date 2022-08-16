@@ -273,16 +273,8 @@ contains
                      root, self%sample_comm, ierr(7))
       call MPI_Bcast(self%atan_factor, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(8))
-      if (self%me_sample == root) then
-         write(*,*) "IN BCAST UC SUCCESS", self%dblatan_dist, kind(self%dblatan_dist),self%me_sample, self%me
-      endif
-      !----------------!
       call MPI_Bcast(self%dblatan_dist, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(9))
-      !----------------!
-      if (self%me_sample == root) then
-         write(*,*) "IN BCAST 2"
-      endif
       call MPI_Bcast(self%skyrm_middle, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(10))
       call MPI_Bcast(self%n_wind, 1, MPI_INTEGER, &
