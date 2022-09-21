@@ -3,6 +3,7 @@ module Class_append_funcs
     use m_config
     use Class_units
     use stdlib_io_npy, only: save_npy
+    use stdlib_kinds, only: sp,dp,xdp,int64
     implicit none
     type collect_quantities
         real(dp), allocatable ::  int_DOS_collect(:,:)

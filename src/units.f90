@@ -2,6 +2,7 @@ module class_Units
    use m_config
    use Constants
    use mpi_f08
+   use stdlib_kinds, only: sp,dp,xdp,int64
    implicit none
 
    type, public :: units

@@ -1,6 +1,7 @@
 Module  output
    use mpi_f08
    use stdlib_io_npy, only:load_npy,save_npy
+   use stdlib_kinds, only: sp,dp,xdp,int64
    use Class_helper
    implicit None
    integer(int64), parameter  :: std_out =  6
