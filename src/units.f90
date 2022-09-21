@@ -29,7 +29,7 @@ contains
       logical, optional                   :: bcast
       logical                             :: bcast_loc
       type(CFG_t)                         :: cfg
-      real(dp)                             :: factor
+      real(sp)                             :: factor
       integer                             :: ierr
       character(len=300)                  :: unit_name
 
