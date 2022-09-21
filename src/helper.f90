@@ -2,6 +2,7 @@ module Class_helper
    use m_config
    use Constants
    use mpi_f08
+   use stdlib_kinds, only: sp,dp,int8
    implicit none
 
    character(len=1), parameter :: c_esc = achar(27)
@@ -29,8 +30,8 @@ contains
 
    pure function my_norm2(vec) result(norm)
       implicit none
-      real(8), intent(in) :: vec(:)
-      real(8)             :: norm
+      real(dp), intent(in) :: vec(:)
+      real(dp)             :: norm
 
       norm = sqrt(dot_product(vec,vec))
    end function my_norm2
