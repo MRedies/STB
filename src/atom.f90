@@ -170,7 +170,7 @@ contains
         allocate(tmp_rmtx(size(self%neigh_conn, dim=1), &
                           size(self%neigh_conn, dim=2)))
         if(self%me == root) tmp_rmtx = self%neigh_conn
-        call MPI_Bcast(tmp_rmtx, size(tmp_rmtx), MPI_REAL8, &
+        call MPI_Bcast(tmp_rmtx(:,:), size(tmp_rmtx), MPI_REAL8, &
                                       root, comm, ierr(8))
         if(mtx_norm(tmp_rmtx - self%neigh_conn) >  1d-11) then
             call error_msg("neigh_conn doesn't match", abort=.True.)
