@@ -188,7 +188,7 @@ contains
 
         allocate(tmp_i4vec(size(self%conn_type)))
         if(self%me == root) tmp_i4vec = self%conn_type
-        call MPI_Bcast(tmp_i4vec, size(tmp_i4vec), MPI_INTEGER4, &
+        call MPI_Bcast(tmp_i4vec(:), size(tmp_i4vec), MPI_INTEGER4, &
                        root, comm, ierr(10))
         if(any(tmp_i4vec /= self%conn_type)) then
             call error_msg("conn_type doesn't match", abort=.True.)
