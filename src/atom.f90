@@ -99,7 +99,7 @@ contains
         implicit none
         class(atom)                :: self
         real(8)                    :: tmp, tmp_p(3)
-        integer                    :: ierr(10), tmp_i
+        integer                    :: ierr(10), tmp_i,s1,s2
         type(MPI_Comm), intent(in) :: comm
         integer, allocatable    :: tmp_ivec(:)
         integer(8)              :: tmp_i8
@@ -166,11 +166,11 @@ contains
             call error_msg("size(neigh_conn) doesn't match", abort=.True.)
             success = .False.
         endif
-
-        allocate(tmp_rmtx(size(self%neigh_conn, dim=1), &
-                          size(self%neigh_conn, dim=2)))
+        s1 = size(self%neigh_conn, dim=1)
+        s2 = size(self%neigh_conn, dim=2)
+        allocate(tmp_rmtx(s1, s2))
         if(self%me == root) tmp_rmtx = self%neigh_conn
-        call MPI_Bcast(tmp_rmtx(:,:), size(tmp_rmtx), MPI_REAL8, &
+        call MPI_Bcast(tmp_rmtx(1:s1,1:s2), size(tmp_rmtx), MPI_REAL8, &
                                       root, comm, ierr(8))
         if(mtx_norm(tmp_rmtx - self%neigh_conn) >  1d-11) then
             call error_msg("neigh_conn doesn't match", abort=.True.)
