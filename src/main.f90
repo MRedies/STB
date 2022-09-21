@@ -14,7 +14,7 @@ program STB
    type(k_space)                   :: Ksp
    type(collect_quantities)        :: ColQ
    character(len=*), parameter     :: time_fmt =  "(A,F10.3,A)"
-   integer                         :: n_inp, n_files, start_idx, end_idx, cnt&
+   integer(int64)                         :: n_inp, n_files, start_idx, end_idx, cnt&
                                       ,color,n_sample_par,nProcs,n_sample&
                                       ,ierr, me, me_sample,samples_per_comm,nProcs_sample&
                                       ,min_comm_size=8,ncomms
@@ -98,7 +98,7 @@ contains
       integer, intent(in)            :: n_sample,samples_per_comm
       type(MPI_Comm), intent(in)     :: sample_comm
       real(dp)                        :: start, halt
-      integer                        :: me, ierr,ierr2,me_sample
+      integer(int64)                        :: me, ierr,ierr2,me_sample
       logical                        :: perform_band, perform_dos, calc_hall, calc_hall_diag,&
                                         calc_orbmag, perform_ACA,plot_omega,pert_log,tmp,success
       type(CFG_t)                     :: cfg
@@ -218,7 +218,7 @@ contains
       implicit none
       integer, intent(out)     :: n_files
       character(len=300), allocatable :: inp_files(:)
-      integer                  :: me, ierr, i
+      integer(int64)                  :: me, ierr, i
       character(len=300)       :: base_str, tmp_str, start_str, end_str, n_files_str
 
       call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
@@ -399,8 +399,8 @@ contains
    subroutine calc_ncomms(min_comm_size,nProcs,n_sample_par,ncomms)
       use mpi_f08
       implicit none
-      integer , intent(in)           :: min_comm_size,nProcs,n_sample_par
-      integer                        :: ncomms
+      integer(int64) , intent(in)           :: min_comm_size,nProcs,n_sample_par
+      integer(int64)                        :: ncomms
       if (nProcs<min_comm_size) then
          ncomms=1
       elseif (n_sample_par<nProcs/min_comm_size) then
@@ -413,8 +413,8 @@ contains
    subroutine calc_color(min_comm_size,nProcs,n_sample_par,rank,color)
       use mpi_f08
       implicit none
-      integer , intent(in)           :: nProcs,n_sample_par,rank,min_comm_size
-      integer                        :: color,ncomms
+      integer(int64) , intent(in)           :: nProcs,n_sample_par,rank,min_comm_size
+      integer(int64)                        :: color,ncomms
       call calc_ncomms(min_comm_size,nProcs,n_sample_par,ncomms)
       color = 0
       if (nProcs>=2*min_comm_size) then
@@ -430,8 +430,8 @@ contains
    function calc_samples_per_comm(n_sample_par,ncomms,color) result(samples_per_comm)
       use mpi_f08
       implicit none
-      integer , intent(in)           :: n_sample_par,ncomms,color
-      integer                        :: samples_per_comm, rest
+      integer(int64) , intent(in)           :: n_sample_par,ncomms,color
+      integer(int64)                        :: samples_per_comm, rest
 
       !DISTRIBUTE SAMPLES EVENLY ON THE RANKS, AFTER THAT DISTRIBUTE THE REST EVENLY
       samples_per_comm = n_sample_par/ncomms

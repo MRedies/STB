@@ -16,7 +16,7 @@ contains
       integer, intent(in)    :: color, key
       type(MPI_Comm), intent(in) :: comm
       type(MPI_Comm), intent(inout) :: new_comm
-      integer                :: ierr
+      integer(int64)                :: ierr
       TYPE(MPI_Errhandler) :: err_handler
 
       call MPI_Comm_Split(comm,color,key,new_comm,ierr)
@@ -39,9 +39,9 @@ contains
    subroutine judft_mpi_error_handler(comm, error_code)
       use mpi_f08
       implicit none
-      integer  :: error_code
+      integer(int64)  :: error_code
       type(MPI_Comm) :: comm
-      integer             :: str_len, ierr
+      integer(int64)             :: str_len, ierr
       character(len=3000) :: error_str
 
       call MPI_ERROR_STRING(error_code, error_str, str_len, ierr)

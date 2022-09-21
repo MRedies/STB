@@ -17,12 +17,12 @@ module Class_atom
         real(dp), dimension(3)    :: pos     !> Position in RS in atomic units
         integer(int64)               :: site_type !> A or B site
 
-        integer   , allocatable  :: neigh_idx(:)  !> index of neighbour atom
+        integer(int64)   , allocatable  :: neigh_idx(:)  !> index of neighbour atom
         real(dp), allocatable     :: neigh_conn(:,:) !> real space connection to neighbour.
         integer(int64), allocatable  :: conn_type(:) !> type of connection
         !> First index connection, second element of connection.
 
-        integer                  :: me, nProcs
+        integer(int64)                  :: me, nProcs
 
     contains
         procedure :: get_m_cart      => get_m_cart
@@ -57,7 +57,7 @@ contains
         real(dp), intent(in)        :: p_pos(3)
         type(MPI_Comm), intent(in) :: comm
         integer(int64), optional       :: site
-        integer                    :: ierr(2)
+        integer(int64)                    :: ierr(2)
 
         call MPI_Comm_size(comm, self%nProcs, ierr(1))
         call MPI_Comm_rank(comm, self%me, ierr(2))
@@ -100,7 +100,7 @@ contains
         implicit none
         class(atom)                :: self
         real(dp)                    :: tmp, tmp_p(3)
-        integer                    :: ierr(10), tmp_i,s1,s2
+        integer(int64)                    :: ierr(10), tmp_i,s1,s2
         type(MPI_Comm), intent(in) :: comm
         integer, allocatable    :: tmp_ivec(:)
         integer(int64)              :: tmp_i8
