@@ -260,7 +260,7 @@ contains
       if(me /= root) allocate(inp_files(n_files))
 
       do i=1,n_files
-         call MPI_Bcast(inp_files(i,1:300), 300, MPI_CHARACTER,&
+         call MPI_Bcast(inp_files(i), 300, MPI_CHARACTER,&
                         root, MPI_COMM_WORLD, ierr)
       enddo
 
