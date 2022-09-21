@@ -4,7 +4,7 @@ program STB
    use Class_append_funcs
    use m_config
    use stdlib_io_npy, only:load_npy,save_npy
-   use stdlib_kinds, only sp,dp,int8
+   use stdlib_kinds, only: sp,dp,int8
    use output
    use mpi_f08
    use Constants
