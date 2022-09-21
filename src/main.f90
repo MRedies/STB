@@ -4,6 +4,7 @@ program STB
    use Class_append_funcs
    use m_config
    use stdlib_io_npy, only:load_npy,save_npy
+   use stdlib_kinds, only sp,dp,int8
    use output
    use mpi_f08
    use Constants
@@ -18,7 +19,7 @@ program STB
                                       ,ierr, me, me_sample,samples_per_comm,nProcs_sample&
                                       ,min_comm_size=8,ncomms
    type(MPI_Comm)                  :: sample_comm
-   integer(8)   , allocatable      :: dimensions(:)
+   integer(int8)   , allocatable      :: dimensions(:)
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
    character(len=300)              :: dim_file,prefix,uctype
