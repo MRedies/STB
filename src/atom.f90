@@ -150,7 +150,7 @@ contains
 
         allocate(tmp_ivec(size(self%neigh_idx)))
         if(self%me == root) tmp_ivec = self%neigh_idx
-        call MPI_Bcast(tmp_ivec, size(self%neigh_idx), MPI_INTEGER, &
+        call MPI_Bcast(tmp_ivec(:), size(self%neigh_idx), MPI_INTEGER, &
                        root, comm, ierr(6))
         if(any(tmp_ivec /= self%neigh_idx)) then
             write (*,*) self%me, "neigh_idx", self%neigh_idx
