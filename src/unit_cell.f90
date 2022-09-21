@@ -258,9 +258,9 @@ contains
 
       call MPI_Bcast(self%eps, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(1))
-      call MPI_Bcast(self%mag_type, 25, MPI_CHARACTER, &
+      call MPI_Bcast(self%mag_type(1:25), 25, MPI_CHARACTER, &
                      root, self%sample_comm, ierr(2))
-      call MPI_Bcast(self%uc_type, 25, MPI_CHARACTER, &
+      call MPI_Bcast(self%uc_type(1:25), 25, MPI_CHARACTER, &
                      root, self%sample_comm, ierr(3))
       call MPI_Bcast(self%lattice_constant, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(4))
@@ -309,21 +309,21 @@ contains
       call MPI_Bcast(self%axis_phi, 1, MPI_REAL8, root, self%sample_comm, ierr(21))
       call MPI_Bcast(self%axis_theta, 1, MPI_REAL8, root, self%sample_comm, ierr(26))
       call MPI_Bcast(self%cone_angle, 1, MPI_REAL8, root, self%sample_comm, ierr(22))
-      call MPI_Bcast(self%spiral_type, 25, MPI_CHARACTER, root, self%sample_comm, ierr(23))
+      call MPI_Bcast(self%spiral_type(1:25), 25, MPI_CHARACTER, root, self%sample_comm, ierr(23))
       call MPI_Bcast(self%dblatan_pref, 1, MPI_REAL8, &
                      root, self%sample_comm, ierr(24))
       call MPI_Bcast(self%atan_pref, 1, MPI_REAL8, root, self%sample_comm, ierr(25))
 
        !BCAST FILES, SINCE IN EVERY SUBCOMM THE ROOT NEEDS TO READ
-      call MPI_Bcast(self%mag_file, 300, MPI_CHARACTER, &
+      call MPI_Bcast(self%mag_file(1:300), 300, MPI_CHARACTER, &
                      root, self%sample_comm, ierr(27))
-      call MPI_Bcast(self%vec_file, 300, MPI_CHARACTER, &
+      call MPI_Bcast(self%vec_file(1:300), 300, MPI_CHARACTER, &
                      root, self%sample_comm, ierr(28))
-      call MPI_Bcast(self%pos_file, 300, MPI_CHARACTER, &
+      call MPI_Bcast(self%pos_file(1:300), 300, MPI_CHARACTER, &
                      root, self%sample_comm, ierr(29))
-      call MPI_Bcast(self%dim_file, 300, MPI_CHARACTER, &
+      call MPI_Bcast(self%dim_file(1:300), 300, MPI_CHARACTER, &
                      root, self%sample_comm, ierr(30))
-      call MPI_Bcast(self%site_type_file, 300, MPI_CHARACTER, &
+      call MPI_Bcast(self%site_type_file(1:300), 300, MPI_CHARACTER, &
                      root, self%sample_comm, ierr(31))
       call check_ierr(ierr, self%me, "Unit cell check err")
    end subroutine Bcast_UC
@@ -386,7 +386,7 @@ contains
          read (21, *) garb, n(1), n(2), n(3)
          write (*, *) n
       endif
-      call MPI_Bcast(n, 3, MPI_INTEGER, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(n(1:3), 3, MPI_INTEGER, root, MPI_COMM_WORLD, info)
       self%num_atoms = n(1)*n(2)*n(3)
 
       allocate (self%atoms(self%num_atoms))
@@ -399,9 +399,9 @@ contains
          endif
       enddo
 
-      call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
+      call MPI_Bcast(pos(1:3,1:int(self%num_atoms, 4)), int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, MPI_COMM_WORLD, info)
-      call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
+      call MPI_Bcast(m(1:3,1:int(self%num_atoms, 4)), int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, MPI_COMM_WORLD, info)
 
       pos = pos*self%lattice_constant
@@ -425,7 +425,7 @@ contains
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
 
-      call MPI_Bcast(transl_mtx, int(3*n_transl, 4), MPI_REAL8, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(transl_mtx(1:n_transl,1:3), int(3*n_transl, 4), MPI_REAL8, root, MPI_COMM_WORLD, info)
 
       conn_mtx(1, :) = (/self%lattice_constant, 0d0, 0d0/)
       conn_mtx(2, :) = (/0d0, self%lattice_constant, 0d0/)
@@ -455,7 +455,7 @@ contains
          read (21, *) garb, n(1), n(2), n(3)
          write (*, *) n
       endif
-      call MPI_Bcast(n, 3, MPI_INTEGER, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(n(1:3), 3, MPI_INTEGER, root, MPI_COMM_WORLD, info)
       self%num_atoms = 2*n(1)*n(2)*n(3)
 
       allocate (self%atoms(self%num_atoms))
@@ -469,11 +469,11 @@ contains
          endif
       enddo
 
-      call MPI_Bcast(pos, int(3*self%num_atoms, 4), MPI_REAL8, &
+      call MPI_Bcast(pos(1:3,1:int(self%num_atoms, 4)), int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, MPI_COMM_WORLD, info)
-      call MPI_Bcast(m, int(3*self%num_atoms, 4), MPI_REAL8, &
+      call MPI_Bcast(m(1:3,1:int(self%num_atoms, 4)), int(3*self%num_atoms, 4), MPI_REAL8, &
                      root, MPI_COMM_WORLD, info)
-      call MPI_Bcast(site_type, int(self%num_atoms, 4), MPI_INTEGER, &
+      call MPI_Bcast(site_type(1:int(self%num_atoms, 4)), int(self%num_atoms, 4), MPI_INTEGER, &
                      root, MPI_COMM_WORLD, info)
 
       pos = transpose(pos)*self%lattice_constant
@@ -496,7 +496,7 @@ contains
       !if we want a molecule, ensure that no wrap-around is found
       if (self%molecule) transl_mtx = transl_mtx*10d0
 
-      call MPI_Bcast(transl_mtx, int(3*n_transl, 4), MPI_REAL8, root, MPI_COMM_WORLD, info)
+      call MPI_Bcast(transl_mtx(1:n_transl,1:3), int(3*n_transl, 4), MPI_REAL8, root, MPI_COMM_WORLD, info)
 
       conn_mtx(1, :) = self%lattice_constant*[0d0, 1d0, 0d0]!1
       conn_mtx(2, :) = self%lattice_constant*[cos(deg_30), -sin(deg_30), 0d0]!2
@@ -1148,7 +1148,7 @@ contains
          write(*,*) "Seed: ",self%me,self%sample_comm,self%me_sample,seed
          call random_number(u)
       endif
-      call MPI_Bcast(u,     send_size,  MPI_REAL8,   root, self%sample_comm, ierr(1))
+      call MPI_Bcast(u(self%num_atoms,2),     send_size,  MPI_REAL8,   root, self%sample_comm, ierr(1))
       call check_ierr(ierr, self%me, "Mag rand check err")
       do i = 1, self%num_atoms
          !sphere point picking

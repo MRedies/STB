@@ -51,8 +51,8 @@ program STB
          endif
          write(*,*) "N Samples: " ,n_sample_par
       endif
-      call MPI_Bcast(prefix,   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
-      call MPI_Bcast(uctype,   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(prefix(1:300),   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(uctype(1:300),   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(n_sample_par, 1,  MPI_INTEGER,   root, MPI_COMM_WORLD, ierr)
       call calc_color(min_comm_size,nProcs,n_sample_par,me,color)
       !sorting in new comm according to rank in world
@@ -128,8 +128,8 @@ contains
       endif
       call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, sample_comm, ierr)
-      call MPI_Bcast(fermi_type,   25, MPI_CHARACTER, root, sample_comm, ierr)
-      call MPI_Bcast(uctype,   300, MPI_CHARACTER, root, sample_comm, ierr)
+      call MPI_Bcast(fermi_type(1:25),   25, MPI_CHARACTER, root, sample_comm, ierr)
+      call MPI_Bcast(uctype(1:300),   300, MPI_CHARACTER, root, sample_comm, ierr)
       call MPI_Bcast(calc_hall,    1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(calc_hall_diag,    1,  MPI_LOGICAL,   root, sample_comm, ierr)
       call MPI_Bcast(calc_orbmag,  1,  MPI_LOGICAL,   root, sample_comm, ierr)
@@ -260,7 +260,7 @@ contains
       if(me /= root) allocate(inp_files(n_files))
 
       do i=1,n_files
-         call MPI_Bcast(inp_files(i), 300, MPI_CHARACTER,&
+         call MPI_Bcast(inp_files(i,1:300), 300, MPI_CHARACTER,&
                         root, MPI_COMM_WORLD, ierr)
       enddo
 

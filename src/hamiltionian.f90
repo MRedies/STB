@@ -452,7 +452,7 @@ contains
       if(self%me_sample == root) Vx_len = size(self%drop_Vx_layers)
       call MPI_Bcast(Vx_len, 1, MPI_INTEGER, &
                      root, self%sample_comm, ierr(21))
-      call MPI_Bcast(self%prefix,  300,          MPI_CHARACTER, &
+      call MPI_Bcast(self%prefix(1:300),  300,          MPI_CHARACTER, &
                      root,        self%sample_comm, ierr(22))
       ! allocate and share Vy_dropout
       if(self%me_sample ==root) Vy_len = size(self%drop_Vy_layers)

@@ -469,9 +469,9 @@ contains
          sz(2) = size(self%k2_param)
       endif
 
-      call MPI_Bcast(self%prefix,  300,          MPI_CHARACTER, &
+      call MPI_Bcast(self%prefix(1:300),  300,          MPI_CHARACTER, &
                      root,                    self%sample_comm, ierr(1))
-      call MPI_Bcast(self%filling, 300,          MPI_CHARACTER, &
+      call MPI_Bcast(self%filling(1:300), 300,          MPI_CHARACTER, &
                      root,                    self%sample_comm, ierr(2))
 
       call MPI_Bcast(self%DOS_gamma,   1,            MPI_REAL8,   &
@@ -522,11 +522,11 @@ contains
                      root,                            self%sample_comm, ierr(27))
       call MPI_Bcast(self%calc_orbmag,     1,            MPI_LOGICAL,   &
                      root,                            self%sample_comm, ierr(20))
-      call MPI_Bcast(self%chosen_weights,  300,          MPI_CHARACTER, &
+      call MPI_Bcast(self%chosen_weights(1:300),  300,          MPI_CHARACTER, &
                      root,                            self%sample_comm, ierr(21))
-      call MPI_Bcast(self%ada_mode,    6,          MPI_CHARACTER, &
+      call MPI_Bcast(self%ada_mode(1:6),    6,          MPI_CHARACTER, &
                      root,                            self%sample_comm, ierr(22))
-      call MPI_Bcast(self%berry_component,    6,          MPI_CHARACTER, &
+      call MPI_Bcast(self%berry_component(1:6),    6,          MPI_CHARACTER, &
                      root,                            self%sample_comm, ierr(28))
 
       call MPI_Bcast(self%test_run,      1,              MPI_LOGICAL, &
