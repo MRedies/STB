@@ -30,7 +30,7 @@ contains
 
    pure function my_norm2(vec) result(norm)
       implicit none
-      real(xdp), intent(in) :: vec(:)
+      real(dp), intent(in) :: vec(:)
       real(xdp)             :: norm
 
       norm = sqrt(dot_product(vec,vec))
