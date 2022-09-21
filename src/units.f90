@@ -5,7 +5,7 @@ module class_Units
    implicit none
 
    type, public :: units
-      real(8) :: length, energy, inv_length, temperature, mag_dipol
+      real(dp) :: length, energy, inv_length, temperature, mag_dipol
    end type units
 contains
    function init_units(cfg, me) result(ret)
@@ -28,7 +28,7 @@ contains
       logical, optional                   :: bcast
       logical                             :: bcast_loc
       type(CFG_t)                         :: cfg
-      real(8)                             :: factor
+      real(dp)                             :: factor
       integer                             :: ierr
       character(len=300)                  :: unit_name
 

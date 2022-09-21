@@ -5,11 +5,11 @@ module Class_append_funcs
     use stdlib_io_npy, only: save_npy
     implicit none
     type collect_quantities
-        real(8), allocatable ::  int_DOS_collect(:,:)
-        real(8), allocatable ::  DOS_collect(:,:)
-        real(8), allocatable ::  up_collect(:,:)
-        real(8), allocatable ::  down_collect(:,:)
-        real(8), allocatable ::  spins_collect(:,:)
+        real(dp), allocatable ::  int_DOS_collect(:,:)
+        real(dp), allocatable ::  DOS_collect(:,:)
+        real(dp), allocatable ::  up_collect(:,:)
+        real(dp), allocatable ::  down_collect(:,:)
+        real(dp), allocatable ::  spins_collect(:,:)
         integer, allocatable ::  sample_idx(:)
         integer              ::  me,me_sample,color
         character(len=300)   :: prefix
@@ -44,7 +44,7 @@ module Class_append_funcs
             use mpi_f08
             implicit none
             class(collect_quantities)           :: self
-            real(8), intent(in)                 :: DOS(:), up(:), down(:), int_DOS(:)
+            real(dp), intent(in)                 :: DOS(:), up(:), down(:), int_DOS(:)
     
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%DOS_collect)) then
@@ -80,7 +80,7 @@ module Class_append_funcs
             class(collect_quantities)           :: self
             integer                             :: i
             integer,allocatable                 :: isize(:)
-            real(8), intent(in)                 :: spins(:,:)
+            real(dp), intent(in)                 :: spins(:,:)
             allocate(isize(2))
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%spins_collect)) then
@@ -116,7 +116,7 @@ module Class_append_funcs
             implicit none
             class(collect_quantities)           :: self
             character(len=300)                  :: filename
-            real(8), allocatable                ::  tmp(:,:)
+            real(dp), allocatable                ::  tmp(:,:)
             integer,allocatable                 :: isize(:)
 
             
@@ -211,9 +211,9 @@ module Class_append_funcs
             !https://stackoverflow.com/questions/28048508/how-to-add-new-element-to-dynamical-array-in-fortran-90
             implicit none
             integer                             :: i,isize
-            real(8), intent(in)                 :: element
-            real(8), allocatable, intent(inout) :: list(:)
-            real(8), allocatable                :: clist(:)
+            real(dp), intent(in)                 :: element
+            real(dp), allocatable, intent(inout) :: list(:)
+            real(dp), allocatable                :: clist(:)
     
             if(allocated(list)) then
                 isize = size(list)
@@ -238,9 +238,9 @@ module Class_append_funcs
             implicit none
             integer                             :: i
             integer,allocatable                 :: isize(:)
-            real(8)             , intent(in)    :: element(:)
-            real(8), allocatable, intent(inout) :: list(:,:)
-            real(8), allocatable                :: clist(:,:)
+            real(dp)             , intent(in)    :: element(:)
+            real(dp), allocatable, intent(inout) :: list(:,:)
+            real(dp), allocatable                :: clist(:,:)
         
         allocate(isize(2))
 
@@ -269,9 +269,9 @@ module Class_append_funcs
         implicit none
         integer                             :: i
         integer,allocatable                 :: isize(:),esize(:)
-        real(8)             , intent(in)    :: element(:,:)
-        real(8), allocatable, intent(inout) :: list(:,:)
-        real(8), allocatable                :: clist(:,:)
+        real(dp)             , intent(in)    :: element(:,:)
+        real(dp), allocatable, intent(inout) :: list(:,:)
+        real(dp), allocatable                :: clist(:,:)
     
     allocate(isize(2))
     allocate(esize(2))

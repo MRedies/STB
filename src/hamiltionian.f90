@@ -3,29 +3,30 @@ module Class_hamiltionian
    use output
    use Class_unit_cell
    use stdlib_io_npy, only:load_npy,save_npy
+   use stdlib_kinds, only: sp,dp,xdp,int64
    use mpi_f08
    use Constants
    implicit none
 
    type hamil
-      real(8), allocatable :: E_fermi(:) !> Fermi lvl
-      real(8)              :: temp !> temperature used in fermi-dirac
-      real(8)         :: E_s !> onsite eigenenergy
-      real(8)         :: E_A, E_B !> onsite energies for A and B sites in honeycomb
-      real(8)         :: E_p(3)
-      real(8)         :: Vss_sig !> nearest neighbour hopping for s-orbital
-      real(8)         :: Vpp_pi, Vpp_sig !> nearest neigh hopping for p-orbitals
-      real(8)         :: V2pp_pi, V2pp_sig !> 2nd n-neigh hopping for p-orbitals
-      real(8)         :: eta_soc
-      real(8)         :: t_2 !> amplitude for 2nd nearest neighbour hopping
-      real(8)         :: phi_2 !> polar angle of 2nd nearest neighbour hopping in rad
-      real(8)         :: t_so !> Rashba spin orb
-      real(8)         :: lambda !> local exchange
-      real(8)         :: HB1, HB2, HB_eta !> parameters for hongbins model
-      real(8)         :: lambda_KM !> parameter for Kane Mele term
-      real(8)         :: gamma !> broadening, Greens function, sigma_xx
-      real(8), allocatable       :: drop_Vx_layers(:), drop_Vy_layers(:)
-      complex(8), allocatable    :: del_H(:,:)
+      real(dp), allocatable :: E_fermi(:) !> Fermi lvl
+      real(dp)              :: temp !> temperature used in fermi-dirac
+      real(dp)         :: E_s !> onsite eigenenergy
+      real(dp)         :: E_A, E_B !> onsite energies for A and B sites in honeycomb
+      real(dp)         :: E_p(3)
+      real(dp)         :: Vss_sig !> nearest neighbour hopping for s-orbital
+      real(dp)         :: Vpp_pi, Vpp_sig !> nearest neigh hopping for p-orbitals
+      real(dp)         :: V2pp_pi, V2pp_sig !> 2nd n-neigh hopping for p-orbitals
+      real(dp)         :: eta_soc
+      real(dp)         :: t_2 !> amplitude for 2nd nearest neighbour hopping
+      real(dp)         :: phi_2 !> polar angle of 2nd nearest neighbour hopping in rad
+      real(dp)         :: t_so !> Rashba spin orb
+      real(dp)         :: lambda !> local exchange
+      real(dp)         :: HB1, HB2, HB_eta !> parameters for hongbins model
+      real(dp)         :: lambda_KM !> parameter for Kane Mele term
+      real(dp)         :: gamma !> broadening, Greens function, sigma_xx
+      real(dp), allocatable       :: drop_Vx_layers(:), drop_Vy_layers(:)
+      complex(dp), allocatable    :: del_H(:,:)
       character(len=300)   :: prefix
       integer         :: sample_idx  !> index of the sample
       integer         :: nProcs
@@ -91,7 +92,7 @@ contains
       implicit none
       class(hamil)         :: self
       class(CFG_t)           :: cfg
-      real(8)                :: tmp(3)
+      real(dp)                :: tmp(3)
       integer                :: ierr
       integer                :: n_steps
    
@@ -117,9 +118,9 @@ contains
    function fermi_distr(self, E, n_ferm) result(ferm)
       implicit none
       class(hamil), intent(in)    :: self
-      real(8), intent(in)           :: E
+      real(dp), intent(in)           :: E
       integer   , intent(in)        :: n_ferm
-      real(8)                       :: ferm, exp_term
+      real(dp)                       :: ferm, exp_term
    
       exp_term =  (E - self%E_fermi(n_ferm)) /&
                  (boltzmann_const * self%temp)
@@ -137,7 +138,7 @@ contains
    function z_layer_states(self) result(z)
       implicit none
       class(hamil), intent(in)      :: self
-      real(8)                       :: z(2 * self%num_up)
+      real(dp)                       :: z(2 * self%num_up)
       integer                       :: n_up, n_down, i_atm
 
       i_atm = 1
@@ -154,10 +155,10 @@ contains
       implicit None
       class(hamil)                  :: self
       integer, intent(in)           :: k_idx
-      real(8), allocatable          :: layers(:)
+      real(dp), allocatable          :: layers(:)
       logical                       :: mask(2 * self%num_up)
-      real(8)                       :: z(2 * self%num_up), t_start, t_stop
-      real(8), parameter            :: eps = 1e-6
+      real(dp)                       :: z(2 * self%num_up), t_start, t_stop
+      real(dp), parameter            :: eps = 1e-6
       integer                       :: i, m, ierr
 
       t_start = MPI_Wtime()
@@ -197,8 +198,8 @@ contains
    subroutine compare_derivative(self, k)
       implicit none
       class(hamil)                :: self
-      real(8), intent(in)         :: k(3)
-      complex(8), allocatable     :: fd_H(:,:)
+      real(dp), intent(in)         :: k(3)
+      complex(dp), allocatable     :: fd_H(:,:)
       integer                     :: N, k_idx
 
       N = 2 * self%num_up
@@ -234,8 +235,8 @@ contains
    subroutine setup_H(self,k,H)
       implicit none
       class(hamil)              :: self
-      real(8), intent(in)       :: k(3)
-      complex(8), intent(inout) :: H(:,:)
+      real(dp), intent(in)       :: k(3)
+      complex(dp), intent(inout) :: H(:,:)
       logical                   :: has_E, has_hopp
 
       if(k(3) /= 0d0) then
@@ -275,7 +276,7 @@ contains
 
    subroutine test_herm(H, tag, verbose)
       implicit none
-      complex(8), intent(in)      :: H(:,:)
+      complex(dp), intent(in)      :: H(:,:)
       integer                     :: n
       character(len=*), optional  :: tag
       logical, optional           :: verbose
@@ -307,7 +308,7 @@ contains
       type(hamil)         :: self
       integer, intent(in) :: n_sample,samples_per_comm
       type(MPI_Comm), intent(in) :: sample_comm
-      real(8)             :: tmp
+      real(dp)             :: tmp
       integer             :: ierr
       integer             :: n, n_arr
 
@@ -475,8 +476,8 @@ contains
     subroutine set_loc_exch(self,H)
       implicit none
       class(hamil), intent(in)   :: self
-      complex(8), intent(inout)  :: H(:,:)
-      complex(8)                 :: S(2,2) !> Stonermatrix
+      complex(dp), intent(inout)  :: H(:,:)
+      complex(dp)                 :: S(2,2) !> Stonermatrix
       integer                    :: i, i_up, i_dw, atm, m, j, j_up, j_dw
 
       m = self%num_orb - 1
@@ -504,8 +505,8 @@ contains
       implicit none
       class(hamil), intent(in) :: self
       integer   , intent(in)   :: i
-      complex(8), intent(inout):: S(2,2)
-      real(8)                  :: m(3), fac
+      complex(dp), intent(inout):: S(2,2)
+      real(dp)                  :: m(3), fac
 
       m = self%UC%atoms(i)%get_m_cart()
       fac =  - 0.5d0 *  self%lambda
@@ -518,7 +519,7 @@ contains
    subroutine set_EigenE(self,H)
       implicit none
       class(hamil), intent(in) :: self
-      complex(8), intent(inout):: H(:,:)
+      complex(dp), intent(inout):: H(:,:)
       integer    :: i, id, m
 
       m = self%num_orb - 1
@@ -545,7 +546,7 @@ contains
    subroutine set_p_energy(self, H)
       implicit none
       class(hamil), intent(in)      :: self
-      complex(8), intent(inout) :: H(:,:)
+      complex(dp), intent(inout) :: H(:,:)
       integer                   :: i, N, p_idx
 
       if(self%num_orb == 3) then
@@ -563,12 +564,12 @@ contains
    subroutine set_hopping(self,k, H)
       implicit none
       class(hamil), intent(in)          :: self
-      real(8), intent(in)               :: k(3)
-      complex(8), intent(inout)         :: H(:,:)
+      real(dp), intent(in)               :: k(3)
+      complex(dp), intent(inout)         :: H(:,:)
       integer                           :: i, i_d, j,&
                                            j_d, conn, m, cnt, n_idx
-      real(8)                           :: k_dot_r, hopp_mtx(self%num_orb, self%num_orb), R(3)
-      complex(8)                        :: new(self%num_orb, self%num_orb)
+      real(dp)                           :: k_dot_r, hopp_mtx(self%num_orb, self%num_orb), R(3)
+      complex(dp)                        :: new(self%num_orb, self%num_orb)
 
       m = self%num_orb - 1
 
@@ -616,10 +617,10 @@ contains
    subroutine set_hongbin_hopp(self, k, H)
       implicit none
       class(hamil), intent(in)             :: self
-      real(8), intent(in)              :: k(3)
-      complex(8), intent(inout)        :: H(6,6)
-      real(8), parameter               :: A = 1d0
-      real(8)                          :: kx, ky, kz
+      real(dp), intent(in)              :: k(3)
+      complex(dp), intent(inout)        :: H(6,6)
+      real(dp), parameter               :: A = 1d0
+      real(dp)                          :: kx, ky, kz
 
       kx = k(1)
       ky = k(2)
@@ -639,9 +640,9 @@ contains
    subroutine set_hongbin_SOC(self, H)
       implicit none
       class(hamil), intent(in)          :: self
-      complex(8), intent(inout)     :: H(6,6)
+      complex(dp), intent(inout)     :: H(6,6)
       integer, parameter            :: x_or_z = 1
-      complex(8)                    :: soc_mtx(3,3)
+      complex(dp)                    :: soc_mtx(3,3)
 
       soc_mtx      =   c_0
       if(x_or_z ==  1) then
@@ -662,12 +663,12 @@ contains
    subroutine set_snd_hopping(self,k, H)
       implicit none
       class(hamil), intent(in)              :: self
-      real(8), intent(in)               :: k(3)
-      complex(8), intent(inout)         :: H(:,:)
+      real(dp), intent(in)               :: k(3)
+      complex(dp), intent(inout)         :: H(:,:)
       integer                           :: i, i_d, j,&
                                            j_d, conn, m, cnt, n_idx
-      real(8)                           :: k_dot_r, hopp_mtx(self%num_orb, self%num_orb), R(3)
-      complex(8)                        :: new(self%num_orb, self%num_orb)
+      real(dp)                           :: k_dot_r, hopp_mtx(self%num_orb, self%num_orb), R(3)
+      complex(dp)                        :: new(self%num_orb, self%num_orb)
 
       m = self%num_orb - 1
 
@@ -714,9 +715,9 @@ contains
 
    subroutine set_p_hopp_mtx(R, Vpp_sig, Vpp_pi, hopp_mtx)
       implicit none
-      real(8), intent(in)      :: R(3), Vpp_sig, Vpp_pi !> real-space connection between atoms
-      real(8), intent(out)     :: hopp_mtx(3,3) !> hopping matrix
-      real(8)                  :: l, m, n !> directional cosines
+      real(dp), intent(in)      :: R(3), Vpp_sig, Vpp_pi !> real-space connection between atoms
+      real(dp), intent(out)     :: hopp_mtx(3,3) !> hopping matrix
+      real(dp)                  :: l, m, n !> directional cosines
 
       l = R(1)/my_norm2(R)
       m = R(2)/my_norm2(R)
@@ -741,8 +742,8 @@ contains
    subroutine set_SOC(self, H)
       implicit none
       class(hamil), intent(in)              :: self
-      complex(8), intent(inout)         :: H(:,:)
-      complex(8)                        :: loc_H(2,2)
+      complex(dp), intent(inout)         :: H(:,:)
+      complex(dp)                        :: loc_H(2,2)
       integer                           :: i_u, i_d, mu, nu, ms, ns, i_atm
 
       if(self%num_orb /= 3) then
@@ -772,8 +773,8 @@ contains
    subroutine set_rot_SO(atm, U)
       implicit none
       type(atom), intent(in)   :: atm
-      complex(8), intent(out)  :: U(2,2)
-      complex(8)                  :: t_half, p_half
+      complex(dp), intent(out)  :: U(2,2)
+      complex(dp)                  :: t_half, p_half
 
       t_half =  0.5d0 * atm%m_theta
       p_half =  0.5d0 * atm%m_phi
@@ -788,7 +789,7 @@ contains
       implicit none
       class(hamil), intent(in)       :: self
       integer   , intent(in)     :: mu, nu
-      complex(8), intent(out)    :: H(2,2)
+      complex(dp), intent(out)    :: H(2,2)
 
       H(1,1) =   self%eta_soc *  Lz(mu,nu)
       H(2,1) =   self%eta_soc * (Lx(mu,nu) + i_unit * Ly(mu,nu))
@@ -799,11 +800,11 @@ contains
    subroutine set_haldane_hopping(self,k, H)
       implicit none
       class(hamil), intent(in)              :: self
-      real(8), intent(in)               :: k(3)
-      complex(8), intent(inout)         :: H(:,:)
+      real(dp), intent(in)               :: k(3)
+      complex(dp), intent(inout)         :: H(:,:)
       integer                           :: i, i_d, j, j_d, conn
-      real(8)                           :: k_dot_r
-      complex(8)                        :: forw, back, t_full
+      real(dp)                           :: k_dot_r
+      complex(dp)                        :: forw, back, t_full
 
       t_full =  self%t_2 * exp(i_unit * self%phi_2)
 
@@ -833,12 +834,12 @@ contains
    subroutine set_KaneMele_exch(self, k, H)
     implicit none
     class(hamil), intent(in)    :: self
-    real(8),intent(in)          ::k(3)
-    complex(8), intent(inout)   :: H(:,:)
-    real(8)                     ::a(3,2)
-    real(8)                     ::k_n(3)
+    real(dp),intent(in)          ::k(3)
+    complex(dp), intent(inout)   :: H(:,:)
+    real(dp)                     ::a(3,2)
+    real(dp)                     ::k_n(3)
     integer                     ::conn,i,i_d,j,j_d
-    real(8)                     ::KM,x,y,f
+    real(dp)                     ::KM,x,y,f
 
     if(self%num_orb /= 1) call error_msg("Kane-Mele only for s-oritals", abort=.True.)
 
@@ -876,11 +877,11 @@ contains
    subroutine set_rashba_SO(self, k, H)
       implicit none
       class(hamil), intent(in)    :: self
-      real(8), intent(in)         :: k(3)
-      complex(8), intent(inout)   :: H(:,:)
+      real(dp), intent(in)         :: k(3)
+      complex(dp), intent(inout)   :: H(:,:)
       integer                     :: i, conn, j, i_d, j_d
-      real(8)                     :: k_dot_r, d_ij(3)
-      complex(8)                  :: new(2,2)
+      real(dp)                     :: k_dot_r, d_ij(3)
+      complex(dp)                  :: new(2,2)
 
       if(self%num_orb /= 1) call error_msg("Rashba only for s-oritals", abort=.True.)
 
@@ -920,8 +921,8 @@ contains
    subroutine set_hopp_mtx(self, R, hopp_mtx)
       implicit none
       class(hamil), intent(in)     :: self
-      real(8), intent(in)      :: R(3)
-      real(8)                  :: hopp_mtx(self%num_orb, self%num_orb)
+      real(dp), intent(in)      :: R(3)
+      real(dp)                  :: hopp_mtx(self%num_orb, self%num_orb)
 
       if(self%num_orb ==  1) then
          hopp_mtx(1,1) =  self%Vss_sig
@@ -933,8 +934,8 @@ contains
    subroutine set_snd_hopp_mtx(self, R, hopp_mtx)
       implicit none
       class(hamil), intent(in)     :: self
-      real(8), intent(in)      :: R(3)
-      real(8)                  :: hopp_mtx(self%num_orb, self%num_orb)
+      real(dp), intent(in)      :: R(3)
+      real(dp)                  :: hopp_mtx(self%num_orb, self%num_orb)
 
       if(self%num_orb ==  1) then
          call error_msg("snd hopping not implemented for s", abort=.True.)
@@ -946,11 +947,11 @@ contains
    subroutine set_deriv_FD(self, k, k_idx, del_H)
       implicit none
       class(hamil), intent(in) :: self
-      real(8), intent(in)      :: k(3)
+      real(dp), intent(in)      :: k(3)
       integer   , intent(in)   :: k_idx
-      complex(8), allocatable     :: H_forw(:,:), H_back(:,:), del_H(:,:)
-      real(8) :: k_forw(3), k_back(3)
-      real(8), parameter :: delta_k =  1d-6
+      complex(dp), allocatable     :: H_forw(:,:), H_back(:,:), del_H(:,:)
+      real(dp) :: k_forw(3), k_back(3)
+      real(dp), parameter :: delta_k =  1d-6
       integer            :: N
 
       N = 2 * self%num_up
@@ -980,7 +981,7 @@ contains
       implicit none
       class(hamil)                  :: self
       integer   , intent(in)    :: k_idx
-      real(8), intent(in)       :: k(3)
+      real(dp), intent(in)       :: k(3)
       logical                   :: has_hopp, has_hong
 
       if(k(3) /= 0) then
@@ -1014,11 +1015,11 @@ contains
    subroutine set_derivative_KM(self, k )
     implicit none
     class(hamil)                :: self
-    real(8),intent(in)          ::k(3)
-    real(8)                     ::a(3,2)
-    real(8)                     ::k_n(3)
+    real(dp),intent(in)          ::k(3)
+    real(dp)                     ::a(3,2)
+    real(dp)                     ::k_n(3)
     integer                     ::conn,i,i_d,j,j_d
-    real(8)                     ::abs_k,KM_deriv,x,y,f_deriv
+    real(dp)                     ::abs_k,KM_deriv,x,y,f_deriv
 
     if(self%num_orb /= 1) call error_msg("Kane-Mele only for s-oritals", abort=.True.)
     do i = 1,self%num_up
@@ -1056,10 +1057,10 @@ contains
    subroutine set_derivative_hopping(self, k, k_idx)
       implicit none
       class(hamil)             :: self
-      real(8), intent(in)      :: k(3)
+      real(dp), intent(in)      :: k(3)
       integer   , intent(in)   :: k_idx
-      real(8)                   :: r(3), k_dot_r, hopp_mtx(self%num_orb, self%num_orb)
-      complex(8)                :: forw(self%num_orb, self%num_orb), back(self%num_orb, self%num_orb)
+      real(dp)                   :: r(3), k_dot_r, hopp_mtx(self%num_orb, self%num_orb)
+      complex(dp)                :: forw(self%num_orb, self%num_orb), back(self%num_orb, self%num_orb)
       integer                   :: i, j, conn, i_d, j_d, m, cnt, n_idx
 
       m =  self%num_orb - 1
@@ -1098,10 +1099,10 @@ contains
    subroutine set_derivative_snd_hopping(self, k, k_idx)
       implicit none
       class(hamil)             :: self
-      real(8), intent(in)      :: k(3)
+      real(dp), intent(in)      :: k(3)
       integer   , intent(in)   :: k_idx
-      real(8)                   :: r(3), k_dot_r, hopp_mtx(self%num_orb, self%num_orb)
-      complex(8)                :: forw(self%num_orb, self%num_orb), back(self%num_orb, self%num_orb)
+      real(dp)                   :: r(3), k_dot_r, hopp_mtx(self%num_orb, self%num_orb)
+      complex(dp)                :: forw(self%num_orb, self%num_orb), back(self%num_orb, self%num_orb)
       integer                   :: i, j, conn, i_d, j_d, m, cnt, n_idx
 
       m =  self%num_orb - 1
@@ -1140,10 +1141,10 @@ contains
    subroutine set_derivative_haldane_hopping(self, k, k_idx)
       implicit none
       class(hamil)              :: self
-      real(8), intent(in)       :: k(3)
+      real(dp), intent(in)       :: k(3)
       integer   , intent(in)    :: k_idx
-      real(8)                   :: r(3), k_dot_r
-      complex(8)                :: forw, back, t_full
+      real(dp)                   :: r(3), k_dot_r
+      complex(dp)                :: forw, back, t_full
       integer                   :: i, j, conn, i_d, j_d
 
       t_full =  self%t_2 * exp(i_unit * self%phi_2)
@@ -1178,11 +1179,11 @@ contains
    subroutine set_derivative_rashba_so(self, k, k_idx)
       implicit none
       class(hamil)            :: self
-      real(8), intent(in)     :: k(3)
+      real(dp), intent(in)     :: k(3)
       integer   , intent(in)  :: k_idx
-      real(8)                 :: r(3), d_ij(3), k_dot_r
+      real(dp)                 :: r(3), d_ij(3), k_dot_r
       integer                 :: i, j, i_d, j_d, conn
-      complex(8)              :: e_z_sigma(2,2), forw(2,2), back(2,2)
+      complex(dp)              :: e_z_sigma(2,2), forw(2,2), back(2,2)
 
 !$OMP          parallel do default(shared) &
 !$OMP        & private(i_d, conn, j, j_d, r, d_ij, k_dot_r, e_z_sigma, forw, back)&
@@ -1222,11 +1223,11 @@ contains
    subroutine calc_exch_firstord(self,eig_vec_mtx,eig_val,H_xc_1)
       implicit none
       class(hamil)                    :: self
-      complex(8), intent(in)          :: eig_vec_mtx(:,:)
-      real(8),intent(in)              :: eig_val(:)
-      complex(8), allocatable         :: H_xc_1(:,:)
-      complex(8), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
-      complex(8)                      :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE,fac,Efac
+      complex(dp), intent(in)          :: eig_vec_mtx(:,:)
+      real(dp),intent(in)              :: eig_val(:)
+      complex(dp), allocatable         :: H_xc_1(:,:)
+      complex(dp), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
+      complex(dp)                      :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE,fac,Efac
       integer                         :: i,i_d,j,j_u,j_d,n_dim
       logical                         :: full
       n_dim = 2 * self%num_up
@@ -1316,10 +1317,10 @@ contains
    subroutine calc_left_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx,eig_val, ret)
       implicit none
       class(hamil)                    :: self
-      real(8), intent(in)             :: k(3),eig_val(:)
+      real(dp), intent(in)             :: k(3),eig_val(:)
       integer   , intent(in)          :: derive_idx
-      complex(8), intent(in)          :: eig_vec_mtx(:,:)
-      complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
+      complex(dp), intent(in)          :: eig_vec_mtx(:,:)
+      complex(dp), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
       integer                         :: n_dim
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
@@ -1344,10 +1345,10 @@ contains
    subroutine calc_right_pert_velo_mtx(self, k, derive_idx, eig_vec_mtx,eig_val, ret)
       implicit none
       class(hamil)                    :: self
-      real(8), intent(in)             :: k(3),eig_val(:)
+      real(dp), intent(in)             :: k(3),eig_val(:)
       integer   , intent(in)          :: derive_idx
-      complex(8), intent(in)          :: eig_vec_mtx(:,:)
-      complex(8), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
+      complex(dp), intent(in)          :: eig_vec_mtx(:,:)
+      complex(dp), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
       integer                         :: n_dim
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
@@ -1372,10 +1373,10 @@ contains
    subroutine calc_velo_mtx(self, k, derive_idx, eig_vec_mtx, ret)
       implicit none
       class(hamil)                        :: self
-      real(8), intent(in)             :: k(3)
+      real(dp), intent(in)             :: k(3)
       integer   , intent(in)          :: derive_idx
-      complex(8), intent(in)          :: eig_vec_mtx(:,:)
-      complex(8), allocatable         :: ret(:,:), tmp(:,:)
+      complex(dp), intent(in)          :: eig_vec_mtx(:,:)
+      complex(dp), allocatable         :: ret(:,:), tmp(:,:)
       integer                         :: n_dim, ierr(3) = 0
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim), stat=ierr(1))
@@ -1406,10 +1407,10 @@ contains
    subroutine calc_eig_and_velo(self, k, eig_val, del_kx, del_ky,pert_log)
       implicit none
       class(hamil)             :: self
-      real(8), intent(in)      :: k(3)
-      real(8)                  :: eig_val(:)
-      complex(8), allocatable  :: eig_vec(:,:), del_kx(:,:), del_ky(:,:), work(:), temp(:,:)
-      real(8), allocatable     :: rwork(:)
+      real(dp), intent(in)      :: k(3)
+      real(dp)                  :: eig_val(:)
+      complex(dp), allocatable  :: eig_vec(:,:), del_kx(:,:), del_ky(:,:), work(:), temp(:,:)
+      real(dp), allocatable     :: rwork(:)
       integer   , allocatable  :: iwork(:)
       integer, intent(in)      :: pert_log
       character (300)          :: elem_file
@@ -1464,10 +1465,10 @@ contains
    subroutine calc_berry_z(self, z_comp, eig_val, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: eig_val(:), dE
-      real(8)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
-      complex(8)               :: x_mtx(:,:), y_mtx(:,:)
-      complex(8) :: fac
+      real(dp)                  :: eig_val(:), dE
+      real(dp)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
+      complex(dp)               :: x_mtx(:,:), y_mtx(:,:)
+      complex(dp) :: fac
       integer    :: n_dim, n, m
 
       n_dim = 2 * self%num_up
@@ -1489,8 +1490,8 @@ contains
    subroutine calc_berry_diag(self, z_comp, eig_val, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: z_comp(:), eig_val(:), fac !> \f$ \Omega^n_z \f$
-      complex(8)               :: x_mtx(:,:), y_mtx(:,:)
+      real(dp)                  :: z_comp(:), eig_val(:), fac !> \f$ \Omega^n_z \f$
+      complex(dp)               :: x_mtx(:,:), y_mtx(:,:)
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
@@ -1509,8 +1510,8 @@ contains
    subroutine calc_berry_diag_surf(self, z_comp, eig_val, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: z_comp(:), eig_val(:), fac, ferm !> \f$ \Omega^n_z \f$
-      complex(8)               :: x_mtx(:,:), y_mtx(:,:)
+      real(dp)                  :: z_comp(:), eig_val(:), fac, ferm !> \f$ \Omega^n_z \f$
+      complex(dp)               :: x_mtx(:,:), y_mtx(:,:)
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
@@ -1532,8 +1533,8 @@ contains
    subroutine calc_berry_diag_sea(self, z_comp, eig_val, x_mtx, y_mtx)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: z_comp(:), eig_val(:), fac, ferm !> \f$ \Omega^n_z \f$
-      complex(8)               :: x_mtx(:,:), y_mtx(:,:)
+      real(dp)                  :: z_comp(:), eig_val(:), fac, ferm !> \f$ \Omega^n_z \f$
+      complex(dp)               :: x_mtx(:,:), y_mtx(:,:)
       integer    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
@@ -1555,9 +1556,9 @@ contains
    subroutine calc_fac_diag(self, e_n, e_m, E_f, fac)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: e_n, e_m, E_f
-      real(8)                 :: gamma, deln, delm
-      real(8)                 :: fac
+      real(dp)                  :: e_n, e_m, E_f
+      real(dp)                 :: gamma, deln, delm
+      real(dp)                 :: fac
    
       gamma = self%gamma
       deln = E_f - e_n
@@ -1569,8 +1570,8 @@ contains
    subroutine calc_fac_surf(self, e_n, e_m, E_f, fac)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: e_n, e_m, dE, E_f, gamma
-      real(8), intent(out)     :: fac!> \f$ \Omega^n_z \f$
+      real(dp)                  :: e_n, e_m, dE, E_f, gamma
+      real(dp), intent(out)     :: fac!> \f$ \Omega^n_z \f$
       integer    :: n_dim
    
       gamma = self%gamma
@@ -1585,9 +1586,9 @@ contains
    subroutine calc_fac_sea(self, e_n, e_m, E_f, fac)
       implicit none
       class(hamil)             :: self
-      real(8)                  :: e_n,e_m, dE, E_f, gamma
-      real(8), intent(out)     :: fac
-      complex(8)               :: denom, numer
+      real(dp)                  :: e_n,e_m, dE, E_f, gamma
+      real(dp), intent(out)     :: fac
+      complex(dp)               :: denom, numer
       integer    :: n_dim
    
       gamma = self%gamma
@@ -1606,14 +1607,14 @@ contains
    Subroutine  calc_eigenvalues(self, k_list, eig_val)
       Implicit None
       class(hamil)                      :: self
-      real(8), intent(in)               :: k_list(:,:)
-      real(8), allocatable,intent(out)  :: eig_val(:,:)
-      real(8)                           :: k(3)
-      complex(8), allocatable           :: H(:,:)
+      real(dp), intent(in)               :: k_list(:,:)
+      real(dp), allocatable,intent(out)  :: eig_val(:,:)
+      real(dp)                           :: k(3)
+      complex(dp), allocatable           :: H(:,:)
       integer                           :: i, N, lwork, lrwork, liwork, info&
                                           , istat(5)=0
-      real(8), allocatable              :: RWORK(:)
-      complex(8), allocatable           :: WORK(:)
+      real(dp), allocatable              :: RWORK(:)
+      complex(dp), allocatable           :: WORK(:)
       integer   , allocatable           :: IWORK(:)
 
       N =  2 * self%num_up
@@ -1646,10 +1647,10 @@ contains
    subroutine calc_single_eigenvalue(self, k, eig_val)
       implicit none
       class(hamil)                      :: self
-      real(8), intent(in)               :: k(3)
-      real(8)             , intent(out) :: eig_val(:)
-      complex(8), allocatable           :: H(:,:), work(:)
-      real(8), allocatable              :: rwork(:)
+      real(dp), intent(in)               :: k(3)
+      real(dp)             , intent(out) :: eig_val(:)
+      complex(dp), allocatable           :: H(:,:), work(:)
+      real(dp), allocatable              :: rwork(:)
       integer   , allocatable           :: iwork(:)
       integer                           :: N, lwork, lrwork, liwork, info
 

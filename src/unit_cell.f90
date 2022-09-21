@@ -4,6 +4,7 @@ module Class_unit_cell
    use m_config
    use output
    use stdlib_io_npy, only:load_npy,save_npy
+   use stdlib_kinds, only: sp,dp,xdp,int8
    use mpi_f08
    use Constants
    use class_Units
@@ -15,10 +16,10 @@ module Class_unit_cell
    end enum
 
    type unit_cell
-      real(8), public :: lattice(2, 2) !> translation vectors
+      real(dp), public :: lattice(2, 2) !> translation vectors
       !> of the real-space lattice. First index: element of vector
       !> Second index: 1 or second vector
-      real(8), public :: rez_lattice(2, 2) !> translation vectors
+      real(dp), public :: rez_lattice(2, 2) !> translation vectors
       !> of the reciprocal lattice. Indexs same as lattice
       ! number of non-redundant atoms pre unit cell
       integer    :: sample_idx  !> index of the sample
@@ -32,18 +33,18 @@ module Class_unit_cell
       integer    :: nProcs_sample ! number of procs in comm
       integer    :: me_sample ! rank in comm
       integer, allocatable    :: wavevector(:)
-      real(8) :: lattice_constant !> lattice constant in atomic units
-      real(8) :: eps !> threshold for positional accuracy
-      real(8) :: ferro_phi, ferro_theta
-      real(8) :: cone_angle
-      real(8), allocatable:: anticol_phi(:), anticol_theta(:), m0_A(:), m0_B(:) !> the angles for anticollinear setups, one
-      real(8), allocatable:: all_spins(:,:) !>the array containing spins of all sites
-      real(8) :: axis_theta,axis_phi !> the angles for anticollinear setups, one
-      real(8) :: atan_factor !> how fast do we change the border wall
-      real(8) :: atan_pref !> prefactor for atan
-      real(8) :: dblatan_dist !> width of the atan plateau
-      real(8) :: dblatan_pref !> prefactor for angle turning
-      real(8) :: skyrm_middle !> position of inplane
+      real(dp) :: lattice_constant !> lattice constant in atomic units
+      real(dp) :: eps !> threshold for positional accuracy
+      real(dp) :: ferro_phi, ferro_theta
+      real(dp) :: cone_angle
+      real(dp), allocatable:: anticol_phi(:), anticol_theta(:), m0_A(:), m0_B(:) !> the angles for anticollinear setups, one
+      real(dp), allocatable:: all_spins(:,:) !>the array containing spins of all sites
+      real(dp) :: axis_theta,axis_phi !> the angles for anticollinear setups, one
+      real(dp) :: atan_factor !> how fast do we change the border wall
+      real(dp) :: atan_pref !> prefactor for atan
+      real(dp) :: dblatan_dist !> width of the atan plateau
+      real(dp) :: dblatan_pref !> prefactor for angle turning
+      real(dp) :: skyrm_middle !> position of inplane
       type(atom), dimension(:), allocatable :: atoms !> array containing all atoms
       type(units)       :: units
       character(len=25) :: uc_type !> indicates shape of unitcell
@@ -117,8 +118,8 @@ contains
 
    function angle(a, b) result(ang)
       implicit none
-      real(8), dimension(2), intent(in)   :: a, b
-      real(8)                             :: ang
+      real(dp), dimension(2), intent(in)   :: a, b
+      real(dp)                             :: ang
       ang = dot_product(a, b)/(my_norm2(a)*my_norm2(b))
       ang = 180.0d0/PI*acos(ang)
    end function angle
@@ -130,7 +131,7 @@ contains
       integer, parameter           :: lwork = 20
       integer, intent(in)             :: n_sample,samples_per_comm
       type(MPI_Comm), intent(in)      :: sample_comm
-      real(8)                         :: work(lwork), tmp
+      real(dp)                         :: work(lwork), tmp
       integer, dimension(2)           :: ipiv
       integer                         :: info,i
       integer                         :: ierr
@@ -331,8 +332,8 @@ contains
    subroutine init_unit_square(self)
       implicit none
       class(unit_cell), intent(inout) :: self
-      real(8)                         :: conn_mtx(5, 3), transl_mtx(4, 3)
-      integer(4)                      :: conn_types(size(conn_mtx, dim=1))
+      real(dp)                         :: conn_mtx(5, 3), transl_mtx(4, 3)
+      integer(int64)                      :: conn_types(size(conn_mtx, dim=1))
 
       self%num_atoms = self%atom_per_dim**2
       allocate (self%atoms(self%num_atoms))
@@ -374,8 +375,8 @@ contains
       use mpi_f08
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: conn_mtx(3, 3)
-      real(8), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :)
+      real(dp)                           :: conn_mtx(3, 3)
+      real(dp), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :)
       integer                           :: n(3), i, n_transl
       integer                           :: info
       character(len=300)                :: garb
@@ -442,9 +443,9 @@ contains
       use mpi_f08
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: conn_mtx(3, 3)
-      real(8), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :)
-      integer(8), allocatable              :: site_type(:)
+      real(dp)                           :: conn_mtx(3, 3)
+      real(dp), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :)
+      integer(int64), allocatable              :: site_type(:)
       integer                           :: n(3), i, n_transl
       integer                           :: info
       character(len=300)                :: garb
@@ -514,10 +515,10 @@ contains
       use mpi_f08
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: conn_mtx(3, 3)
-      real(8), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
-      integer(8), allocatable           :: site_type(:),dimensions(:)
-      integer(8)                        :: num_atoms,n_trans
+      real(dp)                           :: conn_mtx(3, 3)
+      real(dp), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
+      integer(int64), allocatable           :: site_type(:),dimensions(:)
+      integer(int64)                        :: num_atoms,n_trans
       integer                           :: idxstart,idxstop,i
       integer                           :: info
 
@@ -586,10 +587,10 @@ contains
    subroutine make_hexagon(self, hexagon, site_type)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                          :: transl_mtx(3, 3), base_len_uc, l, pos(3)
-      real(8), allocatable             :: hexagon(:, :), grid(:, :)
+      real(dp)                          :: transl_mtx(3, 3), base_len_uc, l, pos(3)
+      real(dp), allocatable             :: hexagon(:, :), grid(:, :)
       integer                          :: num_atoms, cnt, apd, i
-      integer(8), allocatable          :: site_type(:)
+      integer(int64), allocatable          :: site_type(:)
 
       apd = self%atom_per_dim
       base_len_uc = self%lattice_constant*apd
@@ -626,9 +627,9 @@ contains
    subroutine make_honeycomb_line(self, line, site_type)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8), allocatable              :: line(:, :), conn_vecs(:, :)
-      integer(8), allocatable           :: site_type(:)
-      real(8)                           :: shift_mtx(3, 3), conn_mtx(3, 3), transf_mtx(3, 3), base_len_uc, posA(3), &
+      real(dp), allocatable              :: line(:, :), conn_vecs(:, :)
+      integer(int64), allocatable           :: site_type(:)
+      real(dp)                           :: shift_mtx(3, 3), conn_mtx(3, 3), transf_mtx(3, 3), base_len_uc, posA(3), &
                                            posB(3), posC(3), posD(3),pos(3), conn_vec_1(3), conn_vec_2(3), l
       integer                           :: i, ii, ierr
 
@@ -683,8 +684,8 @@ contains
    subroutine find_lattice_vectors(self,lattice)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: temp(3), shift_mtx(3, 3), wave_proj(3), proj, check, l, fac
-      real(8), allocatable              :: lattice(:, :)
+      real(dp)                           :: temp(3), shift_mtx(3, 3), wave_proj(3), proj, check, l, fac
+      real(dp), allocatable              :: lattice(:, :)
       integer                           :: i
 
       l = 2*cos(deg_30)*self%lattice_constant
@@ -728,9 +729,9 @@ contains
    subroutine find_conn_vectors(self,conn_vecs)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: conn_mtx(3, 3), shift_mtx(3, 3), conn_proj(3) ,conn_vec_1(3), conn_vec_2(3) &
+      real(dp)                           :: conn_mtx(3, 3), shift_mtx(3, 3), conn_proj(3) ,conn_vec_1(3), conn_vec_2(3) &
                                            , l
-      real(8), allocatable              :: conn_vecs(:,:)
+      real(dp), allocatable              :: conn_vecs(:,:)
       integer                           :: ierr
       
       l = 2*cos(deg_30)*self%lattice_constant
@@ -769,10 +770,10 @@ contains
    subroutine init_unit_honey_line(self)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: transl_mtx(4, 3), conn_mtx(3, 3), shift_mtx(3, 3)
-      real(8)                           :: base_len_uc, l
-      real(8), allocatable              :: lattice(:, :), line(:, :)
-      integer(8), allocatable           :: site_type(:)
+      real(dp)                           :: transl_mtx(4, 3), conn_mtx(3, 3), shift_mtx(3, 3)
+      real(dp)                           :: base_len_uc, l
+      real(dp), allocatable              :: lattice(:, :), line(:, :)
+      integer(int64), allocatable           :: site_type(:)
       integer                           :: apd
       apd = self%atom_per_dim
       self%num_atoms = calc_num_atoms_line_honey(apd)
@@ -821,9 +822,9 @@ contains
    subroutine init_unit_honey_hexa(self)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)  :: transl_mtx(3, 3), l, base_len_uc, conn_mtx(3, 3)
-      real(8), allocatable             :: hexagon(:, :)
-      integer(8), allocatable          :: site_type(:)
+      real(dp)  :: transl_mtx(3, 3), l, base_len_uc, conn_mtx(3, 3)
+      real(dp), allocatable             :: hexagon(:, :)
+      integer(int64), allocatable          :: site_type(:)
       integer                          :: apd
 
       apd = self%atom_per_dim
@@ -882,10 +883,10 @@ contains
       implicit none
       class(unit_cell)        :: self
       integer                 :: i, j, cand
-      real(8)                 :: l, conn_mtx_A(3, 3), conn_mtx_B(3, 3), start_pos(3), &
+      real(dp)                 :: l, conn_mtx_A(3, 3), conn_mtx_B(3, 3), start_pos(3), &
                                  conn(3), conn_storage(3, 3)
-      real(8), allocatable    :: tmp(:, :)
-      real(8), intent(in)     :: transl_mtx(:, :)
+      real(dp), allocatable    :: tmp(:, :)
+      real(dp), intent(in)     :: transl_mtx(:, :)
       integer                 :: idx(3), curr_size
       l = 2d0*cos(deg_30)*self%lattice_constant
 
@@ -934,10 +935,10 @@ contains
       implicit none
       class(unit_cell)        :: self
       integer                 :: i, j, cand
-      real(8)                 :: l, conn_mtx_A(3, 3), conn_mtx_B(3, 3), start_pos(3), &
+      real(dp)                 :: l, conn_mtx_A(3, 3), conn_mtx_B(3, 3), start_pos(3), &
                                  conn(3), conn_storage(3, 3)
-      real(8), allocatable    :: tmp(:, :)
-      real(8), intent(in)     :: transl_mtx(3, 3)
+      real(dp), allocatable    :: tmp(:, :)
+      real(dp), intent(in)     :: transl_mtx(3, 3)
       integer                 :: idx(3), curr_size
       l = 2d0*cos(deg_30)*self%lattice_constant
 
@@ -995,8 +996,8 @@ contains
 
    function clockwise(v1, v2, v3) result(clock)
       implicit none
-      real(8), intent(in)  :: v1(3), v2(3), v3(3)
-      real(8)              :: tmp
+      real(dp), intent(in)  :: v1(3), v2(3), v3(3)
+      real(dp)              :: tmp
       logical              :: clock
 
       tmp = (v2(1) - v1(1))*(v2(2) + v1(2))
@@ -1019,7 +1020,7 @@ contains
    subroutine set_mag_anticol(self)
       implicit none
       class(unit_cell)        :: self
-      real(8)                 :: phi, theta, phi_nc, phi_col, theta_nc, theta_col
+      real(dp)                 :: phi, theta, phi_nc, phi_col, theta_nc, theta_col
       integer                 :: i
       if (self%me == root) write (*, *) "This is the collinear perturbation!"
       if (size(self%anticol_phi) /= self%num_atoms &
@@ -1054,7 +1055,7 @@ contains
    subroutine set_mag_linrot_1D_spiral_m0_anticol(self)
       implicit none
       class(unit_cell)        :: self
-      real(8)                 :: phi_nc, phi_col, theta_nc, theta_col, thetaA, thetaB, phiA, phiB
+      real(dp)                 :: phi_nc, phi_col, theta_nc, theta_col, thetaA, thetaB, phiA, phiB
       if (mod(self%num_atoms, size(self%anticol_phi)) == 0 &
           .and. mod(self%num_atoms, size(self%anticol_theta)) == 0 &
           .and. size(self%anticol_theta) == 2 &
@@ -1084,7 +1085,7 @@ contains
    subroutine set_mag_linrot_1D_spiral_m0_cone(self)
       implicit none
       class(unit_cell)        :: self
-      real(8)                 :: G(3, 3), axis(3), perp_axis(3), m0(3)
+      real(dp)                 :: G(3, 3), axis(3), perp_axis(3), m0(3)
       !axis = 1d0*self%axis/norm2(self%axis)
       axis(1) = sin(self%axis_theta) *  cos(self%axis_phi)
       axis(2) = sin(self%axis_theta) *  sin(self%axis_phi)
@@ -1114,7 +1115,7 @@ contains
    subroutine set_mag_x_spiral_square(self)
       implicit none
       class(unit_cell)                 :: self
-      real(8)        :: alpha, rel_xpos
+      real(dp)        :: alpha, rel_xpos
       integer        :: i
 
       do i = 1, self%num_atoms
@@ -1136,8 +1137,8 @@ contains
       class(unit_cell)       :: self
       integer                :: i,ierr(1),send_size,seed_sz
       integer, allocatable   :: seed(:)
-      real(8)                :: phi, theta
-      real(8), allocatable   :: u(:,:)
+      real(dp)                :: phi, theta
+      real(dp), allocatable   :: u(:,:)
 
       allocate (u(self%num_atoms,2))
       send_size = size(u)
@@ -1162,7 +1163,7 @@ contains
    subroutine set_mag_linrot_skrym_square(self)
       implicit none
       class(unit_cell)     :: self
-      real(8)              :: radius, center(3)
+      real(dp)              :: radius, center(3)
 
       ! Nagaosa style unit cell. Ferromagnetic border only to the left
       radius = 0.5d0*self%lattice_constant*self%atom_per_dim
@@ -1174,8 +1175,8 @@ contains
    subroutine set_mag_linrot_skrym_honey(self)
       implicit none
       class(unit_cell)      :: self
-      real(8), parameter    :: center(3) = [0d0, 0d0, 0d0]
-      real(8)               :: radius
+      real(dp), parameter    :: center(3) = [0d0, 0d0, 0d0]
+      real(dp)               :: radius
 
       radius = 0.5d0*my_norm2(self%lattice(:, 1))
       call self%set_mag_linrot_skyrm(center, radius)
@@ -1185,8 +1186,8 @@ contains
    subroutine set_mag_atan_skyrm_honey(self)
       implicit none
       class(unit_cell)    :: self
-      real(8), parameter    :: center(3) = [0d0, 0d0, 0d0]
-      real(8)               :: radius
+      real(dp), parameter    :: center(3) = [0d0, 0d0, 0d0]
+      real(dp)               :: radius
 
       radius = 0.5d0*my_norm2(self%lattice(:, 1))
       call self%set_mag_atan_skyrm(center, radius)
@@ -1195,8 +1196,8 @@ contains
    subroutine set_mag_dblatan_skyrm_honey(self)
       implicit none
       class(unit_cell)    :: self
-      real(8), parameter    :: center(3) = [0d0, 0d0, 0d0]
-      real(8)               :: radius
+      real(dp), parameter    :: center(3) = [0d0, 0d0, 0d0]
+      real(dp)               :: radius
 
       radius = 0.5d0*my_norm2(self%lattice(:, 1))
       call self%set_mag_dblatan_skyrm(center, radius)
@@ -1206,9 +1207,9 @@ contains
       implicit none
 
       class(unit_cell)                      :: self
-      real(8), intent(in)           :: center(3), radius
-      real(8), parameter            :: e_z(3) = [0, 0, 1]
-      real(8)                               :: R(3, 3), conn(3), n(3), m(3), k(3), alpha
+      real(dp), intent(in)           :: center(3), radius
+      real(dp), parameter            :: e_z(3) = [0, 0, 1]
+      real(dp)                               :: R(3, 3), conn(3), n(3), m(3), k(3), alpha
       integer                               :: i
 
       alpha = 0d0
@@ -1236,9 +1237,9 @@ contains
    subroutine set_mag_atan_skyrm(self, center, radius)
       implicit none
       class(unit_cell)      :: self
-      real(8), intent(in)   :: center(3), radius
-      real(8), parameter    :: e_z(3) = [0, 0, 1]
-      real(8)  :: R(3, 3), conn(3), n(3), m(3), alpha, y_min, y_max, x0, x, a, scaling
+      real(dp), intent(in)   :: center(3), radius
+      real(dp), parameter    :: e_z(3) = [0, 0, 1]
+      real(dp)  :: R(3, 3), conn(3), n(3), m(3), alpha, y_min, y_max, x0, x, a, scaling
       integer               :: i
 
       a = self%atan_factor
@@ -1275,9 +1276,9 @@ contains
    subroutine set_mag_dblatan_skyrm(self, center, radius)
       implicit none
       class(unit_cell)      :: self
-      real(8), intent(in)   :: center(3), radius
-      real(8), parameter    :: e_z(3) = [0, 0, 1]
-      real(8)  :: R(3, 3), conn(3), n(3), m(3), alpha, alp_min, alp_max, a, d, x
+      real(dp), intent(in)   :: center(3), radius
+      real(dp), parameter    :: e_z(3) = [0, 0, 1]
+      real(dp)  :: R(3, 3), conn(3), n(3), m(3), alpha, alp_min, alp_max, a, d, x
       integer               :: i
 
       a = self%atan_factor
@@ -1320,7 +1321,7 @@ contains
    subroutine set_mag_linrot_1D_spiral_honey(self)
       implicit none
       class(unit_cell)      :: self
-      real(8)               :: UC_l
+      real(dp)               :: UC_l
 
       UC_l = my_norm2(self%lattice(:, 1))
       if (self%spiral_type == "anticol") then
@@ -1336,9 +1337,9 @@ contains
       implicit none
       class(unit_cell)    :: self
       integer, intent(in) :: ii, j
-      real(8), intent(in) :: UC_l
+      real(dp), intent(in) :: UC_l
       integer             :: i
-      real(8)             :: conn(3), phase_fac, x, l, R(3,3), shift_mtx(3,3), m(3), axis(3), wavevector(3) &
+      real(dp)             :: conn(3), phase_fac, x, l, R(3,3), shift_mtx(3,3), m(3), axis(3), wavevector(3) &
                              , wavevector_len, wavelength, psi
       axis(1) = sin(self%axis_theta) *  cos(self%axis_phi)
       axis(2) = sin(self%axis_theta) *  sin(self%axis_phi)
@@ -1373,7 +1374,7 @@ contains
    subroutine set_mag_linrot_1D_spiral(self,UC_l)
       implicit none
       class(unit_cell)    :: self
-      real(8), intent(in) :: UC_l
+      real(dp), intent(in) :: UC_l
       integer             :: i, ii, j
       do i = 1, self%atom_per_dim
          ii = 4*(i-1)
@@ -1387,10 +1388,10 @@ contains
       implicit none
       class(unit_cell)        :: self
       character(len=*)        :: folder
-      real(8), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
+      real(dp), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
       integer                 :: i, n_neigh
       integer, allocatable :: neigh(:, :), conn_type(:, :)
-      integer(8), allocatable    :: site_type(:)
+      integer(int64), allocatable    :: site_type(:)
 
       allocate (x(self%num_atoms))
       allocate (y(self%num_atoms))
@@ -1447,8 +1448,8 @@ contains
    subroutine setup_single_hex(self)
       implicit none
       class(unit_cell), intent(inout)   :: self
-      real(8)                           :: base_len
-      real(8), dimension(3, 3)           :: base_vecs
+      real(dp)                           :: base_len
+      real(dp), dimension(3, 3)           :: base_vecs
 
       self%atoms(1) = init_ferro_z((/0d0, 0d0, 0d0/),self%sample_comm)
       allocate (self%atoms(1)%neigh_idx(3))
@@ -1471,7 +1472,7 @@ contains
       implicit none
       class(unit_cell), intent(inout)  :: self
       integer                          :: i, j, cnt
-      real(8) :: pos(3)
+      real(dp) :: pos(3)
 
       cnt = 1
       do i = 0, self%atom_per_dim - 1
@@ -1494,9 +1495,9 @@ contains
    subroutine setup_honey(self, hexagon, site_type)
       implicit none
       class(unit_cell), intent(inout)  :: self
-      real(8), intent(in)              :: hexagon(:, :)
-      integer(8), intent(in)           :: site_type(:)
-      real(8)                          :: pos(3)
+      real(dp), intent(in)              :: hexagon(:, :)
+      integer(int64), intent(in)           :: site_type(:)
+      real(dp)                          :: pos(3)
       integer                          :: i
 
       do i = 1, size(hexagon, dim=1)
@@ -1508,15 +1509,15 @@ contains
    subroutine setup_gen_conn(self, conn_mtx, conn_type, transl_mtx)
       implicit none
       class(unit_cell)    :: self
-      real(8), intent(in) :: conn_mtx(:, :) !> Matrix containing
+      real(dp), intent(in) :: conn_mtx(:, :) !> Matrix containing
       !> real-space connections. The first index inidcates
       !> the connection vector, the second the vector element
-      integer(4), intent(in) :: conn_type(:)
-      real(8), intent(in) :: transl_mtx(:, :) !> Matrix containing
+      integer(int64), intent(in) :: conn_type(:)
+      real(dp), intent(in) :: transl_mtx(:, :) !> Matrix containing
       !> real-space translation vectors. Notation as in conn_mtx
       integer                 :: i, j, cnt, candidate, n_conn, n_found
       integer, allocatable :: neigh(:)
-      real(8)  :: start_pos(3), conn(3)
+      real(dp)  :: start_pos(3), conn(3)
       logical, allocatable :: found_conn(:)
 
       n_conn = size(conn_mtx, 1)
@@ -1576,14 +1577,14 @@ contains
    function gen_find_neigh(self, start, conn, transl_mtx) result(neigh)
       implicit none
       class(unit_cell), intent(in) :: self
-      real(8), intent(in)          :: start(3) !> starting position in RS
-      real(8), intent(in)          :: conn(3) !> RS connection
-      real(8), intent(in)          :: transl_mtx(:, :) !> RS translation vectors to next unit cell
+      real(dp), intent(in)          :: start(3) !> starting position in RS
+      real(dp), intent(in)          :: conn(3) !> RS connection
+      real(dp), intent(in)          :: transl_mtx(:, :) !> RS translation vectors to next unit cell
       !> The vectors are save as columns in the matrix:
       !> The first index indicates the vector
       !> The second index indicates the element of the vector
       integer     :: neigh, idx, n_transl, i
-      real(8)     :: new(3)
+      real(dp)     :: new(3)
 
       n_transl = size(transl_mtx, dim=1)
 
@@ -1613,10 +1614,10 @@ contains
 
    function already_in_red(pos, hex, till, transl_mtx) result(inside)
       implicit none
-      real(8), intent(in)    :: pos(3), hex(:, :), transl_mtx(:, :)
+      real(dp), intent(in)    :: pos(3), hex(:, :), transl_mtx(:, :)
       integer, intent(in) :: till
       logical                :: inside
-      real(8)                :: new(3), delta_vec(3), delta
+      real(dp)                :: new(3), delta_vec(3), delta
       integer                :: n_transl, i, trl
 
       n_transl = size(transl_mtx, dim=1)
@@ -1652,10 +1653,10 @@ contains
       ! returned, else - 1
       implicit none
       class(unit_cell), intent(in)          :: self
-      real(8), intent(in) :: start(3) !> RS start position
-      real(8), intent(in) :: conn(3) !> RZ connection
-      real(8) :: new(3), delta_vec(3), delta
-      real(8), parameter :: repl_eps = 1d-4
+      real(dp), intent(in) :: start(3) !> RS start position
+      real(dp), intent(in) :: conn(3) !> RZ connection
+      real(dp) :: new(3), delta_vec(3), delta
+      real(dp), parameter :: repl_eps = 1d-4
       integer    :: idx
       integer    :: i
 
@@ -1721,8 +1722,8 @@ contains
 
    function in_hexagon(pos, a) result(inside)
       implicit none
-      real(8), intent(in)         :: pos(3), a
-      real(8)                     :: m, b
+      real(dp), intent(in)         :: pos(3), a
+      real(dp)                     :: m, b
       logical                     :: inside
 
       m = -tan(deg_30)
@@ -1740,10 +1741,10 @@ contains
 
    subroutine gen_hexa_grid(l, origin, max_ind, grid)
       implicit none
-      real(8), intent(in)     :: l, origin(3)
+      real(dp), intent(in)     :: l, origin(3)
       integer, intent(in)  :: max_ind
-      real(8), allocatable    :: grid(:, :)
-      real(8)                 :: v1(3), v2(3)
+      real(dp), allocatable    :: grid(:, :)
+      real(dp)                 :: v1(3), v2(3)
       integer                 :: cnt, i, j
 
       if (.not. allocated(grid)) then
@@ -1764,10 +1765,10 @@ contains
 
    subroutine gen_honey_grid(a, max_ind, grid)
       implicit none
-      real(8), intent(in)        :: a
+      real(dp), intent(in)        :: a
       integer, intent(in)     :: max_ind
-      real(8), allocatable       :: grid(:, :), tmp(:, :)
-      real(8)                    :: l, origin(3)
+      real(dp), allocatable       :: grid(:, :), tmp(:, :)
+      real(dp)                    :: l, origin(3)
       integer                    :: n
 
       n = 2*max_ind + 1
@@ -1804,7 +1805,7 @@ contains
    function calc_area(self) result(area)
       implicit none
       class(unit_cell), intent(in)            :: self
-      real(8)                                 :: area, base_len_uc
+      real(dp)                                 :: area, base_len_uc
 
       base_len_uc = self%lattice_constant*self%atom_per_dim
       if (trim(self%uc_type) == "honey_2d") then
@@ -1816,9 +1817,9 @@ contains
 
    function rot_z_deg(deg) result(rot)
       implicit none
-      real(8), intent(in)        :: deg
-      real(8), dimension(3, 3)    :: rot
-      real(8)                    :: bog
+      real(dp), intent(in)        :: deg
+      real(dp), dimension(3, 3)    :: rot
+      real(dp)                    :: bog
 
       bog = deg*PI/180.0d0
 
@@ -1832,13 +1833,13 @@ contains
 
    function R_mtx(theta, vec) result(R)
       implicit none
-      real(8), intent(in)    :: theta!> rotation angle
-      real(8), intent(in)    :: vec(3) !> vector to rotate AROUND
-      real(8), parameter     :: Iden(3, 3) &
+      real(dp), intent(in)    :: theta!> rotation angle
+      real(dp), intent(in)    :: vec(3) !> vector to rotate AROUND
+      real(dp), parameter     :: Iden(3, 3) &
                                 = reshape((/1, 0, 0, & !this works only for
                                             0, 1, 0, & !symm matrcies
                                             0, 0, 1/), (/3, 3/)) !fort-order...
-      real(8)  :: R(3, 3), u(3, 1), u_x_u(3, 3), u_x(3, 3)
+      real(dp)  :: R(3, 3), u(3, 1), u_x_u(3, 3), u_x(3, 3)
 
       u(:, 1) = vec/my_norm2(vec)
 
@@ -1860,9 +1861,9 @@ contains
 
    function n_times_phi(x, n) result(y)
       implicit none
-      real(8), intent(in)   :: x(3)
+      real(dp), intent(in)   :: x(3)
       integer, intent(in) :: n
-      real(8)               :: y(3), r, phi, theta
+      real(dp)               :: y(3), r, phi, theta
 
       r = my_norm2(x)
       theta = acos(x(3)/r)

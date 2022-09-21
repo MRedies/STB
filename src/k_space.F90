@@ -1,6 +1,7 @@
 module Class_k_space
    use m_config
    use stdlib_io_npy, only:load_npy,save_npy
+   use stdlib_kinds, only: sp,dp,xdp,int8
    use mpi_f08
    use Class_hamiltionian
    use Class_helper
@@ -9,15 +10,15 @@ module Class_k_space
    implicit none
 
    type k_space
-      real(8), allocatable :: new_k_pts(:,:), all_k_pts(:,:)
-      real(8), allocatable :: int_DOS(:) !> integrated Density of states
-      real(8), allocatable :: DOS(:), up(:), down(:)
-      real(8), allocatable :: E_DOS(:)
-      real(8)              :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
+      real(dp), allocatable :: new_k_pts(:,:), all_k_pts(:,:)
+      real(dp), allocatable :: int_DOS(:) !> integrated Density of states
+      real(dp), allocatable :: DOS(:), up(:), down(:)
+      real(dp), allocatable :: E_DOS(:)
+      real(dp)              :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
       !> DOS calculations
-      real(8)              :: DOS_lower !> lower energy bound for DOS calc
-      real(8)              :: DOS_upper !> upper energy bound for DOS calc
-      real(8)              :: temp !> temperature used in fermi-dirac
+      real(dp)              :: DOS_lower !> lower energy bound for DOS calc
+      real(dp)              :: DOS_upper !> upper energy bound for DOS calc
+      real(dp)              :: temp !> temperature used in fermi-dirac
       !> used in DOS calculations
       integer              :: sample_idx  !> index of the sample
       integer              :: DOS_num_k_pts !> number of kpts per dim
@@ -33,13 +34,13 @@ module Class_k_space
       integer              :: me_sample
       integer              :: nProcs_sample
       type(MPI_Comm)       :: sample_comm ! the communicator after splitting world
-      real(8)              :: k_shift(3) !> shift of brillouine-zone
-      real(8)              :: berry_conv_crit !> convergance criterion for berry integration
-      real(8), allocatable :: weights(:) !> weights for integration
+      real(dp)              :: k_shift(3) !> shift of brillouine-zone
+      real(dp)              :: berry_conv_crit !> convergance criterion for berry integration
+      real(dp), allocatable :: weights(:) !> weights for integration
       integer, allocatable :: elem_nodes(:,:) !> elements in triangulation
-      real(8), allocatable :: refine_weights(:),refine_weights_surf(:),refine_weights_sea(:)
-      real(8), allocatable :: k1_param(:) !> 1st k_space param
-      real(8), allocatable :: k2_param(:) !> 2nd k_space param
+      real(dp), allocatable :: refine_weights(:),refine_weights_surf(:),refine_weights_sea(:)
+      real(dp), allocatable :: k1_param(:) !> 1st k_space param
+      real(dp), allocatable :: k2_param(:) !> 2nd k_space param
       character(len=300)   :: filling, prefix, chosen_weights
       character(len=6)     :: ada_mode
       character(len=6)     :: berry_component
@@ -112,7 +113,7 @@ module Class_k_space
 
    interface
       subroutine run_triang(k_pts, ret_elem)
-         real(8), intent(in)              :: k_pts(:,:)
+         real(dp), intent(in)              :: k_pts(:,:)
          integer, allocatable             :: ret_elem(:,:)
       end subroutine run_triang
    end interface
@@ -138,7 +139,7 @@ contains
       integer                       :: first, last, N
       integer                       :: send_count, ierr, istat(4)=0
       integer   , allocatable       :: num_elems(:), offsets(:)
-      real(8), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
+      real(dp), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
       character(len=300)            :: filename
       if(trim(self%filling) ==  "path_rel") then
          call self%setup_k_path_rel()
@@ -195,11 +196,11 @@ contains
       use mpi_f08
       implicit none
       class(k_space)          :: self
-      real(8), intent(in)     :: E(:)
-      real(8), intent(out)    :: PDOS(:,:)
-      real(8), allocatable    :: RWORK(:), eig_val(:), loc_PDOS(:,:)
-      real(8)                 :: lor
-      complex(8), allocatable :: H(:,:), WORK(:)
+      real(dp), intent(in)     :: E(:)
+      real(dp), intent(out)    :: PDOS(:,:)
+      real(dp), allocatable    :: RWORK(:), eig_val(:), loc_PDOS(:,:)
+      real(dp)                 :: lor
+      complex(dp), allocatable :: H(:,:), WORK(:)
       integer   , allocatable :: IWORK(:)
       integer     :: first, last, ierr
       integer     :: k_idx, E_idx, j, m, N, info
@@ -281,8 +282,8 @@ contains
    subroutine calc_and_print_dos(self)
       implicit none
       class(k_space)                    :: self
-      real(8), allocatable              :: DOS(:), PDOS(:,:), up(:), down(:)
-      real(8)                           :: dE
+      real(dp), allocatable              :: DOS(:), PDOS(:,:), up(:), down(:)
+      real(dp)                           :: dE
       integer                           :: i, num_up
 
       if(trim(self%ham%UC%uc_type) == "square_2d") then
@@ -373,7 +374,7 @@ contains
       implicit none
       type(k_space)         :: self
       type(CFG_t)           :: cfg
-      real(8)               :: tmp
+      real(dp)               :: tmp
       !logical               :: logtmp
       integer               :: sz
       integer               :: ierr
@@ -544,8 +545,8 @@ contains
    subroutine setup_k_grid(self)
       implicit none
       class(k_space)       :: self
-      real(8), allocatable :: kx_points(:), ky_points(:)
-      real(8), allocatable :: kx_grid(:,:), ky_grid(:,:)
+      real(dp), allocatable :: kx_points(:), ky_points(:)
+      real(dp), allocatable :: kx_grid(:,:), ky_grid(:,:)
       integer              :: sz_x, sz_y, i, j
 
       sz_x =  NINT(self%k1_param(3))
@@ -586,8 +587,8 @@ contains
       implicit none
       class(k_space)        :: self
       integer, intent(in):: n_k
-      real(8), allocatable  :: ls(:)
-      real(8)               :: k1(3), k2(3)
+      real(dp), allocatable  :: ls(:)
+      real(dp)               :: k1(3), k2(3)
       integer               :: i, j, cnt
       logical, optional     :: padding
 
@@ -628,8 +629,8 @@ contains
       implicit none
       class(k_space)        :: self
       integer, intent(in):: n_k
-      real(8), allocatable  :: ls1(:), ls2(:)
-      real(8)               :: k1(3), k2(3)
+      real(dp), allocatable  :: ls1(:), ls2(:)
+      real(dp)               :: k1(3), k2(3)
       integer               :: i, j, cnt, NAPD, rat, n1, n2, scale
       logical, optional     :: padding
 
@@ -683,8 +684,8 @@ contains
       implicit none
       class(k_space)         :: self
       integer, intent(in) :: n_k
-      real(8), allocatable   :: x(:), y(:)
-      real(8)                :: den, l, a
+      real(dp), allocatable   :: x(:), y(:)
+      real(dp)                :: den, l, a
       integer                :: cnt_k, start, halt, my_n, i
 
       l = my_norm2(self%ham%UC%rez_lattice(:,1))
@@ -726,7 +727,7 @@ contains
       implicit none
       class(k_space)     :: self
       integer            :: i, iter
-      real(8)            :: integral, kpt(3), f
+      real(dp)            :: integral, kpt(3), f
       character(len=300) :: filename
 
       call run_triang(self%all_k_pts, self%elem_nodes)
@@ -754,7 +755,7 @@ contains
    subroutine set_weights_ksp(self)
       implicit none
       class(k_space)   :: self
-      real(8)          :: A_proj, vec1(3), vec2(3)
+      real(dp)          :: A_proj, vec1(3), vec2(3)
       integer          :: i, j, k_idx
 
       if(allocated(self%weights)) then
@@ -777,8 +778,8 @@ contains
    function hex_border_x(self, y) result(x)
       implicit none
       class(k_space)      :: self
-      real(8), intent(in) :: y
-      real(8)             :: m, b, l, a, x
+      real(dp), intent(in) :: y
+      real(dp)             :: m, b, l, a, x
 
       l = my_norm2(self%ham%UC%rez_lattice(:,1))
       a = l / (2.0 * cos(deg_30))
@@ -792,7 +793,7 @@ contains
       implicit none
       class(k_space)        :: self
       integer               :: n_pts, n_sec, start, halt, i
-      real(8), allocatable  :: tmp(:)
+      real(dp), allocatable  :: tmp(:)
 
       self%k1_param =  self%k1_param * self%units%inv_length
       self%k2_param =  self%k2_param * self%units%inv_length
@@ -819,8 +820,8 @@ contains
    subroutine setup_k_path_rel(self)
       implicit none
       class(k_space)        :: self
-      real(8), allocatable :: c1_sec(:), c2_sec(:)
-      real(8), dimension(3)              :: k1, k2
+      real(dp), allocatable :: c1_sec(:), c2_sec(:)
+      real(dp), dimension(3)              :: k1, k2
       integer    ::  n_pts, n_sec,i,j, start, halt, cnt
 
       n_sec =  size(self%k1_param) - 1
@@ -858,7 +859,7 @@ contains
    function vol_k_space_para(self) result(vol)
       implicit none
       class(k_space)         :: self
-      real(8)                :: vol, k1(3), k2(3)
+      real(dp)                :: vol, k1(3), k2(3)
 
       k1      = 0d0
       k2      = 0d0
@@ -871,7 +872,7 @@ contains
    function vol_k_hex(self) result(vol)
       implicit none
       class(k_space)    :: self
-      real(8)           :: a, l, vol
+      real(dp)           :: a, l, vol
 
       l = my_norm2(self%ham%UC%rez_lattice(:,1))
       a = l / (2.0 * cos(deg_30))
@@ -883,13 +884,13 @@ contains
       use mpi_f08
       implicit none
       class(k_space)          :: self
-      real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
+      real(dp), allocatable    :: eig_val_all(:,:), eig_val_new(:,:),&
                                  hall(:), hall_old(:), omega_z_all(:,:), omega_z_new(:,:),&
                                  hall_surf(:), hall_surf_old(:), omega_surf_all(:,:), omega_surf_new(:,:),&
                                  hall_sea(:), hall_sea_old(:), omega_sea_all(:,:), omega_sea_new(:,:),&
                                  orbmag(:), orbmag_old(:), Q_L_all(:,:), Q_IC_all(:,:), &
                                  Q_L_new(:,:), Q_IC_new(:,:), orbmag_L(:), orbmag_IC(:)
-      real(8)                  :: start, factor
+      real(dp)                  :: start, factor
       integer   , allocatable  :: kidx_all(:), kidx_new(:)
       integer     :: N_k, num_up, iter, n_ferm,nProcs
       integer     :: all_err(19), info
@@ -1061,12 +1062,12 @@ contains
       class(k_space)            :: self
       integer                   :: N_k, cnt, k_idx, num_up, n_ferm,pert_idx
       integer                   :: first, last, err(6), me, ierr
-      real(8)                   :: tmp
-      real(8)                   :: k(3)
-      real(8), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), omega_surf_new(:,:),&
+      real(dp)                   :: tmp
+      real(dp)                   :: k(3)
+      real(dp), allocatable      :: eig_val_new(:,:), omega_z_new(:,:), omega_surf_new(:,:),&
                                    omega_sea_new(:,:),omega_z_pert_new(:), Q_L_new(:,:),&
                                    Q_IC_new(:,:)
-      complex(8), allocatable   :: del_kx(:,:), del_ky(:,:)
+      complex(dp), allocatable   :: del_kx(:,:), del_ky(:,:)
       logical, intent(in)       :: pert_log
       tmp = 0d0
       N_k = size(self%new_k_pts, 2)
@@ -1165,15 +1166,15 @@ contains
    function process_hall(self, var, var_old, iter, varall) result(cancel)
       implicit none
       class(k_space)                 :: self
-      real(8), intent(in)            :: var(:), var_old(:), varall(:,:)
+      real(dp), intent(in)            :: var(:), var_old(:), varall(:,:)
       integer   , intent(in)         :: iter
       integer                        :: send_count, ierr, N
       integer   , allocatable        :: num_elems(:), offsets(:)
       character(len=*), parameter    :: var_name = "hall_cond"
       character(len=300)             :: filename
       logical                        :: cancel
-      real(8)                        :: rel_error
-      real(8), allocatable           :: var_all_all(:,:)
+      real(dp)                        :: rel_error
+      real(dp), allocatable           :: var_all_all(:,:)
 
       cancel = .False.
       N = 2 *  self%ham%num_up
@@ -1232,15 +1233,15 @@ contains
    function process_hall_surf(self, var, var_old, iter, varall, var_name) result(cancel)
       implicit none
       class(k_space)                 :: self
-      real(8), intent(in)            :: var(:), var_old(:), varall(:,:)
-      real(8), allocatable           :: var_all_all(:,:)
+      real(dp), intent(in)            :: var(:), var_old(:), varall(:,:)
+      real(dp), allocatable           :: var_all_all(:,:)
       integer   , intent(in)         :: iter
       integer, allocatable           :: num_elems(:), offsets(:)
       integer                        :: send_count,ierr
       character(len=*), intent(in)   :: var_name
       character(len=300)             :: filename
       logical                        :: cancel
-      real(8)                        :: rel_error
+      real(dp)                        :: rel_error
 
       cancel = .False.
 
@@ -1301,13 +1302,13 @@ contains
                            orbmag_L, orbmag_IC, iter) result(cancel)
       implicit none
       class(k_space)                 :: self
-      real(8), intent(in)            :: orbmag(:), orbmag_old(:),&
+      real(dp), intent(in)            :: orbmag(:), orbmag_old(:),&
                                         orbmag_L(:), orbmag_IC(:)
       integer   , intent(in)         :: iter
       character(len=*), parameter    :: var_name = "orbmag   "
       character(len=300)             :: filename
       logical                        :: cancel
-      real(8)                        :: rel_error
+      real(dp)                        :: rel_error
 
       cancel = .False.
 
@@ -1345,8 +1346,8 @@ contains
    subroutine finalize_hall_surf(self, var,varall,var_name)
       implicit none
       class(k_space)              :: self
-      real(8), intent(in)         :: var(:)
-      real(8), intent(in)         :: varall(:,:)
+      real(dp), intent(in)         :: var(:)
+      real(dp), intent(in)         :: varall(:,:)
       character(len=*), intent(in) :: var_name
       character(len=300) :: elem_file
 
@@ -1366,8 +1367,8 @@ contains
    subroutine finalize_hall(self, var,varall)
       implicit none
       class(k_space)              :: self
-      real(8), intent(in)         :: var(:)
-      real(8), intent(in)         :: varall(:,:)
+      real(dp), intent(in)         :: var(:)
+      real(dp), intent(in)         :: varall(:,:)
 
       if(self%me == root) then
          write (*,*) size(self%all_k_pts,2), &
@@ -1383,8 +1384,8 @@ contains
    subroutine finalize_orbmag(self, orbmag, orbmag_L, orbmag_IC)
       implicit none
       class(k_space)          :: self
-      real(8), intent(in)     :: orbmag(:), orbmag_L(:), orbmag_IC(:)
-      real(8)                 :: area
+      real(dp), intent(in)     :: orbmag(:), orbmag_L(:), orbmag_IC(:)
+      real(dp)                 :: area
 
       area =  self%ham%UC%calc_area()
 
@@ -1408,8 +1409,8 @@ contains
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: kidx_all(:)
-      real(8), intent(in)     :: omega_z_all(:,:)
-      real(8), allocatable    :: hall(:)
+      real(dp), intent(in)     :: omega_z_all(:,:)
+      real(dp), allocatable    :: hall(:)
       integer                 :: loc_idx, n_hall, k_idx
       integer                 :: ierr(2), all_err(1)
       all_err = 0
@@ -1453,8 +1454,8 @@ contains
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: kidx_all(:)
-      real(8), intent(in)     :: omega_z_all(:,:)
-      real(8), allocatable    :: hall(:)
+      real(dp), intent(in)     :: omega_z_all(:,:)
+      real(dp), allocatable    :: hall(:)
       integer                 :: loc_idx, n_hall, k_idx
       integer                 :: ierr(2), all_err(1)
 
@@ -1499,9 +1500,9 @@ contains
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: kidx_all(:)
-      real(8), intent(in)     :: eig_val_all(:,:), omega_z_all(:,:)
-      real(8), allocatable    :: hall(:)
-      real(8)                 :: ferm
+      real(dp), intent(in)     :: eig_val_all(:,:), omega_z_all(:,:)
+      real(dp), allocatable    :: hall(:)
+      real(dp)                 :: ferm
       integer                 :: loc_idx, n, n_hall, k_idx
       integer                 :: ierr(2), all_err(1)
 
@@ -1553,8 +1554,8 @@ contains
       implicit none
       class(k_space)          :: self
       integer   , intent(in)  :: Q_kidx_all(:)
-      real(8), intent(in)     :: Q_L_all(:, :), Q_IC_all(:,:)
-      real(8), allocatable    :: orb_mag(:), orbmag_L(:), orbmag_IC(:)
+      real(dp), intent(in)     :: Q_L_all(:, :), Q_IC_all(:,:)
+      real(dp), allocatable    :: orb_mag(:), orbmag_L(:), orbmag_IC(:)
       integer                 :: n_ferm, loc_idx, k_idx, E_f_size
       integer                 :: ierr(4)
 
@@ -1625,7 +1626,7 @@ contains
       implicit none
       class(k_space)         :: self
       integer   , intent(in) :: kidx_all(:)
-      real(8)                :: omega_z_all(:,:)
+      real(dp)                :: omega_z_all(:,:)
       integer                :: i, node, k_idx, loc_idx
       integer                :: n_elem
       integer                :: ierr(2), error(2) = [0,0]
@@ -1676,7 +1677,7 @@ contains
       use mpi_f08
       implicit none
       class(k_space)            :: self
-      real(8), intent(in)       :: Q_all(:,:)
+      real(dp), intent(in)       :: Q_all(:,:)
       integer   , intent(in)    :: Q_kidx_all(:)
       integer                   :: i, node, k_idx, loc_idx
       integer                   :: ierr(2), error(2), n_elem
@@ -1724,10 +1725,10 @@ contains
    function setup_A_mtx(Vx_mtx, Vy_mtx) result(A_mtx)
       implicit none
       !class(k_space), intent(in) :: self
-      complex(8), intent(in)     :: Vx_mtx(:,:), Vy_mtx(:,:)
-      real(8), allocatable       :: A_mtx(:,:)
+      complex(dp), intent(in)     :: Vx_mtx(:,:), Vy_mtx(:,:)
+      real(dp), allocatable       :: A_mtx(:,:)
       integer                    :: m, n
-      real(8)                    :: t_start, t_stop
+      real(dp)                    :: t_start, t_stop
 
       t_start = MPI_Wtime()
 
@@ -1746,9 +1747,9 @@ contains
    subroutine calc_orbmag_z_singleK(self, Q_L, Q_IC, eig_val, Vx_mtx, Vy_mtx)
       implicit none
       class(k_space)           :: self
-      real(8)                  :: f_nk, dE, Ef, Q_L(:), Q_IC(:), eig_val(:)
-      complex(8)               :: Vx_mtx(:,:), Vy_mtx(:,:)
-      real(8), allocatable     :: A_mtx(:,:)
+      real(dp)                  :: f_nk, dE, Ef, Q_L(:), Q_IC(:), eig_val(:)
+      complex(dp)               :: Vx_mtx(:,:), Vy_mtx(:,:)
+      real(dp), allocatable     :: A_mtx(:,:)
       integer                  :: m, n, n_ferm
 
       A_mtx = setup_A_mtx(Vx_mtx, Vy_mtx)
@@ -1783,7 +1784,7 @@ contains
 
    subroutine append_eigval(eig_val_all, eig_val_new)
       implicit none
-      real(8), allocatable    :: eig_val_all(:,:), eig_val_new(:,:), tmp(:,:)
+      real(dp), allocatable    :: eig_val_all(:,:), eig_val_new(:,:), tmp(:,:)
       integer    :: vec_sz, num_k_all, num_k_new, i,j
       integer    ::ierr(6)
 
@@ -1835,7 +1836,7 @@ contains
 
    subroutine append_quantity(quantity_all, quantity_new, reuse)
       implicit none
-      real(8), allocatable      :: quantity_new(:,:), quantity_all(:,:), tmp_z(:,:)
+      real(dp), allocatable      :: quantity_new(:,:), quantity_all(:,:), tmp_z(:,:)
       integer                 :: vec_sz, num_k_old, num_k_new
       integer                 :: ierr(2)
       logical, intent(in)     :: reuse
@@ -1859,7 +1860,7 @@ contains
 
    subroutine append_quantity_3d(quantity_all, quantity_new)
       implicit none
-      real(8), allocatable      :: quantity_new(:,:,:), quantity_all(:,:,:), tmp_z(:,:,:)
+      real(dp), allocatable      :: quantity_new(:,:,:), quantity_all(:,:,:), tmp_z(:,:,:)
       integer                 :: vec_sz, num_k_old, num_k_new
       integer                 :: ierr(2)
 
@@ -1909,7 +1910,7 @@ contains
       implicit none
       class(k_space)         :: self
       class(CFG_t)           :: cfg
-      real(8)            :: target, delta_old, delta_new
+      real(dp)            :: target, delta_old, delta_new
       integer            :: i
       integer            :: ierr
 
@@ -1944,8 +1945,8 @@ contains
    function lorentzian(self, x) result(lor)
       implicit none
       class(k_space), intent(in)    :: self
-      real(8), intent(in)           :: x
-      real(8)                       :: lor
+      real(dp), intent(in)           :: x
+      real(dp)                       :: lor
 
       lor =  self%DOS_gamma &
             / (PI * (x**2 +  self%DOS_gamma**2))
@@ -1954,8 +1955,8 @@ contains
    function find_E_max(self) result(c)
       implicit none
       class(k_space), intent(in)   :: self
-      real(8)                      :: l, u, c
-      real(8), parameter           :: tol = 1d-6, tar = 1d-12
+      real(dp)                      :: l, u, c
+      real(dp), parameter           :: tol = 1d-6, tar = 1d-12
       integer                      :: Emax, cnt
 
       l = - 25d0 * self%ham%Vss_sig
@@ -1986,9 +1987,9 @@ contains
       implicit none
       class(k_space), intent(in)     :: self
       integer   , intent(in)     :: idx
-      real(8), intent(in)        :: kpts(:,:)
-      real(8)                    :: area
-      real(8)    :: vec1(3), vec2(3)
+      real(dp), intent(in)        :: kpts(:,:)
+      real(dp)                    :: area
+      real(dp)    :: vec1(3), vec2(3)
 
       vec1 = kpts(:,self%elem_nodes(idx,1)) - kpts(:,self%elem_nodes(idx,2))
       vec2 = kpts(:,self%elem_nodes(idx,1)) - kpts(:,self%elem_nodes(idx,3))
@@ -1999,8 +2000,8 @@ contains
       implicit none
       class(k_space), intent(in)   ::self
       integer   , intent(in)   :: idx
-      real(8), intent(in)      :: kpts(:,:)
-      real(8)                      :: pt(2), start(2), vec(3), len, len_max
+      real(dp), intent(in)      :: kpts(:,:)
+      real(dp)                      :: pt(2), start(2), vec(3), len, len_max
 
       vec = kpts(:,self%elem_nodes(idx,1)) - kpts(:,self%elem_nodes(idx,2))
       len =  my_norm2(vec)
@@ -2031,8 +2032,8 @@ contains
       class(k_space), intent(in)  :: self
       integer   , intent(in)      :: idx
       integer                     :: i
-      real(8), intent(in)         :: k_pts(:,:)
-      real(8)                     :: centeroid(2)
+      real(dp), intent(in)         :: k_pts(:,:)
+      real(dp)                     :: centeroid(2)
 
       centeroid =  0d0
       do i = 1,3
@@ -2047,8 +2048,8 @@ contains
       class(k_space)                :: self
       integer     :: rest, i,j, cnt, n_kpts, n_elem, per_proc
       integer   , allocatable :: sort(:)
-      real(8), allocatable    :: areas(:), new_ks(:,:), tmp(:,:)
-      real(8)                 :: cand(2)
+      real(dp), allocatable    :: areas(:), new_ks(:,:), tmp(:,:)
+      real(dp)                 :: cand(2)
 
       n_kpts =  size(self%new_k_pts,2)
       if(self%me == root) write (*,*) "nkpts =  ", n_kpts
@@ -2105,9 +2106,9 @@ contains
    function in_points(self, pt, list) result(inside)
       implicit none
       class(k_space)       :: self
-      real(8), intent(in)  :: pt(2), list(:,:)
+      real(dp), intent(in)  :: pt(2), list(:,:)
       logical              :: inside
-      real(8)              :: l
+      real(dp)              :: l
       integer              :: i
 
       inside =  .False.
@@ -2124,9 +2125,9 @@ contains
       implicit none
       class(k_space), intent(in)   :: self
       integer                      :: idx
-      real(8)                      :: pt(2)
+      real(dp)                      :: pt(2)
       logical                      :: on_border
-      real(8)                      :: l
+      real(dp)                      :: l
 
       pt =  self%new_k_pts(1:2,idx)
       l = my_norm2(self%ham%UC%rez_lattice(:,1))
@@ -2142,7 +2143,7 @@ contains
       implicit none
       class(k_space)              :: self
       integer, intent(in)     :: n_new
-      real(8), allocatable    :: new_ks(:,:), areas(:)
+      real(dp), allocatable    :: new_ks(:,:), areas(:)
       integer                 :: n_elem, i, cnt, area_cnt, weight_cnt, num_kpts
       integer   , allocatable :: sort_weight(:), sort_area(:)
 
@@ -2193,7 +2194,7 @@ contains
    subroutine append_kpts(self)
       implicit none
       class(k_space)         :: self
-      real(8), allocatable   :: tmp(:,:)
+      real(dp), allocatable   :: tmp(:,:)
       integer                :: old_sz, new_sz, i,j
       integer                :: ierr(2)
 
@@ -2221,9 +2222,9 @@ contains
       use mpi_f08
       implicit none
       class(k_space)              :: self
-      real(8), allocatable    :: m(:), S(:), l_space(:), eig_val(:), RWORK(:)
-      real(8)                 :: area, t_start, t_stop
-      complex(8), allocatable :: H(:,:), WORK(:)
+      real(dp), allocatable    :: m(:), S(:), l_space(:), eig_val(:), RWORK(:)
+      real(dp)                 :: area, t_start, t_stop
+      complex(dp), allocatable :: H(:,:), WORK(:)
       integer                 :: N_k, N, &
                                  first, last, k_idx, info, ierr
       integer                 :: lwork, lrwork, liwork
@@ -2312,9 +2313,9 @@ contains
    function calc_ACA_singleK(self, eig_vec, eig_val) result(m)
       implicit none
       class(k_space), intent(in)     :: self
-      complex(8), intent(in)     :: eig_vec(:,:)
-      real(8), intent(in)        :: eig_val(:)
-      real(8)                    :: m(size(self%ham%E_fermi))
+      complex(dp), intent(in)     :: eig_vec(:,:)
+      real(dp), intent(in)        :: eig_val(:)
+      real(dp)                    :: m(size(self%ham%E_fermi))
       integer                    :: n_ferm
 
       m        = 0d0
@@ -2332,9 +2333,9 @@ contains
    function calc_S_singleK(self, eig_vec, eig_val) result(S)
       implicit none
       class(k_space), intent(in)     :: self
-      complex(8), intent(in)     :: eig_vec(:,:)
-      real(8), intent(in)        :: eig_val(:)
-      real(8)                    :: S(size(self%ham%E_fermi)), f
+      complex(dp), intent(in)     :: eig_vec(:,:)
+      real(dp), intent(in)        :: eig_val(:)
+      real(dp)                    :: S(size(self%ham%E_fermi)), f
       integer                    :: n_up, n_ferm, i
 
       n_up = self%ham%num_up
@@ -2355,10 +2356,10 @@ contains
    function calc_local_l(self, eig_vec, eig_val, n_ferm) result(loc_l)
       implicit none
       class(k_space), intent(in)     :: self
-      complex(8), intent(in)         :: eig_vec(:,:)
-      real(8), intent(in)            :: eig_val(:)
+      complex(dp), intent(in)         :: eig_vec(:,:)
+      real(dp), intent(in)            :: eig_val(:)
       integer, intent(in)            :: n_ferm
-      real(8)                        :: loc_l(self%ham%UC%num_atoms), f
+      real(dp)                        :: loc_l(self%ham%UC%num_atoms), f
       integer                        :: i, s, n_stat, v_u, v_d
 
       n_stat = 2 * self%ham%num_up
@@ -2380,16 +2381,16 @@ contains
 
    function calc_l(p) result(l)
       implicit none
-      complex(8), intent(in)  :: p(3)
-      complex(8)              :: l_prime
-      real(8)                 :: l
-      complex(8), parameter   :: m_l(3,3) &
+      complex(dp), intent(in)  :: p(3)
+      complex(dp)              :: l_prime
+      real(dp)                 :: l
+      complex(dp), parameter   :: m_l(3,3) &
                                  = transpose(reshape( &
                                              [c_0, c_i, c_0, &
                                               -c_i, c_0, c_0, &
                                               c_0, c_0, c_0], &
                                              shape(m_l)))
-      complex(8)              :: rhs(3)
+      complex(dp)              :: rhs(3)
 
       rhs     = matmul(m_l, p)
       ! remember complex dot_product = sum(conjg(a) * b)
@@ -2403,7 +2404,7 @@ contains
 
    function test_func(kpt) result(ret)
       implicit none
-      real(8)                :: kpt(2), ret, d
+      real(dp)                :: kpt(2), ret, d
 
       d =  my_norm2(kpt)
       ret = exp(-10d0*d)
@@ -2412,7 +2413,7 @@ contains
    function random_pt_hex(self) result(ret)
       implicit none
       class(k_space)            :: self
-      real(8)                   :: ret(2), l
+      real(dp)                   :: ret(2), l
 
       l = my_norm2(self%ham%UC%rez_lattice(:,1))
 
@@ -2447,7 +2448,7 @@ contains
    subroutine plot_omega_square(self)
       implicit none
       class(k_space)               :: self
-      real(8), allocatable     :: eig_val(:,:), omega_z(:,:), omega_surf(:,:), omega_sea(:,:), Q_L(:,:), Q_IC(:,:)
+      real(dp), allocatable     :: eig_val(:,:), omega_z(:,:), omega_surf(:,:), omega_sea(:,:), Q_L(:,:), Q_IC(:,:)
       logical                  :: tmp_ch, tmp_co
 
       if(self%nProcs /= 1) call error_msg("Plot only for 1 process", abort=.True.)
@@ -2470,9 +2471,9 @@ contains
 
    subroutine basis_trafo(in_EV, trafo_mtx, out_EV)
       implicit none
-      complex(8), intent(in)   :: in_EV(:)
-      complex(8), intent(in)   :: trafo_mtx(3,3)
-      complex(8)               :: out_EV(:)
+      complex(dp), intent(in)   :: in_EV(:)
+      complex(dp), intent(in)   :: trafo_mtx(3,3)
+      complex(dp)               :: out_EV(:)
       integer                  :: i
 
       out_EV = 0d0
@@ -2485,16 +2486,16 @@ contains
 
    subroutine p_real_to_cmplx(real_EV, cmplx_EV)
       implicit none
-      complex(8), intent(in)   :: real_EV(:)
-      complex(8)               :: cmplx_EV(:)
+      complex(dp), intent(in)   :: real_EV(:)
+      complex(dp)               :: cmplx_EV(:)
 
       call basis_trafo(real_EV, BT_real_to_cmplx, cmplx_EV)
    end subroutine p_real_to_cmplx
 
    subroutine p_cmplx_to_real(cmplx_EV, real_EV)
       implicit none
-      complex(8), intent(in)   :: cmplx_EV(:)
-      complex(8)               :: real_EV(:)
+      complex(dp), intent(in)   :: cmplx_EV(:)
+      complex(dp)               :: real_EV(:)
 
       call basis_trafo(cmplx_EV, BT_cmplx_to_real, real_EV)
    end subroutine p_cmplx_to_real

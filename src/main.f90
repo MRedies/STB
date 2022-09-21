@@ -97,7 +97,7 @@ contains
       character(len=300), intent(in) :: inp_file
       integer, intent(in)            :: n_sample,samples_per_comm
       type(MPI_Comm), intent(in)     :: sample_comm
-      real(8)                        :: start, halt
+      real(dp)                        :: start, halt
       integer                        :: me, ierr,ierr2,me_sample
       logical                        :: perform_band, perform_dos, calc_hall, calc_hall_diag,&
                                         calc_orbmag, perform_ACA,plot_omega,pert_log,tmp,success
@@ -271,7 +271,7 @@ contains
       use mpi_f08
       Implicit None
       type(CFG_t)            :: cfg
-      real(8), allocatable   :: empty_array(:)
+      real(dp), allocatable   :: empty_array(:)
       integer, allocatable   :: empty_int_array(:)
       allocate(empty_array(0))
       allocate(empty_int_array(0))

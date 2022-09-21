@@ -21,8 +21,8 @@ module Class_helper
 contains
    function cnorm2(vec) result(norm)
       implicit none
-      complex(8), intent(in)   :: vec(:)
-      complex(8)               :: norm
+      complex(dp), intent(in)   :: vec(:)
+      complex(dp)               :: norm
 
       ! see fortran defition for complex dot_product
       norm = sqrt(dot_product(vec,vec))
@@ -38,8 +38,8 @@ contains
 
    function omp_matvec(A,x) result(b)
       implicit none
-      complex(8), intent(in)    :: A(:,:), x(:)
-      complex(8)                :: b(size(x))
+      complex(dp), intent(in)    :: A(:,:), x(:)
+      complex(dp)                :: b(size(x))
       integer                :: i, j
 
 !$OMP         parallel do private(j) shared(A,x,b)
@@ -53,8 +53,8 @@ contains
 
    function matvec(A,x) result(b)
       implicit none
-      complex(8), intent(in)    :: A(:,:), x(:)
-      complex(8)                :: b(size(x))
+      complex(dp), intent(in)    :: A(:,:), x(:)
+      complex(dp)                :: b(size(x))
       integer                :: i, j
 
       do i = 1,size(x)
@@ -68,12 +68,12 @@ contains
    subroutine calc_zheevd_size(vn_flag, H, eig_val, lwork, lrwork, liwork)
       implicit none
       character(len=1)          :: vn_flag
-      complex(8), intent(in)    :: H(:,:)
-      real(8), intent(in)       :: eig_val(:)
+      complex(dp), intent(in)    :: H(:,:)
+      real(dp), intent(in)       :: eig_val(:)
       integer, intent(out)      :: lwork, lrwork, liwork
-      complex(8)                :: lwork_tmp
-      real(8)                   :: lrwork_tmp
-      integer(8)                :: N, info, minus_1
+      complex(dp)                :: lwork_tmp
+      real(dp)                   :: lrwork_tmp
+      integer(int64)                :: N, info, minus_1
 
       minus_1 = - 1
       N       = size(H, dim = 1)
@@ -139,10 +139,10 @@ contains
 
    subroutine linspace(start, halt, n, x)
       implicit none
-      real(8), intent(in)    :: start, halt
+      real(dp), intent(in)    :: start, halt
       integer, intent(in) :: n
-      real(8), allocatable   :: x(:)
-      real(8)                :: step, curr
+      real(dp), allocatable   :: x(:)
+      real(dp)                :: step, curr
       integer             :: i
 
       step =  (halt - start) /  (n-1)
@@ -165,8 +165,8 @@ contains
 
    pure function cross_prod(a,b) result(c)
       implicit none
-      real(8), intent(in)   :: a(3), b(3)
-      real(8)               :: c(3)
+      real(dp), intent(in)   :: a(3), b(3)
+      real(dp)               :: c(3)
 
       c(1) =  a(2) * b(3) - a(3) * b(2)
       c(2) =  a(3) * b(1) - a(1) * b(3)
@@ -205,7 +205,7 @@ contains
 
    recursive subroutine qargsort(data, idx, first_in, last_in)
       implicit none
-      real(8)                 :: data(:)
+      real(dp)                 :: data(:)
       integer, allocatable :: idx(:)
       integer, optional    :: first_in, last_in
       integer              :: first, last, i, p
@@ -238,7 +238,7 @@ contains
 
    function partition(data, idx, first, last) result(p)
       implicit none
-      real(8)                 :: data(:), pivot
+      real(dp)                 :: data(:), pivot
       integer, allocatable :: idx(:)
       integer              :: first, last, p, i, j, tmp
 
@@ -278,16 +278,16 @@ contains
 
    function dag(M) result(dag_M)
       implicit none
-      complex(8), intent(in) :: M(:,:)
-      complex(8)             :: dag_M(size(M,2), size(M,1))
+      complex(dp), intent(in) :: M(:,:)
+      complex(dp)             :: dag_M(size(M,2), size(M,1))
       dag_m = conjg(transpose(M))
    end function
 
    subroutine gaussian_noise(out_arr, sigma, mu)
       implicit none
-      real(8), intent(out)  :: out_arr(:)
-      real(8), intent(in)   :: sigma, mu
-      real(8)               :: u(size(out_arr)), fac, u_odd(2)
+      real(dp), intent(out)  :: out_arr(:)
+      real(dp), intent(in)   :: sigma, mu
+      real(dp)               :: u(size(out_arr)), fac, u_odd(2)
       integer            :: even_end, i
 
       call random_number(u)
@@ -379,8 +379,8 @@ contains
 
    function mtx_norm(M) result(norm)
       implicit none
-      real(8), intent(in)     :: M(:,:)
-      real(8)                 :: norm
+      real(dp), intent(in)     :: M(:,:)
+      real(dp)                 :: norm
 
       norm =  my_norm2(reshape(M, [size(M)]))
    end function

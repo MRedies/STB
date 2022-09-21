@@ -1,4 +1,5 @@
 module Class_atom
+    use stdlib_kinds, only: sp,dp,xdp,int8
     use Class_helper
     use Constants
     use mpi_f08
@@ -9,16 +10,16 @@ module Class_atom
     end enum
 
     type atom
-        real(8)                  :: m_phi   !> azimuthal spin angle \f$\phi\f$
+        real(dp)                  :: m_phi   !> azimuthal spin angle \f$\phi\f$
                                             !> see german wikipedia, not english
-        real(8)                  :: m_theta !> polar spin angle \f$\theta\f$
+        real(dp)                  :: m_theta !> polar spin angle \f$\theta\f$
                                             !> see german wikipedia, not english
-        real(8), dimension(3)    :: pos     !> Position in RS in atomic units
-        integer(8)               :: site_type !> A or B site
+        real(dp), dimension(3)    :: pos     !> Position in RS in atomic units
+        integer(int64)               :: site_type !> A or B site
 
         integer   , allocatable  :: neigh_idx(:)  !> index of neighbour atom
-        real(8), allocatable     :: neigh_conn(:,:) !> real space connection to neighbour.
-        integer(4), allocatable  :: conn_type(:) !> type of connection
+        real(dp), allocatable     :: neigh_conn(:,:) !> real space connection to neighbour.
+        integer(int64), allocatable  :: conn_type(:) !> type of connection
         !> First index connection, second element of connection.
 
         integer                  :: me, nProcs
@@ -42,7 +43,7 @@ contains
     function get_m_cart(self) result(coord)
         implicit none
         Class(atom), intent(in)   :: self
-        real(8), dimension(3)     :: coord
+        real(dp), dimension(3)     :: coord
 
         ! assume r =  1
         coord(1) = sin(self%m_theta) *  cos(self%m_phi)
@@ -53,9 +54,9 @@ contains
     function init_ferro_z(p_pos, comm, site) result(self)
         implicit none
         type(atom)                 :: self
-        real(8), intent(in)        :: p_pos(3)
+        real(dp), intent(in)        :: p_pos(3)
         type(MPI_Comm), intent(in) :: comm
-        integer(8), optional       :: site
+        integer(int64), optional       :: site
         integer                    :: ierr(2)
 
         call MPI_Comm_size(comm, self%nProcs, ierr(1))
@@ -76,7 +77,7 @@ contains
     subroutine set_m_cart(self,x,y,z)
         implicit none
         class(atom)           :: self
-        real(8), intent(in)   :: x,y,z
+        real(dp), intent(in)   :: x,y,z
 
         if(abs(my_norm2([x,y,z]) -  1d0) > 1d-4) then
             call error_msg("Spin not normed", abort=.True.)
@@ -88,7 +89,7 @@ contains
     subroutine set_sphere(self, phi, theta)
         implicit none
         class(atom)           :: self
-        real(8), intent(in)   :: phi, theta
+        real(dp), intent(in)   :: phi, theta
 
         self%m_phi   = phi
         self%m_theta = theta
@@ -98,13 +99,13 @@ contains
     function compare_to_root(self,comm) result(success)
         implicit none
         class(atom)                :: self
-        real(8)                    :: tmp, tmp_p(3)
+        real(dp)                    :: tmp, tmp_p(3)
         integer                    :: ierr(10), tmp_i,s1,s2
         type(MPI_Comm), intent(in) :: comm
         integer, allocatable    :: tmp_ivec(:)
-        integer(8)              :: tmp_i8
-        integer(4), allocatable :: tmp_i4vec(:)
-        real(8), allocatable    :: tmp_rmtx(:,:)
+        integer(int64)              :: tmp_i8
+        integer(int64), allocatable :: tmp_i4vec(:)
+        real(dp), allocatable    :: tmp_rmtx(:,:)
         logical                 :: success
 
         success = .True.
