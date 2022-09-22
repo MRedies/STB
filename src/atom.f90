@@ -131,7 +131,7 @@ contains
         if(self%me == root) tmp_p = self%pos
         call MPI_Bcast(tmp_p, 3, MPI_REAL8, root, comm, ierr(3))
         tmp_p_diff = tmp_p - self%pos
-        if(my_norm2(tmp_p_diff) > 1d-11) then
+        if(my_norm2(int(tmp_p_diff,int32)) > 1d-11) then
             call error_msg("pos doesn't match", abort=.True.)
             success = .False.
         endif
@@ -178,7 +178,7 @@ contains
         call MPI_Bcast(tmp_rmtx(1:s1,1:s2), size(tmp_rmtx), MPI_REAL8, &
                                       root, comm, ierr(8))
         tmp_rmtx_diff = tmp_rmtx - self%neigh_conn
-        if(mtx_norm(tmp_rmtx_diff) >  1d-11) then
+        if(mtx_norm(int(tmp_rmtx_diff,kind=int32)) >  1d-11) then
             call error_msg("neigh_conn doesn't match", abort=.True.)
             success = .False.
         endif
