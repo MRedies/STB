@@ -100,6 +100,7 @@ contains
         implicit none
         class(atom)                :: self
         real(dp)                    :: tmp, tmp_p(3)
+        real(xdp)                   :: tmp_p_diff(3)
         integer(int32)                    :: ierr(10), tmp_i,s1,s2
         type(MPI_Comm), intent(in) :: comm
         integer, allocatable    :: tmp_ivec(:)
@@ -129,6 +130,7 @@ contains
         ! compare positions
         if(self%me == root) tmp_p = self%pos
         call MPI_Bcast(tmp_p, 3, MPI_REAL8, root, comm, ierr(3))
+        tmp_p_diff = tmp_p - self%pos
         if(my_norm2(tmp_p - self%pos) > 1d-11) then
             call error_msg("pos doesn't match", abort=.True.)
             success = .False.
