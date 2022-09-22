@@ -517,7 +517,8 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(dp)                           :: conn_mtx(3, 3)
       real(dp), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
-      integer(int64), allocatable           :: site_type(:),dimensions(:)
+      integer(int64), allocatable           :: site_type_in(:),dimensions(:)
+      integer(int32), allocatable           :: site_type(:)
       integer(int32)                        :: num_atoms,n_trans
       integer(int32)                           :: idxstart,idxstop,i
       integer(int32)                           :: info
@@ -546,8 +547,9 @@ contains
          transl_mtx = transpose(transl_mtx)
          call load_npy(trim(self%mag_file),m_large)
          call load_npy(trim(self%pos_file),pos)
-         call load_npy(trim(self%site_type_file),site_type)
-         site_type = int(site_type,kind=int32)
+         call load_npy(trim(self%site_type_file),site_type_in)
+         allocate(site_type(size(site_type_in,dim=1)))
+         site_type = int(site_type_in,kind=int32)
          idxstart = (self%sample_idx-1)*self%num_atoms + 1
          idxstop = self%sample_idx*self%num_atoms
          m(1,:) = m_large(1,idxstart:idxstop)
