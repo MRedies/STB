@@ -175,7 +175,8 @@ contains
         if(self%me == root) tmp_rmtx = self%neigh_conn
         call MPI_Bcast(tmp_rmtx(1:s1,1:s2), size(tmp_rmtx), MPI_REAL8, &
                                       root, comm, ierr(8))
-        if(mtx_norm(tmp_rmtx - self%neigh_conn) >  1d-11) then
+        tmp_rmtx_diff = tmp_rmtx - self%neigh_conn
+        if(mtx_norm(tmp_rmtx_diff) >  1d-11) then
             call error_msg("neigh_conn doesn't match", abort=.True.)
             success = .False.
         endif
