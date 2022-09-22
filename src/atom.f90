@@ -1,5 +1,5 @@
 module Class_atom
-    use stdlib_kinds, only: sp,dp,xdp,int8
+    use stdlib_kinds, only: sp,dp,xdp,int32
     use Class_helper
     use Constants
     use mpi_f08

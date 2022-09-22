@@ -2,7 +2,7 @@ module Class_helper
    use m_config
    use Constants
    use mpi_f08
-   use stdlib_kinds, only: sp,dp,xdp,int8
+   use stdlib_kinds, only: sp,dp,xdp,int32
    implicit none
 
    character(len=1), parameter :: c_esc = achar(27)

@@ -4,7 +4,7 @@ module Class_unit_cell
    use m_config
    use output
    use stdlib_io_npy, only:load_npy,save_npy
-   use stdlib_kinds, only: sp,dp,xdp,int8
+   use stdlib_kinds, only: sp,dp,xdp,int32,int64
    use mpi_f08
    use Constants
    use class_Units
@@ -517,7 +517,7 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(dp)                           :: conn_mtx(3, 3)
       real(dp), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
-      integer(int32), allocatable           :: site_type(:),dimensions(:)
+      integer(int64), allocatable           :: site_type(:),dimensions(:)
       integer(int32)                        :: num_atoms,n_trans
       integer(int32)                           :: idxstart,idxstop,i
       integer(int32)                           :: info
