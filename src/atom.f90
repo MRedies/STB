@@ -131,7 +131,7 @@ contains
         if(self%me == root) tmp_p = self%pos
         call MPI_Bcast(tmp_p, 3, MPI_REAL8, root, comm, ierr(3))
         tmp_p_diff = tmp_p - self%pos
-        if(my_norm2(tmp_p - self%pos) > 1d-11) then
+        if(my_norm2(tmp_p_diff) > 1d-11) then
             call error_msg("pos doesn't match", abort=.True.)
             success = .False.
         endif
