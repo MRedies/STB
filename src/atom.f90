@@ -106,6 +106,7 @@ contains
         integer(int32)              :: tmp_i8
         integer(int32), allocatable :: tmp_i4vec(:)
         real(dp), allocatable    :: tmp_rmtx(:,:)
+        real(xdp), allocatable    :: tmp_rmtx_diff
         logical                 :: success
 
         success = .True.
@@ -170,6 +171,7 @@ contains
         s1 = size(self%neigh_conn, dim=1)
         s2 = size(self%neigh_conn, dim=2)
         allocate(tmp_rmtx(s1, s2))
+        allocate(tmp_rmtx_diff(s1, s2))
         if(self%me == root) tmp_rmtx = self%neigh_conn
         call MPI_Bcast(tmp_rmtx(1:s1,1:s2), size(tmp_rmtx), MPI_REAL8, &
                                       root, comm, ierr(8))

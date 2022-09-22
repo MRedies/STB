@@ -30,7 +30,7 @@ contains
 
    pure function my_norm2(vec) result(norm)
       implicit none
-      real(dp), intent(in) :: vec(:)
+      real(xdp), intent(in) :: vec(:)
       real(xdp)             :: norm
 
       norm = sqrt(dot_product(vec,vec))
@@ -379,7 +379,7 @@ contains
 
    function mtx_norm(M) result(norm)
       implicit none
-      real(dp), intent(in)     :: M(:,:)
+      real(xdp), intent(in)     :: M(:,:)
       real(dp)                 :: norm
 
       norm =  my_norm2(reshape(M, [size(M)]))
