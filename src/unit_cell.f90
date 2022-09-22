@@ -22,16 +22,16 @@ module Class_unit_cell
       real(dp), public :: rez_lattice(2, 2) !> translation vectors
       !> of the reciprocal lattice. Indexs same as lattice
       ! number of non-redundant atoms pre unit cell
-      integer(int64)    :: sample_idx  !> index of the sample
-      integer(int64)    :: samples_per_comm !> number of samples per communicator
-      integer(int64)    :: num_atoms  !> number of non-redundant atoms in a unit cell
-      integer(int64)    :: atom_per_dim !> atoms along the radius of the unit_cell
-      integer(int64)    :: nProcs
-      integer(int64)    :: me
-      integer(int64)    :: n_wind !> winding number for lin_rot
+      integer(int32)    :: sample_idx  !> index of the sample
+      integer(int32)    :: samples_per_comm !> number of samples per communicator
+      integer(int32)    :: num_atoms  !> number of non-redundant atoms in a unit cell
+      integer(int32)    :: atom_per_dim !> atoms along the radius of the unit_cell
+      integer(int32)    :: nProcs
+      integer(int32)    :: me
+      integer(int32)    :: n_wind !> winding number for lin_rot
       type(MPI_Comm)   :: sample_comm ! the communicator after splitting world
-      integer(int64)    :: nProcs_sample ! number of procs in comm
-      integer(int64)    :: me_sample ! rank in comm
+      integer(int32)    :: nProcs_sample ! number of procs in comm
+      integer(int32)    :: me_sample ! rank in comm
       integer, allocatable    :: wavevector(:)
       real(dp) :: lattice_constant !> lattice constant in atomic units
       real(dp) :: eps !> threshold for positional accuracy
@@ -106,7 +106,7 @@ contains
    subroutine free_uc(self)
       implicit none
       class(unit_cell)  :: self
-      integer(int64)           :: i
+      integer(int32)           :: i
 
       if (allocated(self%atoms)) then
          do i = 1, self%num_atoms
@@ -133,9 +133,9 @@ contains
       type(MPI_Comm), intent(in)      :: sample_comm
       real(dp)                         :: work(lwork), tmp
       integer, dimension(2)           :: ipiv
-      integer(int64)                         :: info,i
-      integer(int64)                         :: ierr
-      integer(int64)                         :: anticol_size, wavevector_size
+      integer(int32)                         :: info,i
+      integer(int32)                         :: ierr
+      integer(int32)                         :: anticol_size, wavevector_size
       logical                         :: tmp_log
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
@@ -247,9 +247,9 @@ contains
       implicit none
       class(unit_cell)           :: self
       integer, parameter         :: num_cast = 31
-      integer(int64)                    :: ierr(num_cast)
-      integer(int64)                    :: anticol_size_phi, wsize
-      integer(int64)                    :: anticol_size_theta
+      integer(int32)                    :: ierr(num_cast)
+      integer(int32)                    :: anticol_size_phi, wsize
+      integer(int32)                    :: anticol_size_theta
 
       if (self%me_sample == root) then
          anticol_size_phi = size(self%anticol_phi)
@@ -333,7 +333,7 @@ contains
       implicit none
       class(unit_cell), intent(inout) :: self
       real(dp)                         :: conn_mtx(5, 3), transl_mtx(4, 3)
-      integer(int64)                      :: conn_types(size(conn_mtx, dim=1))
+      integer(int32)                      :: conn_types(size(conn_mtx, dim=1))
 
       self%num_atoms = self%atom_per_dim**2
       allocate (self%atoms(self%num_atoms))
@@ -377,8 +377,8 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(dp)                           :: conn_mtx(3, 3)
       real(dp), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :)
-      integer(int64)                           :: n(3), i, n_transl
-      integer(int64)                           :: info
+      integer(int32)                           :: n(3), i, n_transl
+      integer(int32)                           :: info
       character(len=300)                :: garb
 
       if (self%me == root) then
@@ -445,9 +445,9 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(dp)                           :: conn_mtx(3, 3)
       real(dp), allocatable              :: transl_mtx(:, :), m(:, :), pos(:, :)
-      integer(int64), allocatable              :: site_type(:)
-      integer(int64)                           :: n(3), i, n_transl
-      integer(int64)                           :: info
+      integer(int32), allocatable              :: site_type(:)
+      integer(int32)                           :: n(3), i, n_transl
+      integer(int32)                           :: info
       character(len=300)                :: garb
 
       if (self%me == root) then
@@ -517,10 +517,10 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(dp)                           :: conn_mtx(3, 3)
       real(dp), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
-      integer(int64), allocatable           :: site_type(:),dimensions(:)
-      integer(int64)                        :: num_atoms,n_trans
-      integer(int64)                           :: idxstart,idxstop,i
-      integer(int64)                           :: info
+      integer(int32), allocatable           :: site_type(:),dimensions(:)
+      integer(int32)                        :: num_atoms,n_trans
+      integer(int32)                           :: idxstart,idxstop,i
+      integer(int32)                           :: info
 
       !READ IN STUFF WITH LOAD_NPY
          
@@ -589,8 +589,8 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(dp)                          :: transl_mtx(3, 3), base_len_uc, l, pos(3)
       real(dp), allocatable             :: hexagon(:, :), grid(:, :)
-      integer(int64)                          :: num_atoms, cnt, apd, i
-      integer(int64), allocatable          :: site_type(:)
+      integer(int32)                          :: num_atoms, cnt, apd, i
+      integer(int32), allocatable          :: site_type(:)
 
       apd = self%atom_per_dim
       base_len_uc = self%lattice_constant*apd
@@ -628,10 +628,10 @@ contains
       implicit none
       class(unit_cell), intent(inout)   :: self
       real(dp), allocatable              :: line(:, :), conn_vecs(:, :)
-      integer(int64), allocatable           :: site_type(:)
+      integer(int32), allocatable           :: site_type(:)
       real(dp)                           :: shift_mtx(3, 3), conn_mtx(3, 3), transf_mtx(3, 3), base_len_uc, posA(3), &
                                            posB(3), posC(3), posD(3),pos(3), conn_vec_1(3), conn_vec_2(3), l
-      integer(int64)                           :: i, ii, ierr
+      integer(int32)                           :: i, ii, ierr
 
       if (mod(self%num_atoms, 2) /= 0) then
          write (*, *) "number of atoms in honey_comb line has to be even"
@@ -686,7 +686,7 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(dp)                           :: temp(3), shift_mtx(3, 3), wave_proj(3), proj, check, l, fac
       real(dp), allocatable              :: lattice(:, :)
-      integer(int64)                           :: i
+      integer(int32)                           :: i
 
       l = 2*cos(deg_30)*self%lattice_constant
       shift_mtx(1, :) = l*[1d0, 0d0, 0d0]!1
@@ -732,7 +732,7 @@ contains
       real(dp)                           :: conn_mtx(3, 3), shift_mtx(3, 3), conn_proj(3) ,conn_vec_1(3), conn_vec_2(3) &
                                            , l
       real(dp), allocatable              :: conn_vecs(:,:)
-      integer(int64)                           :: ierr
+      integer(int32)                           :: ierr
       
       l = 2*cos(deg_30)*self%lattice_constant
       !conn to next honey neighbor
@@ -773,8 +773,8 @@ contains
       real(dp)                           :: transl_mtx(4, 3), conn_mtx(3, 3), shift_mtx(3, 3)
       real(dp)                           :: base_len_uc, l
       real(dp), allocatable              :: lattice(:, :), line(:, :)
-      integer(int64), allocatable           :: site_type(:)
-      integer(int64)                           :: apd
+      integer(int32), allocatable           :: site_type(:)
+      integer(int32)                           :: apd
       apd = self%atom_per_dim
       self%num_atoms = calc_num_atoms_line_honey(apd)
       base_len_uc = self%lattice_constant
@@ -824,8 +824,8 @@ contains
       class(unit_cell), intent(inout)   :: self
       real(dp)  :: transl_mtx(3, 3), l, base_len_uc, conn_mtx(3, 3)
       real(dp), allocatable             :: hexagon(:, :)
-      integer(int64), allocatable          :: site_type(:)
-      integer(int64)                          :: apd
+      integer(int32), allocatable          :: site_type(:)
+      integer(int32)                          :: apd
 
       apd = self%atom_per_dim
       base_len_uc = self%lattice_constant*apd
@@ -882,12 +882,12 @@ contains
    subroutine set_honey_snd_nearest_line(self,transl_mtx)
       implicit none
       class(unit_cell)        :: self
-      integer(int64)                 :: i, j, cand
+      integer(int32)                 :: i, j, cand
       real(dp)                 :: l, conn_mtx_A(3, 3), conn_mtx_B(3, 3), start_pos(3), &
                                  conn(3), conn_storage(3, 3)
       real(dp), allocatable    :: tmp(:, :)
       real(dp), intent(in)     :: transl_mtx(:, :)
-      integer(int64)                 :: idx(3), curr_size
+      integer(int32)                 :: idx(3), curr_size
       l = 2d0*cos(deg_30)*self%lattice_constant
 
       !only clockwise connections
@@ -934,12 +934,12 @@ contains
    subroutine set_honey_snd_nearest(self,transl_mtx)
       implicit none
       class(unit_cell)        :: self
-      integer(int64)                 :: i, j, cand
+      integer(int32)                 :: i, j, cand
       real(dp)                 :: l, conn_mtx_A(3, 3), conn_mtx_B(3, 3), start_pos(3), &
                                  conn(3), conn_storage(3, 3)
       real(dp), allocatable    :: tmp(:, :)
       real(dp), intent(in)     :: transl_mtx(3, 3)
-      integer(int64)                 :: idx(3), curr_size
+      integer(int32)                 :: idx(3), curr_size
       l = 2d0*cos(deg_30)*self%lattice_constant
 
       !only clockwise connections
@@ -1010,7 +1010,7 @@ contains
    subroutine set_mag_ferro(self)
       implicit none
       class(unit_cell)    :: self
-      integer(int64)             :: i
+      integer(int32)             :: i
 
       do i = 1, self%num_atoms
          call self%atoms(i)%set_sphere(self%ferro_phi, self%ferro_theta)
@@ -1021,7 +1021,7 @@ contains
       implicit none
       class(unit_cell)        :: self
       real(dp)                 :: phi, theta, phi_nc, phi_col, theta_nc, theta_col
-      integer(int64)                 :: i
+      integer(int32)                 :: i
       if (self%me == root) write (*, *) "This is the collinear perturbation!"
       if (size(self%anticol_phi) /= self%num_atoms &
           .or. size(self%anticol_theta) /= self%num_atoms) then
@@ -1116,7 +1116,7 @@ contains
       implicit none
       class(unit_cell)                 :: self
       real(dp)        :: alpha, rel_xpos
-      integer(int64)        :: i
+      integer(int32)        :: i
 
       do i = 1, self%num_atoms
          rel_xpos = self%atoms(i)%pos(1)/self%lattice_constant
@@ -1135,7 +1135,7 @@ contains
    subroutine set_mag_random(self)
       implicit none
       class(unit_cell)       :: self
-      integer(int64)                :: i,ierr(1),send_size,seed_sz
+      integer(int32)                :: i,ierr(1),send_size,seed_sz
       integer, allocatable   :: seed(:)
       real(dp)                :: phi, theta
       real(dp), allocatable   :: u(:,:)
@@ -1210,7 +1210,7 @@ contains
       real(dp), intent(in)           :: center(3), radius
       real(dp), parameter            :: e_z(3) = [0, 0, 1]
       real(dp)                               :: R(3, 3), conn(3), n(3), m(3), k(3), alpha
-      integer(int64)                               :: i
+      integer(int32)                               :: i
 
       alpha = 0d0
       do i = 1, self%num_atoms
@@ -1240,7 +1240,7 @@ contains
       real(dp), intent(in)   :: center(3), radius
       real(dp), parameter    :: e_z(3) = [0, 0, 1]
       real(dp)  :: R(3, 3), conn(3), n(3), m(3), alpha, y_min, y_max, x0, x, a, scaling
-      integer(int64)               :: i
+      integer(int32)               :: i
 
       a = self%atan_factor
       x0 = self%skyrm_middle*radius
@@ -1279,7 +1279,7 @@ contains
       real(dp), intent(in)   :: center(3), radius
       real(dp), parameter    :: e_z(3) = [0, 0, 1]
       real(dp)  :: R(3, 3), conn(3), n(3), m(3), alpha, alp_min, alp_max, a, d, x
-      integer(int64)               :: i
+      integer(int32)               :: i
 
       a = self%atan_factor
       d = self%dblatan_dist
@@ -1338,7 +1338,7 @@ contains
       class(unit_cell)    :: self
       integer, intent(in) :: ii, j
       real(dp), intent(in) :: UC_l
-      integer(int64)             :: i
+      integer(int32)             :: i
       real(dp)             :: conn(3), phase_fac, x, l, R(3,3), shift_mtx(3,3), m(3), axis(3), wavevector(3) &
                              , wavevector_len, wavelength, psi
       axis(1) = sin(self%axis_theta) *  cos(self%axis_phi)
@@ -1375,7 +1375,7 @@ contains
       implicit none
       class(unit_cell)    :: self
       real(dp), intent(in) :: UC_l
-      integer(int64)             :: i, ii, j
+      integer(int32)             :: i, ii, j
       do i = 1, self%atom_per_dim
          ii = 4*(i-1)
          do j = 1, 4
@@ -1389,9 +1389,9 @@ contains
       class(unit_cell)        :: self
       character(len=*)        :: folder
       real(dp), allocatable    :: x(:), y(:), z(:), phi(:), theta(:)
-      integer(int64)                 :: i, n_neigh
+      integer(int32)                 :: i, n_neigh
       integer, allocatable :: neigh(:, :), conn_type(:, :)
-      integer(int64), allocatable    :: site_type(:)
+      integer(int32), allocatable    :: site_type(:)
 
       allocate (x(self%num_atoms))
       allocate (y(self%num_atoms))
@@ -1471,7 +1471,7 @@ contains
    subroutine setup_square(self)
       implicit none
       class(unit_cell), intent(inout)  :: self
-      integer(int64)                          :: i, j, cnt
+      integer(int32)                          :: i, j, cnt
       real(dp) :: pos(3)
 
       cnt = 1
@@ -1496,9 +1496,9 @@ contains
       implicit none
       class(unit_cell), intent(inout)  :: self
       real(dp), intent(in)              :: hexagon(:, :)
-      integer(int64), intent(in)           :: site_type(:)
+      integer(int32), intent(in)           :: site_type(:)
       real(dp)                          :: pos(3)
-      integer(int64)                          :: i
+      integer(int32)                          :: i
 
       do i = 1, size(hexagon, dim=1)
          pos = hexagon(i, :)
@@ -1512,10 +1512,10 @@ contains
       real(dp), intent(in) :: conn_mtx(:, :) !> Matrix containing
       !> real-space connections. The first index inidcates
       !> the connection vector, the second the vector element
-      integer(int64), intent(in) :: conn_type(:)
+      integer(int32), intent(in) :: conn_type(:)
       real(dp), intent(in) :: transl_mtx(:, :) !> Matrix containing
       !> real-space translation vectors. Notation as in conn_mtx
-      integer(int64)                 :: i, j, cnt, candidate, n_conn, n_found
+      integer(int32)                 :: i, j, cnt, candidate, n_conn, n_found
       integer, allocatable :: neigh(:)
       real(dp)  :: start_pos(3), conn(3)
       logical, allocatable :: found_conn(:)
@@ -1583,7 +1583,7 @@ contains
       !> The vectors are save as columns in the matrix:
       !> The first index indicates the vector
       !> The second index indicates the element of the vector
-      integer(int64)     :: neigh, idx, n_transl, i
+      integer(int32)     :: neigh, idx, n_transl, i
       real(dp)     :: new(3)
 
       n_transl = size(transl_mtx, dim=1)
@@ -1618,7 +1618,7 @@ contains
       integer, intent(in) :: till
       logical                :: inside
       real(dp)                :: new(3), delta_vec(3), delta
-      integer(int64)                :: n_transl, i, trl
+      integer(int32)                :: n_transl, i, trl
 
       n_transl = size(transl_mtx, dim=1)
       inside = .False.
@@ -1657,8 +1657,8 @@ contains
       real(dp), intent(in) :: conn(3) !> RZ connection
       real(dp) :: new(3), delta_vec(3), delta
       real(dp), parameter :: repl_eps = 1d-4
-      integer(int64)    :: idx
-      integer(int64)    :: i
+      integer(int32)    :: idx
+      integer(int32)    :: i
 
       new = start + conn
 
@@ -1681,7 +1681,7 @@ contains
       implicit none
       integer, intent(in)  :: n
       integer, intent(out) :: n_atm, side
-      integer(int64)                 :: i
+      integer(int32)                 :: i
 
       side = 2
       n_atm = 0
@@ -1700,7 +1700,7 @@ contains
    function calc_num_atoms_non_red_honey(n) result(n_atm)
       implicit none
       integer, intent(in)   :: n
-      integer(int64)                  :: inner, next_side, n_atm
+      integer(int32)                  :: inner, next_side, n_atm
 
       call calc_num_atoms_full_honey(n - 1, inner, next_side)
 
@@ -1714,7 +1714,7 @@ contains
    function calc_num_atoms_line_honey(n) result(n_atm)
       implicit none
       integer, intent(in)   :: n
-      integer(int64)                  :: n_atm
+      integer(int32)                  :: n_atm
 
       n_atm = 4*n
 
@@ -1745,7 +1745,7 @@ contains
       integer, intent(in)  :: max_ind
       real(dp), allocatable    :: grid(:, :)
       real(dp)                 :: v1(3), v2(3)
-      integer(int64)                 :: cnt, i, j
+      integer(int32)                 :: cnt, i, j
 
       if (.not. allocated(grid)) then
          allocate (grid((2*max_ind + 1)**2, 3))
@@ -1769,7 +1769,7 @@ contains
       integer, intent(in)     :: max_ind
       real(dp), allocatable       :: grid(:, :), tmp(:, :)
       real(dp)                    :: l, origin(3)
-      integer(int64)                    :: n
+      integer(int32)                    :: n
 
       n = 2*max_ind + 1
       l = 2d0*cos(deg_30)*a
@@ -1790,7 +1790,7 @@ contains
    function get_num_atoms(self) result(num)
       implicit none
       class(unit_cell), intent(in) :: self
-      integer(int64)    :: num
+      integer(int32)    :: num
       num = self%num_atoms
    end function get_num_atoms
 
@@ -1880,7 +1880,7 @@ contains
       use mpi_f08
       implicit none
       class(unit_cell), intent(in)   :: self
-      integer(int64)                        :: i, ierr
+      integer(int32)                        :: i, ierr
       logical                        :: passed, tmp
 
       passed = .True.

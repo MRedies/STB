@@ -3,7 +3,7 @@ module Class_append_funcs
     use m_config
     use Class_units
     use stdlib_io_npy, only: save_npy
-    use stdlib_kinds, only: sp,dp,xdp,int64
+    use stdlib_kinds, only: sp,dp,xdp,int32
     implicit none
     type collect_quantities
         real(dp), allocatable ::  int_DOS_collect(:,:)
@@ -12,7 +12,7 @@ module Class_append_funcs
         real(dp), allocatable ::  down_collect(:,:)
         real(dp), allocatable ::  spins_collect(:,:)
         integer, allocatable ::  sample_idx(:)
-        integer(int64)              ::  me,me_sample,color
+        integer(int32)              ::  me,me_sample,color
         character(len=300)   :: prefix
         type(units)          :: units
     contains
@@ -30,7 +30,7 @@ module Class_append_funcs
             implicit none
             type(collect_quantities) :: self
             type(CFG_t)              :: cfg
-            integer(int64)                  :: ierr,color
+            integer(int32)                  :: ierr,color
             type(MPI_Comm)           :: sample_comm
             character(len=300)       :: prefix
     
@@ -79,7 +79,7 @@ module Class_append_funcs
             use mpi_f08
             implicit none
             class(collect_quantities)           :: self
-            integer(int64)                             :: i
+            integer(int32)                             :: i
             integer,allocatable                 :: isize(:)
             real(dp), intent(in)                 :: spins(:,:)
             allocate(isize(2))
@@ -185,7 +185,7 @@ module Class_append_funcs
 
         subroutine add_to_arr1D_int(list, element)
             implicit none
-            integer(int64)                             :: i,isize
+            integer(int32)                             :: i,isize
             integer, intent(in)                 :: element
             integer, allocatable, intent(inout) :: list(:)
             integer, allocatable                :: clist(:)
@@ -211,7 +211,7 @@ module Class_append_funcs
         subroutine add_to_arr1D_real(list, element)
             !https://stackoverflow.com/questions/28048508/how-to-add-new-element-to-dynamical-array-in-fortran-90
             implicit none
-            integer(int64)                             :: i,isize
+            integer(int32)                             :: i,isize
             real(dp), intent(in)                 :: element
             real(dp), allocatable, intent(inout) :: list(:)
             real(dp), allocatable                :: clist(:)
@@ -237,7 +237,7 @@ module Class_append_funcs
         subroutine add_to_arr2D_real(list, element)
             !https://stackoverflow.com/questions/28048508/how-to-add-new-element-to-dynamical-array-in-fortran-90
             implicit none
-            integer(int64)                             :: i
+            integer(int32)                             :: i
             integer,allocatable                 :: isize(:)
             real(dp)             , intent(in)    :: element(:)
             real(dp), allocatable, intent(inout) :: list(:,:)
@@ -268,7 +268,7 @@ module Class_append_funcs
     subroutine add_2D_to_arr2D_real(list, element)
         !https://stackoverflow.com/questions/28048508/how-to-add-new-element-to-dynamical-array-in-fortran-90
         implicit none
-        integer(int64)                             :: i
+        integer(int32)                             :: i
         integer,allocatable                 :: isize(:),esize(:)
         real(dp)             , intent(in)    :: element(:,:)
         real(dp), allocatable, intent(inout) :: list(:,:)

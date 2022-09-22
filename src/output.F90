@@ -1,10 +1,10 @@
 Module  output
    use mpi_f08
    use stdlib_io_npy, only:load_npy,save_npy
-   use stdlib_kinds, only: sp,dp,xdp,int64
+   use stdlib_kinds, only: sp,dp,xdp,int32
    use Class_helper
    implicit None
-   integer(int64), parameter  :: std_out =  6
+   integer(int32), parameter  :: std_out =  6
    interface print_mtx
       module procedure print_mtx_real, print_mtx_cmplx, print_vec_real,&
          print_mtx_real_no_unit, print_mtx_cmplx_no_unit, &
@@ -15,16 +15,16 @@ Module  output
 contains
    subroutine print_mtx_int_no_unit(mtx)
       Implicit None
-      integer(int64), dimension(:,:), intent(in)    :: mtx
+      integer(int32), dimension(:,:), intent(in)    :: mtx
 
       call print_mtx_int(std_out,  mtx)
    end subroutine
 
    Subroutine  print_mtx_int(p_unit, mtx)
       Implicit None
-      integer(int64), dimension(:,:), intent(in)    :: mtx
-      integer(int64), intent(in)                 :: p_unit
-      integer(int64)                             :: i,j
+      integer(int32), dimension(:,:), intent(in)    :: mtx
+      integer(int32), intent(in)                 :: p_unit
+      integer(int32)                             :: i,j
 
       do i = 1, size(mtx,1)
          do j =  1, size(mtx,2)
@@ -39,16 +39,16 @@ contains
 
    subroutine print_vec_int_no_unit(vec)
       implicit none
-      integer(int64), dimension(:), intent(in)   :: vec
+      integer(int32), dimension(:), intent(in)   :: vec
 
       call print_vec_int(std_out, vec)
    end subroutine print_vec_int_no_unit
 
    subroutine print_vec_int(p_unit, vec)
       implicit none
-      integer(int64), dimension(:), intent(in)   :: vec
-      integer(int64), intent(in)                 :: p_unit
-      integer(int64)                             :: i
+      integer(int32), dimension(:), intent(in)   :: vec
+      integer(int32), intent(in)                 :: p_unit
+      integer(int32)                             :: i
 
       do i =  1,size(vec)
          write(p_unit,"(I6)") vec(i)
@@ -65,8 +65,8 @@ contains
    subroutine print_vec_real(p_unit, vec)
       implicit none
       real(dp), dimension(:), intent(in)      :: vec
-      integer(int64), intent(in)                 :: p_unit
-      integer(int64)                             :: i
+      integer(int32), intent(in)                 :: p_unit
+      integer(int32)                             :: i
 
       do i =  1, size(vec)
          write(p_unit, "(ES10.3)") vec(i)
@@ -83,8 +83,8 @@ contains
    subroutine print_vec_cmplx(p_unit, vec)
       implicit none
       complex(dp), dimension(:), intent(in)      :: vec
-      integer(int64), intent(in)                 :: p_unit
-      integer(int64)                             :: i
+      integer(int32), intent(in)                 :: p_unit
+      integer(int32)                             :: i
 
       do i =  1, size(vec)
          write(p_unit, "(A, ES10.3, A, ES10.3, A)")&
@@ -102,8 +102,8 @@ contains
    Subroutine  print_mtx_real(p_unit, mtx)
       Implicit None
       real(dp), dimension(:,:), intent(in)    :: mtx
-      integer(int64), intent(in)                 :: p_unit
-      integer(int64)                             :: i,j
+      integer(int32), intent(in)                 :: p_unit
+      integer(int32)                             :: i,j
 
       do i = 1, size(mtx,1)
          do j =  1, size(mtx,2)
@@ -126,8 +126,8 @@ contains
    Subroutine  print_mtx_cmplx(p_unit, mtx)
       Implicit None
       complex(dp), dimension(:,:), intent(in)    :: mtx
-      integer(int64), intent(in)                     :: p_unit
-      integer(int64)                                 :: i,j
+      integer(int32), intent(in)                     :: p_unit
+      integer(int32)                                 :: i,j
       character(len=4)                           :: i_str
       character(len=4)                           :: deli = "j), "
 
@@ -153,7 +153,7 @@ contains
    subroutine create_dir(folder)
       implicit none
       character(len=*) :: folder
-      integer(int64)       :: succ
+      integer(int32)       :: succ
 
       call execute_command_line("rm " // trim(folder) // "*.npy", exitstat=succ)
       if(succ /= 0) then

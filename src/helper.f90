@@ -40,7 +40,7 @@ contains
       implicit none
       complex(dp), intent(in)    :: A(:,:), x(:)
       complex(dp)                :: b(size(x))
-      integer(int64)                :: i, j
+      integer(int32)                :: i, j
 
 !$OMP         parallel do private(j) shared(A,x,b)
       do i = 1,size(x)
@@ -55,7 +55,7 @@ contains
       implicit none
       complex(dp), intent(in)    :: A(:,:), x(:)
       complex(dp)                :: b(size(x))
-      integer(int64)                :: i, j
+      integer(int32)                :: i, j
 
       do i = 1,size(x)
          b(i) = 0d0
@@ -73,7 +73,7 @@ contains
       integer, intent(out)      :: lwork, lrwork, liwork
       complex(dp)                :: lwork_tmp
       real(dp)                   :: lrwork_tmp
-      integer(int64)                :: N, info, minus_1
+      integer(int32)                :: N, info, minus_1
 
       minus_1 = - 1
       N       = size(H, dim = 1)
@@ -89,7 +89,7 @@ contains
       implicit none
       integer, intent(in)     :: me, nProcs, length
       integer, intent(out)    :: first, last
-      integer(int64)                 :: small_chunk, nLarge, i, chunk_sz
+      integer(int32)                 :: small_chunk, nLarge, i, chunk_sz
 
       small_chunk =  length / nProcs
       nLarge =  mod(length, nProcs)
@@ -116,7 +116,7 @@ contains
       integer, intent(in)    :: nProcs
       integer, intent(in)    :: length
       integer, intent(out)   :: num_elem(nProcs), offset(nProcs)
-      integer(int64)                :: small_chunk, nLarge, i
+      integer(int32)                :: small_chunk, nLarge, i
 
       small_chunk =  length / nProcs
       nLarge =  mod(length, nProcs)
@@ -143,7 +143,7 @@ contains
       integer, intent(in) :: n
       real(dp), allocatable   :: x(:)
       real(dp)                :: step, curr
-      integer(int64)             :: i
+      integer(int32)             :: i
 
       step =  (halt - start) /  (n-1)
       curr =  start
@@ -177,8 +177,8 @@ contains
       implicit none
       integer, intent(inout)  :: ierr(:)
       integer, optional       :: me_in
-      integer(int64)                 :: me, holder
-      integer(int64)                 :: i
+      integer(int32)                 :: me, holder
+      integer(int32)                 :: i
       character(len=*), optional :: info, msg(:)
 
       if(present(me_in)) then
@@ -208,7 +208,7 @@ contains
       real(dp)                 :: data(:)
       integer, allocatable :: idx(:)
       integer, optional    :: first_in, last_in
-      integer(int64)              :: first, last, i, p
+      integer(int32)              :: first, last, i, p
 
       !setting up a nice interface
       if(.not. present(first_in)) then
@@ -240,7 +240,7 @@ contains
       implicit none
       real(dp)                 :: data(:), pivot
       integer, allocatable :: idx(:)
-      integer(int64)              :: first, last, p, i, j, tmp
+      integer(int32)              :: first, last, p, i, j, tmp
 
       pivot = data(idx(last))
       i = first - 1
@@ -264,7 +264,7 @@ contains
    function find_list_idx(list, elem) result(idx)
       implicit none
       integer, intent(in)   :: list(:), elem
-      integer(int64)               :: idx
+      integer(int32)               :: idx
 
       idx = 1
       do while(list(idx) /= elem)
@@ -288,7 +288,7 @@ contains
       real(dp), intent(out)  :: out_arr(:)
       real(dp), intent(in)   :: sigma, mu
       real(dp)               :: u(size(out_arr)), fac, u_odd(2)
-      integer(int64)            :: even_end, i
+      integer(int32)            :: even_end, i
 
       call random_number(u)
       even_end = size(out_arr) - mod(size(out_arr),2)
@@ -333,7 +333,7 @@ contains
    subroutine time_msg(msg)
       implicit none
       character(len=*), intent(in)   :: msg
-      integer(int64)                        :: me, info
+      integer(int32)                        :: me, info
 
       call MPI_Comm_rank(MPI_COMM_WORLD, me, info)
 
@@ -345,7 +345,7 @@ contains
       character(len=*), intent(in) :: msg
       character(len=*), optional   :: p_color
       character(len=2)             :: code
-      integer(int64)                   :: me, holder, info
+      integer(int32)                   :: me, holder, info
       logical, optional            :: abort
 
       if(present(p_color)) then

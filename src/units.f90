@@ -2,7 +2,7 @@ module class_Units
    use m_config
    use Constants
    use mpi_f08
-   use stdlib_kinds, only: sp,dp,xdp,int64
+   use stdlib_kinds, only: sp,dp,xdp,int32
    implicit none
 
    type, public :: units
@@ -13,7 +13,7 @@ contains
       implicit none
       type(units)            :: ret
       type(CFG_t), intent(in):: cfg
-      integer(int64)   , intent(in) :: me
+      integer(int32)   , intent(in) :: me
 
       ret%length      = get_unit_conv("length",      cfg, me, .True.)
       ret%energy      = get_unit_conv("energy",      cfg, me, .True.)
@@ -25,12 +25,12 @@ contains
    function get_unit_conv(field_name, cfg, me, bcast) result(factor)
       implicit none
       character(len=*), intent(in)        :: field_name
-      integer(int64)   , intent(in)              :: me
+      integer(int32)   , intent(in)              :: me
       logical, optional                   :: bcast
       logical                             :: bcast_loc
       type(CFG_t)                         :: cfg
       real(dp)                             :: factor
-      integer(int64)                             :: ierr
+      integer(int32)                             :: ierr
       character(len=300)                  :: unit_name
 
       if(present(bcast)) then

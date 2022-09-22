@@ -15,14 +15,14 @@ module Class_atom
         real(dp)                  :: m_theta !> polar spin angle \f$\theta\f$
                                             !> see german wikipedia, not english
         real(dp), dimension(3)    :: pos     !> Position in RS in atomic units
-        integer(int64)               :: site_type !> A or B site
+        integer(int32)               :: site_type !> A or B site
 
-        integer(int64)   , allocatable  :: neigh_idx(:)  !> index of neighbour atom
+        integer(int32)   , allocatable  :: neigh_idx(:)  !> index of neighbour atom
         real(dp), allocatable     :: neigh_conn(:,:) !> real space connection to neighbour.
-        integer(int64), allocatable  :: conn_type(:) !> type of connection
+        integer(int32), allocatable  :: conn_type(:) !> type of connection
         !> First index connection, second element of connection.
 
-        integer(int64)                  :: me, nProcs
+        integer(int32)                  :: me, nProcs
 
     contains
         procedure :: get_m_cart      => get_m_cart
@@ -56,8 +56,8 @@ contains
         type(atom)                 :: self
         real(dp), intent(in)        :: p_pos(3)
         type(MPI_Comm), intent(in) :: comm
-        integer(int64), optional       :: site
-        integer(int64)                    :: ierr(2)
+        integer(int32), optional       :: site
+        integer(int32)                    :: ierr(2)
 
         call MPI_Comm_size(comm, self%nProcs, ierr(1))
         call MPI_Comm_rank(comm, self%me, ierr(2))
@@ -100,11 +100,11 @@ contains
         implicit none
         class(atom)                :: self
         real(dp)                    :: tmp, tmp_p(3)
-        integer(int64)                    :: ierr(10), tmp_i,s1,s2
+        integer(int32)                    :: ierr(10), tmp_i,s1,s2
         type(MPI_Comm), intent(in) :: comm
         integer, allocatable    :: tmp_ivec(:)
-        integer(int64)              :: tmp_i8
-        integer(int64), allocatable :: tmp_i4vec(:)
+        integer(int32)              :: tmp_i8
+        integer(int32), allocatable :: tmp_i4vec(:)
         real(dp), allocatable    :: tmp_rmtx(:,:)
         logical                 :: success
 

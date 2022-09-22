@@ -1,5 +1,5 @@
 module Constants
-   use stdlib_kinds, only: sp,dp,xdp,int64
+   use stdlib_kinds, only: sp,dp,xdp,int32
    !< mathematical parameter
    real(dp), parameter     :: PI = 3.14159265359d0
 
@@ -23,7 +23,7 @@ module Constants
    real(dp), parameter    :: boltzmann_const = 3.16681d-6 !E_h/K (hartrees per kelvin)
 
    !< MPI Parameter
-   integer(int64), parameter :: root = 0
+   integer(int32), parameter :: root = 0
 
    !<
    !real(dp), parameter  :: small_imag = 1d-24

@@ -3,7 +3,7 @@ module Class_hamiltionian
    use output
    use Class_unit_cell
    use stdlib_io_npy, only:load_npy,save_npy
-   use stdlib_kinds, only: sp,dp,xdp,int64
+   use stdlib_kinds, only: sp,dp,xdp,int32
    use mpi_f08
    use Constants
    implicit none
@@ -28,13 +28,13 @@ module Class_hamiltionian
       real(dp), allocatable       :: drop_Vx_layers(:), drop_Vy_layers(:)
       complex(dp), allocatable    :: del_H(:,:)
       character(len=300)   :: prefix
-      integer(int64)         :: sample_idx  !> index of the sample
-      integer(int64)         :: nProcs
-      integer(int64)         :: me
-      integer(int64)         :: num_orb, num_up
+      integer(int32)         :: sample_idx  !> index of the sample
+      integer(int32)         :: nProcs
+      integer(int32)         :: me
+      integer(int32)         :: num_orb, num_up
       type(MPI_Comm)        :: sample_comm! the comm after splitting world
-      integer(int64)         :: me_sample
-      integer(int64)         :: nProcs_sample
+      integer(int32)         :: me_sample
+      integer(int32)         :: nProcs_sample
       logical      :: test_run !> should unit tests be performed
       type(unit_cell) :: UC !> unit cell
       type(units)     :: units
@@ -93,8 +93,8 @@ contains
       class(hamil)         :: self
       class(CFG_t)           :: cfg
       real(dp)                :: tmp(3)
-      integer(int64)                :: ierr
-      integer(int64)                :: n_steps
+      integer(int32)                :: ierr
+      integer(int32)                :: n_steps
    
       if(root == self%me) then
          call CFG_get(cfg, "berry%E_fermi", tmp)
@@ -119,7 +119,7 @@ contains
       implicit none
       class(hamil), intent(in)    :: self
       real(dp), intent(in)           :: E
-      integer(int64)   , intent(in)        :: n_ferm
+      integer(int32)   , intent(in)        :: n_ferm
       real(dp)                       :: ferm, exp_term
    
       exp_term =  (E - self%E_fermi(n_ferm)) /&
@@ -139,7 +139,7 @@ contains
       implicit none
       class(hamil), intent(in)      :: self
       real(dp)                       :: z(2 * self%num_up)
-      integer(int64)                       :: n_up, n_down, i_atm
+      integer(int32)                       :: n_up, n_down, i_atm
 
       i_atm = 1
       do n_up = 1, self%num_up, self%num_orb
@@ -159,7 +159,7 @@ contains
       logical                       :: mask(2 * self%num_up)
       real(dp)                       :: z(2 * self%num_up), t_start, t_stop
       real(dp), parameter            :: eps = 1e-6
-      integer(int64)                       :: i, m, ierr
+      integer(int32)                       :: i, m, ierr
 
       t_start = MPI_Wtime()
       if(k_idx == 1) then
@@ -200,7 +200,7 @@ contains
       class(hamil)                :: self
       real(dp), intent(in)         :: k(3)
       complex(dp), allocatable     :: fd_H(:,:)
-      integer(int64)                     :: N, k_idx
+      integer(int32)                     :: N, k_idx
 
       N = 2 * self%num_up
       write (*,*) N
@@ -277,7 +277,7 @@ contains
    subroutine test_herm(H, tag, verbose)
       implicit none
       complex(dp), intent(in)      :: H(:,:)
-      integer(int64)                     :: n
+      integer(int32)                     :: n
       character(len=*), optional  :: tag
       logical, optional           :: verbose
       logical                     :: p_verbose
@@ -309,8 +309,8 @@ contains
       integer, intent(in) :: n_sample,samples_per_comm
       type(MPI_Comm), intent(in) :: sample_comm
       real(dp)             :: tmp
-      integer(int64)             :: ierr
-      integer(int64)             :: n, n_arr
+      integer(int32)             :: ierr
+      integer(int32)             :: n, n_arr
 
       self%sample_comm = sample_comm
       self%sample_idx = n_sample
@@ -405,8 +405,8 @@ contains
    subroutine Bcast_hamil(self)
       implicit none
       class(hamil)          :: self
-      integer(int64)   , parameter :: num_cast = 27
-      integer(int64)               :: ierr(num_cast), Vx_len, Vy_len
+      integer(int32)   , parameter :: num_cast = 27
+      integer(int32)               :: ierr(num_cast), Vx_len, Vy_len
 
       call MPI_Bcast(self%E_s,      1,              MPI_REAL8,   &
                      root,          self%sample_comm, ierr(1))
@@ -478,7 +478,7 @@ contains
       class(hamil), intent(in)   :: self
       complex(dp), intent(inout)  :: H(:,:)
       complex(dp)                 :: S(2,2) !> Stonermatrix
-      integer(int64)                    :: i, i_up, i_dw, atm, m, j, j_up, j_dw
+      integer(int32)                    :: i, i_up, i_dw, atm, m, j, j_up, j_dw
 
       m = self%num_orb - 1
       atm = 1
@@ -504,7 +504,7 @@ contains
    subroutine setup_Stoner_mtx(self,i,S)
       implicit none
       class(hamil), intent(in) :: self
-      integer(int64)   , intent(in)   :: i
+      integer(int32)   , intent(in)   :: i
       complex(dp), intent(inout):: S(2,2)
       real(dp)                  :: m(3), fac
 
@@ -520,7 +520,7 @@ contains
       implicit none
       class(hamil), intent(in) :: self
       complex(dp), intent(inout):: H(:,:)
-      integer(int64)    :: i, id, m
+      integer(int32)    :: i, id, m
 
       m = self%num_orb - 1
       do i =  1,self%num_up, self%num_orb
@@ -547,7 +547,7 @@ contains
       implicit none
       class(hamil), intent(in)      :: self
       complex(dp), intent(inout) :: H(:,:)
-      integer(int64)                   :: i, N, p_idx
+      integer(int32)                   :: i, N, p_idx
 
       if(self%num_orb == 3) then
          N = 2 * self%num_up
@@ -566,7 +566,7 @@ contains
       class(hamil), intent(in)          :: self
       real(dp), intent(in)               :: k(3)
       complex(dp), intent(inout)         :: H(:,:)
-      integer(int64)                           :: i, i_d, j,&
+      integer(int32)                           :: i, i_d, j,&
                                            j_d, conn, m, cnt, n_idx
       real(dp)                           :: k_dot_r, hopp_mtx(self%num_orb, self%num_orb), R(3)
       complex(dp)                        :: new(self%num_orb, self%num_orb)
@@ -665,7 +665,7 @@ contains
       class(hamil), intent(in)              :: self
       real(dp), intent(in)               :: k(3)
       complex(dp), intent(inout)         :: H(:,:)
-      integer(int64)                           :: i, i_d, j,&
+      integer(int32)                           :: i, i_d, j,&
                                            j_d, conn, m, cnt, n_idx
       real(dp)                           :: k_dot_r, hopp_mtx(self%num_orb, self%num_orb), R(3)
       complex(dp)                        :: new(self%num_orb, self%num_orb)
@@ -744,7 +744,7 @@ contains
       class(hamil), intent(in)              :: self
       complex(dp), intent(inout)         :: H(:,:)
       complex(dp)                        :: loc_H(2,2)
-      integer(int64)                           :: i_u, i_d, mu, nu, ms, ns, i_atm
+      integer(int32)                           :: i_u, i_d, mu, nu, ms, ns, i_atm
 
       if(self%num_orb /= 3) then
          call error_msg("SOC only implemented for p-orbitals", abort=.True.)
@@ -788,7 +788,7 @@ contains
    subroutine set_small_SOC(self, mu, nu, H)
       implicit none
       class(hamil), intent(in)       :: self
-      integer(int64)   , intent(in)     :: mu, nu
+      integer(int32)   , intent(in)     :: mu, nu
       complex(dp), intent(out)    :: H(2,2)
 
       H(1,1) =   self%eta_soc *  Lz(mu,nu)
@@ -802,7 +802,7 @@ contains
       class(hamil), intent(in)              :: self
       real(dp), intent(in)               :: k(3)
       complex(dp), intent(inout)         :: H(:,:)
-      integer(int64)                           :: i, i_d, j, j_d, conn
+      integer(int32)                           :: i, i_d, j, j_d, conn
       real(dp)                           :: k_dot_r
       complex(dp)                        :: forw, back, t_full
 
@@ -838,7 +838,7 @@ contains
     complex(dp), intent(inout)   :: H(:,:)
     real(dp)                     ::a(3,2)
     real(dp)                     ::k_n(3)
-    integer(int64)                     ::conn,i,i_d,j,j_d
+    integer(int32)                     ::conn,i,i_d,j,j_d
     real(dp)                     ::KM,x,y,f
 
     if(self%num_orb /= 1) call error_msg("Kane-Mele only for s-oritals", abort=.True.)
@@ -879,7 +879,7 @@ contains
       class(hamil), intent(in)    :: self
       real(dp), intent(in)         :: k(3)
       complex(dp), intent(inout)   :: H(:,:)
-      integer(int64)                     :: i, conn, j, i_d, j_d
+      integer(int32)                     :: i, conn, j, i_d, j_d
       real(dp)                     :: k_dot_r, d_ij(3)
       complex(dp)                  :: new(2,2)
 
@@ -948,11 +948,11 @@ contains
       implicit none
       class(hamil), intent(in) :: self
       real(dp), intent(in)      :: k(3)
-      integer(int64)   , intent(in)   :: k_idx
+      integer(int32)   , intent(in)   :: k_idx
       complex(dp), allocatable     :: H_forw(:,:), H_back(:,:), del_H(:,:)
       real(dp) :: k_forw(3), k_back(3)
       real(dp), parameter :: delta_k =  1d-6
-      integer(int64)            :: N
+      integer(int32)            :: N
 
       N = 2 * self%num_up
       allocate(H_back(N,N))
@@ -980,7 +980,7 @@ contains
    subroutine set_derivative_k(self, k, k_idx)
       implicit none
       class(hamil)                  :: self
-      integer(int64)   , intent(in)    :: k_idx
+      integer(int32)   , intent(in)    :: k_idx
       real(dp), intent(in)       :: k(3)
       logical                   :: has_hopp, has_hong
 
@@ -1018,7 +1018,7 @@ contains
     real(dp),intent(in)          ::k(3)
     real(dp)                     ::a(3,2)
     real(dp)                     ::k_n(3)
-    integer(int64)                     ::conn,i,i_d,j,j_d
+    integer(int32)                     ::conn,i,i_d,j,j_d
     real(dp)                     ::abs_k,KM_deriv,x,y,f_deriv
 
     if(self%num_orb /= 1) call error_msg("Kane-Mele only for s-oritals", abort=.True.)
@@ -1058,10 +1058,10 @@ contains
       implicit none
       class(hamil)             :: self
       real(dp), intent(in)      :: k(3)
-      integer(int64)   , intent(in)   :: k_idx
+      integer(int32)   , intent(in)   :: k_idx
       real(dp)                   :: r(3), k_dot_r, hopp_mtx(self%num_orb, self%num_orb)
       complex(dp)                :: forw(self%num_orb, self%num_orb), back(self%num_orb, self%num_orb)
-      integer(int64)                   :: i, j, conn, i_d, j_d, m, cnt, n_idx
+      integer(int32)                   :: i, j, conn, i_d, j_d, m, cnt, n_idx
 
       m =  self%num_orb - 1
 
@@ -1100,10 +1100,10 @@ contains
       implicit none
       class(hamil)             :: self
       real(dp), intent(in)      :: k(3)
-      integer(int64)   , intent(in)   :: k_idx
+      integer(int32)   , intent(in)   :: k_idx
       real(dp)                   :: r(3), k_dot_r, hopp_mtx(self%num_orb, self%num_orb)
       complex(dp)                :: forw(self%num_orb, self%num_orb), back(self%num_orb, self%num_orb)
-      integer(int64)                   :: i, j, conn, i_d, j_d, m, cnt, n_idx
+      integer(int32)                   :: i, j, conn, i_d, j_d, m, cnt, n_idx
 
       m =  self%num_orb - 1
 
@@ -1142,10 +1142,10 @@ contains
       implicit none
       class(hamil)              :: self
       real(dp), intent(in)       :: k(3)
-      integer(int64)   , intent(in)    :: k_idx
+      integer(int32)   , intent(in)    :: k_idx
       real(dp)                   :: r(3), k_dot_r
       complex(dp)                :: forw, back, t_full
-      integer(int64)                   :: i, j, conn, i_d, j_d
+      integer(int32)                   :: i, j, conn, i_d, j_d
 
       t_full =  self%t_2 * exp(i_unit * self%phi_2)
 
@@ -1180,9 +1180,9 @@ contains
       implicit none
       class(hamil)            :: self
       real(dp), intent(in)     :: k(3)
-      integer(int64)   , intent(in)  :: k_idx
+      integer(int32)   , intent(in)  :: k_idx
       real(dp)                 :: r(3), d_ij(3), k_dot_r
-      integer(int64)                 :: i, j, i_d, j_d, conn
+      integer(int32)                 :: i, j, i_d, j_d, conn
       complex(dp)              :: e_z_sigma(2,2), forw(2,2), back(2,2)
 
 !$OMP          parallel do default(shared) &
@@ -1228,7 +1228,7 @@ contains
       complex(dp), allocatable         :: H_xc_1(:,:)
       complex(dp), allocatable         :: temp(:,:),ret(:,:),H_temp(:,:)
       complex(dp)                      :: theta(2),phi(2),theta_nc,theta_col,phi_nc,phi_col,dE,fac,Efac
-      integer(int64)                         :: i,i_d,j,j_u,j_d,n_dim
+      integer(int32)                         :: i,i_d,j,j_u,j_d,n_dim
       logical                         :: full
       n_dim = 2 * self%num_up
       if(allocated(H_temp)) deallocate(H_temp)
@@ -1318,10 +1318,10 @@ contains
       implicit none
       class(hamil)                    :: self
       real(dp), intent(in)             :: k(3),eig_val(:)
-      integer(int64)   , intent(in)          :: derive_idx
+      integer(int32)   , intent(in)          :: derive_idx
       complex(dp), intent(in)          :: eig_vec_mtx(:,:)
       complex(dp), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
-      integer(int64)                         :: n_dim
+      integer(int32)                         :: n_dim
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
       tmp=(0d0,0d0)
@@ -1346,10 +1346,10 @@ contains
       implicit none
       class(hamil)                    :: self
       real(dp), intent(in)             :: k(3),eig_val(:)
-      integer(int64)   , intent(in)          :: derive_idx
+      integer(int32)   , intent(in)          :: derive_idx
       complex(dp), intent(in)          :: eig_vec_mtx(:,:)
       complex(dp), allocatable         :: ret(:,:), tmp(:,:),H_xc_1(:,:)
-      integer(int64)                         :: n_dim
+      integer(int32)                         :: n_dim
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim))
       tmp=(0d0,0d0)
@@ -1374,10 +1374,10 @@ contains
       implicit none
       class(hamil)                        :: self
       real(dp), intent(in)             :: k(3)
-      integer(int64)   , intent(in)          :: derive_idx
+      integer(int32)   , intent(in)          :: derive_idx
       complex(dp), intent(in)          :: eig_vec_mtx(:,:)
       complex(dp), allocatable         :: ret(:,:), tmp(:,:)
-      integer(int64)                         :: n_dim, ierr(3) = 0
+      integer(int32)                         :: n_dim, ierr(3) = 0
       n_dim = 2 * self%num_up
       allocate(tmp(n_dim, n_dim), stat=ierr(1))
       tmp=(0d0,0d0)
@@ -1411,11 +1411,11 @@ contains
       real(dp)                  :: eig_val(:)
       complex(dp), allocatable  :: eig_vec(:,:), del_kx(:,:), del_ky(:,:), work(:), temp(:,:)
       real(dp), allocatable     :: rwork(:)
-      integer(int64)   , allocatable  :: iwork(:)
+      integer(int32)   , allocatable  :: iwork(:)
       integer, intent(in)      :: pert_log
       character (300)          :: elem_file
-      integer(int64)      :: n_dim, lwork, lrwork, liwork, info
-      integer(int64)      :: ierr(3)
+      integer(int32)      :: n_dim, lwork, lrwork, liwork, info
+      integer(int32)      :: ierr(3)
       n_dim = 2 * self%num_up
       if(.not. allocated(eig_vec)) allocate(eig_vec(n_dim,n_dim))
       if(.not. allocated(temp)) allocate(temp(n_dim,n_dim))
@@ -1469,7 +1469,7 @@ contains
       real(dp)                  :: z_comp(:) !> \f$ \Omega^n_z \f$
       complex(dp)               :: x_mtx(:,:), y_mtx(:,:)
       complex(dp) :: fac
-      integer(int64)    :: n_dim, n, m
+      integer(int32)    :: n_dim, n, m
 
       n_dim = 2 * self%num_up
       z_comp =  0d0
@@ -1492,7 +1492,7 @@ contains
       class(hamil)             :: self
       real(dp)                  :: z_comp(:), eig_val(:), fac !> \f$ \Omega^n_z \f$
       complex(dp)               :: x_mtx(:,:), y_mtx(:,:)
-      integer(int64)    :: n_dim, n, m, n_fermi
+      integer(int32)    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
       do n_fermi = 1,size(self%E_fermi)
@@ -1512,7 +1512,7 @@ contains
       class(hamil)             :: self
       real(dp)                  :: z_comp(:), eig_val(:), fac, ferm !> \f$ \Omega^n_z \f$
       complex(dp)               :: x_mtx(:,:), y_mtx(:,:)
-      integer(int64)    :: n_dim, n, m, n_fermi
+      integer(int32)    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
       do n_fermi = 1,size(self%E_fermi)
@@ -1535,7 +1535,7 @@ contains
       class(hamil)             :: self
       real(dp)                  :: z_comp(:), eig_val(:), fac, ferm !> \f$ \Omega^n_z \f$
       complex(dp)               :: x_mtx(:,:), y_mtx(:,:)
-      integer(int64)    :: n_dim, n, m, n_fermi
+      integer(int32)    :: n_dim, n, m, n_fermi
       n_dim = 2 * self%num_up
       z_comp =  0d0
       do n_fermi = 1,size(self%E_fermi)
@@ -1572,7 +1572,7 @@ contains
       class(hamil)             :: self
       real(dp)                  :: e_n, e_m, dE, E_f, gamma
       real(dp), intent(out)     :: fac!> \f$ \Omega^n_z \f$
-      integer(int64)    :: n_dim
+      integer(int32)    :: n_dim
    
       gamma = self%gamma
       n_dim = 2 * self%num_up
@@ -1589,7 +1589,7 @@ contains
       real(dp)                  :: e_n,e_m, dE, E_f, gamma
       real(dp), intent(out)     :: fac
       complex(dp)               :: denom, numer
-      integer(int64)    :: n_dim
+      integer(int32)    :: n_dim
    
       gamma = self%gamma
       n_dim = 2 * self%num_up
@@ -1611,11 +1611,11 @@ contains
       real(dp), allocatable,intent(out)  :: eig_val(:,:)
       real(dp)                           :: k(3)
       complex(dp), allocatable           :: H(:,:)
-      integer(int64)                           :: i, N, lwork, lrwork, liwork, info&
+      integer(int32)                           :: i, N, lwork, lrwork, liwork, info&
                                           , istat(5)=0
       real(dp), allocatable              :: RWORK(:)
       complex(dp), allocatable           :: WORK(:)
-      integer(int64)   , allocatable           :: IWORK(:)
+      integer(int32)   , allocatable           :: IWORK(:)
 
       N =  2 * self%num_up
       allocate(eig_val(N, size(k_list, 2)),stat = istat(1))
@@ -1651,8 +1651,8 @@ contains
       real(dp)             , intent(out) :: eig_val(:)
       complex(dp), allocatable           :: H(:,:), work(:)
       real(dp), allocatable              :: rwork(:)
-      integer(int64)   , allocatable           :: iwork(:)
-      integer(int64)                           :: N, lwork, lrwork, liwork, info
+      integer(int32)   , allocatable           :: iwork(:)
+      integer(int32)                           :: N, lwork, lrwork, liwork, info
 
       N = 2 * self%num_up
 
