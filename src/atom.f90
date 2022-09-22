@@ -174,7 +174,6 @@ contains
         s2 = size(self%neigh_conn, dim=2)
         allocate(tmp_rmtx(s1, s2))
         allocate(tmp_rmtx_diff(s1, s2))
-        write(*,*) storage_size(MPI_REAL8), storage_size(dp)
         if(self%me == root) tmp_rmtx = self%neigh_conn
         call MPI_Bcast(tmp_rmtx(1:s1,1:s2), size(tmp_rmtx), MPI_REAL8, &
                                       root, comm, ierr(8))
