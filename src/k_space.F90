@@ -113,6 +113,7 @@ module Class_k_space
 
    interface
       subroutine run_triang(k_pts, ret_elem)
+         import :: dp
          real(dp), intent(in)              :: k_pts(:,:)
          integer, allocatable             :: ret_elem(:,:)
       end subroutine run_triang
