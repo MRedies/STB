@@ -538,7 +538,8 @@ contains
       self%num_atoms = int(num_atoms,kind=4)
       allocate(m(3,self%num_atoms))
       allocate (pos(3, self%num_atoms))
-      allocate (site_type(self%num_atoms))
+      allocate (site_type_in(self%num_atoms))
+      allocate(site_type(self%num_atoms))
       allocate (transl_mtx(n_trans, 3))
       allocate (self%atoms(self%num_atoms))
 
@@ -548,7 +549,6 @@ contains
          call load_npy(trim(self%mag_file),m_large)
          call load_npy(trim(self%pos_file),pos)
          call load_npy(trim(self%site_type_file),site_type_in)
-         allocate(site_type(size(site_type_in,dim=1)))
          site_type = int(site_type_in,kind=int32)
          idxstart = (self%sample_idx-1)*self%num_atoms + 1
          idxstop = self%sample_idx*self%num_atoms
