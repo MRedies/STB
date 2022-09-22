@@ -175,7 +175,7 @@ contains
         if(self%me == root) tmp_rmtx = self%neigh_conn
         call MPI_Bcast(tmp_rmtx(1:s1,1:s2), size(tmp_rmtx), MPI_REAL8, &
                                       root, comm, ierr(8))
-        write(*,*) "UNDERFLOW?:", tmp_rmtx,self%neigh_conn,storage_size(tmp_rmtx),storage_size(self%neigh_conn)
+        write(*,*) "UNDERFLOW?:\n", tmp_rmtx,self%neigh_conn,"\n---",storage_size(tmp_rmtx(1,1)),storage_size(self%neigh_conn(1,1))
         tmp_rmtx_diff = tmp_rmtx - self%neigh_conn
         tmp_rmtx_norm = mtx_norm(tmp_rmtx_diff)
         if(tmp_rmtx_norm >  1d-11) then
