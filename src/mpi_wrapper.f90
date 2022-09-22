@@ -7,6 +7,7 @@
 module Class_mpi_wrapper
     use m_config
     use mpi_f08
+    use stdlib_kinds, only: int32
     implicit none
 
 contains
