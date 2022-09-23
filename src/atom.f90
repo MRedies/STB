@@ -101,13 +101,12 @@ contains
         implicit none
         class(atom)                :: self
         real(dp)                    :: tmp, tmp_p(3),tmp_p_diff(3),tmp_rmtx_norm
-        integer(int32)                    :: ierr(10), tmp_i,s1,s2,all_err(2),mpi_err,me_tmp
+        integer(int32)                    :: ierr(10), tmp_i,s1,s2,all_err(2)
         type(MPI_Comm), intent(in) :: comm
         integer, allocatable    :: tmp_ivec(:)
         integer(int32)              :: tmp_i8
         integer(int32), allocatable :: tmp_i4vec(:)
         real(dp), allocatable    :: tmp_rmtx(:,:),tmp_rmtx_diff(:,:)
-        real(sp), allocatable    :: test_sp_arr(:,:)
         logical                 :: success
 
         success = .True.
@@ -181,10 +180,6 @@ contains
         call MPI_Bcast(tmp_rmtx(1:s1,1:s2), size(tmp_rmtx), MPI_REAL8, &
                                       root, comm, ierr(8))
         tmp_rmtx_diff = tmp_rmtx - self%neigh_conn
-        if(self%me == root) then
-            call MPI_Comm_rank(MPI_COMM_WORLD, me_tmp, mpi_err)
-            write(*,*) "UNDERFLOW?:", me_tmp,allocated(self%neigh_conn),self%neigh_conn,"-------------",tmp_rmtx(1,1),self%neigh_conn(1,1),tmp_rmtx_diff(1,1)
-        endif
         tmp_rmtx_norm = mtx_norm(tmp_rmtx_diff)
         if(tmp_rmtx_norm >  1d-11) then
             call error_msg("neigh_conn doesn't match", abort=.True.)
