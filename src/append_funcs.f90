@@ -24,6 +24,7 @@ module Class_append_funcs
         procedure :: add_sample_idx => add_sample_idx
         procedure :: save_sample_idx => save_sample_idx
         procedure :: save_spins_collect => save_spins_collect
+        procedure :: save_bands_collect => save_bands_collect
     end type collect_quantities
     
     contains
