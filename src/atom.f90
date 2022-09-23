@@ -178,15 +178,12 @@ contains
         call check_ierr(all_err, self%me, "allocate compare to root vars")
 
         if(self%me == root) tmp_rmtx = self%neigh_conn
-        if(self%me == root) then
-            allocate(test_sp_arr(s1,s2))
-            write(*,*) "BEFORE COMM:", tmp_rmtx(1,1),self%neigh_conn(1,1),"---",storage_size(tmp_rmtx(1,1)),storage_size(self%neigh_conn(1,1)),storage_size(test_sp_arr(1,1)),storage_size(tmp)
-        endif
         call MPI_Bcast(tmp_rmtx(1:s1,1:s2), size(tmp_rmtx), MPI_REAL8, &
                                       root, comm, ierr(8))
         if(self%me == root) then
-            write(*,*) "UNDERFLOW?:", tmp_rmtx(1,1),self%neigh_conn(1,1),"---",storage_size(tmp_rmtx(1,1)),storage_size(self%neigh_conn(1,1))&
-                                    ,storage_size(MPI_REAL8),storage_size(real(dp)),storage_size(real32)
+            write(*,*) "UNDERFLOW?:", tmp_rmtx(1,1),self%neigh_conn(1,1),"--- tmp_rmtx: ",storage_size(tmp_rmtx(1,1)),"neigh_conn: ",storage_size(self%neigh_conn(1,1))&
+                                    ,"mpi_real8: ",storage_size(MPI_REAL8),"mpi dp: ",storage_size(MPI_DOUBLE_PRECISION),"real(dp): ",storage_size(real(dp))&
+                                    ,"fortran-lang dp: ",storage_size(dp),"iso real32: ",storage_size(real32)
         endif
         tmp_rmtx_diff = tmp_rmtx - self%neigh_conn
         tmp_rmtx_norm = mtx_norm(tmp_rmtx_diff)
