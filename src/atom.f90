@@ -101,7 +101,7 @@ contains
         implicit none
         class(atom)                :: self
         real(dp)                    :: tmp, tmp_p(3),tmp_p_diff(3),tmp_rmtx_norm
-        integer(int32)                    :: ierr(10), tmp_i,s1,s2,all_err(2)
+        integer(int32)                    :: ierr(10), tmp_i,s1,s2,all_err(2),mpi_err,me_tmp
         type(MPI_Comm), intent(in) :: comm
         integer, allocatable    :: tmp_ivec(:)
         integer(int32)              :: tmp_i8
@@ -182,7 +182,8 @@ contains
                                       root, comm, ierr(8))
         tmp_rmtx_diff = tmp_rmtx - self%neigh_conn
         if(self%me == root) then
-            write(*,*) "UNDERFLOW?:", tmp_rmtx(1,1),self%neigh_conn(1,1),tmp_rmtx_diff
+            call MPI_Comm_rank(MPI_COMM_WORLD, me_tmp, mpi_err)
+            write(*,*) "UNDERFLOW?:", me_tmp,tmp_rmtx(1,1),self%neigh_conn(1,1),tmp_rmtx_diff(1,1)
         endif
         tmp_rmtx_norm = mtx_norm(tmp_rmtx_diff)
         if(tmp_rmtx_norm >  1d-11) then
