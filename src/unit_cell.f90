@@ -1557,7 +1557,7 @@ contains
                allocate (self%atoms(i)%neigh_idx(n_found))
             endif
             if(.NOT. allocated(self%atoms(i)%neigh_conn)) then
-               allocate (self%atoms(i)%neigh_conn(n_found, 3))
+               allocate (self%atoms(i)%neigh_conn(n_found, 3),source=0.0d0)
             endif
             if(.NOT. allocated(self%atoms(i)%conn_type)) then
                allocate (self%atoms(i)%conn_type(n_found))
