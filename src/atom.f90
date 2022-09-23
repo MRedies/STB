@@ -183,7 +183,7 @@ contains
         tmp_rmtx_diff = tmp_rmtx - self%neigh_conn
         if(self%me == root) then
             call MPI_Comm_rank(MPI_COMM_WORLD, me_tmp, mpi_err)
-            write(*,*) "UNDERFLOW?:", me_tmp,tmp_rmtx(1,1),self%neigh_conn(1,1),tmp_rmtx_diff(1,1)
+            write(*,*) "UNDERFLOW?:", me_tmp,allocated(self%neigh_conn),self%neigh_conn,"-------------",tmp_rmtx(1,1),self%neigh_conn(1,1),tmp_rmtx_diff(1,1)
         endif
         tmp_rmtx_norm = mtx_norm(tmp_rmtx_diff)
         if(tmp_rmtx_norm >  1d-11) then
