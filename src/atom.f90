@@ -180,7 +180,7 @@ contains
         if(self%me == root) tmp_rmtx = self%neigh_conn
         if(self%me == root) then
             allocate(test_sp_arr(s1,s2))
-            write(*,*) "BEFORE COMM:", tmp_rmtx(1,1),self%neigh_conn(1,1),"---",storage_size(tmp_rmtx(1,1)),storage_size(self%neigh_conn(1,1)),storage_size(test_sp_arr(1,1))
+            write(*,*) "BEFORE COMM:", tmp_rmtx(1,1),self%neigh_conn(1,1),"---",storage_size(tmp_rmtx(1,1)),storage_size(self%neigh_conn(1,1)),storage_size(test_sp_arr(1,1),storage_size(tmp)
         endif
         call MPI_Bcast(tmp_rmtx(1:s1,1:s2), size(tmp_rmtx), MPI_REAL8, &
                                       root, comm, ierr(8))
