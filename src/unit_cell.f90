@@ -980,7 +980,7 @@ contains
             allocate (self%atoms(i)%neigh_idx(0))
          endif
          if(.NOT. allocated(self%atoms(i)%neigh_conn)) then
-            allocate (self%atoms(i)%neigh_conn(size(conn_storage,1),size(conn_storage,2)))
+            allocate (self%atoms(i)%neigh_conn(size(conn_storage,1),size(conn_storage,2)),source=0.0_dp)
          endif
          if(.NOT. allocated(self%atoms(i)%conn_type)) then
             allocate (self%atoms(i)%conn_type(0))
