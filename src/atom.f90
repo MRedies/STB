@@ -106,7 +106,8 @@ contains
         integer, allocatable    :: tmp_ivec(:)
         integer(int32)              :: tmp_i8
         integer(int32), allocatable :: tmp_i4vec(:)
-        real(sp), allocatable    :: tmp_rmtx(:,:),tmp_rmtx_diff(:,:)
+        real(dp), allocatable    :: tmp_rmtx(:,:),tmp_rmtx_diff(:,:)
+        real(sp), allocatable    :: test_sp_arr(:,:)
         logical                 :: success
 
         success = .True.
@@ -178,7 +179,8 @@ contains
 
         if(self%me == root) tmp_rmtx = self%neigh_conn
         if(self%me == root) then
-            write(*,*) "BEFORE COMM:", tmp_rmtx(1,1),self%neigh_conn(1,1),"---",storage_size(tmp_rmtx(1,1)),storage_size(self%neigh_conn(1,1))
+            allocate(test_sp_arr(s1,s2))
+            write(*,*) "BEFORE COMM:", tmp_rmtx(1,1),self%neigh_conn(1,1),"---",storage_size(tmp_rmtx(1,1)),storage_size(self%neigh_conn(1,1)),storage_size(test_sp_arr(1,1))
         endif
         call MPI_Bcast(tmp_rmtx(1:s1,1:s2), size(tmp_rmtx), MPI_REAL8, &
                                       root, comm, ierr(8))
