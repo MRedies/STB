@@ -106,7 +106,7 @@ contains
         integer, allocatable    :: tmp_ivec(:)
         integer(int32)              :: tmp_i8
         integer(int32), allocatable :: tmp_i4vec(:)
-        real(dp), allocatable    :: tmp_rmtx(:,:),tmp_rmtx_diff(:,:)
+        real(sp), allocatable    :: tmp_rmtx(:,:),tmp_rmtx_diff(:,:)
         logical                 :: success
 
         success = .True.
