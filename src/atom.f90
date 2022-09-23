@@ -101,7 +101,7 @@ contains
         implicit none
         class(atom)                :: self
         real(dp)                    :: tmp, tmp_p(3),tmp_p_diff(3),tmp_rmtx_norm
-        integer(int32)                    :: ierr(10), tmp_i,s1,s2
+        integer(int32)                    :: ierr(10), tmp_i,s1,s2,all_err(2)
         type(MPI_Comm), intent(in) :: comm
         integer, allocatable    :: tmp_ivec(:)
         integer(int32)              :: tmp_i8
@@ -171,8 +171,11 @@ contains
         endif
         s1 = size(self%neigh_conn, dim=1)
         s2 = size(self%neigh_conn, dim=2)
-        allocate(tmp_rmtx(s1, s2))
-        allocate(tmp_rmtx_diff(s1, s2))
+        allocate(tmp_rmtx(s1, s2)      ,stat=all_err(1))
+        allocate(tmp_rmtx_diff(s1, s2) ,stat=all_err(2))
+        
+        call check_ierr(all_err, self%me, "allocate compare to root vars")
+
         if(self%me == root) tmp_rmtx = self%neigh_conn
         if(self%me == root) then
             write(*,*) "BEFORE COMM:", tmp_rmtx(1,1),self%neigh_conn(1,1),"---",storage_size(tmp_rmtx(1,1)),storage_size(self%neigh_conn(1,1))
