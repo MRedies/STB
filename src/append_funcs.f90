@@ -11,11 +11,13 @@ module Class_append_funcs
         real(dp), allocatable ::  up_collect(:,:)
         real(dp), allocatable ::  down_collect(:,:)
         real(dp), allocatable ::  spins_collect(:,:)
+        real(dp), allocatable ::  bands_collect(:,:)
         integer, allocatable ::  sample_idx(:)
         integer(int32)              ::  me,me_sample,color
         character(len=300)   :: prefix
         type(units)          :: units
     contains
+        procedure :: add_bands_collect => add_bands_collect
         procedure :: add_DOS_collect => add_DOS_collect
         procedure :: save_DOS_collect => save_DOS_collect
         procedure :: add_spins_collect => add_spins_collect
@@ -96,6 +98,27 @@ module Class_append_funcs
             endif
         end subroutine
 
+        subroutine add_bands_collect(self, bands)
+            use mpi_f08
+            implicit none
+            class(collect_quantities)           :: self
+            integer(int32)                             :: i
+            integer,allocatable                 :: isize(:)
+            real(dp), intent(in)                 :: bands(:,:)
+            allocate(isize(2))
+            if(self%me_sample==root) then
+                if(.NOT. allocated(self%bands_collect)) then
+                    isize = shape(spins)
+                    allocate(self%bands_collect(isize(1),isize(2)))
+                    do i=1,isize(1)
+                        self%bands_collect(i,:) = bands(i,:)
+                    enddo
+                else
+                    call add_2D_to_arr2D_real(self%bands_collect,bands)
+                endif
+            endif
+        end subroutine
+
         subroutine add_sample_idx(self, idx)
             use mpi_f08
             implicit none
@@ -167,6 +190,19 @@ module Class_append_funcs
             if(self%me_sample ==  root) then
                 write (filename,  "(A,I0.6,A)") "spins_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%spins_collect)
+            endif
+        end subroutine
+
+        subroutine save_bands_collect(self)
+            use mpi_f08
+            implicit none
+            class(collect_quantities)           :: self
+            character(len=300)                  :: filename
+            
+    
+            if(self%me_sample ==  root) then
+                write (filename,  "(A,I0.6,A)") "bands_collect=", self%color,".npy"
+                call save_npy(trim(self%prefix) //  trim(filename), self%bands_collect)
             endif
         end subroutine
 

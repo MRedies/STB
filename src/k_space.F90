@@ -11,6 +11,7 @@ module Class_k_space
 
    type k_space
       real(dp), allocatable :: new_k_pts(:,:), all_k_pts(:,:)
+      real(dp), allocatable :: eig_val(:,:)
       real(dp), allocatable :: int_DOS(:) !> integrated Density of states
       real(dp), allocatable :: DOS(:), up(:), down(:)
       real(dp), allocatable :: E_DOS(:)
@@ -138,7 +139,7 @@ contains
       Implicit None
       class(k_space)                :: self
       integer(int32)                       :: first, last, N
-      integer(int32)                       :: send_count, ierr, istat(4)=0
+      integer(int32)                       :: send_count, ierr, istat(5)=0
       integer(int32)   , allocatable       :: num_elems(:), offsets(:)
       real(dp), allocatable          :: eig_val(:,:), sec_eig_val(:,:), k_pts_sec(:,:)
       character(len=300)            :: filename
@@ -166,24 +167,21 @@ contains
       offsets   =  offsets   * N
 
       send_count =  N *  size(k_pts_sec, 2)
-      !call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
-      !                 eig_val,     num_elems,  offsets,   MPI_REAL8,&
-      !                 root,        MPI_COMM_WORLD, ierr)
       call MPI_Gatherv(sec_eig_val, send_count, MPI_REAL8, &
                        eig_val,     num_elems,  offsets,   MPI_REAL8,&
                        root,        self%sample_comm, ierr)
-
-      if(self%me_sample == root) then
-         write (filename, "(A,I0.6,A)") "band_k_sample=", self%sample_idx, ".npy"
-         call save_npy(trim(self%prefix) //  filename, self%new_k_pts / self%units%inv_length)
-         write (filename, "(A,I0.6,A)") "band_E_sample=", self%sample_idx, ".npy"
-         call save_npy(trim(self%prefix) //  filename, eig_val / self%units%energy)
-         if(self%sample_idx==1) then
-            call save_npy(trim(self%prefix) //  "lattice.npy", &
-                        self%ham%UC%lattice / self%units%length)
-            call save_npy(trim(self%prefix) //  "rez_lattice.npy", &
-                        self%ham%UC%rez_lattice / self%units%inv_length)
+      if(self%me_sample ==  root) then
+         if(.NOT. allocated(self%eig_val))then 
+            allocate(self%eig_val(N, size(self%new_k_pts,2)),stat = istat(5),source=eig_val)
          endif
+      endif
+      if(self%sample_idx==1 .and. self%me_sample == root) then
+         call save_npy(trim(self%prefix) //  "band_k.npy", self%new_k_pts / self%units%inv_length)
+         call save_npy(trim(self%prefix) //  "band_E.npy", eig_val / self%units%energy)
+         call save_npy(trim(self%prefix) //  "lattice.npy", &
+                     self%ham%UC%lattice / self%units%length)
+         call save_npy(trim(self%prefix) //  "rez_lattice.npy", &
+                     self%ham%UC%rez_lattice / self%units%inv_length)
       endif
 
       deallocate(eig_val)

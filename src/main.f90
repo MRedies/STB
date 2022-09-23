@@ -78,6 +78,7 @@ program STB
          if(trim(uctype)=="file_honey_htp") then
             call ColQ%save_DOS_collect()
             call ColQ%save_spins_collect()
+            call ColQ%save_bands_collect()
             call ColQ%save_sample_idx()
          endif
       endif
@@ -163,6 +164,10 @@ contains
       if(perform_band) then
          if(root == me) write (*,*) "started Band"
          call Ksp%calc_and_print_band()
+         if(trim(uctype)=="file_honey_htp") then
+            call ColQ%add_bands_collect(Ksp%eig_val)
+            deallocate(Ksp%eig_val)
+         endif
       endif
 
       if(trim(fermi_type) == "fixed") then
