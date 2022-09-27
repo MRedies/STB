@@ -203,7 +203,7 @@ module Class_append_funcs
     
             if(self%me_sample ==  root) then
                 write (filename,  "(A,I0.6,A)") "bands_collect=", self%color,".npy"
-                call save_npy(trim(self%prefix) //  trim(filename), self%bands_collect)
+                call save_npy(trim(self%prefix) //  trim(filename), self%bands_collect/self%units%energy)
             endif
         end subroutine
 
