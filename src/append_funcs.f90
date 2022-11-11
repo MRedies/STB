@@ -160,7 +160,6 @@ module Class_append_funcs
 
                 isize = shape(self%int_DOS_collect)
                 allocate(tmp(isize(1),isize(2)))
-                !integrated dos is unitless!
                 tmp = self%int_DOS_collect
                 write (filename,  "(A,I0.6,A)") "int_DOS_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), tmp)
