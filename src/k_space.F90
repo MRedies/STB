@@ -14,7 +14,7 @@ module Class_k_space
       real(dp), allocatable :: eig_val(:,:)
       real(dp), allocatable :: int_DOS(:) !> integrated Density of states
       real(dp), allocatable :: DOS(:), up(:), down(:)
-      real(dp), allocatable :: E_DOS(:)
+      real(dp), allocatable :: E_DOS(:), hall
       real(dp)              :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
       !> DOS calculations
       real(dp)              :: DOS_lower !> lower energy bound for DOS calc
@@ -1028,6 +1028,10 @@ contains
       endif
       if(self%calc_orbmag) call self%finalize_orbmag(orbmag, orbmag_L, orbmag_IC)
 
+      if(self%me_sample == root) then
+         self%hall = hall
+      endif
+
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
       deallocate(self%ham%del_H, hall_old, eig_val_all, omega_z_all, &
                  hall_surf, hall_surf_old, omega_surf_all, kidx_all, self%all_k_pts, &
@@ -1202,7 +1206,7 @@ contains
                         root,        self%sample_comm, ierr)
          deallocate(num_elems,offsets)
       endif
-      if(self%me == root) then
+      if (self%sample_idx==1 .and. self%me==root) then
          write (filename, "(A,I0.5,A)") trim(var_name) // "_iter=", iter, ".npy"
          call save_npy(trim(self%prefix) // trim(filename), var)
 
@@ -1217,7 +1221,7 @@ contains
       rel_error = my_norm2(var - var_old) &
                   / (self%kpts_per_step * self%nProcs * my_norm2(var))!/ (1d0*size(var))
 
-      if(self%me == root) then
+      if (self%sample_idx==1 .and. self%me==root) then
          write (*,"(I5,A,A,A,I7,A,ES10.3)") iter, " var: ", var_name, &
             " nkpts ", size(self%all_k_pts,2),&
             " err ", rel_error
@@ -1270,7 +1274,7 @@ contains
                         root,        self%sample_comm, ierr)
          deallocate(num_elems,offsets)
       endif
-      if(self%me == root) then
+      if (self%sample_idx==1 .and. self%me==root) then
          write (filename, "(A,I0.5,A)") trim(var_name) // "_iter=", iter, ".npy"
          call save_npy(trim(self%prefix) // trim(filename), var)
 
@@ -1281,7 +1285,7 @@ contains
       rel_error = my_norm2(var - var_old) &
                   / (self%kpts_per_step * self%nProcs * my_norm2(var))!/ (1d0*size(var))
 
-      if(self%me == root) then
+      if (self%sample_idx==1 .and. self%me==root) then
          write (*,"(I5,A,A,A,I7,A,ES10.3)") iter, " var: ", trim(var_name), &
             " nkpts ", size(self%all_k_pts,2),&
             " err ", rel_error
@@ -1350,7 +1354,7 @@ contains
       character(len=*), intent(in) :: var_name
       character(len=300) :: elem_file
 
-      if(self%me == root) then
+      if (self%sample_idx==1 .and. self%me==root) then
          write (*,*) size(self%all_k_pts,2), &
             "saving hall_cond with questionable unit"
          write (elem_file, "(A,A)") trim(var_name) ,".npy"
@@ -1369,7 +1373,7 @@ contains
       real(dp), intent(in)         :: var(:)
       real(dp), intent(in)         :: varall(:,:)
 
-      if(self%me == root) then
+      if (self%sample_idx==1 .and. self%me==root) then
          write (*,*) size(self%all_k_pts,2), &
             "saving hall_cond with questionable unit"
 

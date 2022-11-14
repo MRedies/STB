@@ -20,7 +20,7 @@ program STB
                                       ,min_comm_size=8,ncomms
    type(MPI_Comm)                  :: sample_comm
    integer(int64)   , allocatable  :: dimensions(:)
-   logical                         :: perform_band, perform_dos
+   logical                         :: perform_band, perform_dos, calc_hall
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
    character(len=300)              :: dim_file,prefix,uctype
@@ -53,6 +53,7 @@ program STB
          endif
          call CFG_get(cfg, "band%perform_band", perform_band)
          call CFG_get(cfg, "dos%perform_dos",   perform_dos)
+         call CFG_get(cfg, "berry%calc_hall",   calc_hall)
          write(*,*) "N Samples: " ,n_sample_par
       endif
       call MPI_Bcast(prefix(1:300),   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
@@ -60,6 +61,7 @@ program STB
       call MPI_Bcast(n_sample_par, 1,  MPI_INTEGER,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(calc_hall,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call calc_color(min_comm_size,nProcs,n_sample_par,me,color)
       !sorting in new comm according to rank in world
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
@@ -86,6 +88,9 @@ program STB
             endif
             if(perform_band) then
                call ColQ%save_bands_collect()
+            endif
+            if(perform_band) then
+               call ColQ%save_hall_collect()
             endif
             call ColQ%save_sample_idx()
             call ColQ%save_spins_collect()
@@ -206,6 +211,7 @@ contains
       if(calc_hall .or. calc_orbmag .or. calc_hall_diag) then
          if(root == me) write (*,*) "started Berry", pert_log
          call Ksp%calc_berry_quantities(pert_log)
+         call ColQ%add_hall_collect(Ksp%hall)
       endif
 
       if(perform_ACA) then

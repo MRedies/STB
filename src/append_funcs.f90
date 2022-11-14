@@ -19,12 +19,14 @@ module Class_append_funcs
     contains
         procedure :: add_bands_collect => add_bands_collect
         procedure :: add_DOS_collect => add_DOS_collect
-        procedure :: save_DOS_collect => save_DOS_collect
+        procedure :: add_hall_collect => add_hall_collect
         procedure :: add_spins_collect => add_spins_collect
         procedure :: add_sample_idx => add_sample_idx
         procedure :: save_sample_idx => save_sample_idx
+        procedure :: save_DOS_collect => save_DOS_collect
         procedure :: save_spins_collect => save_spins_collect
         procedure :: save_bands_collect => save_bands_collect
+        procedure :: save_hall_collect => save_hall_collect
     end type collect_quantities
     
     contains
@@ -43,6 +45,22 @@ module Class_append_funcs
             self%prefix = trim(prefix)
             self%color = color
         end function init_collect_quantities
+
+        subroutine add_hall_collect(self, hall)
+            use mpi_f08
+            implicit none
+            class(collect_quantities)           :: self
+            real(dp), intent(in)                 :: hall(:)
+    
+            if(self%me_sample==root) then
+                if(.NOT. allocated(self%hall_collect)) then
+                    allocate(self%DOS_collect(1,size(hall)))
+                    self%hall_collect(1,:) = hall
+                else
+                    call add_to_arr2D_real(self%hall_collect,hall)
+                endif
+            endif
+        end subroutine
 
         subroutine add_DOS_collect(self, DOS, up, down, int_DOS)
             use mpi_f08
