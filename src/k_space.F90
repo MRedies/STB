@@ -348,9 +348,8 @@ contains
                               + 0.5d0 * dE * (DOS(i-1) +  DOS(i))
          enddo
          ! integrated DOS ist unitless
-         tmp = self%int_DOS * self%units%energy
          if (self%sample_idx==1 .and. self%me==root) then
-            call save_npy(trim(self%prefix) // "DOS_integrated.npy", self%int_DOS)
+            call save_npy(trim(self%prefix) // "DOS_integrated.npy", self%int_DOS * self%units%energy)
          endif
          if(self%sample_idx==1) then
             call save_npy(trim(self%prefix) //  "DOS_E.npy", self%E_DOS / self%units%energy)
