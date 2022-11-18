@@ -9,6 +9,7 @@ module Class_append_funcs
     type collect_quantities
         real(dp), allocatable ::  int_DOS_collect(:,:)
         real(dp), allocatable ::  DOS_collect(:,:)
+        real(dp), allocatable ::  hall_collect(:,:)
         real(dp), allocatable ::  up_collect(:,:)
         real(dp), allocatable ::  down_collect(:,:)
         real(dp), allocatable ::  spins_collect(:,:)
@@ -56,7 +57,7 @@ module Class_append_funcs
     
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%hall_collect)) then
-                    allocate(self%DOS_collect(1,size(hall)),istat)
+                    allocate(self%DOS_collect(1,size(hall)),stat = istat)
                     call check_ierr(istat, me_in=self%me_sample, msg=["Failed allocation in append_func%add_hall_collect"])
                     self%hall_collect(1,:) = hall
                 else
@@ -74,25 +75,25 @@ module Class_append_funcs
     
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%DOS_collect)) then
-                    allocate(self%DOS_collect(1,size(DOS)),istat(1))
+                    allocate(self%DOS_collect(1,size(DOS)),stat = istat(1))
                     self%DOS_collect(1,:) = DOS
                 else
                     call add_to_arr2D_real(self%DOS_collect,DOS)
                 endif
                 if(.NOT. allocated(self%up_collect)) then
-                    allocate(self%up_collect(1,size(up)),istat(2))
+                    allocate(self%up_collect(1,size(up)),stat = istat(2))
                     self%up_collect(1,:) = up
                 else
                     call add_to_arr2D_real(self%up_collect,up)
                 endif
                 if(.NOT. allocated(self%down_collect)) then
-                    allocate(self%down_collect(1,size(down)),istat(3))
+                    allocate(self%down_collect(1,size(down)),stat = istat(3))
                     self%down_collect(1,:) = down
                 else
                     call add_to_arr2D_real(self%down_collect,down)
                 endif
                 if(.NOT. allocated(self%int_DOS_collect)) then
-                    allocate(self%int_DOS_collect(1,size(int_DOS)),istat(4))
+                    allocate(self%int_DOS_collect(1,size(int_DOS)),stat = istat(4))
                     self%int_DOS_collect(1,:) = int_DOS
                 else
                     call add_to_arr2D_real(self%int_DOS_collect,int_DOS)
@@ -112,7 +113,7 @@ module Class_append_funcs
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%spins_collect)) then
                     isize = shape(spins)
-                    allocate(self%spins_collect(isize(1),isize(2)),istat)
+                    allocate(self%spins_collect(isize(1),isize(2)),stat = istat)
                     do i=1,isize(1)
                         self%spins_collect(i,:) = spins(i,:)
                     enddo
@@ -134,7 +135,7 @@ module Class_append_funcs
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%bands_collect)) then
                     isize = shape(bands)
-                    allocate(self%bands_collect(isize(1),isize(2)),istat)
+                    allocate(self%bands_collect(isize(1),isize(2)),stat = istat)
                     do i=1,isize(1)
                         self%bands_collect(i,:) = bands(i,:)
                     enddo
@@ -223,6 +224,19 @@ module Class_append_funcs
             endif
         end subroutine
 
+        subroutine save_hall_collect(self)
+            use mpi_f08
+            implicit none
+            class(collect_quantities)           :: self
+            character(len=300)                  :: filename
+            
+    
+            if(self%me_sample ==  root) then
+                write (filename,  "(A,I0.6,A)") "hall_collect=", self%color,".npy"
+                call save_npy(trim(self%prefix) //  trim(filename), self%hall_collect)
+            endif
+        end subroutine
+
         subroutine save_bands_collect(self)
             use mpi_f08
             implicit none
@@ -251,14 +265,15 @@ module Class_append_funcs
 
         subroutine add_to_arr1D_int(list, element)
             implicit none
-            integer(int32)                             :: i,isize,istat=0
+            type(collect_quantities)            :: self
+            integer(int32)                      :: i,isize,istat=0
             integer, intent(in)                 :: element
             integer, allocatable, intent(inout) :: list(:)
             integer, allocatable                :: clist(:)
     
             if(allocated(list)) then
                 isize = size(list)
-                allocate(clist(isize+1),istat)
+                allocate(clist(isize+1),stat = istat)
                 call check_ierr(istat, me_in=self%me_sample, msg=["Failed allocation in append_func%add_1D_int"])
                 do i=1,isize          
                 clist(i) = list(i)
@@ -278,14 +293,15 @@ module Class_append_funcs
         subroutine add_to_arr1D_real(list, element)
             !https://stackoverflow.com/questions/28048508/how-to-add-new-element-to-dynamical-array-in-fortran-90
             implicit none
-            integer(int32)                             :: i,isize,istat=0
+            type(collect_quantities)             :: self
+            integer(int32)                       :: i,isize,istat=0
             real(dp), intent(in)                 :: element
             real(dp), allocatable, intent(inout) :: list(:)
             real(dp), allocatable                :: clist(:)
     
             if(allocated(list)) then
                 isize = size(list)
-                allocate(clist(isize+1),istat)
+                allocate(clist(isize+1),stat = istat)
                 call check_ierr(istat, me_in=self%me_sample, msg=["Failed allocation in append_func%add_1D_real"])
                 do i=1,isize          
                     clist(i) = list(i)
@@ -305,8 +321,9 @@ module Class_append_funcs
         subroutine add_to_arr2D_real(list, element)
             !https://stackoverflow.com/questions/28048508/how-to-add-new-element-to-dynamical-array-in-fortran-90
             implicit none
-            integer(int32)                             :: i,istat=0
-            integer,allocatable                 :: isize(:)
+            type(collect_quantities)             :: self
+            integer(int32)                       :: i,istat=0
+            integer,allocatable                  :: isize(:)
             real(dp)             , intent(in)    :: element(:)
             real(dp), allocatable, intent(inout) :: list(:,:)
             real(dp), allocatable                :: clist(:,:)
@@ -315,7 +332,7 @@ module Class_append_funcs
 
         if(allocated(list)) then
             isize = shape(list)
-            allocate(clist(isize(1)+1,isize(2)),istat)
+            allocate(clist(isize(1)+1,isize(2)),stat = istat)
             call check_ierr(istat, me_in=self%me_sample, msg=["Failed allocation in append_func%add_2D_real"])
             do i=1,isize(1)
                 clist(i,:) = list(i,:)
@@ -337,8 +354,9 @@ module Class_append_funcs
     subroutine add_2D_to_arr2D_real(list, element)
         !https://stackoverflow.com/questions/28048508/how-to-add-new-element-to-dynamical-array-in-fortran-90
         implicit none
-        integer(int32)                             :: i,istat(2)=0
-        integer,allocatable                 :: isize(:),esize(:)
+        type(collect_quantities)             :: self
+        integer(int32)                       :: i,istat(2)=0
+        integer,allocatable                  :: isize(:),esize(:)
         real(dp)             , intent(in)    :: element(:,:)
         real(dp), allocatable, intent(inout) :: list(:,:)
         real(dp), allocatable                :: clist(:,:)
@@ -349,7 +367,7 @@ module Class_append_funcs
     if(allocated(list)) then
         isize = shape(list)
         esize = shape(element)
-        allocate(clist(isize(1)+esize(1),isize(2)),istat(1))
+        allocate(clist(isize(1)+esize(1),isize(2)),stat = istat(1))
         do i=1,isize(1)
             clist(i,:) = list(i,:)
         end do
@@ -365,7 +383,7 @@ module Class_append_funcs
 
     else
         esize = shape(element)
-        allocate(list(esize(1),esize(2)),istat(2))
+        allocate(list(esize(1),esize(2)),stat = istat(2))
         do i=1,esize(1)
             list(i,:) = element(i,:)
         enddo
