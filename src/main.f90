@@ -89,7 +89,7 @@ program STB
             if(perform_band) then
                call ColQ%save_bands_collect()
             endif
-            if(perform_band) then
+            if(calc_hall) then
                call ColQ%save_hall_collect()
             endif
             call ColQ%save_sample_idx()
