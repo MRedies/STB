@@ -14,7 +14,7 @@ module Class_k_space
       real(dp), allocatable :: eig_val(:,:)
       real(dp), allocatable :: int_DOS(:) !> integrated Density of states
       real(dp), allocatable :: DOS(:), up(:), down(:)
-      real(dp), allocatable :: E_DOS(:), hall
+      real(dp), allocatable :: E_DOS(:), hall(:)
       real(dp)              :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
       !> DOS calculations
       real(dp)              :: DOS_lower !> lower energy bound for DOS calc
