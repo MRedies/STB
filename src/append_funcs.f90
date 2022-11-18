@@ -53,7 +53,7 @@ module Class_append_funcs
             implicit none
             class(collect_quantities)           :: self
             real(dp), intent(in)                :: hall(:)
-            integer                             :: istat=0
+            integer                             :: istat(1)=0
     
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%hall_collect)) then
@@ -106,7 +106,7 @@ module Class_append_funcs
             use mpi_f08
             implicit none
             class(collect_quantities)           :: self
-            integer(int32)                             :: i,istat=0
+            integer(int32)                             :: i,istat(1)=0
             integer,allocatable                 :: isize(:)
             real(dp), intent(in)                 :: spins(:,:)
             allocate(isize(2))
@@ -128,7 +128,7 @@ module Class_append_funcs
             use mpi_f08
             implicit none
             class(collect_quantities)           :: self
-            integer(int32)                             :: i,istat=0
+            integer(int32)                             :: i,istat(1)=0
             integer,allocatable                 :: isize(:)
             real(dp), intent(in)                 :: bands(:,:)
             allocate(isize(2))
@@ -266,7 +266,7 @@ module Class_append_funcs
         subroutine add_to_arr1D_int(list, element)
             implicit none
             type(collect_quantities)            :: self
-            integer(int32)                      :: i,isize,istat=0
+            integer(int32)                      :: i,isize,istat(1)=0
             integer, intent(in)                 :: element
             integer, allocatable, intent(inout) :: list(:)
             integer, allocatable                :: clist(:)
@@ -294,7 +294,7 @@ module Class_append_funcs
             !https://stackoverflow.com/questions/28048508/how-to-add-new-element-to-dynamical-array-in-fortran-90
             implicit none
             type(collect_quantities)             :: self
-            integer(int32)                       :: i,isize,istat=0
+            integer(int32)                       :: i,isize,istat(1)=0
             real(dp), intent(in)                 :: element
             real(dp), allocatable, intent(inout) :: list(:)
             real(dp), allocatable                :: clist(:)
@@ -322,7 +322,7 @@ module Class_append_funcs
             !https://stackoverflow.com/questions/28048508/how-to-add-new-element-to-dynamical-array-in-fortran-90
             implicit none
             type(collect_quantities)             :: self
-            integer(int32)                       :: i,istat=0
+            integer(int32)                       :: i,istat(1)=0
             integer,allocatable                  :: isize(:)
             real(dp)             , intent(in)    :: element(:)
             real(dp), allocatable, intent(inout) :: list(:,:)
