@@ -57,7 +57,7 @@ module Class_append_funcs
     
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%hall_collect)) then
-                    allocate(self%DOS_collect(1,size(hall)),stat = istat)
+                    allocate(self%DOS_collect(1,size(hall)),stat = istat(1))
                     call check_ierr(istat, me_in=self%me_sample, msg=["Failed allocation in append_func%add_hall_collect"])
                     self%hall_collect(1,:) = hall
                 else
@@ -113,7 +113,7 @@ module Class_append_funcs
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%spins_collect)) then
                     isize = shape(spins)
-                    allocate(self%spins_collect(isize(1),isize(2)),stat = istat)
+                    allocate(self%spins_collect(isize(1),isize(2)),stat = istat(1))
                     do i=1,isize(1)
                         self%spins_collect(i,:) = spins(i,:)
                     enddo
@@ -135,7 +135,7 @@ module Class_append_funcs
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%bands_collect)) then
                     isize = shape(bands)
-                    allocate(self%bands_collect(isize(1),isize(2)),stat = istat)
+                    allocate(self%bands_collect(isize(1),isize(2)),stat = istat(1))
                     do i=1,isize(1)
                         self%bands_collect(i,:) = bands(i,:)
                     enddo
@@ -273,7 +273,7 @@ module Class_append_funcs
     
             if(allocated(list)) then
                 isize = size(list)
-                allocate(clist(isize+1),stat = istat)
+                allocate(clist(isize+1),stat = istat(1))
                 call check_ierr(istat, me_in=self%me_sample, msg=["Failed allocation in append_func%add_1D_int"])
                 do i=1,isize          
                 clist(i) = list(i)
@@ -301,7 +301,7 @@ module Class_append_funcs
     
             if(allocated(list)) then
                 isize = size(list)
-                allocate(clist(isize+1),stat = istat)
+                allocate(clist(isize+1),stat = istat(1))
                 call check_ierr(istat, me_in=self%me_sample, msg=["Failed allocation in append_func%add_1D_real"])
                 do i=1,isize          
                     clist(i) = list(i)
@@ -332,7 +332,7 @@ module Class_append_funcs
 
         if(allocated(list)) then
             isize = shape(list)
-            allocate(clist(isize(1)+1,isize(2)),stat = istat)
+            allocate(clist(isize(1)+1,isize(2)),stat = istat(1))
             call check_ierr(istat, me_in=self%me_sample, msg=["Failed allocation in append_func%add_2D_real"])
             do i=1,isize(1)
                 clist(i,:) = list(i,:)
