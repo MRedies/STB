@@ -548,7 +548,7 @@ contains
       if (self%me_sample == root) then
          call load_npy(trim(self%vec_file),transl_mtx)
          transl_mtx = transpose(transl_mtx)
-         allocate(m_large(3,dimensions(1)*self%num_atoms),stat = istat(7))!N_SAMPLES*NUM_ATOMS
+         allocate(m_large(3,dimensions(1)*self%num_atoms),stat = istat2(1))!N_SAMPLES*NUM_ATOMS
          call check_ierr(istat2, self%me, "init_file_honey_htp alloc error when reading mag file")
          call load_npy(trim(self%mag_file),m_large)
          call load_npy(trim(self%pos_file),pos)
