@@ -521,7 +521,7 @@ contains
       real(dp), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
       integer(int64), allocatable           :: site_type_in(:),dimensions(:)
       integer(int32), allocatable           :: site_type(:)
-      integer(int32)                        :: num_atoms,n_trans, istat(7) = 0
+      integer(int32)                        :: num_atoms,n_trans, istat(6) = 0, istat2(1) = 0
       integer(int32)                           :: idxstart,idxstop,i
       integer(int32)                           :: info
 
@@ -544,12 +544,12 @@ contains
       allocate(site_type(self%num_atoms),stat = istat(4))
       allocate(transl_mtx(n_trans, 3),stat = istat(5))
       allocate(self%atoms(self%num_atoms),stat = istat(6))
-      call check_ierr(istat(1:6), self%me, "init_file_honey_htp alloc error")
+      call check_ierr(istat, self%me, "init_file_honey_htp alloc error")
       if (self%me_sample == root) then
          call load_npy(trim(self%vec_file),transl_mtx)
          transl_mtx = transpose(transl_mtx)
          allocate(m_large(3,dimensions(1)*self%num_atoms),stat = istat(7))!N_SAMPLES*NUM_ATOMS
-         call check_ierr(istat(7), self%me, "init_file_honey_htp alloc error when reading mag file")
+         call check_ierr(istat2, self%me, "init_file_honey_htp alloc error when reading mag file")
          call load_npy(trim(self%mag_file),m_large)
          call load_npy(trim(self%pos_file),pos)
          call load_npy(trim(self%site_type_file),site_type_in)
