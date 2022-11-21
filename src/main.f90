@@ -73,7 +73,9 @@ program STB
       ColQ = init_collect_quantities(cfg,prefix,sample_comm,color)
       do n_sample = color+1,n_sample_par,ncomms
          if (me_sample==root) then
-            write(*,*) "----- Sample: ",n_sample," -----"
+            if (me==root) then
+               write(*,*) "----- Sample: ",n_sample+ncomms," -----"
+            endif
             if(trim(uctype)=="file_honey_htp") then
                call ColQ%add_sample_idx(n_sample)
             endif
@@ -81,6 +83,9 @@ program STB
          call process_file(inp_files(1),sample_comm,n_sample,samples_per_comm,ColQ)
          !ADD RETURNS (DOS, SIGMA ETC) TO COLLECT ARRAYS
       enddo
+      if (me==root) then
+         write(*,*) "---- DONE WITH CALCULATION ----"
+      endif
       if (me_sample==root) then
          if(trim(uctype)=="file_honey_htp") then
             if(perform_dos) then
@@ -211,7 +216,12 @@ contains
       if(calc_hall .or. calc_orbmag .or. calc_hall_diag) then
          if(root == me) write (*,*) "started Berry", pert_log
          call Ksp%calc_berry_quantities(pert_log)
-         call ColQ%add_hall_collect(Ksp%hall)
+         if (me_sample==root) then
+            if(trim(uctype)=="file_honey_htp") then
+               call ColQ%add_hall_collect(Ksp%hall)
+               deallocate(Ksp%hall)
+            endif
+         endif
       endif
 
       if(perform_ACA) then
@@ -228,8 +238,6 @@ contains
       if(root ==  me) then
          write (*,time_fmt) "Total: ", halt-start, "s"
       endif
-      !!!! call append here
-      !append(main%dos_collect,ksp%dos)
       call Ksp%free_ksp()
       if(me == root) call CFG_clear(cfg)
 

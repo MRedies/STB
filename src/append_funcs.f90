@@ -14,10 +14,10 @@ module Class_append_funcs
         real(dp), allocatable ::  down_collect(:,:)
         real(dp), allocatable ::  spins_collect(:,:)
         real(dp), allocatable ::  bands_collect(:,:)
-        integer, allocatable ::  sample_idx(:)
+        integer, allocatable  ::  sample_idx(:)
         integer(int32)              ::  me,me_sample,color
-        character(len=300)   :: prefix
-        type(units)          :: units
+        character(len=300)    :: prefix
+        type(units)           :: units
     contains
         procedure :: add_bands_collect => add_bands_collect
         procedure :: add_DOS_collect => add_DOS_collect
