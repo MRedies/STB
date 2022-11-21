@@ -161,7 +161,7 @@ contains
       allocate(eig_val(N, size(self%new_k_pts,2)),stat = istat(2))
       allocate(num_elems(self%nProcs_sample),stat = istat(3))
       allocate(offsets(self%nProcs_sample),stat = istat(4))
-      call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%calc_and_print_band"])
+      !call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%calc_and_print_band"])
       call sections(self%nProcs_sample, size(self%new_k_pts, 2), num_elems, offsets)
       num_elems =  num_elems * N
       offsets   =  offsets   * N
@@ -175,6 +175,7 @@ contains
             allocate(self%eig_val(N, size(self%new_k_pts,2)),stat = istat(5),source=eig_val)
          endif
       endif
+      call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%calc_and_print_band"])
       if(self%sample_idx==1 .and. self%me_sample == root) then
          call save_npy(trim(self%prefix) //  "band_k.npy", self%new_k_pts / self%units%inv_length)
          call save_npy(trim(self%prefix) //  "band_E.npy", eig_val / self%units%energy)
@@ -221,7 +222,7 @@ contains
       allocate(RWORK(lrwork))
       allocate(IWORK(liwork))
 
-      allocate(loc_PDOS(N, self%num_DOS_pts),istat=istat(1))
+      allocate(loc_PDOS(N, self%num_DOS_pts), stat=istat(1))
       call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%calc_pdos"])
       loc_PDOS =  0d0
       PDOS = 0d0
@@ -302,22 +303,22 @@ contains
       endif
 
       num_up = self%ham%num_up
-      allocate(PDOS(2*num_up, self%num_DOS_pts),istat = istat(1))
+      allocate(PDOS(2*num_up, self%num_DOS_pts),stat = istat(1))
 
       call linspace(self%DOS_lower, self%DOS_upper, self%num_DOS_pts, self%E_DOS)
 
       if(self%me_sample ==  root) then
-         allocate(DOS(self%num_DOS_pts),istat = istat(2))
-         allocate(up(self%num_DOS_pts),istat = istat(3))
-         allocate(down(self%num_DOS_pts),istat = istat(4))
+         allocate(DOS(self%num_DOS_pts),stat = istat(2))
+         allocate(up(self%num_DOS_pts),stat = istat(3))
+         allocate(down(self%num_DOS_pts),stat = istat(4))
          if(.NOT. allocated(self%DOS))then 
-            allocate(self%DOS(self%num_DOS_pts),istat = istat(5))
+            allocate(self%DOS(self%num_DOS_pts),stat = istat(5))
          endif
          if(.NOT. allocated(self%up))then 
-            allocate(self%up(self%num_DOS_pts),istat = istat(6))
+            allocate(self%up(self%num_DOS_pts),stat = istat(6))
          endif
          if(.NOT. allocated(self%down))then 
-            allocate(self%down(self%num_DOS_pts),istat = istat(7))
+            allocate(self%down(self%num_DOS_pts),stat = istat(7))
          endif
       endif
       call self%calc_pdos(self%E_DOS, PDOS)
@@ -333,7 +334,7 @@ contains
             call save_npy(trim(self%prefix) //  "DOS_up.npy", up * self%units%energy)
             call save_npy(trim(self%prefix) //  "DOS_down.npy", down * self%units%energy)
          endif
-         allocate(self%int_DOS(self%num_DOS_pts),istat = istat(8))
+         allocate(self%int_DOS(self%num_DOS_pts),stat = istat(8))
          call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%calc_and_print_dos"])
          if(size(self%E_DOS) >=  2) then
             dE =  self%E_DOS(2) - self%E_DOS(1)
@@ -569,7 +570,7 @@ contains
          ky_grid(i+1,:) =  ky_points
       enddo
 
-      allocate(self%new_k_pts(3, sz_x* sz_y),istat = istat(1))
+      allocate(self%new_k_pts(3, sz_x* sz_y),stat = istat(1))
       call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%setup_k_grid"])
       self%new_k_pts(1,:) =  reshape(kx_grid, (/sz_x * sz_y /))
       self%new_k_pts(2,:) =  reshape(ky_grid, (/sz_x * sz_y /))
@@ -592,7 +593,7 @@ contains
       logical, optional     :: padding
 
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
-      allocate(self%new_k_pts(3,n_k**2),istat = istat(1))
+      allocate(self%new_k_pts(3,n_k**2),stat = istat(1))
       call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%calc_and_print_band"])
 
       k1 =  0d0
@@ -635,7 +636,7 @@ contains
       logical, optional     :: padding
 
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
-      allocate(self%new_k_pts(3,n_k**2),istat(1))
+      allocate(self%new_k_pts(3,n_k**2), stat = istat(1))
       call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%setup_inte_grid_para_spiral"])
       NAPD = self%ham%UC%atom_per_dim
       rat = floor(sqrt(1d0*NAPD))
@@ -700,7 +701,7 @@ contains
       enddo
 
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
-      allocate(self%new_k_pts(3, cnt_k),istat = istat(1))
+      allocate(self%new_k_pts(3, cnt_k),stat = istat(1))
       call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%setup_inte_grid_hex"])
 
       self%new_k_pts = 0d0
@@ -803,7 +804,7 @@ contains
       n_pts =  self%num_k_pts
       n_sec =  size(self%k1_param) - 1
 
-      allocate(self%new_k_pts(3, n_sec * (self%num_k_pts-1) + 1),istat = istat(1))
+      allocate(self%new_k_pts(3, n_sec * (self%num_k_pts-1) + 1),stat = istat(1))
       call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%setup_k_path_abs"])
       self%new_k_pts(3,:) =  0d0
 
@@ -830,7 +831,7 @@ contains
       n_sec =  size(self%k1_param) - 1
       n_pts =  self%num_k_pts
 
-      allocate(self%new_k_pts(3,n_sec * (n_pts - 1) + 1),istat = istat(1))
+      allocate(self%new_k_pts(3,n_sec * (n_pts - 1) + 1),stat = istat(1))
       call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%calc_and_print_band"])
       allocate(c1_sec(n_sec))
       allocate(c2_sec(n_sec))
@@ -2100,7 +2101,7 @@ contains
          allocate(tmp(3,n_kpts))
          forall(i=1:3, j=1:n_kpts) tmp(i,j) =  self%new_k_pts(i,j)
          deallocate(self%new_k_pts)
-         allocate(self%new_k_pts(3, n_kpts +  rest),istat = istat(1))
+         allocate(self%new_k_pts(3, n_kpts +  rest),stat = istat(1))
          call check_ierr(istat, me_in=self%me, msg=["Failed allocation in ksp%pad_k_points_init"])
          forall(i=1:3, j=1:n_kpts) self%new_k_pts(i,j) = tmp(i,j)
          deallocate(tmp)
