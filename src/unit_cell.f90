@@ -139,7 +139,9 @@ contains
       logical                         :: tmp_log
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
-      
+      if (self%me == root) then
+         write(*,*) "--- INIT UNIT CELL ---"
+      endif
       self%sample_comm = sample_comm
       self%sample_idx = n_sample
       self%samples_per_comm = samples_per_comm
@@ -519,7 +521,7 @@ contains
       real(dp), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
       integer(int64), allocatable           :: site_type_in(:),dimensions(:)
       integer(int32), allocatable           :: site_type(:)
-      integer(int32)                        :: num_atoms,n_trans
+      integer(int32)                        :: num_atoms,n_trans, istat() = 0
       integer(int32)                           :: idxstart,idxstop,i
       integer(int32)                           :: info
 
@@ -536,16 +538,18 @@ contains
       call MPI_Bcast(n_trans, 1, MPI_INTEGER8, &
                      root, self%sample_comm, info)
       self%num_atoms = int(num_atoms,kind=4)
-      allocate(m(3,self%num_atoms))
-      allocate (pos(3, self%num_atoms))
-      allocate (site_type_in(self%num_atoms))
-      allocate(site_type(self%num_atoms))
-      allocate (transl_mtx(n_trans, 3))
-      allocate (self%atoms(self%num_atoms))
-
+      allocate(m(3,self%num_atoms),stat = istat(1))
+      allocate(pos(3, self%num_atoms),stat = istat(2))
+      allocate(site_type_in(self%num_atoms),stat = istat(3))
+      allocate(site_type(self%num_atoms),stat = istat(4))
+      allocate(transl_mtx(n_trans, 3),stat = istat(5))
+      allocate(self%atoms(self%num_atoms),stat = istat(6))
+      call check_ierr(istat(1:6), self%me, "init_file_honey_htp alloc error")
       if (self%me_sample == root) then
          call load_npy(trim(self%vec_file),transl_mtx)
          transl_mtx = transpose(transl_mtx)
+         allocate(m_large(3,dimensions(1)*self%num_atoms),stat = istat(7))!N_SAMPLES*NUM_ATOMS
+         call check_ierr(istat(7), self%me, "init_file_honey_htp alloc error when reading mag file")
          call load_npy(trim(self%mag_file),m_large)
          call load_npy(trim(self%pos_file),pos)
          call load_npy(trim(self%site_type_file),site_type_in)
