@@ -521,7 +521,7 @@ contains
       real(dp), allocatable              :: transl_mtx(:, :), m_large(:, :),m(:, :), pos(:, :)
       integer(int64), allocatable           :: site_type_in(:),dimensions(:)
       integer(int32), allocatable           :: site_type(:)
-      integer(int32)                        :: num_atoms,n_trans, istat() = 0
+      integer(int32)                        :: num_atoms,n_trans, istat(7) = 0
       integer(int32)                           :: idxstart,idxstop,i
       integer(int32)                           :: info
 
