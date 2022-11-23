@@ -320,7 +320,9 @@ contains
       
       call MPI_Comm_size(self%sample_comm, self%nProcs_sample, ierr)
       call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
-
+      if (self%me == root) then
+         write(*,*) "--- INIT HAMIL ---"
+      endif
       self%units = init_units(cfg, self%me)
       self%UC    = init_unit(cfg,sample_comm,n_sample,samples_per_comm)
 
