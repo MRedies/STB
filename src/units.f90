@@ -14,7 +14,9 @@ contains
       type(units)            :: ret
       type(CFG_t), intent(in):: cfg
       integer(int32)   , intent(in) :: me
-
+      if (self%me == root) then
+         write(*,*) "--- INIT UNITS ---"
+      endif
       ret%length      = get_unit_conv("length",      cfg, me, .True.)
       ret%energy      = get_unit_conv("energy",      cfg, me, .True.)
       ret%inv_length  = get_unit_conv("inv_length",  cfg, me, .True.)
