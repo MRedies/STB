@@ -72,7 +72,7 @@ program STB
       samples_per_comm = calc_samples_per_comm(n_sample_par,ncomms,color)
       ColQ = init_collect_quantities(cfg,prefix,sample_comm,color)
       if (me_sample==root) then
-         write(*,*) "Job Nr: ", me_sample, "Samples for this comm:", sample_per_comm
+         write(*,*) "Job Nr: ", me_sample, "Samples for this comm:", samples_per_comm
       endif
       do n_sample = color+1,n_sample_par,ncomms
          if (me_sample==root) then
