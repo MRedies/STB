@@ -22,6 +22,9 @@ contains
       ret%inv_length  = get_unit_conv("inv_length",  cfg, me, .True.)
       ret%temperature = get_unit_conv("temperature", cfg, me, .True.)
       ret%mag_dipol   = get_unit_conv("mag_dipol",   cfg, me, .True.)
+      if (me == root) then
+         write(*,*) "--- INIT UNITS 2 ---"
+      endif
    end function
 
    function get_unit_conv(field_name, cfg, me, bcast) result(factor)
