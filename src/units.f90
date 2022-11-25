@@ -31,11 +31,11 @@ contains
    function get_unit_conv(field_name, cfg, me, comm, bcast) result(factor)
       implicit none
       character(len=*), intent(in)  :: field_name
-      integer(int32)   , intent(in) :: me
-      type(MPI_Comm)   , intent(in) :: comm
+      integer(int32)  , intent(in)  :: me
+      type(MPI_Comm)  , intent(in)  :: comm
       logical, optional             :: bcast
       logical                       :: bcast_loc
-      type(CFG_t)                   :: cfg
+      type(CFG_t) .   , intent(in)  :: cfg
       real(dp)                      :: factor
       integer(int32)                :: ierr
       character(len=300)            :: unit_name
