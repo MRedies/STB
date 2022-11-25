@@ -149,7 +149,7 @@ contains
       call MPI_Comm_size(self%sample_comm, self%nProcs_sample, ierr)
       call MPI_Comm_rank(self%sample_comm, self%me_sample, ierr)
 
-      self%units = init_units(cfg, self%me, self%sample_comm)
+      self%units = init_units(cfg, self%me_sample, self%sample_comm)
 
       if (self%me_sample == root) then
          call CFG_get(cfg, "berry%pert_log", tmp_log)
