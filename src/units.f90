@@ -9,34 +9,36 @@ module class_Units
       real(dp) :: length, energy, inv_length, temperature, mag_dipol
    end type units
 contains
-   function init_units(cfg, me) result(ret)
+   function init_units(cfg, me, comm) result(ret)
       implicit none
-      type(units)            :: ret
-      type(CFG_t), intent(in):: cfg
-      integer(int32)   , intent(in) :: me
+      type(units)                   :: ret
+      type(CFG_t), intent(in)       :: cfg
+      integer(int32)   , intent(in) :: me,
+      type(MPI_Comm)   , intent(in) :: comm
       if (me == root) then
          write(*,*) "--- INIT UNITS ---"
       endif
-      ret%length      = get_unit_conv("length",      cfg, me, .True.)
-      ret%energy      = get_unit_conv("energy",      cfg, me, .True.)
-      ret%inv_length  = get_unit_conv("inv_length",  cfg, me, .True.)
-      ret%temperature = get_unit_conv("temperature", cfg, me, .True.)
-      ret%mag_dipol   = get_unit_conv("mag_dipol",   cfg, me, .True.)
+      ret%length      = get_unit_conv("length",      cfg, me, comm, .True.)
+      ret%energy      = get_unit_conv("energy",      cfg, me, comm, .True.)
+      ret%inv_length  = get_unit_conv("inv_length",  cfg, me, comm, .True.)
+      ret%temperature = get_unit_conv("temperature", cfg, me, comm, .True.)
+      ret%mag_dipol   = get_unit_conv("mag_dipol",   cfg, me, comm, .True.)
       if (me == root) then
          write(*,*) "--- INIT UNITS 2 ---"
       endif
    end function
 
-   function get_unit_conv(field_name, cfg, me, bcast) result(factor)
+   function get_unit_conv(field_name, cfg, me, comm, bcast) result(factor)
       implicit none
-      character(len=*), intent(in)        :: field_name
-      integer(int32)   , intent(in)              :: me
-      logical, optional                   :: bcast
-      logical                             :: bcast_loc
-      type(CFG_t)                         :: cfg
-      real(dp)                             :: factor
-      integer(int32)                             :: ierr
-      character(len=300)                  :: unit_name
+      character(len=*), intent(in)  :: field_name
+      integer(int32)   , intent(in) :: me
+      type(MPI_Comm)   , intent(in) :: comm
+      logical, optional             :: bcast
+      logical                       :: bcast_loc
+      type(CFG_t)                   :: cfg
+      real(dp)                      :: factor
+      integer(int32)                :: ierr
+      character(len=300)            :: unit_name
 
       if(present(bcast)) then
          bcast_loc = bcast
@@ -70,14 +72,14 @@ contains
             write (*,*) "Unit unknown"
             write (*,*) "Unit: ", trim(unit_name)
             write (*,*) "Field name: ", trim(field_name)
-            call MPI_Abort(MPI_COMM_WORLD, 13, ierr)
+            call MPI_Abort(comm, 13, ierr)
          end select
       endif
       if (me == root) then
          write(*,*) "--- GET UNIT CONV 2---"
       endif
       if(bcast_loc) then
-         call MPI_Bcast(factor, 1, MPI_REAL8, root, MPI_COMM_WORLD, ierr)
+         call MPI_Bcast(factor, 1, MPI_REAL8, root, comm, ierr)
          if(ierr /= 0) then
             write(*,*) me, "Unit Bcast failed"
             stop
