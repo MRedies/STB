@@ -33,9 +33,9 @@ contains
       character(len=*), intent(in)  :: field_name
       integer(int32)  , intent(in)  :: me
       type(MPI_Comm)  , intent(in)  :: comm
+      type(CFG_t)                   :: cfg
       logical, optional             :: bcast
       logical                       :: bcast_loc
-      type(CFG_t)     , intent(in)  :: cfg
       real(dp)                      :: factor
       integer(int32)                :: ierr
       character(len=300)            :: unit_name
