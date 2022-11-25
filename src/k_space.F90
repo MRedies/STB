@@ -391,7 +391,7 @@ contains
       if (self%me == root) then
          write(*,*) "--- INIT KSPACE ---"
       endif
-      self%units = init_units(cfg, self%me)
+      self%units = init_units(cfg, self%me, self%sample_comm)
       self%ham   = init_hamil(cfg,sample_comm,n_sample,samples_per_comm)    
       
       if(self%me_sample ==  root) then

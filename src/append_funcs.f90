@@ -43,7 +43,7 @@ module Class_append_funcs
     
             call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
             call MPI_Comm_rank(sample_comm, self%me_sample, ierr)
-            self%units = init_units(cfg, self%me)
+            self%units = init_units(cfg, self%me, sample_comm)
             self%prefix = trim(prefix)
             self%color = color
         end function init_collect_quantities
