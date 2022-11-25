@@ -13,7 +13,7 @@ contains
       implicit none
       type(units)                   :: ret
       type(CFG_t), intent(in)       :: cfg
-      integer(int32)   , intent(in) :: me,
+      integer(int32)   , intent(in) :: me
       type(MPI_Comm)   , intent(in) :: comm
       if (me == root) then
          write(*,*) "--- INIT UNITS ---"
