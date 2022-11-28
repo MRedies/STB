@@ -15,17 +15,11 @@ contains
       type(CFG_t), intent(in)       :: cfg
       integer(int32)   , intent(in) :: me
       type(MPI_Comm)   , intent(in) :: comm
-      if (me == root) then
-         write(*,*) "--- INIT UNITS ---"
-      endif
       ret%length      = get_unit_conv("length",      cfg, me, comm, .True.)
       ret%energy      = get_unit_conv("energy",      cfg, me, comm, .True.)
       ret%inv_length  = get_unit_conv("inv_length",  cfg, me, comm, .True.)
       ret%temperature = get_unit_conv("temperature", cfg, me, comm, .True.)
       ret%mag_dipol   = get_unit_conv("mag_dipol",   cfg, me, comm, .True.)
-      if (me == root) then
-         write(*,*) "--- INIT UNITS 2 ---"
-      endif
    end function
 
    function get_unit_conv(field_name, cfg, me, comm, bcast) result(factor)
