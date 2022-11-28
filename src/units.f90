@@ -45,9 +45,7 @@ contains
       else
          bcast_loc = .True.
       endif
-      if (me == root) then
-         write(*,*) "--- GET UNIT CONV ---"
-      endif
+
       if(me == root) then
          call CFG_get(cfg, "units%" // trim(field_name), unit_name)
 
@@ -75,18 +73,13 @@ contains
             call MPI_Abort(comm, 13, ierr)
          end select
       endif
-      if (me == root) then
-         write(*,*) "--- GET UNIT CONV 2---"
-      endif
+
       if(bcast_loc) then
          call MPI_Bcast(factor, 1, MPI_REAL8, root, comm, ierr)
          if(ierr /= 0) then
             write(*,*) me, "Unit Bcast failed"
             stop
          endif
-      endif
-      if (me == root) then
-         write(*,*) "--- GET UNIT CONV 3---"
       endif
 
    end function get_unit_conv
