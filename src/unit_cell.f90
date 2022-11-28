@@ -139,9 +139,6 @@ contains
       logical                         :: tmp_log
       call MPI_Comm_size(MPI_COMM_WORLD, self%nProcs, ierr)
       call MPI_Comm_rank(MPI_COMM_WORLD, self%me, ierr)
-      if (self%me == root) then
-         write(*,*) "--- INIT UNIT CELL ---"
-      endif
       self%sample_comm = sample_comm
       self%sample_idx = n_sample
       self%samples_per_comm = samples_per_comm
