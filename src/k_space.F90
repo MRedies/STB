@@ -1082,7 +1082,7 @@ contains
       n_ferm =  size(self%ham%E_fermi)
       num_up =  self%ham%num_up
 
-      call my_section(self%me_sample, self%nProcs, N_k, first, last)
+      call my_section(self%me_sample, self%nProcs_sample, N_k, first, last)
 
       err =  0
       allocate(eig_val_new(2*num_up, last-first+1), stat=err(1))
