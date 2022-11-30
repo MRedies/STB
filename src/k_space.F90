@@ -1211,7 +1211,7 @@ contains
                         root,        self%sample_comm, ierr)
          deallocate(num_elems,offsets)
       endif
-      if (self%sample_idx==1 .and. self%me==root) then
+      if (self%sample_idx==1 .and. self%me_sample==root) then
          write (filename, "(A,I0.5,A)") trim(var_name) // "_iter=", iter, ".npy"
          call save_npy(trim(self%prefix) // trim(filename), var)
 
@@ -1226,7 +1226,7 @@ contains
       rel_error = my_norm2(var - var_old) &
                   / (self%kpts_per_step * self%nProcs * my_norm2(var))!/ (1d0*size(var))
 
-      if (self%sample_idx==1 .and. self%me==root) then
+      if (self%sample_idx==1 .and. self%me_sample==root) then
          write (*,"(I5,A,A,A,I7,A,ES10.3)") iter, " var: ", var_name, &
             " nkpts ", size(self%all_k_pts,2),&
             " err ", rel_error
@@ -1279,7 +1279,7 @@ contains
                         root,        self%sample_comm, ierr)
          deallocate(num_elems,offsets)
       endif
-      if (self%sample_idx==1 .and. self%me==root) then
+      if (self%sample_idx==1 .and. self%me_sample==root) then
          write (filename, "(A,I0.5,A)") trim(var_name) // "_iter=", iter, ".npy"
          call save_npy(trim(self%prefix) // trim(filename), var)
 
@@ -1424,7 +1424,7 @@ contains
       all_err = 0
       if(allocated(hall)) deallocate(hall)
       allocate(hall(size(self%ham%E_fermi)), stat=all_err(1))
-      call check_ierr(all_err, self%me, "integrate hall allocation")
+      call check_ierr(all_err, self%me_sample, "integrate hall allocation")
 
       !run triangulation
       call run_triang(self%all_k_pts, self%elem_nodes)
@@ -1447,13 +1447,13 @@ contains
       ierr = 0
       if(self%me == root) then
          call MPI_Reduce(MPI_IN_PLACE, hall(1:size(hall)), size(hall), MPI_REAL8, &
-                         MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+                         MPI_SUM, root, self%sample_comm, ierr(1))
       else
          call MPI_Reduce(hall(1:size(hall)), hall(1:size(hall)), size(hall), MPI_REAL8, &
-                         MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+                         MPI_SUM, root, self%sample_comm, ierr(1))
       endif
       call MPI_Bcast(hall(1:size(hall)), size(hall), MPI_REAL8, root, &
-                     MPI_COMM_WORLD, ierr(2))
+                     self%sample_comm, ierr(2))
       call check_ierr(ierr, self%me, "Hall conductance")
    end subroutine integrate_hall_sea
 
@@ -1470,7 +1470,7 @@ contains
       all_err = 0
       if(allocated(hall)) deallocate(hall)
       allocate(hall(size(self%ham%E_fermi)), stat=all_err(1))
-      call check_ierr(all_err, self%me, "integrate hall allocation")
+      call check_ierr(all_err, self%me_sample, "integrate hall allocation")
 
       !run triangulation
       call run_triang(self%all_k_pts, self%elem_nodes)
@@ -1493,13 +1493,13 @@ contains
       ierr = 0
       if(self%me == root) then
          call MPI_Reduce(MPI_IN_PLACE, hall(1:size(hall)), size(hall), MPI_REAL8, &
-                         MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+                         MPI_SUM, root, self%sample_comm, ierr(1))
       else
          call MPI_Reduce(hall(1:size(hall)), hall(1:size(hall)), size(hall), MPI_REAL8, &
-                         MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+                         MPI_SUM, root, self%sample_comm, ierr(1))
       endif
       call MPI_Bcast(hall(1:size(hall)), size(hall), MPI_REAL8, root, &
-                     MPI_COMM_WORLD, ierr(2))
+                     self%sample_comm, ierr(2))
       call check_ierr(ierr, self%me, "Hall conductance")
    end subroutine integrate_hall_surf
 
@@ -1517,7 +1517,7 @@ contains
       all_err = 0
       if(allocated(hall)) deallocate(hall)
       allocate(hall(size(self%ham%E_fermi)), stat=all_err(1))
-      call check_ierr(all_err, self%me, "integrate hall allocation")
+      call check_ierr(all_err, self%m_samplee, "integrate hall allocation")
 
       !run triangulation
       call run_triang(self%all_k_pts, self%elem_nodes)
@@ -1545,16 +1545,16 @@ contains
 
       ! Allreduce is not suitable for convergence criteria
       ierr = 0
-      if(self%me == root) then
+      if(self%me_sample == root) then
          call MPI_Reduce(MPI_IN_PLACE, hall(1:size(hall)), size(hall), MPI_REAL8, &
-                         MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+                         MPI_SUM, root, self%sample_comm, ierr(1))
       else
          call MPI_Reduce(hall(1:size(hall)), hall(1:size(hall)), size(hall), MPI_REAL8, &
-                         MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+                         MPI_SUM, root, self%sample_comm, ierr(1))
       endif
       call MPI_Bcast(hall(1:size(hall)), size(hall), MPI_REAL8, root, &
-                     MPI_COMM_WORLD, ierr(2))
-      call check_ierr(ierr, self%me, "Hall conductance")
+                     self%sample_comm, ierr(2))
+      call check_ierr(ierr, self%me_sample, "Hall conductance")
    end subroutine integrate_hall
 
    subroutine integrate_orbmag(self, Q_kidx_all, Q_L_all, Q_IC_all, orb_mag, orbmag_L, orbmag_IC)
@@ -1670,13 +1670,13 @@ contains
       ierr = 0
       if(self%me == root) then
          call MPI_Reduce(MPI_IN_PLACE, self%refine_weights(1:n_elem), n_elem,&
-                         MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+                         MPI_REAL8, MPI_SUM, root, self%sample_comm, ierr(1))
       else
          call MPI_Reduce(self%refine_weights(1:n_elem),self%refine_weights(1:n_elem), n_elem, &
-                         MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
+                         MPI_REAL8, MPI_SUM, root, self%sample_comm, ierr(1))
       endif
       call MPI_Bcast(self%refine_weights(1:n_elem), n_elem, MPI_REAL8, &
-                     root, MPI_COMM_WORLD, ierr(2))
+                     root, self%sample_comm, ierr(2))
       call check_ierr(ierr, self%me, " hall: set_refine_weights")
 
    end subroutine set_hall_weights
