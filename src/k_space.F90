@@ -1907,6 +1907,8 @@ contains
          call self%setup_inte_grid_hex(self%berry_num_k_pts)
       elseif(trim(self%ham%UC%uc_type) == "honey_line") then
          call self%setup_inte_grid_para(self%berry_num_k_pts)!self%setup_inte_grid_para_spiral(self%berry_num_k_pts)
+      else if (trim(self%ham%UC%uc_type) == "file_honey_htp") then
+         call self%setup_inte_grid_hex(self%berry_num_k_pts)
       else
          call error_msg("berry k-grid not known", abort=.True.)
       endif

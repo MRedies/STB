@@ -187,7 +187,7 @@ module Class_append_funcs
 
                 isize = shape(self%int_DOS_collect)
                 allocate(tmp(isize(1),isize(2)),stat = istat(2))
-                tmp = self%int_DOS_collect
+                tmp = self%int_DOS_collect * self%units%energy
                 write (filename,  "(A,I0.6,A)") "int_DOS_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), tmp)
                 deallocate(tmp)
