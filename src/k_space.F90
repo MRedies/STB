@@ -1053,7 +1053,7 @@ contains
       integer(int32)                      :: err(1)
 
       N_k = size(self%new_k_pts, 2)
-      call my_section(self%me, self%nProcs_sample, N_k, first, last)
+      call my_section(self%me_sample, self%nProcs_sample, N_k, first, last)
       allocate(kidx_new(last-first+1),      stat=err(1))
       call check_ierr(err, self%me, "new kidx")
 
@@ -1082,7 +1082,7 @@ contains
       n_ferm =  size(self%ham%E_fermi)
       num_up =  self%ham%num_up
 
-      call my_section(self%me, self%nProcs, N_k, first, last)
+      call my_section(self%me_sample, self%nProcs, N_k, first, last)
 
       err =  0
       allocate(eig_val_new(2*num_up, last-first+1), stat=err(1))
@@ -2265,7 +2265,7 @@ contains
          .or.trim(self%ham%UC%uc_type) == "file_square" ) then
          call self%setup_inte_grid_para(self%ACA_num_k_pts, padding=.False.)
          N_k = size(self%new_k_pts, 2)
-         call my_section(self%me, self%nProcs, N_k, first, last)
+         call my_section(self%me_sample, self%nProcs, N_k, first, last)
 
          do k_idx = first, last
             if(self%me == root) write (*,*) "Go kpt", k_idx, "of", last, date_time()
