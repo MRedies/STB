@@ -2265,7 +2265,7 @@ contains
          .or.trim(self%ham%UC%uc_type) == "file_square" ) then
          call self%setup_inte_grid_para(self%ACA_num_k_pts, padding=.False.)
          N_k = size(self%new_k_pts, 2)
-         call my_section(self%me_sample, self%nProcs, N_k, first, last)
+         call my_section(self%me_sample, self%nProcs_sample, N_k, first, last)
 
          do k_idx = first, last
             if(self%me == root) write (*,*) "Go kpt", k_idx, "of", last, date_time()
