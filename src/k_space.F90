@@ -1668,7 +1668,7 @@ contains
       enddo
 
       ierr = 0
-      if(self%me == root) then
+      if(self%me_sample == root) then
          call MPI_Reduce(MPI_IN_PLACE, self%refine_weights(1:n_elem), n_elem,&
                          MPI_REAL8, MPI_SUM, root, self%sample_comm, ierr(1))
       else
@@ -1717,7 +1717,7 @@ contains
       enddo
 
       ierr =  0
-      if(self%me == root) then
+      if(self%me_sample == root) then
          call MPI_Reduce(MPI_IN_PLACE, self%refine_weights(1:n_elem), n_elem,&
                          MPI_REAL8, MPI_SUM, root, MPI_COMM_WORLD, ierr(1))
       else
