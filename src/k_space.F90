@@ -1445,7 +1445,7 @@ contains
 
       ! Allreduce is not suitable for convergence criteria
       ierr = 0
-      if(self%me == root) then
+      if(self%me_sample == root) then
          call MPI_Reduce(MPI_IN_PLACE, hall(1:size(hall)), size(hall), MPI_REAL8, &
                          MPI_SUM, root, self%sample_comm, ierr(1))
       else
@@ -1491,7 +1491,7 @@ contains
 
       ! Allreduce is not suitable for convergence criteria
       ierr = 0
-      if(self%me == root) then
+      if(self%me_sample == root) then
          call MPI_Reduce(MPI_IN_PLACE, hall(1:size(hall)), size(hall), MPI_REAL8, &
                          MPI_SUM, root, self%sample_comm, ierr(1))
       else
