@@ -1517,7 +1517,7 @@ contains
       all_err = 0
       if(allocated(hall)) deallocate(hall)
       allocate(hall(size(self%ham%E_fermi)), stat=all_err(1))
-      call check_ierr(all_err, self%m_samplee, "integrate hall allocation")
+      call check_ierr(all_err, self%m_sample, "integrate hall allocation")
 
       !run triangulation
       call run_triang(self%all_k_pts, self%elem_nodes)
