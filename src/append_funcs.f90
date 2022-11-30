@@ -57,7 +57,7 @@ module Class_append_funcs
     
             if(self%me_sample==root) then
                 if(.NOT. allocated(self%hall_collect)) then
-                    allocate(self%DOS_collect(1,size(hall)),stat = istat(1))
+                    allocate(self%hall_collect(1,size(hall)),stat = istat(1))
                     call check_ierr(istat, me_in=self%me_sample, msg=["Failed allocation in append_func%add_hall_collect"])
                     self%hall_collect(1,:) = hall
                 else
