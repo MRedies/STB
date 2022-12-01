@@ -66,6 +66,9 @@ module Class_append_funcs
                 else
                     call add_to_arr2D_real(self%hall_collect,hall)
                 endif
+            endif
+        end subroutine
+        
         subroutine add_hall_diag_collect(self,surf,sea)
             use mpi_f08
             implicit none
