@@ -32,6 +32,7 @@ module Class_append_funcs
         procedure :: save_spins_collect => save_spins_collect
         procedure :: save_bands_collect => save_bands_collect
         procedure :: save_hall_collect => save_hall_collect
+        procedure :: save_hall_diag_collect => save_hall_diag_collect
     end type collect_quantities
     
     contains
@@ -68,7 +69,7 @@ module Class_append_funcs
                 endif
             endif
         end subroutine
-        
+
         subroutine add_hall_diag_collect(self,surf,sea)
             use mpi_f08
             implicit none
