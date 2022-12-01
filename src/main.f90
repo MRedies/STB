@@ -100,7 +100,7 @@ program STB
                call ColQ%save_hall_collect()
             endif
             if (calc_hall_diag) then
-               call ColQ%save_hall_diag_collect(Ksp%hall_surf,Ksp%hall_sea)
+               call ColQ%save_hall_diag_collect()
             endif
             call ColQ%save_sample_idx()
             call ColQ%save_spins_collect()
