@@ -1035,8 +1035,10 @@ contains
 
       if(self%me_sample == root) then
          self%hall = hall
-         self%hall_surf = hall_surf
-         self%hall_sea = hall_sea
+         if (self%calc_hall_diag) then
+            self%hall_surf = hall_surf
+            self%hall_sea = hall_sea
+         endif
       endif
 
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)

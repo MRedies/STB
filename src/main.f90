@@ -20,7 +20,7 @@ program STB
                                       ,min_comm_size=8,ncomms
    type(MPI_Comm)                  :: sample_comm
    integer(int64)   , allocatable  :: dimensions(:)
-   logical                         :: perform_band, perform_dos, calc_hall
+   logical                         :: perform_band, perform_dos, calc_hall,calc_hall_diag
    type(CFG_t)                     :: cfg
    character(len=300), allocatable :: inp_files(:)
    character(len=300)              :: dim_file,prefix,uctype
@@ -54,6 +54,7 @@ program STB
          call CFG_get(cfg, "band%perform_band", perform_band)
          call CFG_get(cfg, "dos%perform_dos",   perform_dos)
          call CFG_get(cfg, "berry%calc_hall",   calc_hall)
+         call CFG_get(cfg, "berry%calc_hall",   calc_hall_diag)
          write(*,*) "N Samples: " ,n_sample_par
       endif
       call MPI_Bcast(prefix(1:300),   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
@@ -62,6 +63,7 @@ program STB
       call MPI_Bcast(perform_band, 1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(perform_dos,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(calc_hall,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(calc_hall_diag,  1,  MPI_LOGICAL,   root, MPI_COMM_WORLD, ierr)
       call calc_color(min_comm_size,nProcs,n_sample_par,me,color)
       !sorting in new comm according to rank in world
       call judft_comm_split(MPI_COMM_WORLD, color, me, sample_comm)
@@ -96,6 +98,9 @@ program STB
             endif
             if(calc_hall) then
                call ColQ%save_hall_collect()
+            endif
+            if (calc_hall_diag) then
+               call ColQ%add_hall_diag_collect(Ksp%hall_surf,Ksp%hall_sea)
             endif
             call ColQ%save_sample_idx()
             call ColQ%save_spins_collect()
@@ -218,10 +223,13 @@ contains
          call Ksp%calc_berry_quantities(pert_log)
          if (me_sample==root) then
             if(trim(uctype)=="file_honey_htp") then
-               call ColQ%add_hall_collect(Ksp%hall,Ksp%hall_surf,Ksp%hall_sea)
+               call ColQ%add_hall_collect(Ksp%hall)
                deallocate(Ksp%hall)
-               deallocate(Ksp%hall_surf)
-               deallocate(Ksp%hall_sea)
+               if (Ksp%calc_hall_diag) then
+                  call ColQ%add_hall_diag_collect(Ksp%hall_surf,Ksp%hall_sea)
+                  deallocate(Ksp%hall_surf)
+                  deallocate(Ksp%hall_sea)
+               endif
             endif
          endif
       endif

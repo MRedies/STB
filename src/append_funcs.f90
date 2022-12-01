@@ -24,6 +24,7 @@ module Class_append_funcs
         procedure :: add_bands_collect => add_bands_collect
         procedure :: add_DOS_collect => add_DOS_collect
         procedure :: add_hall_collect => add_hall_collect
+        procedure :: add_hall_diag_collect => add_hall_diag_collect
         procedure :: add_spins_collect => add_spins_collect
         procedure :: add_sample_idx => add_sample_idx
         procedure :: save_sample_idx => save_sample_idx
@@ -50,11 +51,11 @@ module Class_append_funcs
             self%color = color
         end function init_collect_quantities
 
-        subroutine add_hall_collect(self, hall,surf,sea)
+        subroutine add_hall_collect(self, hall)
             use mpi_f08
             implicit none
             class(collect_quantities)           :: self
-            real(dp), intent(in)                :: hall(:),surf(:),sea(:)
+            real(dp), intent(in)                :: hall(:)
             integer                             :: istat(1)=0
     
             if(self%me_sample==root) then
@@ -65,6 +66,14 @@ module Class_append_funcs
                 else
                     call add_to_arr2D_real(self%hall_collect,hall)
                 endif
+        subroutine add_hall_diag_collect(self,surf,sea)
+            use mpi_f08
+            implicit none
+            class(collect_quantities)           :: self
+            real(dp), intent(in)                :: surf(:),sea(:)
+            integer                             :: istat(1)=0
+    
+            if(self%me_sample==root) then
                 if(.NOT. allocated(self%surf_collect)) then
                     allocate(self%surf_collect(1,size(surf)),stat = istat(1))
                     call check_ierr(istat, me_in=self%me_sample, msg=["Failed allocation in append_func%add_hall_collect"])
@@ -250,6 +259,21 @@ module Class_append_funcs
             if(self%me_sample ==  root) then
                 write (filename,  "(A,I0.6,A)") "hall_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%hall_collect)
+            endif
+        end subroutine
+
+        subroutine save_hall_diag_collect(self)
+            use mpi_f08
+            implicit none
+            class(collect_quantities)           :: self
+            character(len=300)                  :: filename
+            
+    
+            if(self%me_sample ==  root) then
+                write (filename,  "(A,I0.6,A)") "hall_surf_collect=", self%color,".npy"
+                call save_npy(trim(self%prefix) //  trim(filename), self%surf_collect)
+                write (filename,  "(A,I0.6,A)") "hall_sea_collect=", self%color,".npy"
+                call save_npy(trim(self%prefix) //  trim(filename), self%sea_collect)
             endif
         end subroutine
 
