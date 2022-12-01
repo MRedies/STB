@@ -10,6 +10,8 @@ module Class_append_funcs
         real(dp), allocatable ::  int_DOS_collect(:,:)
         real(dp), allocatable ::  DOS_collect(:,:)
         real(dp), allocatable ::  hall_collect(:,:)
+        real(dp), allocatable ::  surf_collect(:,:)
+        real(dp), allocatable ::  sea_collect(:,:)
         real(dp), allocatable ::  up_collect(:,:)
         real(dp), allocatable ::  down_collect(:,:)
         real(dp), allocatable ::  spins_collect(:,:)
@@ -48,11 +50,11 @@ module Class_append_funcs
             self%color = color
         end function init_collect_quantities
 
-        subroutine add_hall_collect(self, hall)
+        subroutine add_hall_collect(self, hall,surf,sea)
             use mpi_f08
             implicit none
             class(collect_quantities)           :: self
-            real(dp), intent(in)                :: hall(:)
+            real(dp), intent(in)                :: hall(:),surf(:),sea(:)
             integer                             :: istat(1)=0
     
             if(self%me_sample==root) then
@@ -62,6 +64,20 @@ module Class_append_funcs
                     self%hall_collect(1,:) = hall
                 else
                     call add_to_arr2D_real(self%hall_collect,hall)
+                endif
+                if(.NOT. allocated(self%surf_collect)) then
+                    allocate(self%surf_collect(1,size(surf)),stat = istat(1))
+                    call check_ierr(istat, me_in=self%me_sample, msg=["Failed allocation in append_func%add_hall_collect"])
+                    self%surf_collect(1,:) = surf
+                else
+                    call add_to_arr2D_real(self%surf_collect,surf)
+                endif
+                if(.NOT. allocated(self%sea_collect)) then
+                    allocate(self%sea_collect(1,size(sea)),stat = istat(1))
+                    call check_ierr(istat, me_in=self%me_sample, msg=["Failed allocation in append_func%add_hall_collect"])
+                    self%sea_collect(1,:) = sea
+                else
+                    call add_to_arr2D_real(self%sea_collect,sea)
                 endif
             endif
         end subroutine

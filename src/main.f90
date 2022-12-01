@@ -218,8 +218,10 @@ contains
          call Ksp%calc_berry_quantities(pert_log)
          if (me_sample==root) then
             if(trim(uctype)=="file_honey_htp") then
-               call ColQ%add_hall_collect(Ksp%hall)
+               call ColQ%add_hall_collect(Ksp%hall,Ksp%hall_surf,Ksp%hall_sea)
                deallocate(Ksp%hall)
+               deallocate(Ksp%hall_surf)
+               deallocate(Ksp%hall_sea)
             endif
          endif
       endif

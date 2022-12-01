@@ -14,7 +14,7 @@ module Class_k_space
       real(dp), allocatable :: eig_val(:,:)
       real(dp), allocatable :: int_DOS(:) !> integrated Density of states
       real(dp), allocatable :: DOS(:), up(:), down(:)
-      real(dp), allocatable :: E_DOS(:), hall(:)
+      real(dp), allocatable :: E_DOS(:), hall(:), hall_surf(:), hall_sea(:)
       real(dp)              :: DOS_gamma !> broadening \f$ \Gamma \f$ used in
       !> DOS calculations
       real(dp)              :: DOS_lower !> lower energy bound for DOS calc
@@ -1035,6 +1035,8 @@ contains
 
       if(self%me_sample == root) then
          self%hall = hall
+         self%hall_surf = hall_surf
+         self%hall_sea = hall_sea
       endif
 
       if(allocated(self%new_k_pts)) deallocate(self%new_k_pts)
