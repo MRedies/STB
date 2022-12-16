@@ -92,15 +92,27 @@ program STB
          if(trim(uctype)=="file_honey_htp") then
             if(perform_dos) then
                call ColQ%save_DOS_collect()
+               if (me==root) then
+                  write(*,*) "---- Saved DOS ----"
+               endif
             endif
             if(perform_band) then
                call ColQ%save_bands_collect()
+               if (me==root) then
+                  write(*,*) "---- Saved Bands ----"
+               endif
             endif
             if(calc_hall) then
                call ColQ%save_hall_collect()
+               if (me==root) then
+                  write(*,*) "---- Saved Hall ----"
+               endif
             endif
             if (calc_hall_diag) then
                call ColQ%save_hall_diag_collect()
+               if (me==root) then
+                  write(*,*) "---- Saved Hall diag ----"
+               endif
             endif
             call ColQ%save_sample_idx()
             call ColQ%save_spins_collect()
