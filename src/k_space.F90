@@ -1022,7 +1022,7 @@ contains
             call error_msg("weights unknown", abort=.True.)
          endif
          call save_grid(self,iter)
-         call self%add_kpts_iter(self%kpts_per_step*self%nProcs, self%new_k_pts)
+         call self%add_kpts_iter(self%kpts_per_step*self%nProcs_sample, self%new_k_pts)
       enddo
       if(self%calc_hall) then
          call self%finalize_hall(hall,omega_z_all)
