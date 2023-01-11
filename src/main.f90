@@ -115,7 +115,13 @@ program STB
                endif
             endif
             call ColQ%save_sample_idx()
+            if (me==root) then
+               write(*,*) "---- Saved sample idx ----"
+            endif
             call ColQ%save_spins_collect()
+            if (me==root) then
+               write(*,*) "---- Saved spin collect ----"
+            endif
          endif
       endif
    else
