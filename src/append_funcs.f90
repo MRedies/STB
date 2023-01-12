@@ -236,7 +236,7 @@ module Class_append_funcs
                 
                 call check_ierr(istat, me_in=self%me_sample, msg=["Failed allocation in append_func%save_DOS_collect"])
                 
-                deallocate(tmp)
+                deallocate(tmp,self%DOS_collect,self%int_DOS_collect,self%up_collect,self%down_collect)
             endif
         end subroutine
 
@@ -250,6 +250,8 @@ module Class_append_funcs
             if(self%me_sample ==  root) then
                 write (filename,  "(A,I0.6,A)") "spins_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%spins_collect)
+                
+                deallocate(self%spins_collect)
             endif
         end subroutine
 
@@ -263,6 +265,7 @@ module Class_append_funcs
             if(self%me_sample ==  root) then
                 write (filename,  "(A,I0.6,A)") "hall_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%hall_collect)
+                deallocate(self%hall_collect)
             endif
         end subroutine
 
@@ -278,6 +281,7 @@ module Class_append_funcs
                 call save_npy(trim(self%prefix) //  trim(filename), self%surf_collect)
                 write (filename,  "(A,I0.6,A)") "hall_sea_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%sea_collect)
+                deallocate(self%surf_collect,self%sea_collect)
             endif
         end subroutine
 
@@ -291,6 +295,7 @@ module Class_append_funcs
             if(self%me_sample ==  root) then
                 write (filename,  "(A,I0.6,A)") "bands_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%bands_collect/self%units%energy)
+                deallocate(self%bands_collect)
             endif
         end subroutine
 
@@ -304,6 +309,7 @@ module Class_append_funcs
             if(self%me_sample ==  root) then
                 write (filename,  "(A,I0.6,A)") "sample_idx_collect=", self%color,".npy"
                 call save_npy(trim(self%prefix) //  trim(filename), self%sample_idx)
+                deallocate(self%sample_idx)
             endif
         end subroutine
 
