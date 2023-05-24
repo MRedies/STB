@@ -54,7 +54,7 @@ program STB
          call CFG_get(cfg, "band%perform_band", perform_band)
          call CFG_get(cfg, "dos%perform_dos",   perform_dos)
          call CFG_get(cfg, "berry%calc_hall",   calc_hall)
-         call CFG_get(cfg, "berry%calc_hall",   calc_hall_diag)
+         call CFG_get(cfg, "berry%calc_hall_diag",   calc_hall_diag)
          write(*,*) "N Samples: " ,n_sample_par
       endif
       call MPI_Bcast(prefix(1:300),   300, MPI_CHARACTER, root, MPI_COMM_WORLD, ierr)
